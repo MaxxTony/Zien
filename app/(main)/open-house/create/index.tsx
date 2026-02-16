@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { router, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -65,19 +65,37 @@ const TEMPLATES: TemplateItem[] = [
     id: 'platinum-elite',
     name: 'Platinum Elite',
     category: 'LUXURY',
-    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600',
+    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600',
   },
   {
     id: 'urban-minimal',
     name: 'Urban Minimal',
     category: 'MODERN',
-    image: 'https://images.unsplash.com/photo-1616594032644-6d0e2f1c2b9a?w=600',
+    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600',
   },
   {
     id: 'safe-haven',
     name: 'Safe Haven',
     category: 'FAMILY',
+    image: 'https://images.unsplash.com/photo-1616594032644-6d0e2f1c2b9a?w=600',
+  },
+  {
+    id: 'coastal-breeze',
+    name: 'Coastal Breeze',
+    category: 'COASTAL',
     image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600',
+  },
+  {
+    id: 'executive-noir',
+    name: 'Executive Noir',
+    category: 'PREMIUM',
+    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600',
+  },
+  {
+    id: 'timeless-estate',
+    name: 'Timeless Estate',
+    category: 'CLASSIC',
+    image: 'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=600',
   },
 ];
 
@@ -139,6 +157,7 @@ export default function OpenHouseCreateScreen() {
           completedCheckColor="#FFFFFF"
           labelFontSize={10}
           activeLabelFontSize={10}
+
         >
           <ProgressStep label="PROPERTY" removeBtnRow>
             <Step1SelectProperty
@@ -208,11 +227,18 @@ function Step1SelectProperty({
           Which property are we showing this weekend?
         </Text>
       </View>
-      <Pressable style={styles.addPropertyCard}>
-        <MaterialCommunityIcons name="plus" size={40} color="#9CA3AF" />
-        <Text style={styles.addPropertyText}>Add New Property</Text>
-      </Pressable>
-      <View style={styles.propertyList}>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.propertiesScrollContent}
+        style={styles.propertiesScroll}
+      >
+        <Pressable style={styles.addPropertyCard} onPress={() => router.push('/(main)/properties/create')}>
+          <View style={styles.addPropertyIconWrap}>
+            <MaterialCommunityIcons name="plus" size={32} color="#9CA3AF" />
+          </View>
+          <Text style={styles.addPropertyText}>Add New Property</Text>
+        </Pressable>
         {PROPERTIES.map((property) => {
           const isSelected = selectedPropertyId === property.id;
           return (
@@ -226,21 +252,19 @@ function Step1SelectProperty({
                   style={styles.propertyCardImage}
                   contentFit="cover"
                 />
+                {isSelected && (
+                  <View style={styles.selectedOverlay}>
+                    <MaterialCommunityIcons name="check-circle" size={32} color="#0D9488" />
+                  </View>
+                )}
               </View>
               <View style={styles.propertyCardBody}>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    property.status === 'NEEDS REVIEW' && styles.statusBadgeReview,
-                  ]}>
-                  <Text
-                    style={[
-                      styles.statusBadgeText,
-                      property.status === 'NEEDS REVIEW' && styles.statusBadgeTextReview,
-                    ]}>
-                    {property.status}
-                  </Text>
-                </View>
+                <Text style={[
+                  styles.statusText,
+                  property.status === 'NEEDS REVIEW' ? styles.statusTextReview : styles.statusTextReady
+                ]}>
+                  {property.status}
+                </Text>
                 <Text style={styles.propertyAddress} numberOfLines={2}>
                   {property.address}
                 </Text>
@@ -248,7 +272,9 @@ function Step1SelectProperty({
             </Pressable>
           );
         })}
-      </View>
+
+
+      </ScrollView>
     </View>
   );
 }
@@ -332,12 +358,6 @@ function Step2Details({
         </Text>
       </View>
       <View style={styles.formCardWrap}>
-        <LinearGradient
-          colors={['#0D9488', '#0B8B7E']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.formCardBorder}
-        />
         <View style={styles.formCard}>
           <Text style={styles.sectionLabel}>SCHEDULE</Text>
           <View style={styles.field}>
@@ -471,49 +491,45 @@ function Step3SelectTemplate({
 }) {
   return (
     <View style={styles.stepContent}>
-      <View style={styles.templateTitleRow}>
-        <View style={styles.templateTitleBlock}>
-          <Text style={styles.screenTitle}>Select Design Template</Text>
-          <Text style={styles.templateSubtitle}>
-            Choose a style that matches the property vibe.
-          </Text>
-        </View>
+      <View style={styles.titleBlock}>
+        <Text style={styles.screenTitle}>Select Design Template</Text>
+        <Text style={styles.screenSubtitle}>
+          Choose a style that matches the property vibe.
+        </Text>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.templateScrollContent}
-        style={styles.templateScroll}>
+
+      <ScrollView contentContainerStyle={styles.templateGrid} showsVerticalScrollIndicator={false}>
         {TEMPLATES.map((template) => {
           const isSelected = selectedTemplateId === template.id;
           return (
             <Pressable
               key={template.id}
-              style={[styles.templateCard, isSelected && styles.templateCardSelected]}
+              style={[styles.templateCardPro, isSelected && styles.templateCardProSelected]}
               onPress={() => onSelectTemplate(template.id)}>
-              <View style={styles.templateCardImageWrap}>
-                <Image
-                  source={{ uri: template.image }}
-                  style={styles.templateCardImage}
-                  contentFit="cover"
-                />
-                <Text style={styles.templateWatermark} numberOfLines={1}>
-                  {template.name}
-                </Text>
-              </View>
+              <Image
+                source={{ uri: template.image }}
+                style={styles.templateCardImage}
+                contentFit="cover"
+              />
               <LinearGradient
-                colors={['#7DD3C7', '#0B2D3E']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.templateCardFooter}>
-                <Text style={styles.templateCategory}>{template.category}</Text>
-                <Text style={styles.templateName}>{template.name}</Text>
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.templateOverlay}
+              >
+                <Text style={styles.templateCategoryPro}>{template.category}</Text>
+                <Text style={styles.templateNamePro}>{template.name}</Text>
               </LinearGradient>
+
+              {isSelected && (
+                <View style={styles.templateSelectedOverlay}>
+                  <MaterialCommunityIcons name="check-circle" size={24} color="#0D9488" />
+                </View>
+              )}
             </Pressable>
           );
         })}
       </ScrollView>
-      <View style={styles.templateButtonRow}>
+
+      <View style={styles.buttonRow}>
         <Pressable style={styles.backButton} onPress={onBack}>
           <MaterialCommunityIcons name="arrow-left" size={16} color="#0B2D3E" />
           <Text style={styles.backButtonText}>Back</Text>
@@ -556,127 +572,163 @@ function Step4Customization({
   const addressLine1 = property ? property.address.split(',')[0] : '900 Ocean Blvd';
   const addressLine2 = property ? property.address.split(',').slice(1).join(',').trim() : 'Santa Monica, CA';
 
+  // Extended Brand Colors from design
+  const EXTENDED_BRAND_COLORS = ['#0B2D3E', '#0D9488', '#F97316', '#8B5CF6', '#10B981', '#DC2626', '#2563EB', '#0F172A'];
+
   return (
     <View style={styles.stepContent}>
-      <ScrollView style={styles.customizationScroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.customizationTitle}>Customize & Preview</Text>
-        <Text style={styles.customizationSubtitle}>
-          Branding, description, and lead capture for your open house.
-        </Text>
+      <ScrollView
+        style={styles.customizationScroll}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.titleBlock}>
+          <Text style={styles.screenTitle}>Customization</Text>
+          <Text style={styles.screenSubtitle}>Finalize the look and content.</Text>
+        </View>
 
-        <View style={styles.previewCard}>
-          <Text style={styles.previewCardLabel}>LIVE PREVIEW</Text>
-          <View style={styles.previewCardInner}>
-            <View style={styles.previewHeaderRow}>
-              <Text style={styles.previewBrand}>ZIEN ESTATES</Text>
-              <Text style={styles.previewTag}>EXCLUSIVE LISTING</Text>
+        {/* Live Preview Card (Paper Look) */}
+        <View style={styles.previewContainer}>
+          <Text style={styles.sectionHeaderLabel}>LIVE PRINT PREVIEW (PDF)</Text>
+          <View style={styles.paperSheet}>
+            {/* Header */}
+            <View style={styles.paperHeader}>
+              <Text style={styles.paperBrand}>ZIEN ESTATES</Text>
+              <Text style={styles.paperTag}>EXCLUSIVE LISTING</Text>
             </View>
+
+            {/* Main Image */}
             <Image
               source={{ uri: property?.image ?? PLACEHOLDER_3 }}
-              style={styles.previewPropertyImage}
+              style={styles.paperImage}
               contentFit="cover"
             />
-            <Text style={[styles.previewAddress, { color: BRAND_COLORS[accentIndex] }]}>{addressLine1}</Text>
-            <Text style={styles.previewCity}>{addressLine2}</Text>
-            <View style={styles.previewStatsRow}>
-              <Text style={styles.previewStat}>5 BEDS</Text>
-              <Text style={styles.previewStat}>4.5 BATHS</Text>
-              <Text style={styles.previewStat}>4,200 SQFT</Text>
-            </View>
-            <Text style={styles.previewDescSnippet} numberOfLines={3}>
-              {description}
-            </Text>
-            <View style={styles.previewAgentRow}>
-              <View style={styles.previewAgentAvatar} />
-              <View style={styles.previewAgentInfo}>
-                <Text style={styles.previewAgentName}>{agentName}</Text>
-                <Text style={styles.previewAgentMeta}>Premier Agent · DRE# 094021</Text>
+
+            {/* Content */}
+            <View style={styles.paperBody}>
+              <Text style={[styles.paperTitle, { color: EXTENDED_BRAND_COLORS[accentIndex] }]}>{addressLine1}</Text>
+              <Text style={styles.paperSubtitle}>{addressLine2}</Text>
+
+              <View style={styles.paperStatsRow}>
+                <View style={styles.paperStatItem}><Text style={styles.paperStatValue}>5</Text><Text style={styles.paperStatLabel}>BEDS</Text></View>
+                <View style={styles.paperDividerVertical} />
+                <View style={styles.paperStatItem}><Text style={styles.paperStatValue}>4.5</Text><Text style={styles.paperStatLabel}>BATHS</Text></View>
+                <View style={styles.paperDividerVertical} />
+                <View style={styles.paperStatItem}><Text style={styles.paperStatValue}>4,200</Text><Text style={styles.paperStatLabel}>SQFT</Text></View>
               </View>
-              {enableVisitorReg ? <View style={styles.previewQRBox}><MaterialCommunityIcons name="qrcode" size={28} color="#0B2D3E" /></View> : null}
+
+              <Text style={styles.paperDescription} numberOfLines={4} ellipsizeMode="tail">
+                {description}
+              </Text>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.paperFooter}>
+              <View style={styles.paperDividerHorizontal} />
+              <View style={styles.paperAgentRow}>
+                <View style={styles.paperAgentInfo}>
+                  <View style={styles.paperAvatar} />
+                  <View>
+                    <Text style={styles.paperAgentName}>{agentName}</Text>
+                    <Text style={styles.paperAgentRole}>Premier Agent | DRE# 094021</Text>
+                  </View>
+                </View>
+                {enableVisitorReg && (
+                  <View style={styles.paperQRCode}>
+                    <MaterialCommunityIcons name="qrcode" size={24} color="#0B2D3E" />
+                  </View>
+                )}
+              </View>
             </View>
           </View>
         </View>
 
-        <Text style={styles.customSectionLabel}>DESIGN & BRANDING</Text>
-        <View style={styles.brandingRow}>
-          {BRAND_COLORS.map((color, i) => (
-            <Pressable
-              key={color}
-              style={[
-                styles.colorSwatch,
-                { backgroundColor: color },
-                i === accentIndex && styles.colorSwatchSelected,
-              ]}
-              onPress={() => setAccentIndex(i)}
-            />
-          ))}
-          <Pressable style={styles.addColorBtn}>
-            <MaterialCommunityIcons name="plus" size={20} color="#5B6B7A" />
-          </Pressable>
-        </View>
-        <View style={styles.customButtonRow}>
-          <Pressable style={styles.outlineButton}>
-            <MaterialCommunityIcons name="file-upload-outline" size={18} color="#0B2D3E" />
-            <Text style={styles.outlineButtonText}>Upload Logo</Text>
-          </Pressable>
-          <Pressable style={styles.outlineButton}>
-            <MaterialCommunityIcons name="format-font" size={18} color="#0B2D3E" />
-            <Text style={styles.outlineButtonText}>Font Pairings</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.customSectionLabel}>AI PROPERTY DESCRIPTION</Text>
-        <View style={styles.styleTagsRow}>
-          {(DESC_STYLES as readonly string[]).map((label) => {
-            const key = label.toLowerCase() as DescStyleKey;
-            const active = descStyle === key;
-            return (
+        {/* Design & Branding Card */}
+        <View style={styles.customCard}>
+          <Text style={styles.customCardTitle}>Design & Branding</Text>
+          <View style={styles.swatchRow}>
+            {EXTENDED_BRAND_COLORS.map((color, i) => (
               <Pressable
-                key={key}
-                style={[styles.styleTag, active && styles.styleTagActive]}
-                onPress={() => setDescStyle(key)}>
-                <Text style={[styles.styleTagText, active && styles.styleTagTextActive]}>{label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <TextInput
-          style={styles.descriptionInput}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Property description..."
-          placeholderTextColor="#9CA3AF"
-          multiline
-          numberOfLines={5}
-        />
-        <Pressable style={styles.regenerateButton}>
-          <MaterialCommunityIcons name="refresh" size={18} color="#FFFFFF" />
-          <Text style={styles.regenerateButtonText}>Regenerate Description</Text>
-        </Pressable>
-
-        <Text style={styles.customSectionLabel}>LEAD CAPTURE (QR)</Text>
-        <View style={styles.leadCaptureRow}>
-          <View style={styles.leadCaptureLabelBlock}>
-            <Text style={styles.leadCaptureLabel}>Enable Visitor Registration</Text>
-            <Text style={styles.leadCaptureSub}>Automatic sync to Salesforce CRM</Text>
+                key={color}
+                style={[styles.colorSwatch, { backgroundColor: color }, i === accentIndex && styles.colorSwatchActive]}
+                onPress={() => setAccentIndex(i)}
+              />
+            ))}
+            <Pressable style={styles.addColorBtn}>
+              <MaterialCommunityIcons name="plus" size={16} color="#475569" />
+            </Pressable>
           </View>
-          <Switch
-            value={enableVisitorReg}
-            onValueChange={setEnableVisitorReg}
-            trackColor={{ false: '#E4EAF2', true: '#0D9488' }}
-            thumbColor="#FFFFFF"
-          />
+          <Text style={styles.selectedColorText}>Selected accent color: <Text style={{ fontWeight: '700', color: EXTENDED_BRAND_COLORS[accentIndex] }}>{EXTENDED_BRAND_COLORS[accentIndex]}</Text></Text>
+
+          <View style={styles.brandActionsRow}>
+            <Pressable style={styles.brandActionBtn}>
+              <Text style={styles.brandActionBtnText}>Upload Logo</Text>
+            </Pressable>
+            <Pressable style={styles.brandActionBtn}>
+              <Text style={styles.brandActionBtnText}>Font Pairings</Text>
+            </Pressable>
+          </View>
         </View>
 
-        <View style={styles.templateButtonRow}>
-          <Pressable style={styles.backButton} onPress={onBack}>
-            <MaterialCommunityIcons name="arrow-left" size={16} color="#0B2D3E" />
-            <Text style={styles.backButtonText}>Back</Text>
-          </Pressable>
-          <Pressable style={styles.finalizeButton} onPress={onFinalize}>
-            <Text style={styles.continueButtonText}>Finalize & Publish</Text>
+        {/* AI Description Card */}
+        <View style={styles.customCard}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.customCardTitle}>AI Property Description</Text>
+            <View style={styles.stylePillRow}>
+              {DESC_STYLES.map((style) => (
+                <Pressable
+                  key={style}
+                  style={[styles.stylePill, descStyle === style.toLowerCase() && styles.stylePillActive]}
+                  onPress={() => setDescStyle(style.toLowerCase() as DescStyleKey)}
+                >
+                  <Text style={[styles.stylePillText, descStyle === style.toLowerCase() && styles.stylePillTextActive]}>{style}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <TextInput
+            style={styles.aiInput}
+            multiline
+            value={description}
+            onChangeText={setDescription}
+            textAlignVertical="top"
+          />
+
+          <Pressable style={styles.regenerateBtnFull}>
+            <Text style={styles.regenerateBtnText}>Regenerate Description</Text>
+            <MaterialCommunityIcons name="magic-staff" size={16} color="#FFF" />
           </Pressable>
         </View>
+
+        {/* Lead Capture Card */}
+        <View style={styles.customCard}>
+          <View style={styles.cardHeaderRow}>
+            <View>
+              <Text style={styles.customCardTitle}>Lead Capture (QR)</Text>
+              <Text style={styles.cardSub}>Automatic sync to Salesforce CRM</Text>
+            </View>
+            <Switch
+              value={enableVisitorReg}
+              onValueChange={setEnableVisitorReg}
+              trackColor={{ false: '#E2E8F0', true: '#0D9488' }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          <Text style={styles.settingsLabel}>Enable Visitor Registration</Text>
+        </View>
+
+        {/* Bottom Actions */}
+        <View style={styles.bottomActions}>
+          <Pressable style={styles.actionBackBtn} onPress={onBack}>
+            <MaterialCommunityIcons name="arrow-left" size={16} color="#0B2D3E" />
+            <Text style={styles.actionBackText}>Back</Text>
+          </Pressable>
+          <Pressable style={styles.actionFinalizeBtn} onPress={onFinalize}>
+            <Text style={styles.actionFinalizeText}>Finalize & Publish</Text>
+          </Pressable>
+        </View>
+
       </ScrollView>
     </View>
   );
@@ -765,7 +817,6 @@ const styles = StyleSheet.create({
   },
   stepsWrapper: {
     flex: 1,
-    paddingHorizontal: H_PADDING,
   },
   stepContent: {
     paddingTop: 8,
@@ -1021,27 +1072,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
-  colorSwatch: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorSwatchSelected: {
-    borderColor: '#0B2D3E',
-    borderWidth: 3,
-  },
-  addColorBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#D1D5DB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   customButtonRow: {
     flexDirection: 'row',
     gap: 10,
@@ -1275,120 +1306,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0B2D3E',
   },
-  titleBlock: {
-    paddingTop: 0,
-    paddingBottom: 16,
-  },
-  screenTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    letterSpacing: -0.3,
-    marginBottom: 6,
-  },
-  screenSubtitle: {
-    fontSize: 14,
-    color: '#5B6B7A',
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-  detailsTitleBlock: {
-    paddingTop: 0,
-    paddingBottom: 14,
-  },
-  detailsTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.3,
-    marginBottom: 6,
-  },
-  detailsSubtitle: {
-    fontSize: 14,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  inputText: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  addPropertyCard: {
-    width: '100%',
-    minHeight: 120,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    borderRadius: 18,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#D1D5DB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    marginBottom: CARD_GAP,
-  },
-  addPropertyText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    marginTop: 12,
-  },
-  propertyList: {
-    gap: CARD_GAP,
-  },
-  propertyCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-      },
-      android: { elevation: 4 },
-    }),
-  },
-  propertyCardSelected: {
-    borderColor: '#0D9488',
-  },
-  propertyCardImageWrap: {
-    width: '100%',
-    height: 160,
-  },
-  propertyCardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  propertyCardBody: {
-    padding: 14,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#0D9488',
-    letterSpacing: 0.3,
-  },
-  statusBadgeReview: {},
-  statusBadgeTextReview: {
-    color: '#EA580C',
-  },
-  propertyAddress: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    lineHeight: 20,
-  },
+
   formCardWrap: {
     position: 'relative',
     borderRadius: 18,
@@ -1582,4 +1500,550 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+
+  // Revised Property Step Styles
+  titleBlock: {
+    marginBottom: 24,
+  },
+  screenTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 4,
+  },
+  screenSubtitle: {
+    fontSize: 14,
+    color: '#5B6B7A',
+    fontWeight: '500',
+  },
+  propertiesScroll: {
+    flexGrow: 0,
+  },
+  propertiesScrollContent: {
+    gap: 16,
+    paddingBottom: 20,
+  },
+  propertyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#0B2D3E',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 4,
+    overflow: 'hidden',
+    height: 300,
+  },
+  propertyCardSelected: {
+    borderWidth: 2,
+    borderColor: '#0D9488',
+    transform: [{ scale: 1.02 }],
+  },
+  propertyCardImageWrap: {
+    height: 180,
+    backgroundColor: '#F1F5F9',
+    position: 'relative',
+  },
+  propertyCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  selectedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  propertyCardBody: {
+    padding: 16,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  statusTextReady: {
+    color: '#0D9488',
+  },
+  statusTextReview: {
+    color: '#EA580C',
+  },
+  propertyAddress: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    lineHeight: 22,
+  },
+
+  // Add Property Card
+  addPropertyCard: {
+    height: 300,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  addPropertyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPropertyText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+
+  // Restored Step 2 Styles
+  detailsTitleBlock: {
+    paddingTop: 0,
+    paddingBottom: 14,
+  },
+  detailsTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    letterSpacing: -0.3,
+    marginBottom: 6,
+  },
+  detailsSubtitle: {
+    fontSize: 14,
+    color: '#5B6B7A',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  inputText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+
+  // Step 3 Pro Styles
+  templateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 16,
+    paddingBottom: 20,
+  },
+  templateCardPro: {
+    width: '48%',
+    aspectRatio: 0.8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
+    position: 'relative',
+  },
+  templateCardProSelected: {
+    borderWidth: 3,
+    borderColor: '#0D9488',
+    transform: [{ scale: 0.98 }]
+  },
+  templateOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 12,
+    paddingTop: 32,
+  },
+  templateCategoryPro: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#38BDF8',
+    marginBottom: 2,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  templateNamePro: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  templateSelectedOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+  },
+  // Step 4 Pro Styles
+  // Step 4 Pro Styles
+  previewContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+    paddingTop: 20,
+  },
+  sectionHeaderLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 1,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+  },
+  paperSheet: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    aspectRatio: 0.7, // Slightly taller
+    borderRadius: 8,
+    padding: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+      },
+      android: { elevation: 12 },
+    }),
+  },
+  paperHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: '#0B2D3E',
+    paddingBottom: 12,
+  },
+  paperBrand: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+  },
+  paperTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0D9488',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  paperImage: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F1F5F9',
+    marginBottom: 20,
+    borderRadius: 4,
+  },
+  paperBody: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  paperTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  paperSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 20,
+  },
+  paperStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingVertical: 12,
+  },
+  paperStatItem: {
+    alignItems: 'flex-start',
+  },
+  paperStatValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  paperStatLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#94A3B8',
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  paperDividerVertical: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E2E8F0',
+  },
+  paperDescription: {
+    fontSize: 11,
+    lineHeight: 18,
+    color: '#334155',
+    textAlign: 'justify',
+  },
+  paperFooter: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 2,
+    borderTopColor: '#0B2D3E',
+  },
+  paperDividerHorizontal: {
+    display: 'none', // Removed in favor of borderTop on footer
+  },
+  paperAgentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  paperAgentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  paperAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#94A3B8',
+  },
+  paperAgentName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  paperAgentRole: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  paperQRCode: {
+    padding: 6,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+
+  // Custom Card
+  customCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  customCardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    marginBottom: 6,
+    letterSpacing: -0.5,
+  },
+  cardSub: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+    marginBottom: 16,
+  },
+  swatchRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginVertical: 20,
+  },
+  colorSwatch: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  colorSwatchActive: {
+    borderColor: '#0B2D3E', // Will rely on inline style for inner ring effect, or just border
+    transform: [{ scale: 1.1 }],
+  },
+  addColorBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  selectedColorText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 24,
+    fontWeight: '600',
+  },
+  brandActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  brandActionBtn: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  brandActionBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  stylePillRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  stylePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  stylePillActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  stylePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  stylePillTextActive: {
+    color: '#FFFFFF',
+  },
+  aiInput: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 18,
+    fontSize: 14,
+    color: '#334155',
+    height: 140,
+    textAlignVertical: 'top',
+    lineHeight: 22,
+  },
+  regenerateBtnFull: {
+    backgroundColor: '#0D9488',
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0D9488',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  regenerateBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  settingsLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  bottomActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginTop: 40,
+    marginBottom: 40,
+  },
+  actionBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  actionBackText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  actionFinalizeBtn: {
+    flex: 1,
+    backgroundColor: '#0B2D3E',
+    borderRadius: 14,
+    paddingVertical: 18,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  actionFinalizeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 });
+
