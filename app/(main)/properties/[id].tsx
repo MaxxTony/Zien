@@ -4,18 +4,30 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Dimensions,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 const H_PADDING = 18;
-const PLACEHOLDER_HOUSE =
-  'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800';
+const MOCK_IMAGES = [
+  'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
+  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800',
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+];
+
+const PLACEHOLDER_HOUSE = MOCK_IMAGES[0];
 
 type PropertyStatus = 'Ready' | 'REVIEW NEEDED' | 'DRAFT';
 
@@ -215,6 +227,47 @@ export default function PropertyDetailScreen() {
   const [marketingOpen, setMarketingOpen] = useState(false);
   const [neighborhoodOpen, setNeighborhoodOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [currImageIndex, setCurrImageIndex] = useState(0);
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const carouselRef = React.useRef<ScrollView>(null);
+
+  // Editable field states
+  const [editAddress, setEditAddress] = useState('');
+  const [editBeds, setEditBeds] = useState('');
+  const [editBaths, setEditBaths] = useState('');
+  const [editSqft, setEditSqft] = useState('');
+  const [editAcres, setEditAcres] = useState('');
+  const [editLotSize, setEditLotSize] = useState('');
+  const [editStories, setEditStories] = useState('');
+  const [editYearBuilt, setEditYearBuilt] = useState('');
+  const [editParking, setEditParking] = useState('');
+  const [editMlsPrice, setEditMlsPrice] = useState('');
+  const [editZienAvm, setEditZienAvm] = useState('');
+
+  const handleAiStaging = () => {
+    setShowProcessingModal(true);
+    setTimeout(() => {
+      setShowProcessingModal(false);
+      setShowSuccessModal(true);
+    }, 1500); // 1.5 seconds delay
+  };
+
+  const handleNext = () => {
+    if (currImageIndex < MOCK_IMAGES.length - 1) {
+      const nextIndex = currImageIndex + 1;
+      carouselRef.current?.scrollTo({ x: nextIndex * (SCREEN_WIDTH - 2 * H_PADDING), animated: true });
+      setCurrImageIndex(nextIndex);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currImageIndex > 0) {
+      const prevIndex = currImageIndex - 1;
+      carouselRef.current?.scrollTo({ x: prevIndex * (SCREEN_WIDTH - 2 * H_PADDING), animated: true });
+      setCurrImageIndex(prevIndex);
+    }
+  };
 
   const property = useMemo(() => getPropertyById(id), [id]);
 
@@ -258,20 +311,50 @@ export default function PropertyDetailScreen() {
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + 72 + insets.bottom }]}
         showsVerticalScrollIndicator={false}>
-        {/* Hero image */}
+        {/* Hero image carousel */}
         <View style={styles.heroWrap}>
-          <Image
-            source={{ uri: property.image }}
-            style={styles.heroImage}
-            contentFit="cover"
-          />
-          <View style={styles.heroOverlay}>
-            <Text style={styles.photoCount}>
-              {1}/{property.photoCount} Photos
-            </Text>
-            <Pressable style={styles.droneBtn}>
-              <Text style={styles.droneBtnText}>Drone View</Text>
+          <ScrollView
+            ref={carouselRef}
+            style={{ flex: 1 }}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => {
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width);
+              setCurrImageIndex(newIndex);
+            }}
+            scrollEventThrottle={16}
+          >
+            {MOCK_IMAGES.map((img, i) => (
+              <View key={i} style={{ width: SCREEN_WIDTH - 2 * H_PADDING, height: '100%' }}>
+                <Image
+                  source={{ uri: img }}
+                  style={styles.heroImage}
+                  contentFit="cover"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Navigation Arrows */}
+          <View style={styles.carouselArrows}>
+            <Pressable style={styles.arrowBtn} onPress={handlePrev}>
+              <MaterialCommunityIcons name="chevron-left" size={24} color="#FFF" />
             </Pressable>
+            <Pressable style={styles.arrowBtn} onPress={handleNext}>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
+            </Pressable>
+          </View>
+
+          <View style={styles.heroOverlay}>
+            <View style={styles.photoCountBadge}>
+              <Text style={styles.photoCountText}>
+                {currImageIndex + 1}/{MOCK_IMAGES.length} Photos
+              </Text>
+            </View>
+            <View style={styles.mainViewBadge}>
+              <Text style={styles.mainViewText}>Main View</Text>
+            </View>
           </View>
         </View>
 
@@ -290,19 +373,57 @@ export default function PropertyDetailScreen() {
         <View style={styles.featuresRow}>
           <View style={styles.featureItem}>
             <MaterialCommunityIcons name="bed" size={20} color="#5B6B7A" />
-            <Text style={styles.featureText}>{property.beds} Beds</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.featureText, styles.editInput]}
+                value={editBeds}
+                onChangeText={setEditBeds}
+                keyboardType="numeric"
+                placeholder="Beds"
+              />
+            ) : (
+              <Text style={styles.featureText}>{property.beds} Beds</Text>
+            )}
           </View>
           <View style={styles.featureItem}>
             <MaterialCommunityIcons name="shower" size={20} color="#5B6B7A" />
-            <Text style={styles.featureText}>{property.baths} Baths</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.featureText, styles.editInput]}
+                value={editBaths}
+                onChangeText={setEditBaths}
+                keyboardType="numeric"
+                placeholder="Baths"
+              />
+            ) : (
+              <Text style={styles.featureText}>{property.baths} Baths</Text>
+            )}
           </View>
           <View style={styles.featureItem}>
             <MaterialCommunityIcons name="floor-plan" size={20} color="#5B6B7A" />
-            <Text style={styles.featureText}>{property.sqft}</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.featureText, styles.editInput]}
+                value={editSqft}
+                onChangeText={setEditSqft}
+                placeholder="Sqft"
+              />
+            ) : (
+              <Text style={styles.featureText}>{property.sqft}</Text>
+            )}
           </View>
           <View style={styles.featureItem}>
             <MaterialCommunityIcons name="tree-outline" size={20} color="#5B6B7A" />
-            <Text style={styles.featureText}>{property.acres}</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.featureText, styles.editInput]}
+                value={editAcres}
+                onChangeText={setEditAcres}
+                placeholder="Acres"
+              />
+            ) : (
+              <Text style={styles.featureText}>{property.acres}</Text>
+            )}
           </View>
         </View>
 
@@ -328,19 +449,57 @@ export default function PropertyDetailScreen() {
           onToggle={() => setSpecsOpen((v) => !v)}>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Lot Size</Text>
-            <Text style={styles.specValue}>{property.lotSize}</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.specValue, styles.editInput]}
+                value={editLotSize}
+                onChangeText={setEditLotSize}
+                placeholder="Lot Size"
+              />
+            ) : (
+              <Text style={styles.specValue}>{property.lotSize}</Text>
+            )}
           </View>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Stories</Text>
-            <Text style={styles.specValue}>{property.stories}</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.specValue, styles.editInput]}
+                value={editStories}
+                onChangeText={setEditStories}
+                keyboardType="numeric"
+                placeholder="Stories"
+              />
+            ) : (
+              <Text style={styles.specValue}>{property.stories}</Text>
+            )}
           </View>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Year Built</Text>
-            <Text style={styles.specValue}>{property.yearBuilt}</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.specValue, styles.editInput]}
+                value={editYearBuilt}
+                onChangeText={setEditYearBuilt}
+                keyboardType="numeric"
+                placeholder="Year Built"
+              />
+            ) : (
+              <Text style={styles.specValue}>{property.yearBuilt}</Text>
+            )}
           </View>
           <View style={[styles.specRow, styles.specRowLast]}>
             <Text style={styles.specLabel}>Parking</Text>
-            <Text style={styles.specValue}>{property.parking}</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.specValue, styles.editInput]}
+                value={editParking}
+                onChangeText={setEditParking}
+                placeholder="Parking"
+              />
+            ) : (
+              <Text style={styles.specValue}>{property.parking}</Text>
+            )}
           </View>
         </AccordionSection>
 
@@ -352,11 +511,29 @@ export default function PropertyDetailScreen() {
           onToggle={() => setPricingOpen((v) => !v)}>
           <View style={styles.pricingRow}>
             <Text style={styles.pricingLabel}>MLS List Price</Text>
-            <Text style={styles.pricingValue}>{property.mlsListPrice}</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.pricingValue, styles.editInput]}
+                value={editMlsPrice}
+                onChangeText={setEditMlsPrice}
+                placeholder="MLS Price"
+              />
+            ) : (
+              <Text style={styles.pricingValue}>{property.mlsListPrice}</Text>
+            )}
           </View>
           <View style={[styles.pricingRow, styles.pricingRowAvm]}>
             <Text style={styles.pricingLabelAvm}>Zien AVM Est.</Text>
-            <Text style={styles.pricingValueAvm}>{property.zienAvmEst}</Text>
+            {isEditMode ? (
+              <TextInput
+                style={[styles.pricingValueAvm, styles.editInput]}
+                value={editZienAvm}
+                onChangeText={setEditZienAvm}
+                placeholder="AVM Est."
+              />
+            ) : (
+              <Text style={styles.pricingValueAvm}>{property.zienAvmEst}</Text>
+            )}
           </View>
         </AccordionSection>
 
@@ -395,22 +572,102 @@ export default function PropertyDetailScreen() {
             style={[styles.bottomBarBtn, styles.bottomBarBtnSave]}
             onPress={() => setIsEditMode(false)}>
             <MaterialCommunityIcons name="content-save" size={20} color="#FFFFFF" />
-            <Text style={styles.bottomBarBtnTextSave}>Save Data</Text>
+            <Text style={styles.bottomBarBtnTextSave}>Save Changes</Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.bottomBarBtn} onPress={() => setIsEditMode(true)}>
+          <Pressable style={styles.bottomBarBtn} onPress={() => {
+            setIsEditMode(true);
+            // Initialize edit fields with current values
+            setEditAddress(property.address);
+            setEditBeds(property.beds.toString());
+            setEditBaths(property.baths.toString());
+            setEditSqft(property.sqft);
+            setEditAcres(property.acres);
+            setEditLotSize(property.lotSize);
+            setEditStories(property.stories.toString());
+            setEditYearBuilt(property.yearBuilt.toString());
+            setEditParking(property.parking);
+            setEditMlsPrice(property.mlsListPrice);
+            setEditZienAvm(property.zienAvmEst);
+          }}>
             <MaterialCommunityIcons name="pencil" size={20} color="#0B2D3E" />
             <Text style={styles.bottomBarBtnText}>Edit Data</Text>
           </Pressable>
         )}
         <Pressable
           style={[styles.bottomBarBtn, styles.bottomBarBtnStaging]}
-          onPress={() => router.push('/(main)/images-staging/upload')}>
-          <MaterialCommunityIcons name="home-outline" size={20} color="#0B2D3E" />
-          <View style={styles.aiStagingBadge} />
-          <Text style={styles.bottomBarBtnText}>AI Staging</Text>
+          onPress={handleAiStaging}>
+          <MaterialCommunityIcons name="home-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.bottomBarBtnTextStaging}>AI Staging</Text>
         </Pressable>
       </View>
+
+      {/* AI Processing Modal */}
+      <Modal
+        visible={showProcessingModal}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.processingCard}>
+            <Pressable style={styles.closeBtn} onPress={() => setShowProcessingModal(false)}>
+              <MaterialCommunityIcons name="close" size={20} color="#94A3B8" />
+            </Pressable>
+            <View style={styles.processingIconCircle}>
+              <MaterialCommunityIcons name="message-text-outline" size={32} color="#FFF" />
+            </View>
+            <Text style={styles.processingTitle}>AI Processing...</Text>
+            <Text style={styles.processingSubtitle}>
+              Generating virtual staging and enhanced photos for your property.
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.successCard}>
+            <Pressable style={styles.closeBtn} onPress={() => setShowSuccessModal(false)}>
+              <MaterialCommunityIcons name="close" size={20} color="#94A3B8" />
+            </Pressable>
+
+            <View style={styles.successIconCircle}>
+              <MaterialCommunityIcons name="check" size={32} color="#FFF" />
+            </View>
+
+            <Text style={styles.successTitle}>Staging Complete!</Text>
+            <Text style={styles.successSubtitle}>
+              Generated 12 AI-enhanced images including virtual staging, twilight shots, and object removal.
+            </Text>
+
+            <View style={styles.successImagesRow}>
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={styles.successImageContainer}>
+                  <View style={styles.successImagePlaceholder} />
+                  <View style={styles.aiBadgeSmall}>
+                    <Text style={styles.aiBadgeSmallText}>AI ENHANCED</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <Pressable
+              style={styles.viewAllBtn}
+              onPress={() => {
+                setShowSuccessModal(false);
+                // router.push('/(main)/images-staging/upload'); 
+              }}
+            >
+              <Text style={styles.viewAllBtnText}>View All Images</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -478,12 +735,14 @@ const styles = StyleSheet.create({
   },
   aiStagingBadge: {
     position: 'absolute',
-    top: 8,
-    right: 10,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    top: 10,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: '#EA580C',
+    borderWidth: 1.5,
+    borderColor: '#FFF',
   },
   bottomBar: {
     position: 'absolute',
@@ -493,7 +752,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     paddingHorizontal: H_PADDING,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: 'rgba(255,255,255,1)',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(11, 45, 62, 0.08)',
     ...Platform.select({
@@ -529,6 +788,8 @@ const styles = StyleSheet.create({
   },
   bottomBarBtnStaging: {
     position: 'relative',
+    backgroundColor: '#EA580C', // Orange-600
+    borderColor: '#C2410C', // Orange-700
   },
   bottomBarBtnSave: {
     backgroundColor: '#0D9488',
@@ -540,6 +801,11 @@ const styles = StyleSheet.create({
     color: '#0B2D3E',
   },
   bottomBarBtnTextSave: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  bottomBarBtnTextStaging: {
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
@@ -803,6 +1069,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#C2410C',
   },
+  carouselArrows: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    pointerEvents: 'box-none',
+  },
+  arrowBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoCountBadge: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  photoCountText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  mainViewBadge: {
+    backgroundColor: '#0EA5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  mainViewText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   marketingRow: {
     flexDirection: 'row',
     gap: 12,
@@ -846,5 +1154,189 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#5B6B7A',
     lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  processingCard: {
+    backgroundColor: '#FFF',
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: { elevation: 8 },
+    }),
+  },
+  processingIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F97316', // Orange
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    marginTop: 8,
+  },
+  processingTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  processingSubtitle: {
+    fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    padding: 4,
+    zIndex: 10,
+  },
+  successCard: {
+    backgroundColor: '#FFF',
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: { elevation: 8 },
+    }),
+  },
+  successIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#0D9488', // Teal
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    marginTop: 8,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  successImagesRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+    marginBottom: 24,
+  },
+  successImageContainer: {
+    flex: 1,
+    aspectRatio: 0.8,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+    position: 'relative',
+  },
+  successImagePlaceholder: {
+    flex: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  aiBadgeSmall: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  aiBadgeSmallText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#0D9488',
+  },
+  viewAllBtn: {
+    backgroundColor: '#0F172A',
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  viewAllBtnText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: '#0D9488',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  addressCard: {
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  addressBlock: {
+    flex: 1,
+  },
+  addressText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0B2D3E',
+    marginBottom: 4,
+  },
+  addressSubtext: {
+    fontSize: 13,
+    color: '#5B6B7A',
+  },
+  readyBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  readyText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

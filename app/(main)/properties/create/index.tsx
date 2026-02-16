@@ -3,101 +3,56 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Platform,
+  Dimensions,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from 'react-native';
 import { ProgressStep, ProgressSteps } from 'react-native-progress-steps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const H_PADDING = 18;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const H_PADDING = 20;
 
-function Step1Identify({
-  address,
-  setAddress,
-  onStartEnrichment,
-}: {
-  address: string;
-  setAddress: (v: string) => void;
-  onStartEnrichment: () => void;
-}) {
+// --- Step 1: Identify ---
+function StepIdentify({ onNext }: { onNext: () => void }) {
   return (
     <View style={styles.stepContent}>
-      <View style={styles.cardStep1}>
-        <View style={styles.cardStep1Badge}>
-          <Text style={styles.cardStep1BadgeText}>Step 1 of 4</Text>
-        </View>
-        <Text style={styles.cardTitleStep1}>Provide Property Address</Text>
-        <Text style={styles.cardSubtitleStep1}>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Provide Property Address</Text>
+        <Text style={styles.cardSubtitle}>
           Enter the address and we'll fetch the legal specs automatically.
         </Text>
-        <View style={styles.inputWrapStep1}>
-          <View style={styles.inputIconWrap}>
-            <MaterialCommunityIcons
-              name="map-marker-outline"
-              size={20}
-              color="#5B6B7A"
-            />
-          </View>
+
+        <View style={styles.searchContainer}>
           <TextInput
-            style={styles.addressInputStep1}
+            style={styles.searchInput}
             placeholder="Start typing address..."
             placeholderTextColor="#94A3B8"
-            value={address}
-            onChangeText={setAddress}
-            editable
           />
+          <Pressable
+            style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.9 }]}
+            onPress={onNext}
+          >
+            <MaterialCommunityIcons name="magnify" size={20} color="#FFF" />
+            <Text style={styles.searchBtnText}>Start AI Enrichment</Text>
+          </Pressable>
         </View>
-        <Pressable
-          style={({ pressed }) => [
-            styles.enrichButtonWrap,
-            pressed && styles.enrichButtonPressed,
-          ]}
-          onPress={onStartEnrichment}>
-          <LinearGradient
-            colors={['#0D9488', '#0B2D3E']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.enrichButtonGradient}>
-            <MaterialCommunityIcons name="magnify" size={22} color="#FFFFFF" />
-            <Text style={styles.enrichButtonText}>Start AI Enrichment</Text>
-          </LinearGradient>
-        </Pressable>
-        <View style={styles.dataSourcesDivider} />
-        <Text style={styles.dataSourcesHeading}>We'll pull from</Text>
-        <View style={styles.dataSourcesRow}>
-          <View style={styles.dataSourcePill}>
-            <View style={[styles.dataSourceIconWrap, styles.dataSourceIconTeal]}>
-              <MaterialCommunityIcons
-                name="office-building-outline"
-                size={18}
-                color="#0D9488"
-              />
-            </View>
-            <Text style={styles.dataSourceLabel}>County Records</Text>
+
+        <View style={styles.sourcesRow}>
+          <View style={styles.sourceItem}>
+            <MaterialCommunityIcons name="office-building-outline" size={28} color="#0D9488" />
+            <Text style={styles.sourceLabel}>County Records</Text>
           </View>
-          <View style={styles.dataSourcePill}>
-            <View style={[styles.dataSourceIconWrap, styles.dataSourceIconTeal]}>
-              <MaterialCommunityIcons
-                name="map-outline"
-                size={18}
-                color="#0D9488"
-              />
-            </View>
-            <Text style={styles.dataSourceLabel}>Zoning Data</Text>
+          <View style={styles.sourceItem}>
+            <MaterialCommunityIcons name="map-outline" size={28} color="#0D9488" />
+            <Text style={styles.sourceLabel}>Zoning Data</Text>
           </View>
-          <View style={styles.dataSourcePill}>
-            <View style={[styles.dataSourceIconWrap, styles.dataSourceIconTeal]}>
-              <MaterialCommunityIcons
-                name="file-document-outline"
-                size={18}
-                color="#0D9488"
-              />
-            </View>
-            <Text style={styles.dataSourceLabel}>Tax History</Text>
+          <View style={styles.sourceItem}>
+            <MaterialCommunityIcons name="file-document-outline" size={28} color="#0D9488" />
+            <Text style={styles.sourceLabel}>Tax History</Text>
           </View>
         </View>
       </View>
@@ -105,73 +60,68 @@ function Step1Identify({
   );
 }
 
-function Step2EnrichData({
-  onBack,
-  onContinueToMedia,
-}: {
-  onBack: () => void;
-  onContinueToMedia: () => void;
-}) {
+// --- Step 2: Enrich Data ---
+function StepEnrichData({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+  const [propertyType, setPropertyType] = useState('Residential SFH');
+  const [lotSize, setLotSize] = useState('0.45 Acres');
+  const [yearBuilt, setYearBuilt] = useState('1995');
+  const [bedsBaths, setBedsBaths] = useState('5 / 4.5');
+
   return (
     <View style={styles.stepContent}>
-      <View style={styles.cardStep2}>
-        <View style={styles.cardStep2Badge}>
-          <Text style={styles.cardStep2BadgeText}>Step 2 of 4</Text>
-        </View>
-        <View style={styles.enrichSuccessRow}>
-         
-          <Text style={styles.enrichTitleStep2}>Data Collected Successfully!</Text>
-        </View>
-        <Text style={styles.enrichSubtitleStep2}>
-          Legal specs have been fetched. Review and continue when ready.
+      <View style={styles.card}>
+        <Text style={[styles.cardTitle, { textAlign: 'left' }]}>Data Collected Successfully!</Text>
+        <Text style={[styles.cardSubtitle, { textAlign: 'left', marginBottom: 20 }]}>
+          Review the fetched details below.
         </Text>
-        <View style={styles.enrichGrid}>
-        
-            <View style={styles.enrichField}>
-              <Text style={styles.enrichFieldLabel}>Property Type</Text>
-              <View style={styles.enrichValueBox}>
-                <Text style={styles.enrichValueText}>Residential SFH</Text>
-              </View>
+
+        <View style={styles.formGrid}>
+          <View style={styles.formRow}>
+            <View style={styles.formCol}>
+              <Text style={styles.label}>Property Type</Text>
+              <TextInput
+                style={[styles.inputBox, styles.inputValue]}
+                value={propertyType}
+                onChangeText={setPropertyType}
+              />
             </View>
-            <View style={styles.enrichField}>
-              <Text style={styles.enrichFieldLabel}>Lot Size</Text>
-              <View style={styles.enrichValueBox}>
-                <Text style={styles.enrichValueText}>0.45 Acres</Text>
-              </View>
+            <View style={styles.formCol}>
+              <Text style={styles.label}>Lot Size</Text>
+              <TextInput
+                style={[styles.inputBox, styles.inputValue]}
+                value={lotSize}
+                onChangeText={setLotSize}
+              />
             </View>
-         
-          <View style={styles.enrichFieldRow}>
-            <View style={styles.enrichField}>
-              <Text style={styles.enrichFieldLabel}>Year Built</Text>
-              <View style={styles.enrichValueBox}>
-                <Text style={styles.enrichValueText}>1995</Text>
-              </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={styles.formCol}>
+              <Text style={styles.label}>Year Built</Text>
+              <TextInput
+                style={[styles.inputBox, styles.inputValue]}
+                value={yearBuilt}
+                onChangeText={setYearBuilt}
+                keyboardType="numeric"
+              />
             </View>
-            <View style={styles.enrichField}>
-              <Text style={styles.enrichFieldLabel}>Beds/Baths</Text>
-              <View style={styles.enrichValueBox}>
-                <Text style={styles.enrichValueText}>5 / 4.5</Text>
-              </View>
+            <View style={styles.formCol}>
+              <Text style={styles.label}>Beds/Baths</Text>
+              <TextInput
+                style={[styles.inputBox, styles.inputValue]}
+                value={bedsBaths}
+                onChangeText={setBedsBaths}
+              />
             </View>
           </View>
         </View>
-        <View style={styles.enrichActionsDivider} />
-        <View style={styles.enrichActions}>
-          <Pressable
-            style={({ pressed }) => [styles.enrichBackBtn, pressed && styles.enrichBackBtnPressed]}
-            onPress={onBack}>
-            <Text style={styles.enrichBackBtnText}>Back</Text>
+
+        <View style={styles.actionRow}>
+          <Pressable style={styles.secondaryBtn} onPress={onBack}>
+            <Text style={styles.secondaryBtnText}>Back</Text>
           </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.enrichContinueBtnWrap, pressed && styles.enrichContinueBtnPressed]}
-            onPress={onContinueToMedia}>
-            <LinearGradient
-              colors={['#0D9488', '#0B2D3E']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.enrichContinueBtnGradient}>
-              <Text style={styles.enrichContinueBtnText}>Continue to Media</Text>
-            </LinearGradient>
+          <Pressable style={styles.primaryBtn} onPress={onNext}>
+            <Text style={styles.primaryBtnText}>Continue to Media</Text>
           </Pressable>
         </View>
       </View>
@@ -179,83 +129,77 @@ function Step2EnrichData({
   );
 }
 
-const AI_MEDIA_SERVICES = [
-  {
-    id: 'staging',
-    title: 'Virtual Staging',
-    description: 'Add furniture to empty rooms',
-    icon: 'sofa-outline' as const,
-  },
-  {
-    id: 'twilight',
-    title: 'Day to Twilight',
-    description: 'Generate evening exterior shots',
-    icon: 'weather-night' as const,
-  },
-  {
-    id: 'removal',
-    title: 'Object Removal',
-    description: 'Remove cars or clutter',
-    icon: 'eraser' as const,
-  },
-];
+// --- Step 3: AI Media ---
+function StepAIMedia({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+  const assets = [
+    { icon: 'sofa-outline', title: 'Virtual Staging', desc: 'Add furniture to empty rooms' },
+    { icon: 'weather-night', title: 'Day to Twilight', desc: 'Generate evening exterior shots' },
+    { icon: 'eraser', title: 'Object Removal', desc: 'Remove cars or clutter' },
+  ];
 
-function Step3AIMedia({
-  onFinalizeListing,
-}: {
-  onFinalizeListing: () => void;
-}) {
   return (
     <View style={styles.stepContent}>
-      <View style={styles.cardStep3}>
-        <View style={styles.cardStep3Badge}>
-          <Text style={styles.cardStep3BadgeText}>Step 3 of 4</Text>
-        </View>
-        <Text style={styles.aiMediaTitleStep3}>AI Marketing Suite</Text>
-        <Text style={styles.aiMediaSubtitleStep3}>
+      <View style={styles.card}>
+        <Text style={styles.cardTitleCenter}>AI Marketing Suite</Text>
+        <Text style={styles.cardSubtitleCenter}>
           Generate high-end visual assets for this listing.
         </Text>
-        <View style={styles.aiMediaGrid}>
-          <View style={styles.aiMediaGridRow}>
-            {AI_MEDIA_SERVICES.map((service) => (
-              <View key={service.id} style={styles.aiMediaServiceCard}>
-                <View style={styles.aiMediaIconWrapTeal}>
-                  <MaterialCommunityIcons
-                    name={service.icon}
-                    size={26}
-                    color="#0D9488"
-                  />
+
+        <View style={styles.assetsGrid}>
+          {assets.map((asset, i) => (
+            <View key={i} style={styles.assetCard}>
+              <View style={styles.assetHeader}>
+                <View style={styles.assetIconBox}>
+                  <MaterialCommunityIcons name={asset.icon as any} size={24} color="#0D9488" />
                 </View>
-                <Text style={styles.aiMediaServiceTitle}>{service.title}</Text>
-                <Text style={styles.aiMediaServiceDesc}>{service.description}</Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.aiMediaCheckBtn,
-                    pressed && styles.aiMediaCheckBtnPressed,
-                  ]}>
-                  <Text style={styles.aiMediaCheckBtnText}>Check Asset</Text>
-                </Pressable>
               </View>
-            ))}
-          </View>
-         
+
+              <View style={styles.assetContent}>
+                <Text style={styles.assetTitle}>{asset.title}</Text>
+                <Text style={styles.assetDesc}>{asset.desc}</Text>
+              </View>
+
+              <Pressable style={styles.checkAssetBtn}>
+                <Text style={styles.checkAssetBtnText}>Check Asset</Text>
+              </Pressable>
+            </View>
+          ))}
         </View>
-        <View style={styles.finalizeListingDivider} />
-        <Pressable
-          style={({ pressed }) => [
-            styles.finalizeListingBtnWrap,
-            pressed && styles.finalizeListingBtnPressed,
-          ]}
-          onPress={onFinalizeListing}>
-          <LinearGradient
-            colors={['#0D9488', '#0B2D3E']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.finalizeListingBtnGradient}>
-            <Text style={styles.finalizeListingBtnText}>Finalize Listing</Text>
-            <MaterialCommunityIcons name="arrow-right" size={22} color="#FFFFFF" />
-          </LinearGradient>
-        </Pressable>
+
+        <View style={styles.actionRow}>
+          <Pressable style={styles.secondaryBtn} onPress={onBack}>
+            <Text style={styles.secondaryBtnText}>Back</Text>
+          </Pressable>
+          <Pressable style={[styles.primaryBtn, { flex: 1 }]} onPress={onNext}>
+            <Text style={styles.primaryBtnText}>Finalize Listing</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// --- Step 4: Publish ---
+function StepPublish({ onFinish, onBack }: { onFinish: () => void; onBack: () => void }) {
+  return (
+    <View style={styles.stepContent}>
+      <View style={[styles.card, { alignItems: 'center', paddingVertical: 50 }]}>
+        <View style={styles.successIconCircle}>
+          <MaterialCommunityIcons name="check" size={48} color="#0D9488" />
+        </View>
+        <Text style={styles.cardTitleCenter}>Listing Optimized.</Text>
+        <Text style={[styles.cardSubtitleCenter, { maxWidth: 320, marginBottom: 40 }]}>
+          The property data has been cross-referenced with county records and AI marketing assets are ready for deployment.
+        </Text>
+
+        <View style={styles.finishActionRow}>
+          <Pressable style={styles.primaryBtn} onPress={onFinish}>
+            <Text style={styles.primaryBtnText}>Back to Inventory</Text>
+          </Pressable>
+          <Pressable style={styles.secondaryBtn} onPress={() => { }}>
+            <Text style={styles.secondaryBtnText}>Share Property Kit</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -265,864 +209,339 @@ export default function CreateListingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
-  const [address, setAddress] = useState('');
 
-  const handleStartEnrichment = () => {
-    setActiveStep(1);
-  };
+  const goNext = () => setActiveStep((prev) => prev + 1);
+  const goBack = () => setActiveStep((prev) => (prev > 0 ? prev - 1 : 0));
 
   return (
-    <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <LinearGradient
+        colors={['#F0F4F8', '#E2E8F0', '#F0F4F8']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+
+      {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color="#0B2D3E" />
+        <Pressable
+          style={styles.headerBackBtn}
+          onPress={() => {
+            if (activeStep > 0) setActiveStep(activeStep - 1);
+            else router.back();
+          }}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#0f172a" />
         </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Create New Listing</Text>
-          <Text style={styles.subtitle}>
-            Upload basic info or let ZIEN AI pull from public records.
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Create New Listing</Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            Upload basic info or let ZIEN pull from public records.
           </Text>
         </View>
       </View>
 
-      <View style={styles.stepsWrapper}>
+      {/* Progress Steps */}
+      <View style={{ flex: 1 }}>
         <ProgressSteps
           activeStep={activeStep}
           topOffset={0}
-          marginBottom={16}
-          progressBarColor="#E5E7EB"
+          marginBottom={20}
+          progressBarColor="#E2E8F0"
           completedProgressBarColor="#0D9488"
           activeStepIconColor="#0D9488"
           activeStepIconBorderColor="#0D9488"
           completedStepIconColor="#0D9488"
-          disabledStepIconColor="#E5E7EB"
-          labelColor="#9CA3AF"
+          disabledStepIconColor="#E2E8F0"
+          labelColor="#94A3B8"
           activeLabelColor="#0D9488"
-          completedLabelColor="#0D9488"
           activeStepNumColor="#FFFFFF"
           completedStepNumColor="#FFFFFF"
-          disabledStepNumColor="#5B6B7A"
-          completedCheckColor="#FFFFFF"
-          labelFontSize={10}
-          activeLabelFontSize={10}
+          disabledStepNumColor="#94A3B8"
+          labelFontSize={11}
         >
           <ProgressStep label="Identify" removeBtnRow>
-            <Step1Identify
-              address={address}
-              setAddress={setAddress}
-              onStartEnrichment={handleStartEnrichment}
-            />
+            <StepIdentify onNext={goNext} />
           </ProgressStep>
           <ProgressStep label="Enrich Data" removeBtnRow>
-            <Step2EnrichData
-              onBack={() => setActiveStep(0)}
-              onContinueToMedia={() => setActiveStep(2)}
-            />
+            <StepEnrichData onNext={goNext} onBack={goBack} />
           </ProgressStep>
           <ProgressStep label="AI Media" removeBtnRow>
-            <Step3AIMedia onFinalizeListing={() => setActiveStep(3)} />
+            <StepAIMedia onNext={goNext} onBack={goBack} />
           </ProgressStep>
           <ProgressStep label="Publish" removeBtnRow>
-            <Step4Publish
-              onBackToInventory={() => router.back()}
-              onSharePropertyKit={() => {}}
+            <StepPublish
+              onFinish={() => router.push('/(main)/properties')}
+              onBack={goBack}
             />
           </ProgressStep>
         </ProgressSteps>
-      </View>
-    </LinearGradient>
-  );
-}
-
-function Step4Publish({
-  onBackToInventory,
-  onSharePropertyKit,
-}: {
-  onBackToInventory: () => void;
-  onSharePropertyKit: () => void;
-}) {
-  return (
-    <View style={styles.stepContent}>
-      <View style={styles.cardStep4}>
-        <View style={styles.cardStep4Badge}>
-          <Text style={styles.cardStep4BadgeText}>Step 4 of 4</Text>
-        </View>
-        <View style={styles.publishIconWrap}>
-          <MaterialCommunityIcons name="check" size={40} color="#0D9488" />
-        </View>
-        <Text style={styles.publishTitleStep4}>Listing Optimized.</Text>
-        <Text style={styles.publishDescStep4}>
-          The property data has been cross-referenced with county records and AI
-          marketing assets are ready for deployment.
-        </Text>
-        <View style={styles.publishActions}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.publishBackBtnWrap,
-              pressed && styles.publishBackBtnPressed,
-            ]}
-            onPress={onBackToInventory}>
-            <LinearGradient
-              colors={['#0D9488', '#0B2D3E']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.publishBackBtnGradient}>
-              <MaterialCommunityIcons name="arrow-left" size={20} color="#FFFFFF" />
-              <Text style={styles.publishBackBtnText}>Back to Inventory</Text>
-            </LinearGradient>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.publishShareBtn,
-              pressed && styles.publishShareBtnPressed,
-            ]}
-            onPress={onSharePropertyKit}>
-            <Text style={styles.publishShareBtnText}>Share Property Kit</Text>
-          </Pressable>
-        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  container: {
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     paddingHorizontal: H_PADDING,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  headerCenter: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  stepsWrapper: {
-    flex: 1,
-    paddingHorizontal: H_PADDING,
-  },
-  stepContent: {
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  cardStep1: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.8)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 20,
-      },
-      android: { elevation: 6 },
-    }),
-  },
-  cardStep1Badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  cardStep1BadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0D9488',
-    letterSpacing: 0.4,
-  },
-  cardTitleStep1: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.4,
-    lineHeight: 26,
-    marginBottom: 8,
-  },
-  cardSubtitleStep1: {
-    fontSize: 14,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  inputWrapStep1: {
+    paddingBottom: 10,
+    paddingTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.03,
-        shadowRadius: 4,
-      },
-    }),
-  },
-  inputIconWrap: {
-    paddingLeft: 18,
-    paddingRight: 12,
-    justifyContent: 'center',
-  },
-  addressInputStep1: {
-    flex: 1,
-    height: 54,
-    paddingRight: 18,
-    fontSize: 16,
-    color: '#0B2D3E',
-    fontWeight: '500',
-    ...Platform.select({
-      ios: { paddingVertical: 0 },
-      android: { paddingVertical: 0 },
-    }),
-  },
-  enrichButtonWrap: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 28,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0D9488',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 12,
-      },
-      android: { elevation: 4 },
-    }),
-  },
-  enrichButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  enrichButtonPressed: {
-    opacity: 0.92,
-  },
-  enrichButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  dataSourcesDivider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginBottom: 20,
-  },
-  dataSourcesHeading: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 0.3,
-    marginBottom: 14,
-  },
-  dataSourcesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  dataSourcePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
-  },
-  dataSourceIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dataSourceIconTeal: {
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
-  },
-  dataSourceLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0B2D3E',
-  },
-  dataSourceItem: {
-    flex: 1,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  cardStep2: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.8)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 20,
-      },
-      android: { elevation: 6 },
-    }),
-  },
-  cardStep2Badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 18,
-  },
-  cardStep2BadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0D9488',
-    letterSpacing: 0.4,
-  },
-  enrichSuccessRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  enrichSuccessIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  enrichTitleStep2: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.4,
-    lineHeight: 26,
-    flex: 1,
-  },
-  enrichSubtitleStep2: {
-    fontSize: 14,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  enrichTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.2,
-    marginBottom: 20,
-  },
-  enrichGrid: {
     gap: 16,
   },
-  enrichFieldRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+  headerBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  enrichField: {
-    flex: 1,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.5,
   },
-  enrichFieldLabel: {
+  headerSubtitle: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 0.3,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  stepContent: {
+    paddingBottom: 40,
+  },
+
+  // Card Styles
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    minHeight: 400,
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 20,
+  },
+  cardTitleCenter: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  cardSubtitleCenter: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 20,
+  },
+
+  // Step 1 Specific
+  searchContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 40,
+  },
+  searchInput: {
+    height: 48,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: '#0f172a',
     marginBottom: 8,
   },
-  enrichValueBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.02,
-        shadowRadius: 3,
-      },
-    }),
-  },
-  enrichValueText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0B2D3E',
-  },
-  enrichActionsDivider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  enrichActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  enrichBackBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 22,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  enrichBackBtnPressed: {
-    opacity: 0.9,
-  },
-  enrichBackBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  enrichContinueBtnWrap: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0D9488',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.18,
-        shadowRadius: 8,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  enrichContinueBtnGradient: {
+  searchBtn: {
+    backgroundColor: '#0f172a',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    paddingHorizontal: 22,
-  },
-  enrichContinueBtnPressed: {
-    opacity: 0.92,
-  },
-  enrichContinueBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  enrichContinueBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 14,
-    backgroundColor: '#0B2D3E',
-  },
-  cardStep3: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.8)',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 20,
-      },
-      android: { elevation: 6 },
-    }),
-  },
-  cardStep3Badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 18,
-  },
-  cardStep3BadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0D9488',
-    letterSpacing: 0.4,
-  },
-  aiMediaTitleStep3: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.4,
-    // textAlign: 'center',
-    marginBottom: 8,
-  },
-  aiMediaSubtitleStep3: {
-    fontSize: 14,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    // textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  aiMediaGrid: {
-    width: '100%',
-    marginBottom: 24,
-  },
-  aiMediaGridRow: {
-    // flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  aiMediaGridRowCenter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  aiMediaServiceCard: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.03,
-        shadowRadius: 6,
-      },
-    }),
-  },
-  aiMediaServiceCardSingle: {
-    flex: 0,
-    width: '48%',
-  },
-  aiMediaIconWrap: {
-    width: 48,
-    height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(11, 45, 62, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
   },
-  aiMediaIconWrapTeal: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
+  searchBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
-  aiMediaServiceTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.2,
+  sourcesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 12,
+    marginTop: 10,
+  },
+  sourceItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  sourceLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+
+  // Step 2 Specific
+  formGrid: {
+    gap: 16,
+    marginBottom: 32,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  formCol: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0f172a',
     marginBottom: 6,
   },
-  aiMediaServiceDesc: {
-    fontSize: 13,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    lineHeight: 18,
-    marginBottom: 16,
-  },
-  aiMediaCheckBtn: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+  inputBox: {
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    alignSelf: 'flex-start',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
-  aiMediaCheckBtnPressed: {
-    opacity: 0.9,
+  inputValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
   },
-  aiMediaCheckBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  finalizeListingDivider: {
-    width: '100%',
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginBottom: 24,
-  },
-  finalizeListingBtnWrap: {
-    width: '100%',
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0D9488',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 12,
-      },
-      android: { elevation: 4 },
-    }),
-  },
-  finalizeListingBtnGradient: {
+
+  // Step Buttons
+  actionRow: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 10,
+  },
+  secondaryBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+  },
+  secondaryBtnText: {
+    color: '#0f172a',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  primaryBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    backgroundColor: '#0f172a',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
   },
-  finalizeListingBtnPressed: {
-    opacity: 0.92,
-  },
-  finalizeListingBtnText: {
-    fontSize: 16,
+  primaryBtnText: {
+    color: '#FFF',
     fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
+    fontSize: 14,
   },
-  cardStep4: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 28,
+
+  // Step 3 Specific
+  assetsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 32,
+  },
+  assetCard: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.8)',
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 20,
-      },
-      android: { elevation: 6 },
-    }),
+    gap: 14,
   },
-  cardStep4Badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
-    paddingVertical: 6,
+  assetHeader: {
+    // 
+  },
+  assetIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assetContent: {
+    flex: 1,
+  },
+  assetTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 2,
+  },
+  assetDesc: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  checkAssetBtn: {
+    backgroundColor: '#FFF',
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  cardStep4BadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0D9488',
-    letterSpacing: 0.4,
+  checkAssetBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
   },
-  publishCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
-  },
-  publishIconWrap: {
+
+  // Step 4 Specific
+  successIconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 2,
-    borderColor: '#0D9488',
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 22,
+    marginBottom: 24,
   },
-  publishTitleStep4: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.4,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  publishDescStep4: {
-    fontSize: 15,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 28,
-    paddingHorizontal: 8,
-  },
-  publishTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  publishDesc: {
-    fontSize: 15,
-    color: '#5B6B7A',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 28,
-  },
-  publishActions: {
-    width: '100%',
-    flexDirection: 'column',
+  finishActionRow: {
     gap: 12,
-  },
-  publishBackBtnWrap: {
-    width: '100%',
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0D9488',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.18,
-        shadowRadius: 8,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  publishBackBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  publishBackBtn: {
-    width: '100%',
-    backgroundColor: '#0B2D3E',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  publishBackBtnPressed: {
-    opacity: 0.92,
-  },
-  publishBackBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  publishShareBtn: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  publishShareBtnPressed: {
-    opacity: 0.9,
-  },
-  publishShareBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  placeholderStep: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  placeholderStepTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    marginBottom: 8,
-  },
-  placeholderStepText: {
-    fontSize: 14,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    marginBottom: 16,
-  },
-  placeholderBackBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  placeholderBackBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0D9488',
+    marginTop: 20,
   },
 });

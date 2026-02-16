@@ -4,18 +4,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Dimensions,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const H_PADDING = 18;
-const CARD_GAP = 14;
+const H_PADDING = 20;
 
 const PLACEHOLDER_HOUSE =
   'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800';
@@ -56,7 +54,7 @@ const PROPERTIES: Property[] = [
     cityState: 'Malibu, CA',
     type: 'Luxury Villa',
     status: 'REVIEW NEEDED',
-    value: '$8,750,000',
+    value: '$12,800,000',
     confidence: 72,
     image: PLACEHOLDER_VILLA,
   },
@@ -65,9 +63,9 @@ const PROPERTIES: Property[] = [
     address: '900 Ocean Blvd',
     cityState: 'Santa Monica, CA',
     type: 'Condo',
-    status: 'DRAFT',
-    value: '$1,920,000',
-    confidence: 45,
+    status: 'Ready',
+    value: '$1,150,000',
+    confidence: 95,
     image: PLACEHOLDER_CONDO,
   },
   {
@@ -75,9 +73,9 @@ const PROPERTIES: Property[] = [
     address: '45 Pine Street',
     cityState: 'Pasadena, CA',
     type: 'Apartment',
-    status: 'Ready',
-    value: '$685,000',
-    confidence: 95,
+    status: 'DRAFT',
+    value: '$3,400,000',
+    confidence: 45,
     image: PLACEHOLDER_APARTMENT,
   },
 ];
@@ -86,8 +84,9 @@ function ConfidenceBar({ value }: { value: number }) {
   const isHigh = value >= 85;
   const isMedium = value >= 60 && value < 85;
   const barColor = isHigh ? '#0D9488' : isMedium ? '#EA580C' : '#DC2626';
+
   return (
-    <View style={styles.confidenceRow}>
+    <View style={styles.confidenceContainer}>
       <View style={styles.confidenceTrack}>
         <View
           style={[
@@ -104,28 +103,20 @@ function ConfidenceBar({ value }: { value: number }) {
 function StatusPill({ status }: { status: PropertyStatus }) {
   const isReady = status === 'Ready';
   const isReview = status === 'REVIEW NEEDED';
+
+  // Matching screenshot styles more closely
+  const bg = isReady ? 'rgba(13, 148, 136, 0.12)' : isReview ? 'rgba(234, 88, 12, 0.12)' : 'rgba(241, 245, 249, 1)';
+  const color = isReady ? '#0D9488' : isReview ? '#C2410C' : '#64748B';
+  const label = isReady ? 'Ready' : isReview ? 'Review Needed' : 'Draft';
+
   return (
-    <View
-      style={[
-        styles.statusPill,
-        isReady && styles.statusPillReady,
-        isReview && styles.statusPillReview,
-        status === 'DRAFT' && styles.statusPillDraft,
-      ]}>
-      <Text
-        style={[
-          styles.statusPillText,
-          isReady && styles.statusPillTextReady,
-          isReview && styles.statusPillTextReview,
-          status === 'DRAFT' && styles.statusPillTextDraft,
-        ]}>
-        {status}
-      </Text>
+    <View style={[styles.statusPill, { backgroundColor: bg }]}>
+      <Text style={[styles.statusPillText, { color }]}>{label}</Text>
     </View>
   );
 }
 
-function PropertyCard({
+function PropertyRowCard({
   property,
   onManage,
 }: {
@@ -136,35 +127,51 @@ function PropertyCard({
     <Pressable
       style={({ pressed }) => [styles.propertyCard, pressed && styles.propertyCardPressed]}
       onPress={() => onManage(property)}>
-      <View style={styles.propertyCardImageWrap}>
+
+      {/* Top Section: Image + Main Info */}
+      <View style={styles.cardHeader}>
         <Image
           source={{ uri: property.image }}
-          style={styles.propertyCardImage}
+          style={styles.cardThumb}
           contentFit="cover"
         />
+        <View style={styles.cardHeaderInfo}>
+          <Text style={styles.cardAddress} numberOfLines={1}>{property.address}</Text>
+          <Text style={styles.cardCity}>{property.cityState}</Text>
+          <Text style={styles.cardId}>{property.id}</Text>
+        </View>
+        <StatusPill status={property.status} />
       </View>
-      <View style={styles.propertyCardBody}>
-        <Text style={styles.propertyAddress} numberOfLines={2}>
-          {property.address}
-        </Text>
-        <Text style={styles.propertyCityState}>{property.cityState}</Text>
-        <Text style={styles.propertyId}>ID: {property.id}</Text>
-        <View style={styles.propertyMeta}>
-          <Text style={styles.propertyType}>{property.type}</Text>
-          <StatusPill status={property.status} />
+
+      <View style={styles.divider} />
+
+      {/* Grid Details */}
+      <View style={styles.cardStatsGrid}>
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>TYPE</Text>
+          <Text style={styles.statsValue}>{property.type}</Text>
         </View>
-        <View style={styles.propertyValueRow}>
-          <Text style={styles.propertyValueLabel}>Value / Price</Text>
-          <Text style={styles.propertyValue}>{property.value}</Text>
+
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>VALUE / PRICE</Text>
+          <Text style={styles.statsValue}>{property.value}</Text>
         </View>
-        <View style={styles.propertyConfidenceSection}>
-          <Text style={styles.propertyConfidenceLabel}>Confidence</Text>
+
+        <View style={[styles.statsCol, { flex: 1.2 }]}>
+          <Text style={styles.statsLabel}>CONFIDENCE</Text>
           <ConfidenceBar value={property.confidence} />
         </View>
-        <View style={styles.manageDataLink}>
-          <Text style={styles.manageDataLinkText}>Manage Data</Text>
-          <MaterialCommunityIcons name="chevron-right" size={14} color="#5B6B7A" />
-        </View>
+      </View>
+
+      {/* Action Footer */}
+      <View style={styles.cardActionRow}>
+        <Pressable
+          style={({ pressed }) => [styles.manageBtn, pressed && { opacity: 0.7 }]}
+          onPress={() => onManage(property)}
+        >
+          <Text style={styles.manageBtnText}>Manage Data</Text>
+          <MaterialCommunityIcons name="arrow-right" size={16} color="#0EA5E9" />
+        </Pressable>
       </View>
     </Pressable>
   );
@@ -179,359 +186,349 @@ export default function PropertyInventoryScreen() {
   };
 
   const handleManageData = (property: Property) => {
-    router.push(`/(main)/properties/${property.id}`);
+    router.push({
+      pathname: '/(main)/properties/[id]',
+      params: { id: property.id },
+    });
   };
 
   return (
-    <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Background Gradient - subtle soft blue/gray from screenshot */}
+      <LinearGradient
+        colors={['#F0F4F8', '#E2E8F0', '#F0F4F8']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color="#0B2D3E" />
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          hitSlop={10}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#0f172a" />
         </Pressable>
-        <View style={styles.headerCenter}>
+        <View style={{ flex: 1 }}>
           <Text style={styles.title}>Property Inventory</Text>
-          <Text style={styles.subtitle}>
-            Manage your high-confidence property data vault.
-          </Text>
+          <Text style={styles.subtitle}>Manage your high-confidence property data.</Text>
         </View>
       </View>
 
       <ScrollView
-        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        {/* Create Listing — primary CTA, refined */}
+      >
+        {/* Create Listing Button - Moved here */}
         <Pressable
-          style={({ pressed }) => [styles.createListingButton, pressed && styles.createListingButtonPressed]}
+          style={({ pressed }) => [styles.createListingBlock, pressed && { opacity: 0.95 }]}
           onPress={handleCreateListing}
-          android_ripple={{ color: 'rgba(255,255,255,0.2)' }}>
+        >
           <LinearGradient
-            colors={['#0D9488', '#0F766E']}
+            colors={['#0f172a', '#334155']}
+            style={styles.createListingGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.createListingButtonGradient}>
-            <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
-            <Text style={styles.createListingButtonText}>Create Listing</Text>
+          >
+            <View style={styles.createIconCircle}>
+              <MaterialCommunityIcons name="plus" size={20} color="#0f172a" />
+            </View>
+            <Text style={styles.createListingText}>Create New Listing</Text>
           </LinearGradient>
         </Pressable>
 
-        {/* Summary cards — horizontal scroll on mobile */}
+        {/* Stats Row - Horizontal Scroll */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsScrollContent}
-          style={styles.statsScroll}>
+          style={styles.statsRow}
+          contentContainerStyle={styles.statsRowContent}
+        >
+          {/* Active Card */}
           <View style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <MaterialCommunityIcons name="home-outline" size={22} color="#0B2D3E" />
+            <View style={styles.statIconBox}>
+              <MaterialCommunityIcons name="home-outline" size={24} color="#1E293B" />
             </View>
-            <Text style={styles.statValue}>12 Active</Text>
-            <Text style={styles.statLabel}>Total Properties tracked</Text>
+            <View>
+              <Text style={styles.statBigNum}>12 Active</Text>
+              <Text style={styles.statSub}>Total Properties tracked</Text>
+            </View>
           </View>
+
+          {/* Avg Score Card */}
           <View style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <MaterialCommunityIcons name="chart-line" size={22} color="#0B2D3E" />
+            <View style={styles.statIconBox}>
+              <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={24} color="#1E293B" />
             </View>
-            <Text style={styles.statValue}>94% Avg.</Text>
-            <Text style={styles.statLabel}>Data Confidence Score</Text>
+            <View>
+              <Text style={styles.statBigNum}>94% Avg.</Text>
+              <Text style={styles.statSub}>Data Confidence Score</Text>
+            </View>
           </View>
-          <View style={[styles.statCard, styles.statCardDrafts]}>
-            <View style={[styles.statIconWrap, styles.statIconWrapOrange]}>
-              <MaterialCommunityIcons name="file-document-outline" size={22} color="#EA580C" />
+
+          {/* Drafts Card */}
+          <View style={styles.statCard}>
+            <View style={styles.statIconBox}>
+              <MaterialCommunityIcons name="file-document-edit-outline" size={24} color="#1E293B" />
             </View>
-            <Text style={[styles.statValue, styles.statValueOrange]}>3 Drafts</Text>
-            <Text style={styles.statLabel}>Need manual verification</Text>
+            <View>
+              <Text style={styles.statBigNum}>3 Drafts</Text>
+              <Text style={styles.statSub}>Need manual verification</Text>
+            </View>
           </View>
         </ScrollView>
 
-        {/* Property list */}
-        <Text style={styles.sectionTitle}>Your listings</Text>
-        {PROPERTIES.map((property) => (
-          <PropertyCard
-            key={property.id}
-            property={property}
-            onManage={handleManageData}
-          />
-        ))}
-        <View style={{ height: 24 }} />
+        <View style={styles.listHeader}>
+          <Text style={styles.listTitle}>PROPERTY</Text>
+          {/* <Text style={styles.listTitleRight}>STATUS</Text> */}
+        </View>
+
+        {/* Listings */}
+        <View style={styles.listContainer}>
+          {PROPERTIES.map((property) => (
+            <PropertyRowCard
+              key={property.id}
+              property={property}
+              onManage={handleManageData}
+            />
+          ))}
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  container: {
     flex: 1,
+    backgroundColor: '#F1F5F9',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     paddingHorizontal: H_PADDING,
-    paddingTop: 10,
-    paddingBottom: 14,
-    gap: 12,
+    paddingTop: 12,
+    paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 20,
+    backgroundColor: '#FFF',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  headerCenter: {
-    flex: 1,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.4,
+    color: '#0f172a',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    marginTop: 4,
-    lineHeight: 20,
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 18,
   },
-  scroll: {
-    flex: 1,
+  createListingBlock: {
+    marginHorizontal: H_PADDING,
+    marginBottom: 24,
+    borderRadius: 12,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  scrollContent: {
-    paddingHorizontal: H_PADDING,
-    paddingBottom: 8,
-  },
-  createListingButton: {
-    borderRadius: 16,
-    minHeight: 50,
-    overflow: 'hidden',
-    marginBottom: 22,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0D9488',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  createListingButtonPressed: {
-    opacity: 0.9,
-  },
-  createListingButtonGradient: {
+  createListingGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 15,
-    paddingHorizontal: 24,
-    minHeight: 50,
-  },
-  createListingButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  statsScroll: {
-    marginHorizontal: -H_PADDING,
-    marginBottom: 26,
-  },
-  statsScrollContent: {
-    paddingHorizontal: H_PADDING,
-    paddingRight: H_PADDING + CARD_GAP,
-  },
-  statCard: {
-    width: SCREEN_WIDTH * 0.7,
-    maxWidth: 260,
-    marginRight: CARD_GAP,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  statCardDrafts: {},
-  statIconWrap: {
-    width: 40,
-    height: 40,
+    paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: 'rgba(11, 45, 62, 0.06)',
+    gap: 10,
+  },
+  createIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
-  statIconWrapOrange: {
-    backgroundColor: 'rgba(234, 88, 12, 0.12)',
-  },
-  statValue: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.3,
-  },
-  statValueOrange: {
-    color: '#C2410C',
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#5B6B7A',
-    marginTop: 4,
-    lineHeight: 16,
-  },
-  sectionTitle: {
-    fontSize: 17,
+  createListingText: {
+    color: '#FFF',
+    fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
-    marginBottom: 16,
-    letterSpacing: -0.2,
+    letterSpacing: 0.3,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+    paddingTop: 8,
+  },
+  statsRow: {
+    marginBottom: 24,
+    maxHeight: 110,
+  },
+  statsRowContent: {
+    paddingHorizontal: H_PADDING,
+    paddingRight: 8,
+  },
+  statCard: {
+    backgroundColor: '#FFF',
+    width: 220,
+    height: 100,
+    borderRadius: 16,
+    padding: 16,
+    marginRight: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#FFF',
+  },
+  statIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statBigNum: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 2,
+  },
+  statSub: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+    maxWidth: 120,
+    lineHeight: 14,
+  },
+  listHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: H_PADDING + 4,
+    marginBottom: 10,
+    opacity: 0.5,
+  },
+  listTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 1,
+  },
+  listTitleRight: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 1,
+  },
+  listContainer: {
+    paddingHorizontal: H_PADDING,
+    gap: 16,
   },
   propertyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: CARD_GAP,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 3 },
-    }),
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   propertyCardPressed: {
-    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
   },
-  propertyCardImageWrap: {
-    width: '100%',
-    height: 160,
-  },
-  propertyCardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  propertyCardBody: {
-    padding: 18,
-  },
-  propertyAddress: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0B2D3E',
-    lineHeight: 22,
-    letterSpacing: -0.2,
-  },
-  propertyCityState: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#5B6B7A',
-    marginTop: 2,
-  },
-  propertyId: {
-    fontSize: 11,
-    color: '#8B9AAA',
-    fontWeight: '500',
-    marginTop: 6,
-    letterSpacing: 0.2,
-  },
-  propertyMeta: {
+  cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 14,
+    alignItems: 'flex-start',
+    gap: 12,
   },
-  propertyType: {
+  cardThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0',
+  },
+  cardHeaderInfo: {
+    flex: 1,
+    paddingTop: 0, // Align with top of image
+  },
+  cardAddress: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0f172a',
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  cardCity: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#0B2D3E',
+    color: '#64748B',
   },
-  statusPill: {
-    borderRadius: 8,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
+  cardId: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 4,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
-  statusPillReady: {
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 14,
   },
-  statusPillReview: {
-    backgroundColor: 'rgba(234, 88, 12, 0.14)',
+  cardStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 8,
   },
-  statusPillDraft: {
-    backgroundColor: 'rgba(11, 45, 62, 0.08)',
+  statsCol: {
+    flex: 1,
   },
-  statusPillText: {
+  statsLabel: {
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  statusPillTextReady: {
-    color: '#0D9488',
-  },
-  statusPillTextReview: {
-    color: '#C2410C',
-  },
-  statusPillTextDraft: {
-    color: '#5B6B7A',
-  },
-  propertyValueRow: {
-    marginTop: 16,
-  },
-  propertyValueLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#8B9AAA',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
     marginBottom: 4,
+    letterSpacing: 0.5,
   },
-  propertyValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.3,
+  statsValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
   },
-  propertyConfidenceSection: {
-    marginTop: 14,
-  },
-  propertyConfidenceLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#8B9AAA',
-    marginBottom: 6,
-  },
-  confidenceRow: {
+  confidenceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
+    marginTop: 2,
   },
   confidenceTrack: {
     flex: 1,
     height: 6,
+    backgroundColor: '#F1F5F9',
     borderRadius: 3,
-    backgroundColor: 'rgba(11, 45, 62, 0.08)',
     overflow: 'hidden',
   },
   confidenceFill: {
@@ -541,19 +538,36 @@ const styles = StyleSheet.create({
   confidenceText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0B2D3E',
-    minWidth: 32,
+    color: '#0f172a',
+    minWidth: 34,
+    textAlign: 'right',
   },
-  manageDataLink: {
+  cardActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  manageBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 16,
-    gap: 2,
+    gap: 4,
+    paddingVertical: 4,
   },
-  manageDataLinkText: {
+  manageBtnText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#5B6B7A',
+    fontWeight: '700',
+    color: '#0EA5E9',
+  },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  statusPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });
