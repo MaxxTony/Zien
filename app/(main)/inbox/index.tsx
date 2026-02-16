@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ChannelType = 'WhatsApp' | 'Email' | 'SMS';
@@ -14,6 +14,28 @@ type Conversation = {
   preview: string;
   time: string;
   isUnread?: boolean;
+};
+
+const getChannelIcon = (channel: ChannelType) => {
+  switch (channel) {
+    case 'WhatsApp':
+      return 'whatsapp';
+    case 'Email':
+      return 'email-outline';
+    case 'SMS':
+      return 'message-text-outline';
+  }
+};
+
+const getChannelColor = (channel: ChannelType) => {
+  switch (channel) {
+    case 'WhatsApp':
+      return '#0D9488'; // Teal
+    case 'Email':
+      return '#0EA5E9'; // Blue
+    case 'SMS':
+      return '#64748B'; // Slate Grey
+  }
 };
 
 export default function InboxScreen() {
@@ -70,55 +92,92 @@ export default function InboxScreen() {
     return conversations.filter((item) => item.channel === activeFilter);
   }, [activeFilter, conversations]);
 
+  const unreadCount = conversations.filter((c) => c.isUnread).length;
+
   return (
     <LinearGradient
-      colors={['#F7FAFD', '#FFFFFF']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      colors={['#F0F4F8', '#FAFBFC']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.background, { paddingTop: insets.top }]}>
+      {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color="#0B2D3E" />
+          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Inbox</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>Inbox</Text>
+          </View>
           <Text style={styles.subtitle}>Stay on top of every conversation.</Text>
         </View>
       </View>
 
+      {/* Filter Pills */}
       <View style={styles.filterRow}>
         {(['All', 'Email', 'SMS', 'WhatsApp'] as const).map((label) => {
           const isActive = activeFilter === label;
           return (
             <Pressable
               key={label}
-              style={[styles.filterPill, isActive ? styles.filterPillActive : null]}
+              style={[styles.filterPill, isActive && styles.filterPillActive]}
               onPress={() => setActiveFilter(label)}>
-              <Text style={[styles.filterText, isActive ? styles.filterTextActive : null]}>{label}</Text>
+              <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{label}</Text>
             </Pressable>
           );
         })}
       </View>
 
-      <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-        {filteredConversations.map((item) => (
-          <Pressable
-            key={item.id}
-            style={styles.row}
-            onPress={() => router.push(`/(main)/inbox/${item.id}`)}>
-            <View style={styles.rowHeader}>
-              <Text style={styles.rowName}>{item.name}</Text>
-              <View style={styles.rowMeta}>
-                <Text style={styles.rowTime}>{item.time}</Text>
-                {item.isUnread ? <View style={styles.unreadDot} /> : null}
+      {/* Conversation List */}
+      <ScrollView
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
+        showsVerticalScrollIndicator={false}>
+        {filteredConversations.map((item, index) => {
+          const channelColor = getChannelColor(item.channel);
+          const channelIcon = getChannelIcon(item.channel);
+
+          return (
+            <Pressable
+              key={item.id}
+              style={({ pressed }) => [
+                styles.card,
+                item.isUnread && styles.cardUnread,
+                pressed && styles.cardPressed,
+              ]}
+              onPress={() => router.push(`/(main)/inbox/${item.id}`)}>
+              {/* Channel Icon Badge */}
+              <View style={[styles.channelBadge, { backgroundColor: channelColor }]}>
+                <MaterialCommunityIcons name={channelIcon} size={18} color="#FFFFFF" />
               </View>
-            </View>
-            <Text style={styles.rowPreview} numberOfLines={2}>
-              {item.preview}
-            </Text>
-            <Text style={styles.rowChannel}>{item.channel.toUpperCase()}</Text>
-          </Pressable>
-        ))}
+
+              {/* Content */}
+              <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.cardName, item.isUnread && styles.cardNameUnread]}>
+                    {item.name}
+                  </Text>
+                  <View style={styles.cardMeta}>
+                    <Text style={styles.cardTime}>{item.time}</Text>
+                    {item.isUnread && <View style={styles.unreadIndicator} />}
+                  </View>
+                </View>
+
+                <Text style={styles.cardPreview} numberOfLines={2}>
+                  {item.preview}
+                </Text>
+
+                <View style={styles.cardFooter}>
+                  <View style={[styles.channelTag, { backgroundColor: `${channelColor}15` }]}>
+                    <Text style={[styles.channelTagText, { color: channelColor }]}>
+                      {item.channel}
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={18} color="#C5D0DB" />
+                </View>
+              </View>
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </LinearGradient>
   );
@@ -131,102 +190,197 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 10,
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#F7FBFF',
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: { elevation: 2 },
+    }),
   },
   headerText: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  unreadBadge: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  unreadBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   subtitle: {
-    fontSize: 12.5,
-    color: '#7B8794',
+    fontSize: 13.5,
+    color: '#64748B',
     marginTop: 4,
+    fontWeight: '500',
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 6,
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexWrap: 'wrap',
   },
   filterPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#EEF2F6',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E8EEF4',
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterPillActive: {
     backgroundColor: '#0B2D3E',
+    borderColor: '#0B2D3E',
   },
   filterText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#5B6B7A',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
   },
   filterTextActive: {
     color: '#FFFFFF',
   },
   listContent: {
-    paddingTop: 10,
-    paddingHorizontal: 18,
-    paddingBottom: 28,
-    gap: 12,
+    paddingTop: 8,
+    paddingHorizontal: 20,
+    gap: 14,
   },
-  row: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8EEF4',
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: '#E8EEF4',
+    overflow: 'visible',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+      },
+      android: { elevation: 1 },
+    }),
   },
-  rowHeader: {
+  cardUnread: {
+    borderColor: '#0D9488',
+    borderWidth: 1.5,
+    backgroundColor: '#F0FDFA',
+  },
+  cardPressed: {
+    opacity: 0.7,
+  },
+  channelBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 4,
+      },
+      android: { elevation: 3 },
+    }),
+  },
+  cardContent: {
+    flex: 1,
+    gap: 8,
+    minWidth: 0,
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
   },
-  rowName: {
-    fontSize: 15,
+  cardName: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#0B2D3E',
+    flex: 1,
   },
-  rowMeta: {
+  cardNameUnread: {
+    fontWeight: '800',
+  },
+  cardMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    flexShrink: 0,
   },
-  rowTime: {
-    fontSize: 11.5,
-    color: '#9AA7B6',
+  cardTime: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
-  unreadDot: {
-    width: 6,
-    height: 6,
+  unreadIndicator: {
+    width: 8,
+    height: 8,
     borderRadius: 999,
-    backgroundColor: '#0BA0B2',
+    backgroundColor: '#EF4444',
   },
-  rowPreview: {
-    marginTop: 6,
-    fontSize: 12.5,
-    color: '#5B6B7A',
+  cardPreview: {
+    fontSize: 13.5,
+    color: '#64748B',
+    lineHeight: 20,
   },
-  rowChannel: {
-    marginTop: 6,
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  channelTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  channelTagText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#0BA0B2',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });

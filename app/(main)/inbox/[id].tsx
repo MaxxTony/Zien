@@ -1,16 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -44,6 +44,11 @@ export default function InboxChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // State for messages and input
+  const [messages, setMessages] = useState<Message[]>(conversationSeed.messages);
+  const [inputText, setInputText] = useState('');
 
   const conversation = useMemo(() => {
     if (typeof params.id === 'string') {
@@ -58,6 +63,28 @@ export default function InboxChatScreen() {
     }
     return conversationSeed;
   }, [params.id]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [messages]);
+
+  // Function to send a message
+  const handleSendMessage = () => {
+    if (inputText.trim() === '') return;
+
+    const newMessage: Message = {
+      id: `msg-${Date.now()}`,
+      text: inputText.trim(),
+      isOutgoing: true,
+      time: 'Just now',
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    setInputText('');
+  };
 
   return (
     <LinearGradient
@@ -79,38 +106,55 @@ export default function InboxChatScreen() {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={styles.chatContent} showsVerticalScrollIndicator={false}>
-          {conversation.messages.map((message) => (
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.chatContent}
+          showsVerticalScrollIndicator={false}>
+          {messages.map((message) => (
             <View
               key={message.id}
               style={[styles.bubble, message.isOutgoing ? styles.bubbleOutgoing : styles.bubbleIncoming]}>
               <Text style={[styles.bubbleText, message.isOutgoing ? styles.bubbleTextOutgoing : null]}>
                 {message.text}
               </Text>
-              <Text style={styles.bubbleTime}>{message.time}</Text>
+              <Text style={[styles.bubbleTime, message.isOutgoing && styles.bubbleTimeOutgoing]}>
+                {message.time}
+              </Text>
             </View>
           ))}
         </ScrollView>
 
         <View style={[styles.inputBar, { paddingBottom: Math.max(12, insets.bottom) }]}>
           <View style={styles.inputContainer}>
-            <TextInput placeholder="Reply via WhatsApp..." placeholderTextColor="#9AA7B6" style={styles.input} />
+            <TextInput
+              placeholder="Reply via WhatsApp..."
+              placeholderTextColor="#9AA7B6"
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmitEditing={handleSendMessage}
+              returnKeyType="send"
+              multiline
+            />
             <Pressable style={styles.sparkleButton}>
               <MaterialCommunityIcons name="creation" size={16} color="#0B2D3E" />
             </Pressable>
-            <Pressable style={styles.sendButton}>
+            <Pressable
+              style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+              onPress={handleSendMessage}
+              disabled={!inputText.trim()}>
               <Text style={styles.sendButtonText}>Send</Text>
             </Pressable>
           </View>
           <View style={styles.helperRow}>
-            <View style={styles.helperItem}>
+            <Pressable style={styles.helperItem}>
               <MaterialCommunityIcons name="paperclip" size={14} color="#0BA0B2" />
               <Text style={styles.helperText}>Attach Property Kit</Text>
-            </View>
-            <View style={styles.helperItem}>
+            </Pressable>
+            <Pressable style={styles.helperItem}>
               <MaterialCommunityIcons name="calendar-blank-outline" size={14} color="#0BA0B2" />
               <Text style={styles.helperText}>Schedule Showing</Text>
-            </View>
+            </Pressable>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -207,6 +251,9 @@ const styles = StyleSheet.create({
     color: '#9AA7B6',
     textAlign: 'right',
   },
+  bubbleTimeOutgoing: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
   inputBar: {
     borderTopWidth: 1,
     borderTopColor: '#E8EEF4',
@@ -221,32 +268,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7FAFD',
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#E3ECF4',
   },
   input: {
     flex: 1,
-    fontSize: 12.5,
+    fontSize: 13,
     color: '#0B2D3E',
+    maxHeight: 100,
   },
   sparkleButton: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#EEF2F6',
   },
   sendButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: '#0B2D3E',
   },
+  sendButtonDisabled: {
+    backgroundColor: '#C5D0DB',
+    opacity: 0.6,
+  },
   sendButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 12.5,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   helperRow: {

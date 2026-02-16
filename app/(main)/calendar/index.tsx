@@ -2,7 +2,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabKey = 'calendar' | 'booking' | 'tasks';
@@ -28,6 +37,12 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>('calendar');
+  const [showModal, setShowModal] = useState(false);
+  const [newItemTitle, setNewItemTitle] = useState('');
+  const [newItemDate, setNewItemDate] = useState('');
+  const [newItemTime, setNewItemTime] = useState('');
+  const [newItemType, setNewItemType] = useState('Calendar Event');
+  const [newItemNotes, setNewItemNotes] = useState('');
 
   const tasks = useMemo<Task[]>(
     () => [
@@ -86,15 +101,29 @@ export default function CalendarScreen() {
     []
   );
 
+  const handleCreateItem = () => {
+    // Handle creation logic here
+    setShowModal(false);
+    setNewItemTitle('');
+    setNewItemDate('');
+    setNewItemTime('');
+    setNewItemNotes('');
+  };
+
   const renderCalendarTab = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIcon}>
-        <MaterialCommunityIcons name="calendar-blank-outline" size={48} color="#7B8794" />
+      <View style={styles.emptyIconCircle}>
+        <MaterialCommunityIcons name="calendar-blank-outline" size={56} color="#0D9488" />
       </View>
       <Text style={styles.emptyTitle}>Interactive Calendar Interface</Text>
       <Text style={styles.emptySubtitle}>Google & Outlook 2-Way Sync Active</Text>
       <Pressable style={styles.syncButton}>
+        <MaterialCommunityIcons name="sync" size={18} color="#FFFFFF" />
         <Text style={styles.syncButtonText}>Calendar Sync (GCal/Outlook)</Text>
+      </Pressable>
+      <Pressable style={styles.newEventButton} onPress={() => setShowModal(true)}>
+        <MaterialCommunityIcons name="plus" size={20} color="#0B2D3E" />
+        <Text style={styles.newEventButtonText}>New Event</Text>
       </Pressable>
     </View>
   );
@@ -105,16 +134,20 @@ export default function CalendarScreen() {
         <View key={link.id} style={styles.bookingCard}>
           <View style={styles.bookingHeader}>
             <View style={styles.linkIconBox}>
-              <MaterialCommunityIcons name="link-variant" size={18} color="#5B6B7A" />
+              <MaterialCommunityIcons name="link-variant" size={20} color="#0D9488" />
             </View>
-            <Text style={styles.bookingDuration}>{link.duration}</Text>
+            <View style={styles.durationBadge}>
+              <Text style={styles.durationText}>{link.duration}</Text>
+            </View>
           </View>
           <Text style={styles.bookingTitle}>{link.title}</Text>
           <Text style={styles.bookingType}>Type: {link.type}</Text>
           <View style={styles.urlRow}>
-            <Text style={styles.urlText}>{link.url}</Text>
+            <Text style={styles.urlText} numberOfLines={1}>
+              {link.url}
+            </Text>
             <Pressable style={styles.copyButton}>
-              <MaterialCommunityIcons name="content-copy" size={14} color="#7B8794" />
+              <MaterialCommunityIcons name="content-copy" size={16} color="#64748B" />
             </Pressable>
           </View>
           <Pressable style={styles.editButton}>
@@ -122,38 +155,40 @@ export default function CalendarScreen() {
           </Pressable>
         </View>
       ))}
-      <Pressable style={styles.createCard}>
-        <MaterialCommunityIcons name="plus" size={32} color="#9AA7B6" />
+      <Pressable style={styles.createCard} onPress={() => setShowModal(true)}>
+        <MaterialCommunityIcons name="plus-circle-outline" size={48} color="#94A3B8" />
         <Text style={styles.createText}>Create New Booking Link</Text>
       </Pressable>
     </View>
   );
 
   const renderTasksTab = () => (
-    <View style={styles.taskContainer}>
-      <View style={styles.taskHeader}>
-        <Text style={styles.taskHeaderText}>ASSIGNMENT / TASK</Text>
-        <Text style={styles.taskHeaderText}>DUE</Text>
-      </View>
+    <View style={styles.tasksArea}>
       {tasks.map((task) => (
-        <View key={task.id} style={styles.taskRow}>
-          <View style={styles.taskLeft}>
-            <Text style={styles.taskTitle}>{task.title}</Text>
-            <View style={styles.taskMeta}>
-              <View style={[styles.priorityBadge, styles[`priority-${task.priority}`]]}>
-                <Text style={styles.priorityText}>{task.priority.toUpperCase()}</Text>
-              </View>
-              <View style={[styles.statusBadge, task.status === 'completed' ? styles.statusCompleted : null]}>
-                <Text style={[styles.statusText, task.status === 'completed' ? styles.statusTextCompleted : null]}>
-                  {task.status.toUpperCase()}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.taskRight}>
-            <Text style={styles.taskDue}>{task.dueDate}</Text>
+        <View key={task.id} style={styles.taskCard}>
+          <View style={styles.taskCardHeader}>
+            <Text style={styles.taskCardTitle}>{task.title}</Text>
             <View style={styles.ownerBadge}>
               <Text style={styles.ownerText}>{task.owner}</Text>
+            </View>
+          </View>
+
+          <View style={styles.taskCardMeta}>
+            <View style={styles.metaItem}>
+              <MaterialCommunityIcons name="clock-outline" size={16} color="#64748B" />
+              <Text style={styles.metaText}>{task.dueDate}</Text>
+            </View>
+          </View>
+
+          <View style={styles.taskCardFooter}>
+            <View style={[styles.priorityBadge, styles[`priority${task.priority}`]]}>
+              <Text style={styles.priorityText}>{task.priority.toUpperCase()}</Text>
+            </View>
+            <View style={[styles.statusBadge, task.status === 'completed' && styles.statusCompleted]}>
+              <Text
+                style={[styles.statusText, task.status === 'completed' && styles.statusTextCompleted]}>
+                {task.status.toUpperCase()}
+              </Text>
             </View>
           </View>
         </View>
@@ -174,41 +209,150 @@ export default function CalendarScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      colors={['#F0F4F8', '#FAFBFC']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.background, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 20 }]}
+        showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={styles.header}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <MaterialCommunityIcons name="arrow-left" size={20} color="#0B2D3E" />
+            <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
           </Pressable>
           <View style={styles.headerText}>
             <Text style={styles.title}>Scheduling & Workspace</Text>
-            <Text style={styles.subtitle}>Sync calendars, booking links, and team tasks.</Text>
+            <Text style={styles.subtitle}>Sync your calendars, manage booking links, and stay on top of team tasks.</Text>
           </View>
         </View>
 
+        {/* Tabs */}
         <View style={styles.tabRow}>
           <Pressable
-            style={[styles.tab, activeTab === 'calendar' ? styles.tabActive : null]}
+            style={styles.tab}
             onPress={() => setActiveTab('calendar')}>
-            <Text style={[styles.tabText, activeTab === 'calendar' ? styles.tabTextActive : null]}>Calendar</Text>
+            <Text style={[styles.tabText, activeTab === 'calendar' && styles.tabTextActive]}>
+              Calendar
+            </Text>
+            {activeTab === 'calendar' && <View style={styles.tabIndicator} />}
           </Pressable>
           <Pressable
-            style={[styles.tab, activeTab === 'booking' ? styles.tabActive : null]}
+            style={styles.tab}
             onPress={() => setActiveTab('booking')}>
-            <Text style={[styles.tabText, activeTab === 'booking' ? styles.tabTextActive : null]}>Booking Links</Text>
+            <Text style={[styles.tabText, activeTab === 'booking' && styles.tabTextActive]}>
+              Booking Links
+            </Text>
+            {activeTab === 'booking' && <View style={styles.tabIndicator} />}
           </Pressable>
           <Pressable
-            style={[styles.tab, activeTab === 'tasks' ? styles.tabActive : null]}
+            style={styles.tab}
             onPress={() => setActiveTab('tasks')}>
-            <Text style={[styles.tabText, activeTab === 'tasks' ? styles.tabTextActive : null]}>Team Tasks</Text>
+            <Text style={[styles.tabText, activeTab === 'tasks' && styles.tabTextActive]}>
+              Team Tasks
+            </Text>
+            {activeTab === 'tasks' && <View style={styles.tabIndicator} />}
           </Pressable>
         </View>
 
+        {/* Action Buttons */}
+        <View style={styles.actionRow}>
+          <Pressable style={styles.actionButton}>
+            <Text style={styles.actionButtonText}>Calendar Sync (GCal/Outlook)</Text>
+          </Pressable>
+          <Pressable style={styles.actionButtonPrimary} onPress={() => setShowModal(true)}>
+            <Text style={styles.actionButtonPrimaryText}>+ New Item</Text>
+          </Pressable>
+        </View>
+
+        {/* Tab Content */}
         {tabContent}
       </ScrollView>
+
+      {/* Create New Item Modal */}
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Create New Item</Text>
+              <Pressable onPress={() => setShowModal(false)} style={styles.closeButton}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Title</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Open House - Malibu Villa"
+                  placeholderTextColor="#94A3B8"
+                  value={newItemTitle}
+                  onChangeText={setNewItemTitle}
+                />
+              </View>
+
+              <View style={styles.inputRow}>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Date</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="dd/mm/yyyy"
+                    placeholderTextColor="#94A3B8"
+                    value={newItemDate}
+                    onChangeText={setNewItemDate}
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Time</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="--:-- --"
+                    placeholderTextColor="#94A3B8"
+                    value={newItemTime}
+                    onChangeText={setNewItemTime}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Type</Text>
+                <View style={styles.selectInput}>
+                  <Text style={styles.selectText}>{newItemType}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Notes</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Add details..."
+                  placeholderTextColor="#94A3B8"
+                  value={newItemNotes}
+                  onChangeText={setNewItemNotes}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <Pressable style={styles.cancelButton} onPress={() => setShowModal(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={styles.createButton} onPress={handleCreateItem}>
+                <Text style={styles.createButtonText}>Create Item</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -218,114 +362,191 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    padding: 18,
-    gap: 16,
+    padding: 20,
+    gap: 20,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#F7FBFF',
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: { elevation: 2 },
+    }),
   },
   headerText: {
     flex: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: '#0B2D3E',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 12.5,
-    color: '#5B6B7A',
+    fontSize: 13,
+    color: '#64748B',
     marginTop: 4,
+    lineHeight: 18,
   },
-  tabRow: {
+  actionRow: {
     flexDirection: 'row',
     gap: 10,
   },
-  tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#F7FBFF',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-  },
-  tabActive: {
-    backgroundColor: '#0B2D3E',
-    borderColor: '#0B2D3E',
-  },
-  tabText: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: '#7B8794',
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-  },
-  emptyState: {
-    backgroundColor: '#F7FBFF',
-    borderRadius: 20,
-    padding: 48,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    minHeight: 380,
-    justifyContent: 'center',
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: '#EEF3F8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0B2D3E',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 12.5,
-    color: '#7B8794',
-  },
-  syncButton: {
-    marginTop: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+  actionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderWidth: 1.5,
+    borderColor: '#E8EEF4',
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  actionButtonPrimary: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#0B2D3E',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  actionButtonPrimaryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  tabRow: {
+    flexDirection: 'row',
+    gap: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8EEF4',
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    position: 'relative',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  tabTextActive: {
+    color: '#0B2D3E',
+    fontWeight: '700',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: '#0B2D3E',
+  },
+  emptyState: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    minHeight: 400,
+    justifyContent: 'center',
+    gap: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+      },
+      android: { elevation: 1 },
+    }),
+  },
+  emptyIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F0FDFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  syncButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#0D9488',
+    borderRadius: 12,
   },
   syncButtonText: {
-    fontSize: 12.5,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  newEventButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E8EEF4',
+  },
+  newEventButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#0B2D3E',
   },
   contentArea: {
     gap: 16,
   },
   bookingCard: {
-    backgroundColor: '#F7FBFF',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    gap: 10,
+    padding: 18,
+    gap: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+      },
+      android: { elevation: 1 },
+    }),
   },
   bookingHeader: {
     flexDirection: 'row',
@@ -333,177 +554,310 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   linkIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#EEF3F8',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F0FDFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bookingDuration: {
+  durationBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#F0FDFA',
+    borderRadius: 8,
+  },
+  durationText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#0B2D3E',
+    fontWeight: '800',
+    color: '#0D9488',
   },
   bookingTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#0B2D3E',
   },
   bookingType: {
-    fontSize: 12,
-    color: '#7B8794',
+    fontSize: 13,
+    color: '#64748B',
   },
   urlRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    gap: 10,
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: '#E8EEF4',
   },
   urlText: {
-    fontSize: 12,
-    color: '#0BA0B2',
+    fontSize: 13,
+    color: '#0D9488',
     fontWeight: '600',
     flex: 1,
   },
   copyButton: {
-    width: 26,
-    height: 26,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7FBFF',
+    backgroundColor: '#FFFFFF',
   },
   editButton: {
     alignItems: 'center',
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: '#E8EEF4',
   },
   editButtonText: {
-    fontSize: 12.5,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#0B2D3E',
   },
   createCard: {
-    backgroundColor: '#F7FBFF',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 48,
     borderWidth: 2,
-    borderColor: '#DFE6EF',
+    borderColor: '#E8EEF4',
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 180,
+    minHeight: 200,
+    gap: 12,
   },
   createText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#9AA7B6',
-    marginTop: 10,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#94A3B8',
   },
-  taskContainer: {
-    backgroundColor: '#F7FBFF',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
+  // Task Card Styles
+  tasksArea: {
     gap: 14,
   },
-  taskHeader: {
+  taskCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+      },
+      android: { elevation: 1 },
+    }),
+  },
+  taskCardHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3ECF4',
+    gap: 12,
   },
-  taskHeaderText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#7B8794',
-    letterSpacing: 0.5,
-  },
-  taskRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF3F8',
-  },
-  taskLeft: {
-    flex: 1,
-    gap: 8,
-  },
-  taskTitle: {
-    fontSize: 14,
+  taskCardTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#0B2D3E',
+    flex: 1,
   },
-  taskMeta: {
+  taskCardMeta: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 12,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  taskCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   priorityBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
-  'priority-high': {
-    backgroundColor: '#FFE5E5',
+  priorityhigh: {
+    backgroundColor: '#FEE2E2',
   },
-  'priority-medium': {
-    backgroundColor: '#FFF4E5',
+  prioritymedium: {
+    backgroundColor: '#FEF3C7',
   },
-  'priority-low': {
-    backgroundColor: '#F0F0F0',
+  prioritylow: {
+    backgroundColor: '#F1F5F9',
   },
   priorityText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0B2D3E',
+    letterSpacing: 0.5,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
   },
   statusCompleted: {
-    backgroundColor: '#E5F8F0',
+    backgroundColor: '#D1FAE5',
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#0B2D3E',
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
   },
   statusTextCompleted: {
-    color: '#0BA688',
-  },
-  taskRight: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  taskDue: {
-    fontSize: 12.5,
-    color: '#5B6B7A',
+    color: '#059669',
   },
   ownerBadge: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: 999,
     backgroundColor: '#0B2D3E',
     alignItems: 'center',
     justifyContent: 'center',
   },
   ownerText: {
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 420,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 24,
+      },
+      android: { elevation: 8 },
+    }),
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 24,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBody: {
+    padding: 24,
+    gap: 20,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 14,
+    color: '#0B2D3E',
+    borderWidth: 1,
+    borderColor: '#E8EEF4',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  selectInput: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#E8EEF4',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectText: {
+    fontSize: 14,
+    color: '#0B2D3E',
+  },
+  textArea: {
+    height: 100,
+    paddingTop: 14,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E8EEF4',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  createButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#0B2D3E',
+    alignItems: 'center',
+  },
+  createButtonText: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
