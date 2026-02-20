@@ -40,6 +40,14 @@ const DEALS_BY_STAGE: Record<Stage, { id: string; name: string; address: string;
 
 const STAGE_OPTIONS = ['Lead / Qualification', 'Contacted', 'Showing', 'Offer', 'Closed'] as const;
 
+const AUTO_TRIGGERS = [
+  { stage: 'LEAD', action: 'Send Lead Template Email' },
+  { stage: 'CONTACTED', action: 'Send Contacted Template Email' },
+  { stage: 'SHOWING', action: 'Send Showing Template Email', active: true },
+  { stage: 'OFFER', action: 'Send Offer Template Email' },
+  { stage: 'CLOSED', action: 'Send Closed Template Email' }
+];
+
 const COLUMN_WIDTH = 280;
 const CARD_GAP = 12;
 
@@ -54,6 +62,7 @@ export default function DealsScreen() {
   const [dealValue, setDealValue] = useState('1,250,000');
   const [initialStage, setInitialStage] = useState<(typeof STAGE_OPTIONS)[number]>('Lead / Qualification');
   const [stageDropdownOpen, setStageDropdownOpen] = useState(false);
+  const [autoTriggersModalVisible, setAutoTriggersModalVisible] = useState(false);
 
   const isNarrow = screenWidth < 400;
   const columnWidth = Math.min(COLUMN_WIDTH, screenWidth - 32);
@@ -122,6 +131,7 @@ export default function DealsScreen() {
         {/* Actions: Auto-Triggers + New Deal — 44pt min touch */}
         <View style={styles.actionsRow}>
           <Pressable
+            onPress={() => setAutoTriggersModalVisible(true)}
             style={({ pressed }) => [styles.autoTriggersBtn, pressed && styles.autoTriggersBtnPressed]}>
             <MaterialCommunityIcons name="lightning-bolt-outline" size={20} color="#0B2D3E" />
             <Text style={styles.autoTriggersText}>Auto-Triggers</Text>
@@ -322,6 +332,43 @@ export default function DealsScreen() {
               </ScrollView>
             </Pressable>
           </KeyboardAvoidingView>
+        </Pressable>
+      </Modal>
+
+      {/* Auto-Triggers Modal */}
+      <Modal
+        visible={autoTriggersModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAutoTriggersModalVisible(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setAutoTriggersModalVisible(false)}>
+          <Pressable style={styles.triggerModalWrap} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.triggerModalHeader}>
+              <Text style={styles.triggerModalTitle}>Pipeline Automation Triggers</Text>
+              <Text style={styles.triggerModalSubtitle}>Configure automated actions when a deal enters a specific stage.</Text>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.triggerModalList}>
+              {AUTO_TRIGGERS.map((item) => (
+                <View key={item.stage} style={styles.triggerCard}>
+                  <View style={styles.triggerCardInfo}>
+                    <Text style={styles.triggerCardStage}>WHEN ENTERING: {item.stage}</Text>
+                    <Text style={styles.triggerCardAction}>Action: {item.action}</Text>
+                  </View>
+                  <Pressable style={[styles.triggerConfigureBtn, item.active && styles.triggerConfigureBtnActive]}>
+                    <Text style={styles.triggerConfigureText}>Configure</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.triggerModalFooter}>
+              <Pressable style={styles.triggerSaveBtn} onPress={() => setAutoTriggersModalVisible(false)}>
+                <Text style={styles.triggerSaveBtnText}>Save Configuration</Text>
+              </Pressable>
+            </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </LinearGradient>
@@ -776,5 +823,95 @@ const styles = StyleSheet.create({
     color: '#5B6B7A',
     lineHeight: 21,
     fontWeight: '500',
+  },
+
+  // Trigger Modal Styles
+  triggerModalWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '85%',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  triggerModalHeader: {
+    padding: 24,
+    paddingBottom: 24,
+  },
+  triggerModalTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+  },
+  triggerModalSubtitle: {
+    fontSize: 14,
+    color: '#5B6B7A',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  triggerModalList: {
+    paddingHorizontal: 24,
+    paddingBottom: 8,
+    gap: 16,
+  },
+  triggerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  triggerCardInfo: { flex: 1, paddingRight: 12 },
+  triggerCardStage: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 4,
+  },
+  triggerCardAction: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0BA0B2',
+  },
+  triggerConfigureBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+  },
+  triggerConfigureBtnActive: {
+    borderColor: '#0056D2',
+    borderWidth: 1.5,
+  },
+  triggerConfigureText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  triggerModalFooter: {
+    padding: 24,
+  },
+  triggerSaveBtn: {
+    backgroundColor: '#0B2D3E',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  triggerSaveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

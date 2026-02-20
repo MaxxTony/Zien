@@ -41,6 +41,7 @@ export default function ContactsScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [importModalVisible, setImportModalVisible] = useState(false);
   const [firstName, setFirstName] = useState('Jessica');
   const [lastName, setLastName] = useState('Miller');
   const [email, setEmail] = useState('name@email.com');
@@ -84,7 +85,7 @@ export default function ContactsScreen() {
         keyboardShouldPersistTaps="handled">
         {/* Actions: Import + Add Contact */}
         <View style={styles.actionsRow}>
-          <Pressable style={styles.secondaryBtn}>
+          <Pressable style={styles.secondaryBtn} onPress={() => setImportModalVisible(true)}>
             <MaterialCommunityIcons name="upload-outline" size={18} color="#0B2D3E" />
             <Text style={styles.secondaryBtnText}>Import CSV/Excel</Text>
           </Pressable>
@@ -135,7 +136,7 @@ export default function ContactsScreen() {
                 <Text style={styles.contactMetaValue}>{contact.group}</Text>
               </View>
 
-              <Pressable style={styles.profileLink}>
+              <Pressable style={styles.profileLink} onPress={() => router.push('/(main)/crm/profile')}>
                 <Text style={styles.profileLinkText}>Profile</Text>
                 <MaterialCommunityIcons name="chevron-right" size={18} color="#0BA0B2" />
               </Pressable>
@@ -254,6 +255,47 @@ export default function ContactsScreen() {
                 </Pressable>
               </View>
             </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Import Contacts Modal */}
+      <Modal
+        visible={importModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImportModalVisible(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setImportModalVisible(false)}>
+          <Pressable style={[styles.modalCard, styles.importModalCard]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.importModalHeader}>
+              <View style={{ flex: 1, paddingRight: 16 }}>
+                <Text style={styles.importModalTitle}>Import Contacts</Text>
+                <Text style={styles.importModalSubtitle}>
+                  Upload CSV or Excel files to bulk add contacts to your CRM.
+                </Text>
+              </View>
+              <Pressable onPress={() => setImportModalVisible(false)} style={styles.modalCloseBtn} hitSlop={12}>
+                <MaterialCommunityIcons name="close" size={22} color="#0B2D3E" />
+              </Pressable>
+            </View>
+
+            <View style={styles.importModalBody}>
+              <View style={styles.dropzoneCard}>
+                <View style={styles.dropzoneInner}>
+                  <View style={styles.uploadIconWrap}>
+                    <MaterialCommunityIcons name="upload-outline" size={28} color="#0B2D3E" />
+                  </View>
+                  <Text style={styles.dropzoneTitle}>Drag & Drop file here</Text>
+                  <Text style={styles.dropzoneSubtitle}>or click to browse from your computer</Text>
+
+                  <Pressable style={styles.selectFileBtn}>
+                    <Text style={styles.selectFileBtnText}>Select File</Text>
+                  </Pressable>
+
+                  <Text style={styles.dropzoneFormats}>Supported formats: .CSV, .XLSX</Text>
+                </View>
+              </View>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -486,4 +528,93 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalSaveText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+
+  // Import Modal Styles
+  importModalCard: {
+    maxWidth: 600,
+    width: '100%',
+    padding: 24,
+  },
+  importModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  importModalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 6,
+    letterSpacing: -0.5,
+  },
+  importModalSubtitle: {
+    fontSize: 14,
+    color: '#5B6B7A',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  importModalBody: {},
+  dropzoneCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+    padding: 16,
+  },
+  dropzoneInner: {
+    borderWidth: 1.5,
+    borderColor: '#E3ECF4',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+  },
+  uploadIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF4F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  dropzoneTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    marginBottom: 8,
+  },
+  dropzoneSubtitle: {
+    fontSize: 14,
+    color: '#5B6B7A',
+    fontWeight: '500',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  selectFileBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 24,
+  },
+  selectFileBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  dropzoneFormats: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
 });

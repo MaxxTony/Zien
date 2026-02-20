@@ -2,7 +2,7 @@
   "expo": {
     "name": "Zien",
     "slug": "Zien",
-    "version": "4.7", 
+    "version": "4.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "zien",
@@ -11,13 +11,33 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.propfyi",
+      "buildNumber": "13",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload and manage property images.",
+        "NSCameraUsageDescription": "This app needs access to your camera to capture property photos and videos.",
+        "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your library.",
+        "NSCalendarsUsageDescription": "This app needs access to your calendar to schedule property viewings and appointments.",
+        "NSRemindersUsageDescription": "This app needs access to reminders to help you manage follow-ups and tasks.",
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone to record property videos.",
+        "NSLocationWhenInUseUsageDescription": "This app needs your location to show nearby properties and provide location-based services."
       }
     },
     "android": {
       "package": "com.propfyi",
       "versionCode": 59,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "RECORD_AUDIO",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/icon.png",
@@ -43,6 +63,13 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
         }
       ]
     ],
