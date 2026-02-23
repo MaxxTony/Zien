@@ -6,5 +6,9 @@ import { Stack } from 'expo-router';
  * Expo Router reports: "No route named '(main)' exists in nested children".
  */
 export default function MainLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="chat-modal" options={{ presentation: 'modal' }} />
+    </Stack>
+  );
 }
