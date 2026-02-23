@@ -15,7 +15,9 @@
     "android:release": "eas build -p android --profile production --auto-submit",
     "release": "npm run ios:release && npm run android:release",
     "ota:prod": "eas update --branch production --message \"OTA production update\"",
-    "ota:preview": "eas update --branch preview --message \"OTA preview update\""
+    "ota:preview": "eas update --branch preview --message \"OTA preview update\"",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -34,7 +36,7 @@
     "expo-font": "~14.0.11",
     "expo-haptics": "~15.0.8",
     "expo-image": "~3.0.11",
-    "expo-image-picker": "~16.0.6",
+    "expo-image-picker": "~17.0.10",
     "expo-linear-gradient": "^15.0.8",
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.23",
