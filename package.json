@@ -7,7 +7,7 @@
     "clean": "expo start -c",
     "doctor": "expo doctor",
     "info": "expo diagnostics",
-    "ios:build": "EXPO_NO_CAPABILITY_SYNC=1 eas build -p ios --profile production --auto-increment",
+    "ios:build": "EXPO_NO_CAPABILITY_SYNC=1 eas build -p ios --profile production ",
     "ios:submit": "eas submit -p ios --profile production",
     "ios:release": "EXPO_NO_CAPABILITY_SYNC=1 eas build -p ios --profile production --auto-submit",
     "android:build": "eas build -p android --profile production",

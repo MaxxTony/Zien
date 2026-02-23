@@ -54,6 +54,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Zien needs access to your photo library to upload and manage property images.",
+          "cameraPermission": "Zien needs access to your camera to capture property photos."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

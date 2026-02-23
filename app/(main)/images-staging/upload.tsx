@@ -88,7 +88,7 @@ export default function UploadRealEstatePhotosScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.9,
     });
@@ -126,7 +126,7 @@ export default function UploadRealEstatePhotosScreen() {
       Animated.timing(spinValue, {
         toValue: 1,
         duration: 1800,
-        useNativeDriver: true,
+        useNativeDriver: false, // SVG is not compatible with native driver on real devices
       })
     );
     loop.start();
