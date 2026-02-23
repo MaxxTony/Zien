@@ -31,13 +31,12 @@ const MENU_ITEMS: NavMenuItem[] = [
   { label: 'Properties', icon: 'home-city-outline', route: '/(main)/properties' as const },
   { label: 'Open House', icon: 'home-outline', route: '/(main)/open-house' as const },
   { label: 'Social Media', icon: 'message-outline', route: '/(main)/social-hub' as const },
-  { label: 'AI Content', icon: 'star-four-points-outline', route: '/(main)/ai-content' as const },
+  { label: 'AI Sweep', icon: 'star-four-points-outline', route: '/(main)/ai-content' as const },
   { label: 'Landing Pages', icon: 'web', route: '/(main)/landing' as const },
   { label: 'Images & Staging', icon: 'image-outline', route: '/(main)/images-staging' as const },
   { label: 'Zien Card', icon: 'card-text-outline', route: '/(main)/zien-card' as const },
   { label: 'Guardian AI', icon: 'shield-outline', route: '/(main)/guardian-ai' as const },
   { label: 'Billing & Usage', icon: 'credit-card-outline', route: '/(main)/billing-usage' as const },
-  { label: 'Profile', icon: 'account-outline', route: '/(main)/profile' as const },
 ];
 
 const QUICK_ACTIONS = [
