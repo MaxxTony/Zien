@@ -371,6 +371,7 @@ const styles = StyleSheet.create({
 export default function DashboardScreen() {
   const router = useRouter();
   const [velocityRange, setVelocityRange] = useState<'7d' | '30d'>('30d');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const windowWidth = Dimensions.get('window').width;
   const isTablet = windowWidth >= 768;
@@ -427,7 +428,10 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <SearchBar />
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
 
         <ActionPillsRow items={QUICK_ACTIONS} />
 

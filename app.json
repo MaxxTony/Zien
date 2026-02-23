@@ -19,8 +19,8 @@
         "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your library.",
         "NSCalendarsUsageDescription": "This app needs access to your calendar to schedule property viewings and appointments.",
         "NSRemindersUsageDescription": "This app needs access to reminders to help you manage follow-ups and tasks.",
-        "NSMicrophoneUsageDescription": "This app needs access to your microphone to record property videos.",
-        "NSLocationWhenInUseUsageDescription": "This app needs your location to show nearby properties and provide location-based services."
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone to record property videos and use voice commands.",
+        "NSSpeechRecognitionUsageDescription": "This app needs speech recognition to allow you to command Zien with your voice."
       }
     },
     "android": {
@@ -85,7 +85,8 @@
           "requestLocationPermission": true,
           "locationPermission": "Allow $(PRODUCT_NAME) to use your location"
         }
-      ]
+      ],
+      "@react-native-voice/voice"
     ],
     "experiments": {
       "typedRoutes": true,
