@@ -1,11 +1,15 @@
+import { PageHeader } from '@/components/ui';
+import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { memo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Theme } from '@/constants/theme';
-
+// ─────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────
 type NotificationItem = {
   id: string;
   icon: string;
@@ -19,6 +23,9 @@ type NotificationItem = {
   unread?: boolean;
 };
 
+// ─────────────────────────────────────────────────────
+// Data
+// ─────────────────────────────────────────────────────
 const NOTIFICATIONS_BY_SECTION: { section: string; items: NotificationItem[] }[] = [
   {
     section: 'TODAY',
@@ -103,6 +110,168 @@ const NOTIFICATIONS_BY_SECTION: { section: string; items: NotificationItem[] }[]
   },
 ];
 
+const UNREAD_COUNT = NOTIFICATIONS_BY_SECTION
+  .flatMap((s) => s.items)
+  .filter((i) => i.unread).length;
+
+// ─────────────────────────────────────────────────────
+// NotificationCard Component
+// ─────────────────────────────────────────────────────
+type NotificationCardProps = NotificationItem & {
+  onPress: () => void;
+  onActionPress: () => void;
+};
+
+const NotificationCard = memo(({
+  icon, iconColor, iconBg, title, body, time, actionLabel, unread,
+  onPress, onActionPress,
+}: NotificationCardProps) => (
+  <Pressable
+    style={({ pressed }) => [
+      cardStyles.card,
+      unread && cardStyles.cardUnread,
+      pressed && cardStyles.cardPressed,
+    ]}
+    onPress={onPress}
+  >
+    {/* Icon */}
+    <View style={[cardStyles.iconWrap, { backgroundColor: iconBg }]}>
+      <MaterialCommunityIcons name={icon as any} size={20} color={iconColor} />
+    </View>
+
+    {/* Content */}
+    <View style={cardStyles.content}>
+      <View style={cardStyles.topRow}>
+        <Text style={[cardStyles.title, unread && cardStyles.titleUnread]} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={cardStyles.time}>{time}</Text>
+      </View>
+      <Text style={cardStyles.body}>{body}</Text>
+
+      {actionLabel && (
+        <Pressable
+          style={({ pressed }) => [cardStyles.actionBtn, pressed && { opacity: 0.7 }]}
+          onPress={(e) => { e.stopPropagation(); onActionPress(); }}
+        >
+          <Text style={[cardStyles.actionText, { color: iconColor }]}>{actionLabel}</Text>
+          <MaterialCommunityIcons name="arrow-right" size={13} color={iconColor} />
+        </Pressable>
+      )}
+    </View>
+
+  </Pressable>
+));
+
+const cardStyles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(225,232,242,0.85)',
+    shadowColor: '#0A2F48',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+    position: 'relative',
+    overflow: 'hidden',
+    gap: 12,
+  },
+  cardUnread: {
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderColor: 'rgba(200,220,238,0.9)',
+    shadowOpacity: 0.09,
+  },
+  cardPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.99 }],
+  },
+  unreadBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+  },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginLeft: 4,
+  },
+  content: {
+    flex: 1,
+    gap: 4,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  title: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: Theme.textPrimary,
+    lineHeight: 19,
+  },
+  titleUnread: {
+    fontWeight: '800',
+  },
+  time: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Theme.textMuted,
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  body: {
+    fontSize: 13,
+    color: Theme.textSecondary,
+    lineHeight: 19,
+    fontWeight: '400',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(11,160,178,0.08)',
+  },
+  actionText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  dot: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+});
+
+// ─────────────────────────────────────────────────────
+// Screen
+// ─────────────────────────────────────────────────────
 export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -112,48 +281,39 @@ export default function NotificationsScreen() {
       colors={['#D8E9F6', '#F1F6FB', '#F5E6DB']}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={Theme.textPrimary} />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Notifications</Text>
-          <Text style={styles.subtitle}>Stay updated with your latest intelligence feed.</Text>
-        </View>
-      </View>
+      style={[styles.background, { paddingTop: insets.top }]}
+    >
+      {/* ── Page Header ── */}
+      <PageHeader
+        title="Notifications"
+        subtitle="Stay updated with your latest intelligence feed."
 
+        onBack={() => router.back()}
+      />
+
+      {/* ── List ── */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}
-        showsVerticalScrollIndicator={false}>
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+      >
         {NOTIFICATIONS_BY_SECTION.map(({ section, items }) => (
           <View key={section} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section}</Text>
+            {/* Section label */}
+            <View style={styles.sectionRow}>
+              <View style={styles.sectionLine} />
+              <Text style={styles.sectionTitle}>{section}</Text>
+              <View style={styles.sectionLine} />
+            </View>
+
+            {/* Cards */}
             {items.map((item) => (
-              <Pressable
+              <NotificationCard
                 key={item.id}
-                style={styles.card}
-                onPress={() => item.actionRoute && router.push(item.actionRoute as any)}>
-                {item.unread ? <View style={styles.unreadDot} /> : null}
-                <View style={[styles.iconWrap, { backgroundColor: item.iconBg }]}>
-                  <MaterialCommunityIcons name={item.icon as any} size={20} color={item.iconColor} />
-                </View>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardBody}>{item.body}</Text>
-                  <Text style={styles.cardTime}>{item.time}</Text>
-                  {item.actionLabel ? (
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        if (item.actionRoute) router.push(item.actionRoute as any);
-                      }}>
-                      <Text style={styles.actionLink}>{item.actionLabel}</Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-              </Pressable>
+                {...item}
+                onPress={() => item.actionRoute && router.push(item.actionRoute as any)}
+                onActionPress={() => item.actionRoute && router.push(item.actionRoute as any)}
+              />
             ))}
           </View>
         ))}
@@ -162,111 +322,38 @@ export default function NotificationsScreen() {
   );
 }
 
+// ─────────────────────────────────────────────────────
+// Screen-level styles
+// ─────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  backBtn: {
-    padding: 6,
-  },
-  headerCenter: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Theme.textPrimary,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Theme.textSecondary,
-    lineHeight: 20,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 8,
+    paddingTop: 4,
   },
   section: {
     marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    color: Theme.textMuted,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  card: {
+  sectionRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: Theme.cardBackground,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Theme.borderLight,
-    shadowColor: Theme.cardShadowColor,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-    position: 'relative',
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EA580C',
-  },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    gap: 10,
+    marginBottom: 12,
   },
-  cardContent: {
+  sectionLine: {
     flex: 1,
-    gap: 4,
+    height: 1,
+    backgroundColor: 'rgba(180,200,220,0.5)',
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Theme.textPrimary,
-    paddingRight: 18,
-  },
-  cardBody: {
-    fontSize: 13,
-    color: Theme.textSecondary,
-    lineHeight: 19,
-  },
-  cardTime: {
-    fontSize: 12,
+  sectionTitle: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 1.4,
     color: Theme.textMuted,
-    marginTop: 2,
-  },
-  actionLink: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Theme.link,
-    marginTop: 6,
-    textDecorationLine: 'underline',
   },
 });

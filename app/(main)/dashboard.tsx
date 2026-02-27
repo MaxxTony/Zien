@@ -10,11 +10,11 @@ import type { NavMenuItem } from '@/components/main';
 import { DashboardLayout } from '@/components/main';
 import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Dimensions,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -40,204 +40,201 @@ const MENU_ITEMS: NavMenuItem[] = [
 ];
 
 const QUICK_ACTIONS = [
-  { label: 'Create Listing', icon: 'home-outline', route: '/(main)/properties/create' as Href },
-  { label: 'Find Properties', icon: 'magnify', route: '/(main)/properties' as Href },
-  { label: 'Guardian AI', icon: 'shield-outline', route: '/(main)/guardian-ai' as Href },
-  { label: 'Social Omni', icon: 'rocket-launch-outline', route: '/(main)/social-hub' as Href },
-  { label: 'CRM Engine', icon: 'chart-bar', route: '/(main)/crm' as Href },
+  { label: 'Add Property', icon: 'home-outline', route: '/(main)/properties/create' as Href },
+  { label: 'Open House', icon: 'map-marker-outline', route: '/(main)/open-house' as Href },
+  { label: 'Zien Guardian', icon: 'shield-outline', route: '/(main)/guardian-ai' as Href },
+  { label: 'Social Media', icon: 'share-variant-outline', route: '/(main)/social-hub' as Href },
   { label: 'Zien Card', icon: 'card-text-outline', route: '/(main)/zien-card' as Href },
-  { label: 'Contacts', icon: 'account-group-outline', route: '/(main)/crm/contacts' as Href },
 ];
 
 const STATS = [
-  { title: 'Total Leads', value: '1,284', meta: '12% vs last month', metaTone: 'positive' as const, icon: 'account-group-outline', color: '#0EA5E9' },
-  { title: 'Active Listings', value: '42', meta: '3 new this week', metaTone: 'positive' as const, icon: 'home-city-outline', color: '#8B5CF6' },
-  { title: 'Est. Revenue', value: '$420k', meta: '8% pipeline growth', metaTone: 'positive' as const, icon: 'cash-multiple', color: '#10B981' },
-  { title: 'Guardian Alerts', value: '0', meta: 'Safe · No threats detected', metaTone: 'neutral' as const, icon: 'shield-check-outline', color: '#F59E0B' },
+  {
+    title: 'Total Leads',
+    value: '1,284',
+    meta: '+12% vs last month',
+    metaTone: 'positive' as const,
+    icon: 'account-group-outline',
+    gradient: ['#0BA0B2', '#1B5E9A'] as [string, string],
+  },
+  {
+    title: 'Active Listings',
+    value: '42',
+    meta: '3 new this week',
+    metaTone: 'positive' as const,
+    icon: 'home-city-outline',
+    gradient: ['#6B4EFF', '#9A7BFF'] as [string, string],
+  },
+  {
+    title: 'Est. Revenue',
+    value: '$420k',
+    meta: '+8% pipeline growth',
+    metaTone: 'positive' as const,
+    icon: 'cash-multiple',
+    gradient: ['#10B981', '#059669'] as [string, string],
+  },
+  {
+    title: 'Guardian Alerts',
+    value: '0',
+    meta: 'Safe · No threats',
+    metaTone: 'neutral' as const,
+    icon: 'shield-check-outline',
+    gradient: ['#F59E0B', '#D97706'] as [string, string],
+  },
 ];
 
 const ACTIVE_LEADS = [
-  { name: 'Sarah Jenkins', note: 'Looking for 3bd/2ba', badge: 'HOT', badgeTone: 'hot' as const, color: '#FACC15' },
-  { name: 'Mike Ross', note: 'Investment Inquiry', badge: 'NEW', badgeTone: 'new' as const, color: '#9CA3AF' },
-  { name: 'Elena G.', note: 'Listing Consultant', badge: 'Lead', badgeTone: 'muted' as const, color: '#D97706' },
-  { name: 'David K.', note: 'Open House Guest', badge: 'Lead', badgeTone: 'muted' as const, color: '#7C3AED' },
+  { name: 'Sarah Jenkins', note: 'Looking for 3bd/2ba', badge: 'HOT', badgeTone: 'hot' as const, color: '#F59E0B' },
+  { name: 'Mike Ross', note: 'Investment Inquiry', badge: 'NEW', badgeTone: 'new' as const, color: '#6B4EFF' },
+  { name: 'Elena G.', note: 'Listing Consultant', badge: 'Lead', badgeTone: 'muted' as const, color: '#0BA0B2' },
+  { name: 'David K.', note: 'Open House Guest', badge: 'Lead', badgeTone: 'muted' as const, color: '#10B981' },
 ];
 
 const LATEST_UPDATES = [
-  { icon: 'robot-outline', title: 'AI Valuation Completed', description: 'Processed valuation report for 124 Ocean Drive.', time: '2 hours ago' },
-  { icon: 'email-outline', title: 'Campaign Sent', description: 'Monthly market update sent to 450 contacts.', time: '4 hours ago' },
-  { icon: 'shield-outline', title: 'Guardian AI Activated', description: 'Safety monitoring active for showing at 88 Summit Ave.', time: 'Yesterday' },
+  { icon: 'robot-outline', title: 'AI Valuation Completed', description: 'Processed valuation report for 124 Ocean Drive.', time: '2h ago', accent: '#6B4EFF' },
+  { icon: 'email-outline', title: 'Campaign Sent', description: 'Monthly market update sent to 450 contacts.', time: '4h ago', accent: '#0BA0B2' },
+  { icon: 'shield-outline', title: 'Guardian AI Activated', description: 'Safety monitoring active for 88 Summit Ave.', time: 'Yesterday', accent: '#F59E0B' },
 ];
 
 const CONTENT_PADDING_H = 18;
 const CARD_GAP = 14;
-/* ... skipping component body ... */
-/* ... inside StyleSheet.create ... */
+
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: CONTENT_PADDING_H,
-    paddingTop: 12,
+    paddingTop: 8,
   },
-  greetingRow: {
+
+  // ── Greeting ───────────────────────────────────────
+  greetingCard: {
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#0A2F48',
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+  greetingTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    columnGap: 10,
-    rowGap: 10,
-    marginBottom: 14,
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  greetingLeft: {
+  greetingTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    flex: 1,
-    flexShrink: 1,
-    minWidth: 220,
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  greetingLogo: {
-    width: 28,
-    height: 28,
-  },
-  greetingTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Theme.textPrimary,
-  },
-  greetingName: {
-    color: Theme.accentTeal,
-  },
-  greetingSubtitle: {
-    marginTop: 4,
-    fontSize: 13.5,
-    color: Theme.textSecondary,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 52,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 14,
-    color: '#0B2D3E',
-    fontWeight: '500',
-  },
-  micIcon: {
-    marginLeft: 10,
-    padding: 4,
-  },
-  actionsContainer: {
-    marginBottom: 24,
-    marginHorizontal: -20,
-  },
-  actionsScroll: {
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  actionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'flex-start',
-    width: 140,
-    shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 2,
-    gap: 12,
-  },
-  actionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#F7FAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  statsContainer: {
-    marginBottom: 24,
-    gap: 12,
-  },
-  statRowCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statRowIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  statRowContent: {
-    flex: 1,
-  },
-  statRowTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  statRowValue: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0B2D3E',
-  },
-  statRowBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  statRowBadgeText: {
+  greetingTagText: {
     fontSize: 11,
     fontWeight: '700',
+    color: 'rgba(255,255,255,0.9)',
+    letterSpacing: 0.5,
   },
-  twoCol: {
-    gap: 12,
-    marginBottom: 14,
+  greetingDateText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: 'rgba(190,220,240,0.8)',
   },
-  twoColRow: {
+  greetingTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  greetingName: {
+    color: '#0ECFDF',
+  },
+  greetingSubtitle: {
+    fontSize: 13,
+    color: 'rgba(190,220,240,0.85)',
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+
+  // ── Stats ───────────────────────────────────────────
+  statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
   },
-  twoColCol: {
-    flexDirection: 'column',
-  },
-  chartWrap: {
-    marginTop: 10,
-    borderRadius: 16,
+  statCard: {
+    flex: 1,
+    minWidth: '45%',
+    borderRadius: 22,
+    padding: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
+  statCardInner: {
+    flex: 1,
+  },
+  statCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  statIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+  },
+  statBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.2,
+  },
+  statValue: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 0.2,
+  },
+
+  // ── Two-col layout ──────────────────────────────────
+  twoCol: {
+    gap: CARD_GAP,
+    marginBottom: CARD_GAP,
+  },
+  twoColRow: { flexDirection: 'row' },
+  twoColCol: { flexDirection: 'column' },
+
+  // ── Segment control ─────────────────────────────────
   segment: {
     flexDirection: 'row',
     padding: 3,
@@ -245,126 +242,59 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.cardBorder,
     backgroundColor: Theme.surfaceSoft,
-    gap: 6,
-    justifyContent: "flex-end",
-    alignSelf: "flex-end"
+    alignSelf: 'flex-end',
+    gap: 4,
   },
   segmentItem: {
     paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     borderRadius: 999,
   },
   segmentItemActive: {
     backgroundColor: Theme.accentTeal,
+    shadowColor: Theme.accentTeal,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   segmentText: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '800',
     color: Theme.textSecondary,
   },
   segmentTextActive: {
-    color: Theme.textOnAccent,
+    color: '#fff',
   },
+
+  // ── Chart ───────────────────────────────────────────
+  chartWrap: {
+    marginTop: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+
+  // ── View all button ─────────────────────────────────
   viewAllButton: {
-    marginTop: 12,
+    marginTop: 14,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  viewAllGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
-    backgroundColor: Theme.surfaceSoft,
-    paddingVertical: 12,
-    alignItems: 'center',
+    borderColor: `${Theme.accentTeal}30`,
+    backgroundColor: `${Theme.accentTeal}08`,
   },
   viewAllButtonText: {
     fontSize: 13,
-    fontWeight: '900',
-    color: Theme.textPrimary,
-  },
-  updatesList: {
-    gap: 0,
-  },
-  updateRow: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    gap: 12,
-  },
-  updateBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  updateIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  updateInfo: {
-    flex: 1,
-  },
-  updateTitle: {
-    fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
-    marginBottom: 4,
-  },
-  updateDesc: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  updateTime: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  crmSnapshotCard: {
-    backgroundColor: '#0B2D3E',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 20,
-    elevation: 5,
-  },
-  snapshotGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    marginTop: 10,
-  },
-  snapshotItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  snapshotValue: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  snapshotLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6AD3E0',
-    textTransform: 'uppercase',
-  },
-  pipelineButton: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  pipelineButtonText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    color: Theme.accentTeal,
   },
 });
 
@@ -377,86 +307,116 @@ export default function DashboardScreen() {
   const sectionColumnWidth = isTablet
     ? Math.floor((windowWidth - CONTENT_PADDING_H * 2 - CARD_GAP) / 2)
     : windowWidth - CONTENT_PADDING_H * 2;
-  const chartWidth = Math.max(240, sectionColumnWidth - 32);
+  const chartWidth = Math.max(240, sectionColumnWidth - 36);
 
   const leadVelocityData = useMemo(() => {
-    const labels = velocityRange === '7d' ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['1', '5', '10', '15', '20', '25', '30'];
-    const data = velocityRange === '7d' ? [10, 12, 9, 14, 16, 13, 18] : [6, 10, 12, 11, 15, 14, 18];
+    const labels = velocityRange === '7d'
+      ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+      : ['1', '5', '10', '15', '20', '25', '30'];
+    const data = velocityRange === '7d'
+      ? [10, 12, 9, 14, 16, 13, 18]
+      : [6, 10, 12, 11, 15, 14, 18];
     return { labels, datasets: [{ data }] };
   }, [velocityRange]);
 
   const chartConfig = useMemo(
     () => ({
-      backgroundGradientFrom: Theme.cardBackgroundSoft,
-      backgroundGradientTo: Theme.cardBackgroundSoft,
+      backgroundGradientFrom: '#FFFFFF',
+      backgroundGradientTo: '#FFFFFF',
       decimalPlaces: 0,
       color: (opacity = 1) => `rgba(11, 160, 178, ${opacity})`,
       labelColor: (opacity = 1) => `rgba(91, 107, 122, ${opacity})`,
       fillShadowGradientFrom: Theme.accentTeal,
-      fillShadowGradientTo: Theme.accentBlue,
+      fillShadowGradientTo: '#1B5E9A',
       fillShadowGradientOpacity: 1,
-      barPercentage: 0.72,
+      barPercentage: 0.65,
       propsForBackgroundLines: {
-        stroke: Theme.borderLight,
+        stroke: '#EEF2F7',
         strokeDasharray: '4 6',
       },
     }),
     []
   );
 
+  // Format current date
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
   return (
     <DashboardLayout menuItems={MENU_ITEMS} userInitials="VP">
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: 32 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.greetingRow}>
-          <View style={styles.greetingLeft}>
-            <Image
-              source={require('@/assets/images/react-logo.png')}
-              style={styles.greetingLogo}
-              resizeMode="contain"
-            />
-            <View>
-              <Text style={styles.greetingTitle}>
-                Hi <Text style={styles.greetingName}>John</Text>
-              </Text>
-              <Text style={styles.greetingSubtitle}>Here is your daily intelligence briefing.</Text>
-            </View>
-          </View>
-        </View>
+        {/* ── Greeting Card ── */}
+        <LinearGradient
+          colors={['#0D2F45', '#0B2D3E', '#082030']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.greetingCard}
+        >
+          {/* Glow accents */}
+          <View style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(11,160,178,0.18)' }} />
+          <View style={{ position: 'absolute', bottom: -10, left: 30, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(107,78,255,0.12)' }} />
 
+          <View style={styles.greetingTopRow}>
+            <View style={styles.greetingTag}>
+              <MaterialCommunityIcons name="star-four-points" size={11} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.greetingTagText}>Intelligence Briefing</Text>
+            </View>
+            <Text style={styles.greetingDateText}>{dateStr}</Text>
+          </View>
+
+          <Text style={styles.greetingTitle}>
+            Hi <Text style={styles.greetingName}>John</Text> 👋
+          </Text>
+          <Text style={styles.greetingSubtitle}>
+            Your pipeline is healthy. 3 new leads need follow-up today.
+          </Text>
+        </LinearGradient>
+
+        {/* ── Search / AI prompt bar ── */}
         <SearchBar />
 
+        {/* ── Quick Actions ── */}
         <ActionPillsRow items={QUICK_ACTIONS} />
 
-        <View style={styles.statsContainer}>
-          {STATS.map((stat, idx) => (
-            <View key={stat.title} style={styles.statRowCard}>
-              <View style={[styles.statRowIcon, { backgroundColor: `${stat.color}15` }]}>
-                <MaterialCommunityIcons name={stat.icon as any} size={24} color={stat.color} />
+        {/* ── Stat Cards (2×2 grid) ── */}
+        <View style={styles.statsGrid}>
+          {STATS.map((stat) => (
+            <LinearGradient
+              key={stat.title}
+              colors={stat.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.statCard}
+            >
+              <View style={styles.statCardTop}>
+                <View style={styles.statIconWrap}>
+                  <MaterialCommunityIcons name={stat.icon as any} size={20} color="#fff" />
+                </View>
+                <View style={styles.statBadge}>
+                  <MaterialCommunityIcons
+                    name={stat.metaTone === 'positive' ? 'trending-up' : 'shield-check'}
+                    size={10}
+                    color="#fff"
+                  />
+                  <Text style={styles.statBadgeText}>
+                    {stat.metaTone === 'positive' ? '+' : ''}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.statRowContent}>
-                <Text style={styles.statRowTitle}>{stat.title}</Text>
-                <Text style={styles.statRowValue}>{stat.value}</Text>
-              </View>
-              <View style={[styles.statRowBadge, { backgroundColor: stat.metaTone === 'positive' ? '#ECFDF5' : '#F3F4F6' }]}>
-                <MaterialCommunityIcons
-                  name={stat.metaTone === 'positive' ? 'trending-up' : 'shield-check'}
-                  size={14}
-                  color={stat.metaTone === 'positive' ? '#10B981' : '#64748B'}
-                />
-                <Text style={[styles.statRowBadgeText, { color: stat.metaTone === 'positive' ? '#059669' : '#475569' }]}>
-                  {stat.meta}
-                </Text>
-              </View>
-            </View>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statTitle}>{stat.title}</Text>
+              <Text style={[styles.statBadgeText, { color: 'rgba(255,255,255,0.7)', marginTop: 4 }]}>{stat.meta}</Text>
+            </LinearGradient>
           ))}
         </View>
 
+        {/* ── Lead Velocity + Active Leads (side by side on tablet) ── */}
         <View style={[styles.twoCol, isTablet ? styles.twoColRow : styles.twoColCol]}>
-          <SectionCard title="Lead Velocity" style={{ flex: 1 }}>
+          <SectionCard title="Lead Velocity" style={{ flex: 1 }} accent="#0BA0B2">
             <View style={styles.segment}>
               <Pressable
                 onPress={() => setVelocityRange('7d')}
@@ -475,7 +435,7 @@ export default function DashboardScreen() {
               <BarChart
                 data={leadVelocityData}
                 width={chartWidth}
-                height={180}
+                height={175}
                 fromZero
                 showValuesOnTopOfBars={false}
                 withInnerLines
@@ -492,8 +452,9 @@ export default function DashboardScreen() {
           <SectionCard
             title="Active Leads"
             linkLabel="View CRM"
-            onLinkPress={() => router.push('/(main)/crm')}
+            onLinkPress={() => router.push('/(main)/crm/leads' as Href)}
             style={{ flex: 1 }}
+            accent="#6B4EFF"
           >
             <View style={{ marginTop: 8 }}>
               {ACTIVE_LEADS.slice(0, 3).map((lead) => (
@@ -506,21 +467,29 @@ export default function DashboardScreen() {
                   color={lead.color}
                 />
               ))}
-              <Pressable style={styles.viewAllButton}>
-                <Text style={styles.viewAllButtonText}>View All Leads</Text>
+              <Pressable
+                style={({ pressed }) => [styles.viewAllButton, pressed && { opacity: 0.8 }]}
+                onPress={() => router.push('/(main)/crm/leads' as Href)}
+              >
+                <View style={styles.viewAllGradient}>
+                  <Text style={styles.viewAllButtonText}>View All Leads</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={15} color={Theme.accentTeal} />
+                </View>
               </Pressable>
             </View>
           </SectionCard>
         </View>
 
+        {/* ── Latest Updates + CRM Snapshot ── */}
         <View style={[styles.twoCol, isTablet ? styles.twoColRow : styles.twoColCol]}>
           <SectionCard
             title="Latest Updates"
             linkLabel="View All"
-            onLinkPress={() => router.push('/(main)/notifications')}
+            onLinkPress={() => router.push('/(main)/notifications' as Href)}
             style={{ flex: 1 }}
+            accent="#F59E0B"
           >
-            <View style={{ marginTop: 6 }}>
+            <View style={{ marginTop: 4 }}>
               {LATEST_UPDATES.slice(0, 2).map((u) => (
                 <UpdateRow
                   key={u.title}
@@ -528,6 +497,7 @@ export default function DashboardScreen() {
                   title={u.title}
                   description={u.description}
                   time={u.time}
+                  accentColor={u.accent}
                 />
               ))}
             </View>
@@ -541,7 +511,7 @@ export default function DashboardScreen() {
               { value: '3', label: 'Closing' },
             ]}
             buttonLabel="Go to Pipeline"
-            onButtonPress={() => router.push('/(main)/crm/deals')}
+            onButtonPress={() => router.push('/(main)/crm/deals' as Href)}
             style={{ flex: 1 }}
           />
         </View>

@@ -1,9 +1,9 @@
+import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 import { useRouter } from 'expo-router';
 import { memo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 export type ActionPillItem = {
   label: string;
@@ -29,7 +29,7 @@ function ActionPillsRowComponent({ items }: ActionPillsRowProps) {
         <Pressable
           key={action.label}
           onPress={() => action.route && router.push(action.route)}
-          style={styles.pill}
+          style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}
         >
           <MaterialCommunityIcons
             name={action.icon as any}
@@ -47,31 +47,37 @@ export const ActionPillsRow = memo(ActionPillsRowComponent);
 
 const styles = StyleSheet.create({
   scroll: {
-    marginBottom: 16,
+    marginBottom: 20,
+    marginHorizontal: -18,
   },
   row: {
-    paddingRight: 6,
+    paddingHorizontal: 18,
     gap: 10,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    gap: 7,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: 'rgba(225,232,242,0.9)',
     borderRadius: 999,
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    shadowColor: Theme.cardShadowColor,
-    shadowOpacity: 0.04,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    shadowColor: '#0A2F48',
+    shadowOpacity: 0.06,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  pillPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.97 }],
   },
   pillText: {
-    fontSize: 12.8,
-    fontWeight: '900',
+    fontSize: 13,
+    fontWeight: '700',
     color: Theme.textPrimary,
+    letterSpacing: 0.1,
   },
 });

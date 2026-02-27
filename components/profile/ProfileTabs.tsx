@@ -1,13 +1,15 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { memo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Theme } from '@/constants/theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { memo } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
-export type ProfileTabKey = 'identity' | 'professional' | 'security' | 'organization';
+export type ProfileTabKey = 'identity' | 'professional' | 'branding' | 'security' | 'organization';
 
 const TABS: { key: ProfileTabKey; label: string; icon: string }[] = [
   { key: 'identity', label: 'Identity', icon: 'account-outline' },
-  { key: 'professional', label: 'Professional Info', icon: 'briefcase-outline' },
+  { key: 'professional', label: 'Professional', icon: 'briefcase-outline' },
+  { key: 'branding', label: 'Branding', icon: 'palette-outline' },
   { key: 'security', label: 'Security', icon: 'lock-outline' },
   { key: 'organization', label: 'Organization', icon: 'office-building-outline' },
 ];
@@ -33,11 +35,18 @@ function ProfileTabsComponent({ activeTab, onTabChange }: ProfileTabsProps) {
             style={[styles.tab, isActive && styles.tabActive]}
             onPress={() => onTabChange(tab.key)}
           >
-            <MaterialCommunityIcons
-              name={tab.icon as any}
-              size={18}
-              color={isActive ? Theme.accentTeal : Theme.textSecondary}
-            />
+            {isActive ? (
+              <LinearGradient
+                colors={['#0BA0B2', '#1B5E9A']}
+                style={styles.activeIconWrap}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <MaterialCommunityIcons name={tab.icon as any} size={15} color="#fff" />
+              </LinearGradient>
+            ) : (
+              <MaterialCommunityIcons name={tab.icon as any} size={16} color={Theme.textSecondary} />
+            )}
             <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
               {tab.label}
             </Text>
@@ -55,30 +64,45 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   container: {
-    gap: 10,
+    gap: 8,
     paddingRight: 18,
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: Theme.surfaceSoft,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.85)',
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: 'rgba(225,232,242,0.9)',
+    shadowColor: '#0A2F48',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   tabActive: {
-    borderColor: Theme.accentTeal,
-    backgroundColor: Theme.cardBackgroundSoft,
+    borderColor: `${Theme.accentTeal}50`,
+    backgroundColor: '#FFFFFF',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+  },
+  activeIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
     color: Theme.textSecondary,
   },
   tabTextActive: {
     color: Theme.textPrimary,
+    fontWeight: '800',
   },
 });

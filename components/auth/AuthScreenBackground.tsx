@@ -7,7 +7,7 @@ import { Theme } from '@/constants/theme';
 type AuthScreenBackgroundProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
-  colors?: readonly string[];
+  colors?: readonly [string, string, ...string[]];
   start?: { x: number; y: number };
   end?: { x: number; y: number };
 };
@@ -20,7 +20,7 @@ export default function AuthScreenBackground({
   end = { x: 0.9, y: 1 },
 }: AuthScreenBackgroundProps) {
   return (
-    <LinearGradient colors={[...colors]} start={start} end={end} style={[{ flex: 1 }, style]}>
+    <LinearGradient colors={colors} start={start} end={end} style={[{ flex: 1 }, style]}>
       {children}
     </LinearGradient>
   );
