@@ -1,3 +1,5 @@
+import { PageHeader } from '@/components/ui';
+import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -93,18 +95,13 @@ export default function InboxChatScreen() {
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <MaterialCommunityIcons name="arrow-left" size={20} color="#0B2D3E" />
-          </Pressable>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>{conversation.name}</Text>
-            <Text style={styles.subtitle}>Channel: {conversation.channel}</Text>
-          </View>
-          <Pressable style={styles.profileButton}>
-            <Text style={styles.profileButtonText}>View Profile</Text>
-          </Pressable>
-        </View>
+        <PageHeader
+          title={conversation.name}
+          subtitle={`Online • ${conversation.channel}`}
+          onBack={() => router.back()}
+          rightIcon="account-circle-outline"
+          onRightPress={() => router.push('/(main)/crm/profile')}
+        />
 
         <ScrollView
           ref={scrollViewRef}
@@ -124,37 +121,62 @@ export default function InboxChatScreen() {
           ))}
         </ScrollView>
 
-        <View style={[styles.inputBar, { paddingBottom: Math.max(12, insets.bottom) }]}>
-          <View style={styles.inputContainer}>
-            <TextInput
-              placeholder="Reply via WhatsApp..."
-              placeholderTextColor="#9AA7B6"
-              style={styles.input}
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={handleSendMessage}
-              returnKeyType="send"
-              multiline
-            />
-            <Pressable style={styles.sparkleButton}>
-              <MaterialCommunityIcons name="creation" size={16} color="#0B2D3E" />
+        <View style={styles.inputBar}>
+          <View style={styles.inputWrapper}>
+            <Pressable style={styles.attachmentButton}>
+              <MaterialCommunityIcons name="plus" size={24} color={Theme.accentTeal} />
             </Pressable>
+            <View style={styles.inputContainer}>
+              <TextInput
+                placeholder={`Reply via ${conversation.channel}...`}
+                placeholderTextColor={Theme.inputPlaceholder}
+                style={styles.input}
+                value={inputText}
+                onChangeText={setInputText}
+                onSubmitEditing={handleSendMessage}
+                returnKeyType="send"
+                multiline
+              />
+              <Pressable style={styles.aiAssistBtn}>
+                <LinearGradient
+                  colors={['#0BA0B2', '#1B5E9A']}
+                  style={styles.aiAssistGradient}
+                >
+                  <MaterialCommunityIcons name="star-four-points" size={14} color="#fff" />
+                </LinearGradient>
+              </Pressable>
+            </View>
             <Pressable
-              style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+              style={({ pressed }) => [
+                styles.sendBtn,
+                !inputText.trim() && styles.sendBtnDisabled,
+                pressed && { opacity: 0.7 }
+              ]}
               onPress={handleSendMessage}
               disabled={!inputText.trim()}>
-              <Text style={styles.sendButtonText}>Send</Text>
+              <MaterialCommunityIcons
+                name="send"
+                size={20}
+                color={inputText.trim() ? Theme.accentTeal : "#C5D0DB"}
+              />
             </Pressable>
           </View>
-          <View style={styles.helperRow}>
-            <Pressable style={styles.helperItem}>
-              <MaterialCommunityIcons name="paperclip" size={14} color="#0BA0B2" />
-              <Text style={styles.helperText}>Attach Property Kit</Text>
-            </Pressable>
-            <Pressable style={styles.helperItem}>
-              <MaterialCommunityIcons name="calendar-blank-outline" size={14} color="#0BA0B2" />
-              <Text style={styles.helperText}>Schedule Showing</Text>
-            </Pressable>
+
+          <View style={styles.actionsBar}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionsScroll}>
+              <Pressable style={styles.actionChip}>
+                <MaterialCommunityIcons name="file-pdf-box" size={14} color={Theme.textSecondary} />
+                <Text style={styles.actionChipText}>Send Brochure</Text>
+              </Pressable>
+              <Pressable style={styles.actionChip}>
+                <MaterialCommunityIcons name="calendar-check" size={14} color={Theme.textSecondary} />
+                <Text style={styles.actionChipText}>Book Viewing</Text>
+              </Pressable>
+              <Pressable style={styles.actionChip}>
+                <MaterialCommunityIcons name="map-marker-outline" size={14} color={Theme.textSecondary} />
+                <Text style={styles.actionChipText}>Share Location</Text>
+              </Pressable>
+            </ScrollView>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -165,155 +187,141 @@ export default function InboxChatScreen() {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
+    backgroundColor: '#F4F7FB',
   },
   flex: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8EEF4',
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#F7FBFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-  },
-  headerText: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  subtitle: {
-    fontSize: 11.5,
-    color: '#7B8794',
-    marginTop: 2,
-  },
-  profileButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    backgroundColor: '#FFFFFF',
-  },
-  profileButtonText: {
-    fontSize: 11.5,
-    color: '#0B2D3E',
-    fontWeight: '600',
-  },
   chatContent: {
     flexGrow: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 24,
-    gap: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12, // Compact gap
   },
   bubble: {
-    maxWidth: '78%',
+    maxWidth: '80%',
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 16,
+    paddingVertical: 10,
+    borderRadius: 18,
   },
   bubbleIncoming: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
     alignSelf: 'flex-start',
+    borderTopLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 5,
+    elevation: 1,
   },
   bubbleOutgoing: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: '#102A43',
     alignSelf: 'flex-end',
+    borderTopRightRadius: 4,
+    shadowColor: '#102A43',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   bubbleText: {
-    fontSize: 13,
-    color: '#0B2D3E',
-    lineHeight: 18,
+    fontSize: 14.5,
+    color: '#334E68',
+    lineHeight: 20,
   },
   bubbleTextOutgoing: {
     color: '#FFFFFF',
   },
   bubbleTime: {
-    marginTop: 8,
-    fontSize: 10.5,
-    color: '#9AA7B6',
+    marginTop: 4,
+    fontSize: 10,
+    color: '#94A3B8',
     textAlign: 'right',
+    fontWeight: '500',
   },
   bubbleTimeOutgoing: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
+  // ── Input Section ──
   inputBar: {
-    borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
-    paddingHorizontal: 18,
-    paddingTop: 12,
     backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 12,
+    paddingBottom: 8,
   },
-  inputContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#F7FAFD',
-    borderRadius: 999,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  attachmentButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 22,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: '#E2E8F0',
   },
   input: {
     flex: 1,
-    fontSize: 13,
-    color: '#0B2D3E',
+    fontSize: 14,
+    color: '#102A43',
     maxHeight: 100,
+    paddingVertical: 6,
   },
-  sparkleButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
+  aiAssistBtn: {
+    marginLeft: 8,
+  },
+  aiAssistGradient: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEF2F6',
   },
-  sendButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#0B2D3E',
+  sendBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sendButtonDisabled: {
-    backgroundColor: '#C5D0DB',
-    opacity: 0.6,
+  sendBtnDisabled: {
+    opacity: 0.4,
   },
-  sendButtonText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  helperRow: {
-    flexDirection: 'row',
-    gap: 18,
+  actionsBar: {
     marginTop: 10,
+    paddingBottom: 4,
   },
-  helperItem: {
+  actionsScroll: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  actionChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  helperText: {
-    fontSize: 11.5,
-    color: '#0BA0B2',
-    fontWeight: '600',
+  actionChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
   },
 });

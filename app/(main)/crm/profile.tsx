@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -35,16 +36,13 @@ export default function ProfileScreen() {
             end={{ x: 0.9, y: 1 }}
             style={[styles.background, { paddingTop: insets.top }]}>
 
-            {/* Header */}
-            <View style={styles.header}>
-                <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-                    <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-                </Pressable>
-                <View style={styles.headerCenter}>
-                    <Text style={styles.title}>Back to Unified Database</Text>
-
-                </View>
-            </View>
+            <PageHeader
+                title="Jessica Miller"
+                subtitle="High Intensity Lead • Real Estate"
+                onBack={() => router.back()}
+                rightIcon="dots-vertical"
+                onRightPress={() => { }}
+            />
 
             <ScrollView
                 style={styles.scroll}

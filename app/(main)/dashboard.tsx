@@ -24,20 +24,24 @@ import {
 import { BarChart } from 'react-native-chart-kit';
 
 const MENU_ITEMS: NavMenuItem[] = [
-  { label: 'Dashboard', icon: 'view-dashboard-outline', route: '/(main)/dashboard' as const },
-  { label: 'Inbox', icon: 'email-outline', route: '/(main)/inbox' as const },
+  { label: 'Dashboard', icon: 'view-grid-outline', route: '/(main)/dashboard' as const },
+  { label: 'Chat', icon: 'chat-processing-outline', route: '/(main)/chat' as const },
+  { label: 'Inbox', icon: 'inbox-outline', route: '/(main)/inbox' as const },
   { label: 'Calendar', icon: 'calendar-blank-outline', route: '/(main)/calendar' as const },
   { label: 'CRM', icon: 'account-group-outline', route: '/(main)/crm' as const },
-  { label: 'Properties', icon: 'home-city-outline', route: '/(main)/properties' as const },
-  { label: 'Open House', icon: 'home-outline', route: '/(main)/open-house' as const },
-  { label: 'Social Media', icon: 'message-outline', route: '/(main)/social-hub' as const },
-  { label: 'AI Sweep', icon: 'star-four-points-outline', route: '/(main)/ai-content' as const },
+  { label: 'Properties', icon: 'home-outline', route: '/(main)/properties' as const },
+  { label: 'Open House', icon: 'map-marker-radius-outline', route: '/(main)/open-house' as const },
+  { label: 'Social Media', icon: 'share-variant-outline', route: '/(main)/social-hub' as const },
+  { label: 'AI Sweep', icon: 'brain', route: '/(main)/ai-content' as const },
+  { label: 'Leads Capture', icon: 'form-select', route: '/(main)/leads-capture' as const },
   { label: 'Landing Pages', icon: 'web', route: '/(main)/landing' as const },
   { label: 'Images & Staging', icon: 'image-outline', route: '/(main)/images-staging' as const },
-  { label: 'Zien Card', icon: 'card-text-outline', route: '/(main)/zien-card' as const },
-  { label: 'Guardian AI', icon: 'shield-outline', route: '/(main)/guardian-ai' as const },
+  { label: 'Zien Card', icon: 'card-account-details-outline', route: '/(main)/zien-card' as const },
+  { label: 'Zien Guardian', icon: 'target', route: '/(main)/guardian-ai' as const },
   { label: 'Billing & Usage', icon: 'credit-card-outline', route: '/(main)/billing-usage' as const },
 ];
+
+
 
 const QUICK_ACTIONS = [
   { label: 'Add Property', icon: 'home-outline', route: '/(main)/properties/create' as Href },

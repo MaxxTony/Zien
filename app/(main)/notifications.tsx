@@ -110,9 +110,7 @@ const NOTIFICATIONS_BY_SECTION: { section: string; items: NotificationItem[] }[]
   },
 ];
 
-const UNREAD_COUNT = NOTIFICATIONS_BY_SECTION
-  .flatMap((s) => s.items)
-  .filter((i) => i.unread).length;
+
 
 // ─────────────────────────────────────────────────────
 // NotificationCard Component

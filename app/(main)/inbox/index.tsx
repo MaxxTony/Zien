@@ -1,8 +1,10 @@
+import { PageHeader } from '@/components/ui';
+import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ChannelType = 'WhatsApp' | 'Email' | 'SMS';
@@ -42,6 +44,8 @@ export default function InboxScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'All' | ChannelType>('All');
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   const conversations = useMemo<Conversation[]>(
     () => [
@@ -86,189 +90,159 @@ export default function InboxScreen() {
   );
 
   const filteredConversations = useMemo(() => {
-    if (activeFilter === 'All') {
-      return conversations;
-    }
-    return conversations.filter((item) => item.channel === activeFilter);
-  }, [activeFilter, conversations]);
+    return conversations.filter((item) => {
+      const matchesFilter = activeFilter === 'All' || item.channel === activeFilter;
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.preview.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    });
+  }, [activeFilter, conversations, searchQuery]);
 
-  const unreadCount = conversations.filter((c) => c.isUnread).length;
+  const renderConversation = ({ item }: { item: Conversation }) => {
+    const channelColor = getChannelColor(item.channel);
+    const channelIcon = getChannelIcon(item.channel);
+
+    return (
+      <Pressable
+        key={item.id}
+        style={({ pressed }) => [
+          styles.card,
+          pressed && styles.cardPressed,
+        ]}
+        onPress={() => router.push(`/(main)/inbox/${item.id}`)}>
+        {/* Compact Avatar/Icon */}
+        <View style={[styles.avatarBox, { backgroundColor: `${channelColor}12` }]}>
+          <MaterialCommunityIcons name={channelIcon} size={20} color={channelColor} />
+          {item.isUnread && <View style={styles.unreadDot} />}
+        </View>
+
+        {/* Content */}
+        <View style={styles.cardInfo}>
+          <View style={styles.cardHeader}>
+            <Text style={[styles.cardName, item.isUnread && styles.cardNameUnread]} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={styles.cardTime}>{item.time}</Text>
+          </View>
+
+          <View style={styles.previewRow}>
+            <Text style={[styles.cardPreview, item.isUnread && styles.cardPreviewUnread]} numberOfLines={1}>
+              {item.preview}
+            </Text>
+          </View>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={16} color="#BCCCDC" />
+      </Pressable>
+    );
+  };
 
   return (
     <LinearGradient
-      colors={['#F0F4F8', '#FAFBFC']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerText}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>Inbox</Text>
-          </View>
-          <Text style={styles.subtitle}>Stay on top of every conversation.</Text>
+      colors={['#F4F7FB', '#FFFFFF']}
+      style={[styles.container, { paddingTop: insets.top }]}>
+
+      <PageHeader
+        title="Inbox"
+        subtitle="Conversations from all channels"
+        onBack={() => router.back()}
+      />
+
+      <View style={styles.actionSection}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
+          <TextInput
+            placeholder="Search name or message..."
+            placeholderTextColor="#94A3B8"
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        {/* Filter Pills */}
+        <View style={styles.filterRow}>
+          {(['All', 'Email', 'SMS', 'WhatsApp'] as const).map((label) => {
+            const isActive = activeFilter === label;
+            return (
+              <Pressable
+                key={label}
+                style={[styles.filterPill, isActive && styles.filterPillActive]}
+                onPress={() => setActiveFilter(label)}>
+                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
-      {/* Filter Pills */}
-      <View style={styles.filterRow}>
-        {(['All', 'Email', 'SMS', 'WhatsApp'] as const).map((label) => {
-          const isActive = activeFilter === label;
-          return (
-            <Pressable
-              key={label}
-              style={[styles.filterPill, isActive && styles.filterPillActive]}
-              onPress={() => setActiveFilter(label)}>
-              <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {/* Conversation List */}
-      <ScrollView
+      <FlatList
+        data={filteredConversations}
+        keyExtractor={(item) => item.id}
+        renderItem={renderConversation}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
-        showsVerticalScrollIndicator={false}>
-        {filteredConversations.map((item, index) => {
-          const channelColor = getChannelColor(item.channel);
-          const channelIcon = getChannelIcon(item.channel);
-
-          return (
-            <Pressable
-              key={item.id}
-              style={({ pressed }) => [
-                styles.card,
-                item.isUnread && styles.cardUnread,
-                pressed && styles.cardPressed,
-              ]}
-              onPress={() => router.push(`/(main)/inbox/${item.id}`)}>
-              {/* Channel Icon Badge */}
-              <View style={[styles.channelBadge, { backgroundColor: channelColor }]}>
-                <MaterialCommunityIcons name={channelIcon} size={18} color="#FFFFFF" />
-              </View>
-
-              {/* Content */}
-              <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.cardName, item.isUnread && styles.cardNameUnread]}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.cardMeta}>
-                    <Text style={styles.cardTime}>{item.time}</Text>
-                    {item.isUnread && <View style={styles.unreadIndicator} />}
-                  </View>
-                </View>
-
-                <Text style={styles.cardPreview} numberOfLines={2}>
-                  {item.preview}
-                </Text>
-
-                <View style={styles.cardFooter}>
-                  <View style={[styles.channelTag, { backgroundColor: `${channelColor}15` }]}>
-                    <Text style={[styles.channelTagText, { color: channelColor }]}>
-                      {item.channel}
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={18} color="#C5D0DB" />
-                </View>
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="message-off-outline" size={48} color="#CBD5E1" />
+            <Text style={styles.emptyText}>No conversations found</Text>
+          </View>
+        }
+      />
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  container: {
     flex: 1,
+    backgroundColor: '#F4F7FB',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+  actionSection: {
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    gap: 12,
+    marginBottom: 16,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  headerText: {
-    flex: 1,
-  },
-  titleRow: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.5,
-  },
-  unreadBadge: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  unreadBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  subtitle: {
-    fontSize: 13.5,
-    color: '#64748B',
-    marginTop: 4,
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Theme.textPrimary,
+    marginLeft: 10,
     fontWeight: '500',
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    flexWrap: 'wrap',
+    gap: 8,
   },
   filterPill: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E8EEF4',
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   filterPillActive: {
-    backgroundColor: '#0B2D3E',
-    borderColor: '#0B2D3E',
+    backgroundColor: '#102A43',
+    borderColor: '#102A43',
   },
   filterText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
   },
@@ -276,111 +250,83 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   listContent: {
-    paddingTop: 8,
     paddingHorizontal: 20,
-    gap: 14,
+    gap: 2, // Tight gap for list style
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingVertical: 14,
     gap: 14,
-    borderWidth: 1,
-    borderColor: '#E8EEF4',
-    overflow: 'visible',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-      },
-      android: { elevation: 1 },
-    }),
-  },
-  cardUnread: {
-    borderColor: '#0D9488',
-    borderWidth: 1.5,
-    backgroundColor: '#F0FDFA',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   cardPressed: {
-    opacity: 0.7,
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
-  channelBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+  avatarBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
-        shadowRadius: 4,
-      },
-      android: { elevation: 3 },
-    }),
+    position: 'relative',
   },
-  cardContent: {
+  unreadDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  cardInfo: {
     flex: 1,
-    gap: 8,
-    minWidth: 0,
+    gap: 4,
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    alignItems: 'center',
   },
   cardName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
-    flex: 1,
+    color: '#102A43',
   },
   cardNameUnread: {
-    fontWeight: '800',
-  },
-  cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexShrink: 0,
+    fontWeight: '900',
   },
   cardTime: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94A3B8',
     fontWeight: '600',
   },
-  unreadIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: '#EF4444',
-  },
-  cardPreview: {
-    fontSize: 13.5,
-    color: '#64748B',
-    lineHeight: 20,
-  },
-  cardFooter: {
+  previewRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
   },
-  channelTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+  cardPreview: {
+    fontSize: 13,
+    color: '#627D98',
+    lineHeight: 18,
   },
-  channelTagText: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  cardPreviewUnread: {
+    color: '#334E68',
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 80,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
 });

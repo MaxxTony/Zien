@@ -1,6 +1,4 @@
-import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import type { Href } from 'expo-router';
 import { useRouter, useSegments } from 'expo-router';
 import { memo } from 'react';
@@ -41,7 +39,7 @@ function NavDrawerComponent({
 }: NavDrawerProps) {
   const router = useRouter();
   const segments = useSegments();
-  const currentRoute = '/' + segments.join('/');
+  const currentRoute = segments.length > 0 ? '/' + segments.join('/') : '/dashboard';
 
   if (!visible) return null;
 
@@ -73,7 +71,7 @@ function NavDrawerComponent({
             style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
             onPress={onClose}
           >
-            <MaterialCommunityIcons name="close" size={18} color={Theme.textPrimary} />
+            <MaterialCommunityIcons name="close" size={18} color="#5B6B7A" />
           </Pressable>
         </View>
 
@@ -87,7 +85,12 @@ function NavDrawerComponent({
           showsVerticalScrollIndicator={false}
         >
           {menuItems.map((item) => {
-            const isActive = item.route ? currentRoute.includes(item.route as string) : false;
+            // Updated active check: if route is /(main)/dashboard, match /dashboard too
+            const itemRoute = (item.route as string) || '';
+            const isActive = itemRoute === currentRoute ||
+              (itemRoute.includes('(main)') && currentRoute === itemRoute.replace('/(main)', '')) ||
+              (currentRoute === '/dashboard' && itemRoute.includes('dashboard'));
+
             return (
               <Pressable
                 key={item.label}
@@ -99,29 +102,17 @@ function NavDrawerComponent({
                 onPress={() => handlePress(item.route)}
                 disabled={!item.route}
               >
-                {isActive && (
-                  <LinearGradient
-                    colors={['#0BA0B2', '#1B5E9A']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.activeIconWrap}
-                  >
-                    <MaterialCommunityIcons
-                      name={item.icon as any}
-                      size={16}
-                      color="#fff"
-                    />
-                  </LinearGradient>
-                )}
-                {!isActive && (
-                  <View style={styles.inactiveIconWrap}>
-                    <MaterialCommunityIcons
-                      name={item.icon as any}
-                      size={16}
-                      color={item.route ? Theme.textSecondary : Theme.inputPlaceholder}
-                    />
-                  </View>
-                )}
+                {isActive && <View style={styles.activeIndicator} />}
+
+                <View style={styles.iconWrap}>
+                  <MaterialCommunityIcons
+                    name={item.icon as any}
+                    size={20}
+                    color={isActive ? '#0BA0B2' : '#5B6B7A'}
+                    style={isActive ? styles.activeIcon : {}}
+                  />
+                </View>
+
                 <Text
                   style={[
                     styles.itemText,
@@ -131,22 +122,13 @@ function NavDrawerComponent({
                 >
                   {item.label}
                 </Text>
-                {isActive && (
-                  <View style={styles.activePip} />
-                )}
               </Pressable>
             );
           })}
         </ScrollView>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.footerCard}>
-            <MaterialCommunityIcons name="shield-check-outline" size={16} color={Theme.accentTeal} />
-            <Text style={styles.footerText}>Guardian AI Active</Text>
-            <View style={styles.footerDot} />
-          </View>
-        </View>
+
+
       </Animated.View>
     </View>
   );
@@ -157,128 +139,96 @@ export const NavDrawer = memo(NavDrawerComponent);
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8,18,30,0.35)',
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
   },
   drawer: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    backgroundColor: '#F8FAFC', // Slightly off-white background like web
     shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 30,
-    shadowOffset: { width: 8, height: 0 },
-    elevation: 10,
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 5, height: 0 },
+    elevation: 8,
   },
   drawerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    paddingHorizontal: 20,
+    marginBottom: 10,
   },
   logo: {
-    width: 95,
-    height: 38,
+    width: 80,
+    height: 32,
   },
   closeBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: Theme.surfaceIcon,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#EDF2F7',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: '#E2E8F0',
   },
   headerDivider: {
     height: 1,
-    backgroundColor: 'rgba(228,234,242,0.9)',
-    marginBottom: 10,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    opacity: 0.6,
   },
   scroll: {
     flex: 1,
   },
   list: {
-    gap: 4,
-    paddingBottom: 16,
+    paddingVertical: 8,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    position: 'relative',
+    height: 48,
   },
   itemActive: {
-    backgroundColor: `${Theme.accentTeal}10`,
+    backgroundColor: '#E1F0F2', // Light teal background for active item
   },
   itemPressed: {
-    backgroundColor: Theme.surfaceIcon,
+    backgroundColor: '#F1F5F9',
   },
-  activeIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+  activeIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    backgroundColor: '#0BA0B2', // Teal vertical line on left
+  },
+  iconWrap: {
+    width: 24,
+    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  inactiveIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Theme.surfaceIcon,
+  activeIcon: {
+    // Optional: add some glow or specific styling for active icon
   },
   itemText: {
-    flex: 1,
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: Theme.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#5B6B7A', // Grey text for inactive
   },
   itemTextActive: {
-    color: Theme.accentTeal,
-    fontWeight: '800',
+    color: '#0D2F45', // Dark teal for active text
+    fontWeight: '700',
   },
   itemTextDisabled: {
-    color: Theme.inputPlaceholder,
+    color: '#CBD5E1',
   },
-  activePip: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Theme.accentTeal,
-  },
-  footer: {
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(228,234,242,0.9)',
-    paddingTop: 14,
-  },
-  footerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: `${Theme.accentTeal}10`,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: `${Theme.accentTeal}20`,
-  },
-  footerText: {
-    flex: 1,
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: Theme.accentTeal,
-  },
-  footerDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#22C55E',
-  },
+
 });

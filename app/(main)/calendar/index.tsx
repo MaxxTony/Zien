@@ -1,16 +1,18 @@
+import { PageHeader } from '@/components/ui';
+import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
+  Dimensions,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -43,6 +45,11 @@ export default function CalendarScreen() {
   const [newItemTime, setNewItemTime] = useState('');
   const [newItemType, setNewItemType] = useState('Calendar Event');
   const [newItemNotes, setNewItemNotes] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [dateValue, setDateValue] = useState(new Date());
+  const [timeValue, setTimeValue] = useState(new Date());
 
   const tasks = useMemo<Task[]>(
     () => [
@@ -102,28 +109,71 @@ export default function CalendarScreen() {
   );
 
   const handleCreateItem = () => {
-    // Handle creation logic here
     setShowModal(false);
+    setNewItemTime('');
+    setNewItemNotes('');
+    setNewItemType('Calendar Event');
+    setIsEditing(false);
+  };
+
+  const openCreateModal = (type: string = 'Calendar Event') => {
+    setIsEditing(false);
     setNewItemTitle('');
     setNewItemDate('');
     setNewItemTime('');
     setNewItemNotes('');
+    setNewItemType(type);
+    setShowModal(true);
+  };
+
+  const openEditModal = (item: any, type: string) => {
+    setIsEditing(true);
+    setNewItemTitle(item.title);
+    setNewItemType(type);
+    // For demo purposes, we can pre-set some fields
+    setNewItemDate(new Date().toLocaleDateString('en-US'));
+    setNewItemTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }));
+    setShowModal(true);
+  };
+
+  const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDateValue(selectedDate);
+      setNewItemDate(selectedDate.toLocaleDateString('en-US'));
+    }
+  };
+
+  const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setTimeValue(selectedTime);
+      setNewItemTime(selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }));
+    }
   };
 
   const renderCalendarTab = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconCircle}>
-        <MaterialCommunityIcons name="calendar-blank-outline" size={56} color="#0D9488" />
+        <MaterialCommunityIcons name="calendar-clock-outline" size={56} color={Theme.accentTeal} />
       </View>
-      <Text style={styles.emptyTitle}>Interactive Calendar Interface</Text>
-      <Text style={styles.emptySubtitle}>Google & Outlook 2-Way Sync Active</Text>
-      <Pressable style={styles.syncButton}>
-        <MaterialCommunityIcons name="sync" size={18} color="#FFFFFF" />
-        <Text style={styles.syncButtonText}>Calendar Sync (GCal/Outlook)</Text>
-      </Pressable>
-      <Pressable style={styles.newEventButton} onPress={() => setShowModal(true)}>
-        <MaterialCommunityIcons name="plus" size={20} color="#0B2D3E" />
-        <Text style={styles.newEventButtonText}>New Event</Text>
+      <Text style={styles.emptyTitle}>Your Workspace Schedule</Text>
+      <Text style={styles.emptySubtitle}>Sync your personal and work calendars to see all events here in one place.</Text>
+
+      <View style={styles.syncRow}>
+        <Pressable style={styles.syncPill}>
+          <MaterialCommunityIcons name="google" size={16} color="#64748B" />
+          <Text style={styles.syncPillText}>Google</Text>
+        </Pressable>
+        <Pressable style={styles.syncPill}>
+          <MaterialCommunityIcons name="microsoft-outlook" size={16} color="#64748B" />
+          <Text style={styles.syncPillText}>Outlook</Text>
+        </Pressable>
+      </View>
+
+      <Pressable style={styles.mainActionBtn} onPress={() => openCreateModal('Calendar Event')}>
+        <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+        <Text style={styles.mainActionBtnText}>Create New Event</Text>
       </Pressable>
     </View>
   );
@@ -134,7 +184,7 @@ export default function CalendarScreen() {
         <View key={link.id} style={styles.bookingCard}>
           <View style={styles.bookingHeader}>
             <View style={styles.linkIconBox}>
-              <MaterialCommunityIcons name="link-variant" size={20} color="#0D9488" />
+              <MaterialCommunityIcons name="link-variant" size={20} color={Theme.accentTeal} />
             </View>
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>{link.duration}</Text>
@@ -150,12 +200,12 @@ export default function CalendarScreen() {
               <MaterialCommunityIcons name="content-copy" size={16} color="#64748B" />
             </Pressable>
           </View>
-          <Pressable style={styles.editButton}>
+          <Pressable style={styles.editButton} onPress={() => openEditModal(link, 'Booking Link')}>
             <Text style={styles.editButtonText}>Edit Interface</Text>
           </Pressable>
         </View>
       ))}
-      <Pressable style={styles.createCard} onPress={() => setShowModal(true)}>
+      <Pressable style={styles.createCard} onPress={() => openCreateModal('Booking Link')}>
         <MaterialCommunityIcons name="plus-circle-outline" size={48} color="#94A3B8" />
         <Text style={styles.createText}>Create New Booking Link</Text>
       </Pressable>
@@ -205,472 +255,512 @@ export default function CalendarScreen() {
       default:
         return renderCalendarTab();
     }
-  }, [activeTab]);
+  }, [activeTab, tasks, bookingLinks]);
 
   return (
-    <LinearGradient
-      colors={['#F0F4F8', '#FAFBFC']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top }]}>
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 20 }]}
-        showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-          </Pressable>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>Scheduling & Workspace</Text>
-            <Text style={styles.subtitle}>Sync your calendars, manage booking links, and stay on top of team tasks.</Text>
-          </View>
-        </View>
+    <View style={[styles.background, { paddingTop: insets.top }]}>
+      <PageHeader
+        title="Calendar"
+        subtitle="Manage events, bookings, and tasks"
+        onBack={() => router.back()}
+        rightIcon="calendar-sync-outline"
+        onRightPress={() => { }}
+      />
 
+      <View style={styles.tabContainer}>
         {/* Tabs */}
         <View style={styles.tabRow}>
           <Pressable
-            style={styles.tab}
+            style={[styles.tab, activeTab === 'calendar' && styles.tabActive]}
             onPress={() => setActiveTab('calendar')}>
             <Text style={[styles.tabText, activeTab === 'calendar' && styles.tabTextActive]}>
               Calendar
             </Text>
-            {activeTab === 'calendar' && <View style={styles.tabIndicator} />}
           </Pressable>
           <Pressable
-            style={styles.tab}
+            style={[styles.tab, activeTab === 'booking' && styles.tabActive]}
             onPress={() => setActiveTab('booking')}>
             <Text style={[styles.tabText, activeTab === 'booking' && styles.tabTextActive]}>
-              Booking Links
+              Bookings
             </Text>
-            {activeTab === 'booking' && <View style={styles.tabIndicator} />}
           </Pressable>
           <Pressable
-            style={styles.tab}
+            style={[styles.tab, activeTab === 'tasks' && styles.tabActive]}
             onPress={() => setActiveTab('tasks')}>
             <Text style={[styles.tabText, activeTab === 'tasks' && styles.tabTextActive]}>
-              Team Tasks
+              Tasks
             </Text>
-            {activeTab === 'tasks' && <View style={styles.tabIndicator} />}
           </Pressable>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <Pressable style={styles.actionButton}>
-            <Text style={styles.actionButtonText}>Calendar Sync (GCal/Outlook)</Text>
-          </Pressable>
-          <Pressable style={styles.actionButtonPrimary} onPress={() => setShowModal(true)}>
-            <Text style={styles.actionButtonPrimaryText}>+ New Item</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          style={styles.floatingAddBtn}
+          onPress={() => openCreateModal()}
+        >
+          <MaterialCommunityIcons name="plus" size={24} color="#FFF" />
+        </Pressable>
+      </View>
 
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 20 }]}
+        showsVerticalScrollIndicator={false}>
         {/* Tab Content */}
         {tabContent}
       </ScrollView>
 
-      {/* Create New Item Modal */}
+      {/* Create New Item Full-Page Modal */}
       <Modal
         visible={showModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowModal(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create New Item</Text>
-              <Pressable onPress={() => setShowModal(false)} style={styles.closeButton}>
-                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
-              </Pressable>
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={[styles.modalScreen, { paddingTop: insets.top }]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{isEditing ? 'Edit Item' : 'Create New Event'}</Text>
+            <Pressable onPress={() => setShowModal(false)} style={styles.closeCircle}>
+              <MaterialCommunityIcons name="close" size={18} color="#102A43" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
+            <View style={styles.formSection}>
+              <Text style={styles.sectionLabel}>Type</Text>
+              <View style={styles.pillRow}>
+                {(['Calendar Event', 'Booking Link', 'Team Task'] as const).map((type) => (
+                  <Pressable
+                    key={type}
+                    onPress={() => setNewItemType(type)}
+                    style={[
+                      styles.pill,
+                      newItemType === type && styles.pillActive
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={
+                        type === 'Calendar Event' ? 'calendar-star' :
+                          type === 'Booking Link' ? 'link-variant' : 'calendar-check-outline'
+                      }
+                      size={16}
+                      color={newItemType === type ? '#FFF' : '#64748B'}
+                    />
+                    <Text style={[
+                      styles.pillText,
+                      newItemType === type && styles.pillTextActive
+                    ]}>
+                      {type === 'Calendar Event' ? 'Event' : type === 'Booking Link' ? 'Booking' : 'Task'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
 
-            <View style={styles.modalBody}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Title</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Open House - Malibu Villa"
-                  placeholderTextColor="#94A3B8"
-                  value={newItemTitle}
-                  onChangeText={setNewItemTitle}
-                />
-              </View>
+            <View style={styles.formSection}>
+              <Text style={styles.sectionLabel}>Title</Text>
+              <TextInput
+                style={styles.fullInput}
+                placeholder="e.g. Property Listing with David"
+                placeholderTextColor={Theme.inputPlaceholder}
+                value={newItemTitle}
+                onChangeText={setNewItemTitle}
+              />
+            </View>
 
-              <View style={styles.inputRow}>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>Date</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="dd/mm/yyyy"
-                    placeholderTextColor="#94A3B8"
-                    value={newItemDate}
-                    onChangeText={setNewItemDate}
+            <View style={styles.formSection}>
+              <View style={styles.formRow}>
+                <View style={styles.formColumn}>
+                  <Text style={styles.sectionLabel}>Date</Text>
+                  <Pressable
+                    style={styles.inputIconBox}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <TextInput
+                      style={styles.rowInput}
+                      placeholder="dd/mm/yyyy"
+                      placeholderTextColor={Theme.inputPlaceholder}
+                      value={newItemDate}
+                      editable={false}
+                      pointerEvents="none"
+                    />
+                    <MaterialCommunityIcons name="calendar-month-outline" size={18} color="#64748B" />
+                  </Pressable>
+                </View>
+                <View style={styles.formColumn}>
+                  <Text style={styles.sectionLabel}>Time</Text>
+                  <Pressable
+                    style={styles.inputIconBox}
+                    onPress={() => setShowTimePicker(true)}
+                  >
+                    <TextInput
+                      style={styles.rowInput}
+                      placeholder="--:-- --"
+                      placeholderTextColor={Theme.inputPlaceholder}
+                      value={newItemTime}
+                      editable={false}
+                      pointerEvents="none"
+                    />
+                    <MaterialCommunityIcons name="clock-outline" size={18} color="#64748B" />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+
+            {/* Bottom Sheet for Date Picker */}
+            <Modal
+              visible={showDatePicker}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowDatePicker(false)}
+            >
+              <Pressable style={styles.pickerBackdrop} onPress={() => setShowDatePicker(false)}>
+                <View style={styles.pickerSheet}>
+                  <View style={styles.pickerToolbar}>
+                    <Text style={styles.pickerTitle}>Select Date</Text>
+                    <Pressable onPress={() => setShowDatePicker(false)} style={styles.doneBtn}>
+                      <Text style={styles.doneBtnText}>Done</Text>
+                    </Pressable>
+                  </View>
+                  <DateTimePicker
+                    value={dateValue}
+                    mode="date"
+                    display="spinner"
+                    onChange={onDateChange}
+                    textColor="#102A43"
+                    style={styles.pickerInternal}
                   />
                 </View>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>Time</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="--:-- --"
-                    placeholderTextColor="#94A3B8"
-                    value={newItemTime}
-                    onChangeText={setNewItemTime}
+              </Pressable>
+            </Modal>
+
+            {/* Bottom Sheet for Time Picker */}
+            <Modal
+              visible={showTimePicker}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowTimePicker(false)}
+            >
+              <Pressable style={styles.pickerBackdrop} onPress={() => setShowTimePicker(false)}>
+                <View style={styles.pickerSheet}>
+                  <View style={styles.pickerToolbar}>
+                    <Text style={styles.pickerTitle}>Select Time</Text>
+                    <Pressable onPress={() => setShowTimePicker(false)} style={styles.doneBtn}>
+                      <Text style={styles.doneBtnText}>Done</Text>
+                    </Pressable>
+                  </View>
+                  <DateTimePicker
+                    value={timeValue}
+                    mode="time"
+                    display="spinner"
+                    is24Hour={false}
+                    onChange={onTimeChange}
+                    textColor="#102A43"
+                    style={styles.pickerInternal}
                   />
                 </View>
-              </View>
+              </Pressable>
+            </Modal>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Type</Text>
-                <View style={styles.selectInput}>
-                  <Text style={styles.selectText}>{newItemType}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Notes</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Add details..."
-                  placeholderTextColor="#94A3B8"
-                  value={newItemNotes}
-                  onChangeText={setNewItemNotes}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-              </View>
+            <View style={styles.formSection}>
+              <Text style={styles.sectionLabel}>Notes</Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Add details..."
+                placeholderTextColor={Theme.inputPlaceholder}
+                value={newItemNotes}
+                onChangeText={setNewItemNotes}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
             </View>
 
-            <View style={styles.modalFooter}>
-              <Pressable style={styles.cancelButton} onPress={() => setShowModal(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => setShowModal(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
-              <Pressable style={styles.createButton} onPress={handleCreateItem}>
-                <Text style={styles.createButtonText}>Create Item</Text>
+              <Pressable
+                style={styles.saveBtnLarge}
+                onPress={handleCreateItem}
+              >
+                <Text style={styles.saveBtnLargeText}>{isEditing ? 'Save Changes' : 'Save'}</Text>
               </Pressable>
             </View>
-          </Pressable>
-        </Pressable>
+          </ScrollView>
+        </View>
       </Modal>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
+    backgroundColor: '#F4F7FB',
   },
   container: {
-    padding: 20,
-    gap: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  headerText: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E8EEF4',
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  actionButtonPrimary: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: '#0B2D3E',
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  actionButtonPrimaryText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  tabRow: {
-    flexDirection: 'row',
-    gap: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8EEF4',
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    position: 'relative',
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  tabTextActive: {
-    color: '#0B2D3E',
-    fontWeight: '700',
-  },
-  tabIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: '#0B2D3E',
-  },
-  emptyState: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 40,
-    alignItems: 'center',
-    minHeight: 400,
-    justifyContent: 'center',
-    gap: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-      },
-      android: { elevation: 1 },
-    }),
-  },
-  emptyIconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#F0FDFA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  syncButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#0D9488',
-    borderRadius: 12,
-  },
-  syncButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  newEventButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E8EEF4',
-  },
-  newEventButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  contentArea: {
+    paddingTop: 8,
     gap: 16,
   },
-  bookingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-      },
-      android: { elevation: 1 },
-    }),
-  },
-  bookingHeader: {
+  tabContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
-  linkIconBox: {
+  tabRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(16, 42, 67, 0.04)',
+    padding: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  tabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  tabTextActive: {
+    color: '#102A43',
+  },
+  floatingAddBtn: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: '#102A43',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#102A43',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  emptyState: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 400,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emptyIconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: `${Theme.accentTeal}10`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#102A43',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#627D98',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  syncRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 32,
+  },
+  syncPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  syncPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  mainActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#102A43',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  mainActionBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  contentArea: {
+    gap: 12,
+  },
+  bookingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  bookingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  linkIconBox: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: '#F0FDFA',
+    backgroundColor: `${Theme.accentTeal}10`,
     alignItems: 'center',
     justifyContent: 'center',
   },
   durationBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#F0FDFA',
+    backgroundColor: `${Theme.accentTeal}10`,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
+    alignSelf: 'flex-start',
   },
   durationText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0D9488',
+    fontSize: 12,
+    fontWeight: '900',
+    color: Theme.accentTeal,
   },
   bookingTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0B2D3E',
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#102A43',
+    marginBottom: 4,
   },
   bookingType: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#627D98',
+    fontWeight: '500',
+    marginBottom: 16,
   },
   urlRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#E8EEF4',
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
   },
   urlText: {
     fontSize: 13,
-    color: '#0D9488',
-    fontWeight: '600',
+    color: Theme.accentTeal,
+    fontWeight: '700',
     flex: 1,
   },
   copyButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    padding: 4,
   },
   editButton: {
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E8EEF4',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
   },
   editButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0B2D3E',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#102A43',
   },
   createCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 48,
+    backgroundColor: 'rgba(16, 42, 67, 0.02)',
+    borderRadius: 20,
+    padding: 40,
     borderWidth: 2,
-    borderColor: '#E8EEF4',
+    borderColor: '#D1D9E4',
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 200,
+    minHeight: 160,
     gap: 12,
   },
   createText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#627D98',
   },
-  // Task Card Styles
   tasksArea: {
-    gap: 14,
+    gap: 12,
   },
   taskCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-      },
-      android: { elevation: 1 },
-    }),
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   taskCardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    alignItems: 'center',
+    marginBottom: 10,
   },
   taskCardTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#0B2D3E',
+    fontWeight: '800',
+    color: '#102A43',
     flex: 1,
+    marginRight: 10,
+  },
+  ownerBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#102A43',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   taskCardMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    marginBottom: 16,
   },
   metaItem: {
     flexDirection: 'row',
@@ -678,8 +768,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaText: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 12,
+    color: '#627D98',
     fontWeight: '600',
   },
   taskCardFooter: {
@@ -688,177 +778,227 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   priorityBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
-  priorityhigh: {
-    backgroundColor: '#FEE2E2',
-  },
-  prioritymedium: {
-    backgroundColor: '#FEF3C7',
-  },
-  prioritylow: {
-    backgroundColor: '#F1F5F9',
-  },
+  priorityhigh: { backgroundColor: '#FEE2E2' },
+  prioritymedium: { backgroundColor: '#FEF3C7' },
+  prioritylow: { backgroundColor: '#F1F5F9' },
   priorityText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#0B2D3E',
+    fontWeight: '900',
+    color: '#334E68',
     letterSpacing: 0.5,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
     backgroundColor: '#F1F5F9',
   },
-  statusCompleted: {
-    backgroundColor: '#D1FAE5',
-  },
+  statusCompleted: { backgroundColor: '#D1FAE5' },
   statusText: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#64748B',
-    letterSpacing: 0.5,
   },
-  statusTextCompleted: {
-    color: '#059669',
-  },
-  ownerBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    backgroundColor: '#0B2D3E',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ownerText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  // Modal Styles
-  modalOverlay: {
+  statusTextCompleted: { color: '#047857' },
+
+  // ── Modal Styles ──
+  modalScreen: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    width: '100%',
-    maxWidth: 420,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
-        shadowRadius: 24,
-      },
-      android: { elevation: 8 },
-    }),
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 24,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0B2D3E',
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#102A43',
+    letterSpacing: -0.5,
   },
-  closeButton: {
+  closeCircle: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalBody: {
-    padding: 24,
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  input: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14,
-    color: '#0B2D3E',
-    borderWidth: 1,
-    borderColor: '#E8EEF4',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  selectInput: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#E8EEF4',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectText: {
-    fontSize: 14,
-    color: '#0B2D3E',
-  },
-  textArea: {
-    height: 100,
-    paddingTop: 14,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 24,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  cancelButton: {
+  modalForm: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E8EEF4',
-    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
-  cancelButtonText: {
+  formSection: {
+    marginBottom: 24,
+  },
+  sectionLabel: {
     fontSize: 14,
+    fontWeight: '800',
+    color: '#102A43',
+    marginBottom: 10,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  pill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  pillActive: {
+    backgroundColor: '#102A43',
+    borderColor: '#102A43',
+  },
+  pillText: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#64748B',
   },
-  createButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#0B2D3E',
-    alignItems: 'center',
+  pillTextActive: {
+    color: '#FFFFFF',
   },
-  createButtonText: {
-    fontSize: 14,
+  fullInput: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#102A43',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  formColumn: {
+    flex: 1,
+  },
+  inputIconBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  rowInput: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#102A43',
+    flex: 1,
+  },
+  notesInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 15,
+    color: '#102A43',
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+    paddingBottom: 40,
+  },
+  cancelBtn: {
+    flex: 1,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  cancelBtnText: {
+    fontSize: 15,
     fontWeight: '700',
+    color: '#102A43',
+  },
+  saveBtnLarge: {
+    flex: 1,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#102A43',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  saveBtnLargeText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // ── Picker Bottom Sheet Styles ──
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 40,
+    alignItems: 'center', // Fixes the centering issue
+  },
+  pickerInternal: {
+    width: Dimensions.get('window').width, // Forces full width container
+    height: 220,
+  },
+  pickerToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    width: '100%', // Ensures the toolbar spans full width even if parent is centered
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#102A43',
+  },
+  doneBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#102A43',
+    borderRadius: 8,
+  },
+  doneBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
 });

@@ -6,7 +6,7 @@ import Voice, {
 } from '@react-native-voice/voice';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -175,9 +175,25 @@ export default function ChatModalScreen() {
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }, [inputText, isAiTyping]);
 
+    const params = useLocalSearchParams<{ initialMessage?: string }>();
+    const initialMessageProcessed = useRef(false);
+
+    // ── Handle initial message from params ────────────────
+    useEffect(() => {
+        if (params.initialMessage && !initialMessageProcessed.current) {
+            initialMessageProcessed.current = true;
+            // Short delay to ensure component is fully ready
+            setTimeout(() => {
+                handleSubmit(params.initialMessage);
+            }, 300);
+        }
+    }, [params.initialMessage, handleSubmit]);
+
     const handleClear = useCallback(() => {
         setMessages([]);
         setIsAiTyping(false);
+        // Also clear internal ref so it can re-trigger if needed next time (though usually modal unmounts)
+        initialMessageProcessed.current = false;
     }, []);
 
     // ── Message renderer ───────────────────────────────
