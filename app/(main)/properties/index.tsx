@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -340,20 +341,13 @@ export default function PropertyInventoryScreen() {
         end={{ x: 1, y: 1 }}
       />
 
-      {/* ── HEADER (untouched) ── */}
-      <View style={styles.header}>
-        <Pressable
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          hitSlop={10}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#0f172a" />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Property Inventory</Text>
-          <Text style={styles.subtitle}>Manage your high-confidence property data.</Text>
-        </View>
-      </View>
+      <PageHeader
+        title="Property Inventory"
+        subtitle="Manage your high-confidence property data."
+        onBack={() => router.back()}
+        rightIcon="plus"
+        onRightPress={handleCreateListing}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -367,21 +361,7 @@ export default function PropertyInventoryScreen() {
           <StatCard icon="file-document-edit-outline" value="3 Drafts" label="Need Review" />
         </View>
 
-        {/* ── ADD PROPERTY BUTTON ── */}
-        <Pressable
-          style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.9 }]}
-          onPress={handleCreateListing}
-        >
-          <LinearGradient
-            colors={['#0f172a', '#1e3a5f']}
-            style={styles.addBtnGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <MaterialCommunityIcons name="plus" size={18} color="#FFF" />
-            <Text style={styles.addBtnText}>Add Property</Text>
-          </LinearGradient>
-        </Pressable>
+
 
         {/* ── LIST HEADER ── */}
         <View style={styles.tableHeaderRow}>
@@ -425,40 +405,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2F7',
   },
 
-  // ── Header (untouched) ──
-  header: {
-    paddingHorizontal: H_PADDING,
-    paddingTop: 12,
-    paddingBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
-    lineHeight: 18,
-  },
+
 
   // ── Scroll ──
   scrollContent: {
@@ -508,31 +455,7 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
 
-  // ── Add Button ──
-  addBtn: {
-    marginHorizontal: H_PADDING,
-    marginBottom: 24,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  addBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
-  },
-  addBtnText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
+
 
   // ── Table header row ──
   tableHeaderRow: {

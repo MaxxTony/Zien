@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -541,39 +542,46 @@ export default function PropertyDetailScreen() {
       end={{ x: 1, y: 1 }}
       style={[styles.container, { paddingTop: insets.top }]}
     >
-      {/* ── HEADER (untouched) ── */}
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerAddress} numberOfLines={2}>
-            {fullAddress}
-          </Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {property.type} • Last sync: {property.lastSync}
-          </Text>
-        </View>
-      </View>
+      {/* ── PREMIUM MOBILE HEADER ── */}
+      <PageHeader
+        title={property.id}
+        onBack={() => router.back()}
+        rightIcon="pencil"
+        onRightPress={() => router.push(`/(main)/properties/edit/${property.id}`)}
+      />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── STATUS + CONFIDENCE ROW ── */}
-        <View style={styles.statusConfRow}>
-          <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusLabel, { color: statusColor }]}>{statusLabel}</Text>
-          </View>
-          <View style={styles.confidenceBadge}>
-            <View style={styles.confBarSmall}>
-              <View style={[styles.confBarFill, { width: `${property.confidence}%`, backgroundColor: confColor }]} />
-            </View>
-            <Text style={[styles.confBadgeText, { color: confColor }]}>
-              {property.confidence}% Confidence
+        <View style={styles.headerTopArea}>
+          <View style={styles.headerTitleBox}>
+            <Text style={styles.headerAddress} numberOfLines={2}>
+              {fullAddress}
             </Text>
+          </View>
+
+          <View style={styles.headerMetaRow}>
+            <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.statusLabel, { color: statusColor }]}>{statusLabel}</Text>
+            </View>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>
+              {property.type} • Last sync: {property.lastSync}
+            </Text>
+          </View>
+
+          <View style={styles.headerActionsRow}>
+            <View style={styles.confidenceBadgePremium}>
+              <View style={styles.confBarSmall}>
+                <View style={[styles.confBarFill, { width: `${property.confidence}%`, backgroundColor: confColor }]} />
+              </View>
+              <Text style={styles.confBadgeTextPremium}>
+                <Text style={{ fontWeight: '900', color: '#0B2D3E' }}>{property.confidence}% </Text>
+                <Text style={{ fontWeight: '500', color: '#0B2D3E' }}>Confidence</Text>
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -842,91 +850,96 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { justifyContent: 'center', alignItems: 'center' },
   notFoundText: { fontSize: 16, color: '#5B6B7A', marginBottom: 16 },
-
-  // ── Header (untouched) ──
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: H_PADDING,
-    paddingTop: 10,
-    paddingBottom: 12,
-    gap: 10,
-  },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 12,
+  },
+
+  // ── Premium Header ──
+  headerTopArea: {
+    paddingHorizontal: H_PADDING,
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
+  headerTitleBox: {
+    marginBottom: 10,
+  },
+  headerAddress: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+    lineHeight: 30,
+  },
+  headerMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+    flexWrap: 'wrap',
+  },
+  metaRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  headerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  confidenceBadgePremium: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 12,
     ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
+      ios: { shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6 },
       android: { elevation: 2 },
     }),
   },
-  headerCenter: { flex: 1, minWidth: 0 },
-  headerAddress: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: -0.3,
-    lineHeight: 22,
-  },
-  headerSubtitle: {
+  confBadgeTextPremium: {
     fontSize: 13,
-    color: '#5B6B7A',
-    fontWeight: '500',
-    marginTop: 4,
   },
 
   // ── Scroll ──
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: H_PADDING, paddingBottom: 24 },
 
-  // ── Status + confidence row ──
-  statusConfRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
+  // ── Status ──
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusLabel: { fontSize: 12, fontWeight: '700' },
-  confidenceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    ...Platform.select({
-      ios: { shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4 },
-      android: { elevation: 2 },
-    }),
-  },
+  statusLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
   confBarSmall: {
-    width: 40,
+    width: 30,
     height: 4,
     backgroundColor: '#E2E8F0',
     borderRadius: 2,
     overflow: 'hidden',
   },
   confBarFill: { height: '100%', borderRadius: 2 },
-  confBadgeText: { fontSize: 12, fontWeight: '700' },
 
   // ── Hero ──
   heroWrap: {
