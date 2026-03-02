@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -23,10 +24,10 @@ const SUMMARY_CARDS = [
 type LeadStatus = 'NEW' | 'QUALIFIED' | 'UNQUALIFIED';
 
 const INITIAL_LEADS = [
-  { id: '1', name: 'Jessica Miller', status: 'NEW' as LeadStatus, source: 'Open House', date: 'Today', score: 94, isHot: true, isConverted: false },
-  { id: '2', name: 'Robert Chen', status: 'QUALIFIED' as LeadStatus, source: 'Website', date: 'Yesterday', score: 82, isHot: true, isConverted: false },
-  { id: '3', name: 'David Wilson', status: 'UNQUALIFIED' as LeadStatus, source: 'Manual', date: '2 days ago', score: 25, isHot: false, isConverted: false },
-  { id: '4', name: 'Sarah Connor', status: 'NEW' as LeadStatus, source: 'Referral', date: '3 days ago', score: 88, isHot: true, isConverted: false },
+  { id: '1', name: 'Jessica Miller', status: 'NEW' as LeadStatus, source: 'Open House', date: 'Today', score: 94, isHot: true, isConverted: false, isArchived: false },
+  { id: '2', name: 'Robert Chen', status: 'QUALIFIED' as LeadStatus, source: 'Website', date: 'Yesterday', score: 82, isHot: true, isConverted: false, isArchived: false },
+  { id: '3', name: 'David Wilson', status: 'UNQUALIFIED' as LeadStatus, source: 'Manual', date: '2 days ago', score: 25, isHot: false, isConverted: false, isArchived: false },
+  { id: '4', name: 'Sarah Connor', status: 'NEW' as LeadStatus, source: 'Referral', date: '3 days ago', score: 88, isHot: true, isConverted: false, isArchived: false },
 ];
 
 const getStatusStyle = (status: string) => {
@@ -38,8 +39,7 @@ const getStatusStyle = (status: string) => {
   }
 };
 
-function LeadCard({ lead, onDeletePress, onConvertPress }: { lead: (typeof INITIAL_LEADS)[number], onDeletePress: () => void, onConvertPress: () => void }) {
-  const [isArchived, setIsArchived] = useState(false);
+function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEditPress }: { lead: (typeof INITIAL_LEADS)[number], onDeletePress: () => void, onConvertPress: () => void, onToggleArchive: () => void, onEditPress: () => void }) {
   const isHigh = lead.score >= 80;
   const isLow = lead.score < 50;
   const statusColors = getStatusStyle(lead.status);
@@ -81,17 +81,17 @@ function LeadCard({ lead, onDeletePress, onConvertPress }: { lead: (typeof INITI
   return (
     <View style={[styles.leadCard, lead.isHot && styles.leadCardHotBorder]}>
       <View style={styles.leadCardTop}>
-        <View style={[styles.leadCardIconWrap, lead.isHot ? styles.leadCardIconWrapHot : styles.leadCardIconWrapNormal]}>
-          <MaterialCommunityIcons
-            name={lead.isHot ? "fire" : "account-outline"}
-            size={24}
-            color={lead.isHot ? "#FF6B00" : "#5B6B7A"}
-          />
+        <View style={styles.leadCardIconWrap}>
+          {lead.isHot ? (
+            <MaterialCommunityIcons name="fire" size={24} color="#FF6B00" />
+          ) : (
+            <MaterialCommunityIcons name="account-outline" size={24} color="#5B6B7A" />
+          )}
         </View>
         <View style={styles.tagsContainer}>
-          <View style={[styles.tag, { backgroundColor: isArchived ? '#F3F6F8' : statusColors.bg }]}>
-            <Text style={[styles.tagText, { color: isArchived ? '#0B2D3E' : statusColors.text }]}>
-              {isArchived ? 'ARCHIVED' : lead.status}
+          <View style={[styles.tag, { backgroundColor: lead.isArchived ? '#F3F6F8' : statusColors.bg }]}>
+            <Text style={[styles.tagText, { color: lead.isArchived ? '#0B2D3E' : statusColors.text }]}>
+              {lead.isArchived ? 'ARCHIVED' : lead.status}
             </Text>
           </View>
           {lead.isHot && (
@@ -115,20 +115,28 @@ function LeadCard({ lead, onDeletePress, onConvertPress }: { lead: (typeof INITI
         </Text>
       </View>
 
-      {isArchived ? (
-        <View style={styles.archivedStateContainer}>
-          <Text style={styles.archivedStateText}>Archived</Text>
+      {lead.isArchived ? (
+        <View style={[styles.leadCardActions, { gap: 8 }]}>
+          <Pressable style={styles.leadCardConvertBtn} onPress={onToggleArchive}>
+            <Text style={styles.leadCardConvertText}>Unarchive</Text>
+          </Pressable>
+          <Pressable style={styles.leadCardDeleteBtnArchived} onPress={onDeletePress}>
+            <MaterialCommunityIcons name="trash-can-outline" size={18} color="#0B2D3E" />
+          </Pressable>
         </View>
       ) : (
         <View style={styles.leadCardActions}>
           <Pressable style={styles.leadCardConvertBtn} onPress={onConvertPress}>
             <Text style={styles.leadCardConvertText}>Convert</Text>
           </Pressable>
-          <Pressable style={styles.leadCardArchiveBtn} onPress={() => setIsArchived(true)}>
+          <Pressable style={styles.leadCardArchiveBtn} onPress={onToggleArchive}>
             <Text style={styles.leadCardArchiveText}>Archive</Text>
           </Pressable>
+          <Pressable style={styles.leadCardEditBtn} onPress={onEditPress}>
+            <MaterialCommunityIcons name="pencil-outline" size={18} color="#6A7D8C" />
+          </Pressable>
           <Pressable style={styles.leadCardDeleteBtn} onPress={onDeletePress}>
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#E11D48" />
+            <MaterialCommunityIcons name="trash-can-outline" size={18} color="#E11D48" />
           </Pressable>
         </View>
       )}
@@ -141,11 +149,46 @@ export default function LeadsScreen() {
   const router = useRouter();
   const [leadsList, setLeadsList] = useState(INITIAL_LEADS);
   const [isImportModalVisible, setImportModalVisible] = useState(false);
+  const [importInstructions, setImportInstructions] = useState('');
+  const [selectedFile, setSelectedFile] = useState<{ name: string; size: string } | null>(null);
   const [isHotFilterActive, setHotFilterActive] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
   const [leadToConvert, setLeadToConvert] = useState<typeof INITIAL_LEADS[number] | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>('All Status');
+  const [isStatusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [convertGroupDropdownOpen, setConvertGroupDropdownOpen] = useState(false);
+  const [convertTagDropdownOpen, setConvertTagDropdownOpen] = useState(false);
+  const [convertGroup, setConvertGroup] = useState('Buyer');
+  const [convertTag, setConvertTag] = useState('Hot');
+  const [convertColor, setConvertColor] = useState('#FF6B00');
+  const [leadToEdit, setLeadToEdit] = useState<typeof INITIAL_LEADS[number] | null>(null);
+  const [editSourceDropdownOpen, setEditSourceDropdownOpen] = useState(false);
+  const [editStatusDropdownOpen, setEditStatusDropdownOpen] = useState(false);
+  const [editGroupDropdownOpen, setEditGroupDropdownOpen] = useState(false);
+  const [editTagDropdownOpen, setEditTagDropdownOpen] = useState(false);
+  const [editGroup, setEditGroup] = useState('Buyer');
+  const [editTag, setEditTag] = useState('Lead');
+  const [editSource, setEditSource] = useState('Manual Entry');
+  const [editStatus, setEditStatus] = useState('Unqualified');
+  const [editColor, setEditColor] = useState('#0BA0B2');
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  const filteredLeads = isHotFilterActive ? leadsList.filter(l => l.isHot) : leadsList;
+  let filteredLeads = leadsList;
+  if (isHotFilterActive) {
+    filteredLeads = filteredLeads.filter(l => l.isHot);
+  }
+  if (selectedStatus !== 'All Status') {
+    filteredLeads = filteredLeads.filter(l => {
+      if (selectedStatus === 'Converted') return l.isConverted;
+      if (selectedStatus === 'Archived') return l.isArchived;
+      if (l.isArchived || l.isConverted) return false;
+      return l.status === selectedStatus.toUpperCase();
+    });
+  }
+
+  const toggleArchive = (id: string) => {
+    setLeadsList(prev => prev.map(l => l.id === id ? { ...l, isArchived: !l.isArchived } : l));
+  };
 
   const confirmDelete = () => {
     if (leadToDelete) {
@@ -162,68 +205,99 @@ export default function LeadsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Premium subtle background */}
-      <LinearGradient
-        colors={['#F4F7F9', '#FFFFFF', '#F4F7F9']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+    <LinearGradient
+      colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.container, { paddingTop: insets.top }]}>
+      <PageHeader
+        title="Leads"
+        subtitle="Incoming inquiries and potential opportunities."
+        onBack={() => router.back()}
       />
-
-      {/* Header slightly padded down */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Leads</Text>
-          <Text style={styles.subtitle}>
-            Incoming inquiries and potential opportunities.
-          </Text>
-        </View>
-      </View>
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}
         showsVerticalScrollIndicator={false}>
 
-        {/* Actions Row: Search + Import */}
-        <View style={styles.actionRow}>
-          <View style={styles.searchBar}>
-            <MaterialCommunityIcons name="magnify" size={20} color="#8DA4B5" />
-            <TextInput
-              placeholder="Find leads by name..."
-              placeholderTextColor="#8DA4B5"
-              style={styles.searchInput}
-            />
+        {/* Actions Row: Top Buttons */}
+        <View style={[styles.topButtonsRow, { zIndex: 20 }]}>
+          <View style={{ flex: 1, zIndex: 20 }}>
+            <Pressable style={styles.topFilterDropdown} onPress={() => setStatusDropdownOpen(!isStatusDropdownOpen)}>
+              <MaterialCommunityIcons name="filter-variant" size={16} color="#0B2D3E" style={{ marginRight: 4 }} />
+              <Text style={styles.topFilterText} numberOfLines={1} ellipsizeMode="tail">{selectedStatus === 'All Status' ? 'All' : selectedStatus}</Text>
+              <MaterialCommunityIcons name="chevron-down" size={16} color="#0B2D3E" />
+            </Pressable>
+
+            {isStatusDropdownOpen && (
+              <View style={styles.dropdownMenu}>
+                {['All Status', 'New', 'Qualified', 'Unqualified', 'Archived', 'Converted'].map((status) => (
+                  <Pressable
+                    key={status}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedStatus(status);
+                      setStatusDropdownOpen(false);
+                    }}
+                  >
+                    {selectedStatus === status && (
+                      <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
+                    )}
+                    <Text style={[styles.dropdownItemText, selectedStatus === status && { fontWeight: '700' }]}>{status}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </View>
-          <Pressable style={styles.movedImportBtn} onPress={() => setImportModalVisible(true)}>
-            <MaterialCommunityIcons name="cloud-upload" size={18} color="#FFFFFF" />
-            <Text style={styles.movedImportBtnText}>Import</Text>
+
+          <Pressable style={[styles.aiImportBtn, { flex: 1 }]} onPress={() => setImportModalVisible(true)}>
+            <MaterialCommunityIcons name="folder-upload-outline" size={18} color="#0B2D3E" />
+            <Text style={styles.aiImportBtnText} numberOfLines={1}>AI Import</Text>
+          </Pressable>
+          <Pressable style={[styles.addLeadBtn, { flex: 1 }]} onPress={() => {
+            setLeadToEdit(null);
+            setEditGroup('Buyer');
+            setEditTag('Lead');
+            setEditSource('Manual Entry');
+            setEditStatus('New');
+            setEditColor('#0BA0B2');
+            setIsEditModalVisible(true);
+          }}>
+            <Text style={styles.addLeadBtnText} numberOfLines={1}>+ Add Lead</Text>
           </Pressable>
         </View>
 
-        <View style={styles.filterRow}>
-          <Pressable style={styles.filterDropdown}>
-            <MaterialCommunityIcons name="filter-variant" size={16} color="#0B2D3E" style={{ marginRight: 6 }} />
-            <Text style={styles.filterText}>All Status</Text>
-            <MaterialCommunityIcons name="chevron-down" size={18} color="#0B2D3E" style={{ marginLeft: 4 }} />
-          </Pressable>
-          <Pressable
-            style={[styles.hotFilterBtn, isHotFilterActive && styles.hotFilterBtnActive]}
-            onPress={() => setHotFilterActive(!isHotFilterActive)}
+        <View style={{ zIndex: 10, marginBottom: 20 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.searchFilterRow}
+            style={{ overflow: 'visible' }}
           >
-            <MaterialCommunityIcons name="fire" size={16} color="#FF6B00" style={{ marginRight: 4 }} />
-            <Text style={styles.hotFilterText}>Hot Leads</Text>
-          </Pressable>
-          {isHotFilterActive && (
-            <Pressable style={styles.clearFilterBtn} onPress={() => setHotFilterActive(false)}>
-              <MaterialCommunityIcons name="close" size={14} color="#6A7D8C" style={{ marginRight: 4 }} />
-              <Text style={styles.clearFilterText}>Clear</Text>
+            <View style={styles.searchBar}>
+              <MaterialCommunityIcons name="magnify" size={20} color="#8DA4B5" />
+              <TextInput
+                placeholder="Find leads by name, source, or ID..."
+                placeholderTextColor="#8DA4B5"
+                style={styles.searchInput}
+              />
+            </View>
+
+            <Pressable
+              style={[styles.hotFilterBtn, isHotFilterActive && styles.hotFilterBtnActive]}
+              onPress={() => setHotFilterActive(!isHotFilterActive)}
+            >
+              <MaterialCommunityIcons name="fire" size={16} color={isHotFilterActive ? "#FF6B00" : "#6A7D8C"} style={{ marginRight: 4 }} />
+              <Text style={[styles.hotFilterText, isHotFilterActive ? { color: "#FF6B00" } : { color: "#6A7D8C" }]}>Hot Leads</Text>
             </Pressable>
-          )}
+            {isHotFilterActive && (
+              <Pressable style={styles.clearFilterBtn} onPress={() => setHotFilterActive(false)}>
+                <MaterialCommunityIcons name="close" size={14} color="#6A7D8C" style={{ marginRight: 4 }} />
+                <Text style={styles.clearFilterText}>Clear</Text>
+              </Pressable>
+            )}
+          </ScrollView>
         </View>
 
         <ScrollView
@@ -231,7 +305,12 @@ export default function LeadsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.summaryCarousel}
         >
-          {SUMMARY_CARDS.map((card) => (
+          {[
+            { id: 'new', label: 'NEW', count: leadsList.filter(l => !l.isArchived && !l.isConverted && l.status === 'NEW').length },
+            { id: 'qualified', label: 'QUALIFIED', count: leadsList.filter(l => !l.isArchived && !l.isConverted && l.status === 'QUALIFIED').length },
+            { id: 'unqualified', label: 'UNQUALIFIED', count: leadsList.filter(l => !l.isArchived && !l.isConverted && l.status === 'UNQUALIFIED').length },
+            { id: 'archived', label: 'ARCHIVED', count: leadsList.filter(l => l.isArchived).length },
+          ].map((card) => (
             <View key={card.id} style={styles.summaryCard}>
               <Text style={styles.summaryLabel}>{card.label}</Text>
               <Text style={styles.summaryCount}>{card.count}</Text>
@@ -252,47 +331,130 @@ export default function LeadsScreen() {
               lead={lead}
               onDeletePress={() => setLeadToDelete(lead.id)}
               onConvertPress={() => setLeadToConvert(lead)}
+              onToggleArchive={() => toggleArchive(lead.id)}
+              onEditPress={() => {
+                setLeadToEdit(lead);
+                setEditGroup('Buyer');
+                setEditTag('Lead');
+                setEditSource(lead.source);
+                setEditStatus(lead.status === 'NEW' ? 'New' : lead.status === 'QUALIFIED' ? 'Qualified' : 'Unqualified');
+                setEditColor('#0BA0B2');
+                setIsEditModalVisible(true);
+              }}
             />
           ))}
         </View>
       </ScrollView>
 
+      {/* --- AI Lead Import Modal --- */}
       <Modal
         visible={isImportModalVisible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setImportModalVisible(false)}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setImportModalVisible(false)}
-        >
-          <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Import Leads</Text>
-                <Text style={styles.modalSubtitle}>Upload CSV or Excel files to bulk add leads to your pipeline.</Text>
+        <View style={[styles.fullPageModal, { paddingTop: insets.top }]}>
+          <View style={styles.modalContent}>
+            <View style={styles.premiumModalHeader}>
+              <View style={styles.aiImportTitleRow}>
+                <View style={styles.aiIconSquare}>
+                  <MaterialCommunityIcons name="creation" size={20} color="#FFFFFF" />
+                </View>
+                <View style={styles.aiImportHeaderText}>
+                  <Text style={styles.premiumModalTitle}>AI Lead Import</Text>
+                  <Text style={styles.premiumModalSubtitle}>
+                    Let AI analyze your leads and automatically calculate heat scores and intent patterns.
+                  </Text>
+                </View>
               </View>
-              <Pressable onPress={() => setImportModalVisible(false)} hitSlop={10}>
-                <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+              <Pressable
+                onPress={() => {
+                  setImportModalVisible(false);
+                  setSelectedFile(null);
+                }}
+                style={styles.premiumCloseBtn}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#64748B" />
               </Pressable>
             </View>
 
-            <View style={styles.modalDashedArea}>
-              <View style={styles.modalIconCircle}>
-                <MaterialCommunityIcons name="tray-arrow-up" size={28} color="#0B2D3E" />
+            <ScrollView
+              style={styles.premiumModalBody}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 40 }}
+            >
+              <View style={styles.importCard}>
+                <View style={styles.importLabelRow}>
+                  <MaterialCommunityIcons name="message-outline" size={18} color="#0B2D3E" />
+                  <Text style={styles.importSectionLabel}>Lead Context & Campaign Info</Text>
+                </View>
+
+                <View style={styles.instructionInputContainer}>
+                  <TextInput
+                    style={styles.instructionInput}
+                    placeholder="Describe the source of these leads... (e.g., 'From the Spring Open House, interested in luxury condos')"
+                    placeholderTextColor="#8DA4B5"
+                    multiline
+                    value={importInstructions}
+                    onChangeText={setImportInstructions}
+                  />
+                  <View style={styles.uploadBtnSmall}>
+                    <MaterialCommunityIcons name="tray-arrow-up" size={16} color="#6A7D8C" />
+                  </View>
+                </View>
+
+                {!selectedFile ? (
+                  <Pressable
+                    style={styles.dropzone}
+                    onPress={() => setSelectedFile({
+                      name: 'ENTRY POST SYSTEM and TEMPLATES - simplified version.pdf',
+                      size: '107.00 KB'
+                    })}>
+                    <View style={styles.dropzoneIconCircle}>
+                      <MaterialCommunityIcons name="tray-arrow-up" size={24} color="#0B2D3E" />
+                    </View>
+                    <Text style={styles.dropzoneTitle}>Upload your lead list</Text>
+                    <Text style={styles.dropzoneSubtitle}>Drag and drop CSV or Excel files here</Text>
+                  </Pressable>
+                ) : (
+                  <View style={styles.fileStatusArea}>
+                    <View style={styles.fileCard}>
+                      <View style={styles.fileIconBox}>
+                        <MaterialCommunityIcons name="file-document-outline" size={24} color="#FFFFFF" />
+                      </View>
+                      <View style={styles.fileDetails}>
+                        <Text style={styles.fileName} numberOfLines={1}>{selectedFile.name}</Text>
+                        <View style={styles.fileMetaRow}>
+                          <Text style={styles.readyTag}>Ready to Process • {selectedFile.size}</Text>
+                          <Pressable onPress={() => setSelectedFile(null)}>
+                            <Text style={styles.changeFileText}>Change File</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      style={styles.mappingBtn}
+                      onPress={() => setImportModalVisible(false)}
+                    >
+                      <LinearGradient
+                        colors={['#0B2D3E', '#0BA0B2']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.mappingBtnGradient}
+                      >
+                        <MaterialCommunityIcons name="creation" size={20} color="#FFFFFF" />
+                        <Text style={styles.mappingBtnText}>Initialize AI Lead Scoring</Text>
+                      </LinearGradient>
+                    </Pressable>
+                  </View>
+                )}
               </View>
-              <Text style={styles.modalDragText}>Drag & Drop file here</Text>
-              <Text style={styles.modalBrowseText}>or click to browse from your computer</Text>
-
-              <Pressable style={styles.modalSelectBtn}>
-                <Text style={styles.modalSelectBtnText}>Select File</Text>
-              </Pressable>
-
-              <Text style={styles.modalSupportText}>Supported formats: .CSV, .XLSX</Text>
-            </View>
-          </Pressable>
-        </Pressable>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
 
       <Modal
@@ -324,19 +486,19 @@ export default function LeadsScreen() {
 
       <Modal
         visible={!!leadToConvert}
-        transparent
-        animationType="fade"
+        transparent={false}
+        animationType="slide"
         onRequestClose={() => setLeadToConvert(null)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setLeadToConvert(null)}>
-          <Pressable style={styles.convertModalContainer} onPress={e => e.stopPropagation()}>
-            <View style={styles.convertModalHeader}>
-              <Text style={styles.convertModalTitle}>Convert Lead to Contact</Text>
-              <Pressable style={styles.convertModalCloseIcon} onPress={() => setLeadToConvert(null)}>
-                <MaterialCommunityIcons name="close" size={16} color="#0B2D3E" />
-              </Pressable>
-            </View>
+        <View style={styles.fullScreenModalContainer}>
+          <View style={styles.fullScreenModalHeader}>
+            <Text style={styles.fullScreenModalTitle}>Convert Lead to Contact</Text>
+            <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => setLeadToConvert(null)}>
+              <MaterialCommunityIcons name="close" size={16} color="#0B2D3E" />
+            </Pressable>
+          </View>
 
+          <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={{ paddingBottom: 100 }}>
             <View style={styles.convertRow}>
               <View style={styles.convertCol}>
                 <Text style={styles.convertLabel}>First Name</Text>
@@ -349,110 +511,396 @@ export default function LeadsScreen() {
             </View>
 
             <View style={styles.convertRow}>
-              <View style={{ flex: 1 }}>
+              <View style={styles.convertCol}>
                 <Text style={styles.convertLabel}>Email</Text>
-                <TextInput style={styles.convertInput} placeholder="Enter email address..." placeholderTextColor="#8DA4B5" />
+                <TextInput style={styles.convertInput} placeholder="name@email.com" placeholderTextColor="#8DA4B5" />
               </View>
-            </View>
-
-            <View style={styles.convertRow}>
               <View style={styles.convertCol}>
                 <Text style={styles.convertLabel}>Phone</Text>
-                <TextInput style={styles.convertInput} placeholder="+1..." placeholderTextColor="#8DA4B5" />
+                <TextInput style={styles.convertInput} placeholder="(555) 123-4567" placeholderTextColor="#8DA4B5" />
               </View>
+            </View>
+
+            <View style={[styles.convertRow, { zIndex: 10 }]}>
               <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Type</Text>
-                <View style={styles.convertDropdown}>
-                  <Text style={styles.convertDropdownText}>Buyer</Text>
+                <Text style={styles.convertLabel}>Group</Text>
+                <Pressable
+                  style={styles.convertDropdown}
+                  onPress={() => {
+                    setConvertTagDropdownOpen(false);
+                    setConvertGroupDropdownOpen(!convertGroupDropdownOpen);
+                  }}
+                >
+                  <Text style={styles.convertDropdownText}>{convertGroup}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
-                </View>
+                </Pressable>
+                {convertGroupDropdownOpen && (
+                  <View style={styles.formDropdownMenu}>
+                    {['Buyer', 'Seller', 'Investor', 'Custom Group...'].map((opt) => (
+                      <Pressable
+                        key={opt}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setConvertGroup(opt);
+                          setConvertGroupDropdownOpen(false);
+                        }}
+                      >
+                        {convertGroup === opt && (
+                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
+                        )}
+                        <Text style={[styles.formDropdownItemText, convertGroup === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={[styles.convertRow, { zIndex: 9 }]}>
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>Tag</Text>
+                <Pressable
+                  style={styles.convertDropdown}
+                  onPress={() => {
+                    setConvertGroupDropdownOpen(false);
+                    setConvertTagDropdownOpen(!convertTagDropdownOpen);
+                  }}
+                >
+                  <Text style={styles.convertDropdownText}>{convertTag}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                </Pressable>
+                {convertTagDropdownOpen && (
+                  <View style={styles.formDropdownMenu}>
+                    {['Hot', 'Warm', 'Cold', 'Lead', 'Custom Tag...'].map((opt) => (
+                      <Pressable
+                        key={opt}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setConvertTag(opt);
+                          setConvertTagDropdownOpen(false);
+                        }}
+                      >
+                        {convertTag === opt && (
+                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
+                        )}
+                        <Text style={[styles.formDropdownItemText, convertTag === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
 
             <View style={styles.convertRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.convertLabel}>Lead Source</Text>
-                <TextInput style={[styles.convertInput, styles.convertInputDisabled]} value={leadToConvert?.source} editable={false} />
+                <Text style={styles.convertLabel}>Lead Source (Read Only)</Text>
+                <View style={styles.convertInputDisabled}>
+                  <Text style={[styles.convertDropdownText, { color: '#6A7D8C', fontWeight: '700' }]}>{leadToConvert?.source}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={[styles.convertCol, { marginBottom: 32 }]}>
+              <Text style={styles.convertLabel}>Tag Color Preset</Text>
+              <View style={styles.tagColorRow}>
+                {['#0BA0B2', '#FF6B00', '#0B2D3E', '#6366F1', '#10B981', '#64748B', '#E11D48', '#9333EA'].map((color) => {
+                  const isActive = convertColor === color;
+                  return (
+                    <Pressable
+                      key={color}
+                      onPress={() => setConvertColor(color)}
+                      style={isActive ? [styles.tagColorCircleOuter, { borderColor: color === '#FF6B00' ? '#FF8A00' : color }] : undefined}
+                    >
+                      <View style={[styles.tagColorCircle, { backgroundColor: color }]} />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Fixed Bottom Actions */}
+          <View style={[styles.convertActions, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+            <Pressable style={styles.convertCancelBtn} onPress={() => setLeadToConvert(null)}>
+              <Text style={styles.convertCancelBtnText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.convertConfirmBtn} onPress={confirmConvert}>
+              <Text style={styles.convertConfirmBtnText}>Finalize Conversion</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- Edit / Add Modal --- */}
+      <Modal
+        visible={isEditModalVisible}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => { setIsEditModalVisible(false); setLeadToEdit(null); }}
+      >
+        <View style={styles.fullScreenModalContainer}>
+          <View style={styles.fullScreenModalHeader}>
+            <Text style={styles.fullScreenModalTitle}>{leadToEdit ? 'Edit Lead' : 'Add New Lead'}</Text>
+            <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => { setIsEditModalVisible(false); setLeadToEdit(null); }}>
+              <MaterialCommunityIcons name="close" size={16} color="#0B2D3E" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={{ paddingBottom: 100 }} key={leadToEdit ? leadToEdit.id : 'new_lead'}>
+            <View style={styles.convertRow}>
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>First Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
+                <TextInput style={styles.convertInput} defaultValue={leadToEdit ? leadToEdit.name.split(' ')[0] : ''} placeholder="John" placeholderTextColor="#8DA4B5" />
+              </View>
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>Last Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
+                <TextInput style={styles.convertInput} defaultValue={leadToEdit ? leadToEdit.name.split(' ').slice(1).join(' ') : ''} placeholder="Doe" placeholderTextColor="#8DA4B5" />
               </View>
             </View>
 
             <View style={styles.convertRow}>
-              <View style={[styles.convertCol, { flex: 1.5 }]}>
-                <Text style={styles.convertLabel}>Custom Tag</Text>
-                <TextInput style={styles.convertInput} placeholder="e.g. VIP, Priority..." placeholderTextColor="#8DA4B5" />
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>Email <Text style={{ color: '#E11D48' }}>*</Text></Text>
+                <TextInput style={styles.convertInput} placeholder="john@example.com" placeholderTextColor="#8DA4B5" />
               </View>
-
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>Phone</Text>
+                <TextInput style={styles.convertInput} placeholder="(555) 000-0000" placeholderTextColor="#8DA4B5" />
+              </View>
             </View>
-            <View style={[styles.convertCol, { flex: 1, marginBottom: 16 }]}>
-              <Text style={styles.convertLabel}>Tag Color</Text>
+
+            <View style={[styles.convertRow, { zIndex: 11 }]}>
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>Source</Text>
+                <Pressable
+                  style={styles.convertDropdown}
+                  onPress={() => {
+                    setEditStatusDropdownOpen(false);
+                    setEditGroupDropdownOpen(false);
+                    setEditTagDropdownOpen(false);
+                    setEditSourceDropdownOpen(!editSourceDropdownOpen);
+                  }}
+                >
+                  <Text style={styles.convertDropdownText}>{editSource}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                </Pressable>
+                {editSourceDropdownOpen && (
+                  <View style={styles.formDropdownMenu}>
+                    {['Manual Entry', 'Website', 'Referral', 'Social Media', 'Open House', 'Zillow'].map((opt) => (
+                      <Pressable
+                        key={opt}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setEditSource(opt);
+                          setEditSourceDropdownOpen(false);
+                        }}
+                      >
+                        {editSource === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />}
+                        <Text style={[styles.formDropdownItemText, editSource === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>Status</Text>
+                <Pressable
+                  style={styles.convertDropdown}
+                  onPress={() => {
+                    setEditSourceDropdownOpen(false);
+                    setEditGroupDropdownOpen(false);
+                    setEditTagDropdownOpen(false);
+                    setEditStatusDropdownOpen(!editStatusDropdownOpen);
+                  }}
+                >
+                  <Text style={styles.convertDropdownText}>{editStatus}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                </Pressable>
+                {editStatusDropdownOpen && (
+                  <View style={styles.formDropdownMenu}>
+                    {['New', 'Qualified', 'Unqualified', 'Archived'].map((opt) => (
+                      <Pressable
+                        key={opt}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setEditStatus(opt);
+                          setEditStatusDropdownOpen(false);
+                        }}
+                      >
+                        {editStatus === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />}
+                        <Text style={[styles.formDropdownItemText, editStatus === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={[styles.convertRow, { zIndex: 10 }]}>
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>Group</Text>
+                <Pressable
+                  style={styles.convertDropdown}
+                  onPress={() => {
+                    setEditSourceDropdownOpen(false);
+                    setEditStatusDropdownOpen(false);
+                    setEditTagDropdownOpen(false);
+                    setEditGroupDropdownOpen(!editGroupDropdownOpen);
+                  }}
+                >
+                  <Text style={styles.convertDropdownText}>{editGroup}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                </Pressable>
+                {editGroupDropdownOpen && (
+                  <View style={styles.formDropdownMenu}>
+                    {['Buyer', 'Seller', 'Investor', 'Custom Group...'].map((opt) => (
+                      <Pressable
+                        key={opt}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setEditGroup(opt);
+                          setEditGroupDropdownOpen(false);
+                        }}
+                      >
+                        {editGroup === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />}
+                        <Text style={[styles.formDropdownItemText, editGroup === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={[styles.convertRow, { zIndex: 9 }]}>
+              <View style={styles.convertCol}>
+                <Text style={styles.convertLabel}>Tag</Text>
+                <Pressable
+                  style={styles.convertDropdown}
+                  onPress={() => {
+                    setEditSourceDropdownOpen(false);
+                    setEditStatusDropdownOpen(false);
+                    setEditGroupDropdownOpen(false);
+                    setEditTagDropdownOpen(!editTagDropdownOpen);
+                  }}
+                >
+                  <Text style={styles.convertDropdownText}>{editTag}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                </Pressable>
+                {editTagDropdownOpen && (
+                  <View style={styles.formDropdownMenu}>
+                    {['Hot', 'Warm', 'Cold', 'Lead', 'Custom Tag...'].map((opt) => (
+                      <Pressable
+                        key={opt}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setEditTag(opt);
+                          setEditTagDropdownOpen(false);
+                        }}
+                      >
+                        {editTag === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />}
+                        <Text style={[styles.formDropdownItemText, editTag === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={[styles.convertCol, { marginBottom: 32 }]}>
+              <Text style={styles.convertLabel}>Tag Color Theme</Text>
               <View style={styles.tagColorRow}>
-                <View style={[styles.tagColorCircle, { backgroundColor: '#0BA0B2' }]} />
-                <View style={[styles.tagColorCircleOuter, { borderColor: '#0284C7' }]}>
-                  <View style={[styles.tagColorCircle, { backgroundColor: '#FF6B00' }]} />
-                </View>
-                <View style={[styles.tagColorCircle, { backgroundColor: '#0B2D3E' }]} />
-                <View style={[styles.tagColorCircle, { backgroundColor: '#6366F1' }]} />
-                <View style={[styles.tagColorCircle, { backgroundColor: '#10B981' }]} />
-                <View style={[styles.tagColorCircle, { backgroundColor: '#64748B' }]} />
+                {['#0BA0B2', '#FF6B00', '#0B2D3E', '#6366F1', '#10B981', '#64748B', '#E11D48', '#9333EA'].map((color) => {
+                  const isActive = editColor === color;
+                  return (
+                    <Pressable
+                      key={color}
+                      onPress={() => setEditColor(color)}
+                      style={isActive ? [styles.tagColorCircleOuter, { borderColor: color === '#FF6B00' ? '#FF8A00' : color }] : undefined}
+                    >
+                      <View style={[styles.tagColorCircle, { backgroundColor: color }]} />
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
+          </ScrollView>
 
-            <View style={styles.convertActions}>
-              <Pressable style={styles.convertCancelBtn} onPress={() => setLeadToConvert(null)}>
-                <Text style={styles.convertCancelBtnText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.convertConfirmBtn} onPress={confirmConvert}>
-                <Text style={styles.convertConfirmBtnText}>Finalize Conversion</Text>
-              </Pressable>
-            </View>
-
-          </Pressable>
-        </Pressable>
+          {/* Fixed Bottom Actions */}
+          <View style={[styles.convertActions, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+            <Pressable style={styles.convertCancelBtn} onPress={() => { setIsEditModalVisible(false); setLeadToEdit(null); }}>
+              <Text style={styles.convertCancelBtnText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.convertConfirmBtn} onPress={() => { /* stub save */ setIsEditModalVisible(false); setLeadToEdit(null); }}>
+              <Text style={styles.convertConfirmBtnText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#EAEFF3',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  headerCenter: { flex: 1, minWidth: 0 },
-  title: { fontSize: 26, fontWeight: '800', color: '#0B2D3E', letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginTop: 2 },
+  container: { flex: 1 },
 
   scroll: { flex: 1 },
   scrollContent: { paddingTop: 10 },
 
-  actionRow: {
+  topButtonsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 4,
+    marginBottom: 16,
+  },
+  aiImportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    paddingHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  aiImportBtnText: {
+    color: '#0B2D3E',
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  addLeadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    backgroundColor: '#0B2D3E',
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  addLeadBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  searchFilterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 16,
+    gap: 5,
   },
   searchBar: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -466,83 +914,102 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 6,
     elevation: 1,
+    minWidth: 240,
   },
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: 15,
+    fontSize: 13,
     color: '#0B2D3E',
     fontWeight: '500',
   },
-  movedImportBtn: {
+  topFilterDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
     height: 48,
-    paddingHorizontal: 16,
-    backgroundColor: '#0B2D3E',
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
     borderRadius: 14,
-    shadowColor: '#0B2D3E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  movedImportBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    marginLeft: 6,
-  },
-
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    gap: 10,
+  topFilterText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0B2D3E',
+    textAlign: 'center',
+    marginHorizontal: 2,
   },
   filterDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+    height: 48,
     paddingHorizontal: 14,
-    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#EAEFF3',
-    borderRadius: 20,
+    borderRadius: 14,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#0B2D3E',
   },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 54, // just below the filter button
+    left: 0,
+    backgroundColor: '#616E7C',
+    borderRadius: 10,
+    paddingVertical: 8,
+    minWidth: 160,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingLeft: 36,
+  },
+  dropdownItemText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   hotFilterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF0E6',
+    backgroundColor: '#FFFFFF',
+    height: 48,
     paddingHorizontal: 14,
-    paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#FFE0CC',
-    borderRadius: 20,
+    borderColor: '#EAEFF3',
+    borderRadius: 14,
   },
   hotFilterText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#FF6B00',
+    fontWeight: '600',
   },
   hotFilterBtnActive: {
-    borderColor: '#0284C7',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
+    borderColor: '#FFE0CC',
+    backgroundColor: '#FFF0E6',
+    borderWidth: 1,
   },
   clearFilterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F3F6F8',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 20,
+    height: 48,
+    paddingHorizontal: 14,
+    borderRadius: 14,
   },
   clearFilterText: {
     fontSize: 13,
@@ -622,8 +1089,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF0E6',
   },
   tagsContainer: {
-    flexDirection: 'row',
-    gap: 6,
+    alignItems: 'flex-end',
+    gap: 4,
   },
   tag: {
     paddingHorizontal: 10,
@@ -653,31 +1120,52 @@ const styles = StyleSheet.create({
 
   leadCardActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
     marginTop: 16,
   },
   leadCardConvertBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: '#0B2D3E',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  leadCardConvertText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  leadCardConvertText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
   leadCardArchiveBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F3F6F8',
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  leadCardArchiveText: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
+  leadCardArchiveText: { fontSize: 13, fontWeight: '700', color: '#0B2D3E' },
+  leadCardEditBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FAFCFD',
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   leadCardDeleteBtn: {
     width: 48,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: '#FFF1F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leadCardDeleteBtnArchived: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FAFCFD',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -802,47 +1290,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  archivedStateContainer: {
-    marginTop: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  archivedStateText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#8DA4B5',
-  },
   convertedStateContainer: {
-    marginTop: 16,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
+    backgroundColor: '#F3F6F8',
+    borderRadius: 12,
+    marginTop: 16,
   },
   convertedStateText: {
     fontSize: 14,
     fontWeight: '800',
     color: '#0BA0B2',
   },
-  convertModalContainer: {
-    width: '100%',
+  fullScreenModalContainer: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
   },
-  convertModalHeader: {
+  fullScreenModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    paddingHorizontal: 24,
+    paddingTop: 60, // approximate top inset for modal
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F4F7',
   },
-  convertModalTitle: { fontSize: 24, fontWeight: '900', color: '#0B2D3E', letterSpacing: -0.5 },
-  convertModalCloseIcon: {
+  fullScreenModalTitle: { fontSize: 24, fontWeight: '900', color: '#0B2D3E', letterSpacing: -0.5 },
+  fullScreenModalCloseIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -850,23 +1327,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  fullScreenModalContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
   convertRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: 16,
+    marginBottom: 20,
   },
   convertCol: {
     flex: 1,
   },
   convertLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: '#0B2D3E',
     marginBottom: 8,
   },
   convertInput: {
     height: 48,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#EAEFF3',
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -876,12 +1358,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   convertInputDisabled: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
     backgroundColor: '#FAFCFD',
-    color: '#6A7D8C',
   },
   convertDropdown: {
     height: 48,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#EAEFF3',
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -894,21 +1381,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0B2D3E',
   },
+  formDropdownMenu: {
+    position: 'absolute',
+    top: 76,
+    left: 0,
+    right: 0,
+    backgroundColor: '#6A7D8C',
+    borderRadius: 12,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  formDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingLeft: 36,
+  },
+  formDropdownItemText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   tagColorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     height: 48,
   },
   tagColorCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 10,
   },
   tagColorCircleOuter: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 14,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -916,12 +1430,16 @@ const styles = StyleSheet.create({
   convertActions: {
     flexDirection: 'row',
     gap: 16,
-    marginTop: 12,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F4F7',
   },
   convertCancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    height: 54,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#EAEFF3',
     alignItems: 'center',
@@ -929,21 +1447,246 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   convertCancelBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: '#0B2D3E',
   },
   convertConfirmBtn: {
     flex: 1.5,
-    paddingVertical: 14,
-    borderRadius: 12,
+    height: 54,
+    borderRadius: 14,
     backgroundColor: '#0B2D3E',
     alignItems: 'center',
     justifyContent: 'center',
   },
   convertConfirmBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+
+  // --- AI Lead Import Styles ---
+  fullPageModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  premiumModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingTop: 16,
+    paddingBottom: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  premiumModalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  premiumModalSubtitle: {
+    fontSize: 14,
+    color: '#6A7D8C',
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  premiumCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+  },
+  premiumModalBody: {
+    paddingHorizontal: 28,
+  },
+  aiImportTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
+  },
+  aiImportHeaderText: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  aiIconSquare: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#0BA0B2',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0BA0B2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  importCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    paddingTop: 0,
+  },
+  importLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  importSectionLabel: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  instructionInputContainer: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    borderRadius: 16,
+    padding: 16,
+    minHeight: 120,
+    marginBottom: 16,
+  },
+  instructionInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0B2D3E',
+    fontWeight: '500',
+    textAlignVertical: 'top',
+    lineHeight: 22,
+  },
+  uploadBtnSmall: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+  },
+  dropzone: {
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    borderStyle: 'dashed',
+    borderRadius: 20,
+    paddingVertical: 40,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  dropzoneIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#f0f4f8',
+  },
+  dropzoneTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 4,
+  },
+  dropzoneSubtitle: {
+    fontSize: 13,
+    color: '#6A7D8C',
+    fontWeight: '600',
+  },
+  fileStatusArea: {
+    gap: 16,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    backgroundColor: '#f6f9fc',
+  },
+  fileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    borderRadius: 20,
+    padding: 16,
+    gap: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.03,
+    shadowRadius: 15,
+    elevation: 2,
+  },
+  fileIconBox: {
+    width: 48,
+    height: 56,
+    backgroundColor: '#0B2D3E',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fileDetails: {
+    flex: 1,
+  },
+  fileName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 4,
+  },
+  fileMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  readyTag: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  changeFileText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#E11D48',
+  },
+  mappingBtn: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#0BA0B2',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  mappingBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 10,
+  },
+  mappingBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

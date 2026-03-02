@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
@@ -17,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const CRM_SECTIONS: Array<{
   id: string;
   label: string;
-  icon: 'view-grid-outline' | 'account-group-outline' | 'account-outline' | 'calendar-blank-outline' | 'pipe' | 'rocket-launch-outline' | 'lightning-bolt-outline' | 'connection' | 'cog-outline';
+  icon: 'view-grid-outline' | 'account-group-outline' | 'account-outline' | 'calendar-blank-outline' | 'pipe' | 'rocket-launch-outline' | 'content-copy' | 'lightning-bolt-outline' | 'connection' | 'cog-outline';
   route: Href | null;
   badge?: string;
 }> = [
@@ -26,7 +27,8 @@ const CRM_SECTIONS: Array<{
     { id: 'follow-ups', label: 'Follow-Ups', icon: 'calendar-blank-outline', route: '/(main)/crm/follow-ups', badge: '12' },
     { id: 'deals', label: 'Deals / Pipeline', icon: 'pipe', route: '/(main)/crm/deals' },
     { id: 'campaigns', label: 'Campaigns', icon: 'rocket-launch-outline', route: '/(main)/crm/campaigns' },
-    { id: 'automations', label: 'Automations', icon: 'lightning-bolt-outline', route: '/(main)/crm/automations' },
+    { id: 'templates', label: 'Templates', icon: 'content-copy', route: '/(main)/crm/templates' },
+    { id: 'automations', label: 'Automations Rules', icon: 'lightning-bolt-outline', route: '/(main)/crm/automations' },
     { id: 'integrations', label: 'Integrations', icon: 'connection', route: '/(main)/crm/integrations' },
     { id: 'settings', label: 'Settings', icon: 'cog-outline', route: '/(main)/crm/settings' },
   ];
@@ -100,7 +102,6 @@ export default function CRMScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [overviewTab, setOverviewTab] = useState<(typeof OVERVIEW_TABS)[number]['id']>('overview');
-  const [showAIModal, setShowAIModal] = useState(false);
   const [showActivityLog, setShowActivityLog] = useState(false);
 
   const { width } = Dimensions.get('window');
@@ -132,21 +133,15 @@ export default function CRMScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
+      colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>CRM Command Center</Text>
-          <Text style={styles.subtitle}>
-            Intelligent database tracking leads from capture to close.
-          </Text>
-        </View>
-      </View>
+      <PageHeader
+        title="CRM Command Center"
+        subtitle="Intelligent database tracking leads from capture to close."
+        onBack={() => router.back()}
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -154,11 +149,8 @@ export default function CRMScreen() {
         showsVerticalScrollIndicator={false}>
         {/* Action buttons */}
         <View style={styles.actionsRow}>
-          <Pressable style={styles.secondaryBtn}>
+          <Pressable style={[styles.secondaryBtn, { flex: 1, justifyContent: 'center' }]}>
             <Text style={styles.secondaryBtnText}>Download ROI Report</Text>
-          </Pressable>
-          <Pressable style={styles.primaryBtn} onPress={() => setShowAIModal(true)}>
-            <Text style={styles.primaryBtnText}>Generate AI Insights</Text>
           </Pressable>
         </View>
 
@@ -187,22 +179,31 @@ export default function CRMScreen() {
         {/* Tab content: Overview | Lead Sources | Conversion ROI | Heat Index */}
         {overviewTab === 'overview' && (
           <>
-            <Text style={styles.sectionTitle}>Key metrics</Text>
+            <Text style={styles.sectionTitle}>Key Metrics</Text>
             <View style={styles.statsGrid}>
               {METRIC_CARDS.map((card) => (
                 <View key={card.title} style={[styles.statCard, { width: statCardWidth }]}>
-                  <View style={styles.statIconWrap}>
-                    <MaterialCommunityIcons name={card.icon} size={20} color="#0B2D3E" />
+                  <View style={styles.statHeader}>
+                    <View style={styles.statIconWrap}>
+                      <MaterialCommunityIcons name={card.icon} size={18} color="#0BA0B2" />
+                    </View>
+                    <View style={styles.metaBadge}>
+                      <Text style={styles.statMeta}>{card.meta}</Text>
+                    </View>
                   </View>
-                  <Text style={styles.statValue}>{card.value}</Text>
-                  <Text style={styles.statTitle}>{card.title}</Text>
-                  <Text style={styles.statMeta}>{card.meta}</Text>
+                  <View style={styles.statBody}>
+                    <Text style={styles.statValue}>{card.value}</Text>
+                    <Text style={styles.statTitle}>{card.title}</Text>
+                  </View>
                 </View>
               ))}
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Lead Velocity & Source Attribution</Text>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>Lead Velocity & Source Attribution</Text>
+                <MaterialCommunityIcons name="information-outline" size={18} color="#94A3B8" />
+              </View>
               <View style={styles.chartWrap}>
                 <BarChart
                   data={velocityData}
@@ -219,7 +220,9 @@ export default function CRMScreen() {
                   style={styles.chart}
                 />
               </View>
-              <View style={styles.velocityFooter}>
+              <LinearGradient
+                colors={['#F8FAFC', '#F1F5F9']}
+                style={styles.velocityFooter}>
                 <View>
                   <Text style={styles.velocityLabel}>TOP PERFORMING SOURCE</Text>
                   <Text style={styles.velocityValue}>Open House - Malibu Villa</Text>
@@ -228,25 +231,38 @@ export default function CRMScreen() {
                   <Text style={styles.velocityLabel}>CONVERSION RATE</Text>
                   <Text style={styles.velocityValue}>14.2%</Text>
                 </View>
-              </View>
+              </LinearGradient>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Recent Lead Flows</Text>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>Recent Lead Flows</Text>
+                <Pressable onPress={() => setShowActivityLog(true)}>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </Pressable>
+              </View>
               {RECENT_LEADS.map((lead, idx) => (
                 <View
                   key={lead.id}
                   style={[styles.leadRow, idx === RECENT_LEADS.length - 1 && styles.leadRowLast]}>
+                  <View style={styles.leadAvatar}>
+                    <Text style={styles.avatarText}>{lead.name.charAt(0)}</Text>
+                  </View>
                   <View style={styles.leadInfo}>
                     <Text style={styles.leadName}>{lead.name}</Text>
                     <Text style={styles.leadSource}>{lead.source}</Text>
                   </View>
-                  <Text style={styles.leadScore}>{lead.score}</Text>
-                  <Text style={styles.leadTime}>{lead.time}</Text>
+                  <View style={styles.leadRight}>
+                    <View style={styles.scoreBadge}>
+                      <Text style={styles.scoreText}>{lead.score}</Text>
+                    </View>
+                    <Text style={styles.leadTime}>{lead.time}</Text>
+                  </View>
                 </View>
               ))}
               <Pressable style={styles.cardLinkBtn} onPress={() => setShowActivityLog(true)}>
                 <Text style={styles.cardLinkText}>View Continuous Activity Log</Text>
+                <MaterialCommunityIcons name="chevron-right" size={16} color="#0BA0B2" />
               </Pressable>
             </View>
           </>
@@ -261,14 +277,20 @@ export default function CRMScreen() {
                   <Text style={styles.leadSourceLabel}>{item.source}</Text>
                 </View>
                 <Text style={styles.leadSourceValue}>{item.leads}</Text>
-                <Text style={styles.leadSourceMeta}>Total Leads Captured</Text>
+                <Text style={styles.leadSourceMeta}>Leads Captured</Text>
                 <View style={styles.leadSourceFooter}>
-                  <Text style={[styles.leadSourceConv, item.roiHigh && styles.leadSourceConvTeal]} numberOfLines={1}>
-                    CONV. RATE {item.convRate}
-                  </Text>
-                  <Text style={[styles.leadSourceRoi, item.roiHigh && styles.leadSourceRoiGreen]} numberOfLines={1}>
-                    EST. ROI {item.roi}
-                  </Text>
+                  <View style={styles.leadSourceRow}>
+                    <Text style={styles.leadSourceLabelSmall}>CONV.</Text>
+                    <Text style={[styles.leadSourceConv, item.roiHigh && styles.leadSourceConvTeal]}>
+                      {item.convRate}
+                    </Text>
+                  </View>
+                  <View style={styles.leadSourceRow}>
+                    <Text style={styles.leadSourceLabelSmall}>ROI</Text>
+                    <Text style={[styles.leadSourceRoi, item.roiHigh && styles.leadSourceRoiGreen]}>
+                      {item.roi}
+                    </Text>
+                  </View>
                 </View>
               </View>
             ))}
@@ -277,17 +299,22 @@ export default function CRMScreen() {
 
         {overviewTab === 'conversion-roi' && (
           <View style={styles.funnelCard}>
-            <Text style={styles.funnelTitle}>Lead-to-Deal Conversion Funnel</Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.funnelTitle}>Lead-to-Deal Funnel</Text>
+              <MaterialCommunityIcons name="filter-outline" size={20} color="#94A3B8" />
+            </View>
             {CONVERSION_FUNNEL_STAGES.map((stage, idx) => (
               <View
                 key={stage.id}
                 style={[
                   styles.funnelBar,
-                  { backgroundColor: stage.barColor },
+                  { backgroundColor: stage.barColor, opacity: 1 - idx * 0.1 },
                   idx === CONVERSION_FUNNEL_STAGES.length - 1 && styles.funnelBarLast,
                 ]}>
                 <Text style={styles.funnelBarLabel}>{stage.label}</Text>
-                <Text style={styles.funnelBarValue}>{stage.value}</Text>
+                <View style={styles.funnelValueContainer}>
+                  <Text style={styles.funnelBarValue}>{stage.value}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -296,22 +323,30 @@ export default function CRMScreen() {
         {overviewTab === 'heat-index' && (
           <>
             <View style={styles.heatCard}>
-              <Text style={styles.heatCardTitle}>Global Interest Distribution</Text>
+              <View style={styles.cardHeader}>
+                <Text style={styles.heatCardTitle}>Global Interest Distribution</Text>
+                <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFD700" />
+              </View>
               <View style={styles.heatDistributionRow}>
                 {HEAT_DISTRIBUTION.map((item) => (
                   <View key={item.id} style={styles.heatDistributionItem}>
                     <Text style={[styles.heatDistributionPct, { color: item.color }]}>{item.pct}</Text>
-                    <Text style={styles.heatDistributionSub}>{item.sub}</Text>
+                    <Text style={styles.heatDistributionSub}>{item.label}</Text>
                   </View>
                 ))}
               </View>
             </View>
             <View style={styles.heatCard}>
-              <Text style={styles.heatCardTitle}>Interest Surge Trigger</Text>
+              <View style={styles.cardHeader}>
+                <Text style={styles.heatCardTitle}>Interest Surge Triggers</Text>
+              </View>
               {HEAT_SURGE_TRIGGERS.map((trigger, idx) => (
                 <View
                   key={trigger.id}
                   style={[styles.heatTriggerRow, idx === HEAT_SURGE_TRIGGERS.length - 1 && styles.heatTriggerRowLast]}>
+                  <View style={styles.triggerIconWrap}>
+                    <MaterialCommunityIcons name="flash-outline" size={16} color="#0BA0B2" />
+                  </View>
                   <Text style={styles.heatTriggerLabel}>{trigger.label}</Text>
                   <Text style={styles.heatTriggerPts}>{trigger.pts}</Text>
                 </View>
@@ -350,67 +385,6 @@ export default function CRMScreen() {
 
         <View style={{ height: 24 }} />
       </ScrollView>
-
-      {/* AI CRM Analysis Modal */}
-      <Modal
-        visible={showAIModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowAIModal(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setShowAIModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}>
-                <Text style={styles.sparkleIcon}>✨</Text>
-                <Text style={styles.modalTitle}>AI CRM Analysis</Text>
-              </View>
-              <Pressable onPress={() => setShowAIModal(false)} style={styles.closeButton}>
-                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
-              </Pressable>
-            </View>
-
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalSubtitle}>Based on your recent CRM activity:</Text>
-
-              <View style={styles.insightsList}>
-                <View style={styles.insightItem}>
-                  <Text style={styles.insightNumber}>1.</Text>
-                  <Text style={styles.insightText}>
-                    Lead response time has improved by 15% this week.
-                  </Text>
-                </View>
-
-                <View style={styles.insightItem}>
-                  <Text style={styles.insightNumber}>2.</Text>
-                  <Text style={styles.insightText}>
-                    "Open House - Malibu Villa" is your highest converting source (18.4%).
-                  </Text>
-                </View>
-
-                <View style={styles.insightItem}>
-                  <Text style={styles.insightNumber}>3.</Text>
-                  <Text style={styles.insightText}>
-                    12 contacts have a Heat Index above 85 - prioritize follow-ups.
-                  </Text>
-                </View>
-
-                <View style={styles.insightItem}>
-                  <Text style={styles.insightNumber}>4.</Text>
-                  <Text style={styles.insightText}>
-                    Recommended Action: Send a personalized video update to the "Warm" segment.
-                  </Text>
-                </View>
-              </View>
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <Pressable style={styles.closeAnalysisButton} onPress={() => setShowAIModal(false)}>
-                <Text style={styles.closeAnalysisButtonText}>Close Analysis</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {/* Continuous Activity Log Modal */}
       <Modal
@@ -492,159 +466,199 @@ export default function CRMScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 10,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-  },
-  headerCenter: { flex: 1 },
-  title: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#5B6B7A',
-    fontWeight: '600',
-    marginTop: 2,
-  },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16 },
   actionsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 20,
   },
   secondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  secondaryBtnText: { fontSize: 12, fontWeight: '700', color: '#0B2D3E' },
+  secondaryBtnText: { fontSize: 13, fontWeight: '700', color: '#1E293B' },
   primaryBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    backgroundColor: '#0B2D3E',
-    borderRadius: 12,
+    paddingVertical: 14,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  primaryBtnText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  primaryBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
   tabsScroll: { marginHorizontal: -16 },
   tabsContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    marginBottom: 8,
+    paddingBottom: 16,
+    marginBottom: 4,
   },
   tab: {
     paddingVertical: 10,
-    paddingHorizontal: 4,
-    marginRight: 20,
+    paddingHorizontal: 16,
+    marginRight: 10,
     alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
-  tabActive: {},
-  tabLabel: { fontSize: 14, fontWeight: '600', color: '#5B6B7A' },
-  tabLabelActive: { color: '#0B2D3E', fontWeight: '800' },
+  tabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabLabel: { fontSize: 14, fontWeight: '600', color: '#64748B' },
+  tabLabelActive: { color: '#0F172A', fontWeight: '800' },
   tabUnderline: {
-    position: 'absolute',
-    bottom: 0,
-    left: 4,
-    right: 4,
-    height: 2,
-    backgroundColor: '#0BA0B2',
-    borderRadius: 1,
+    display: 'none',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
-    marginBottom: 12,
+    color: '#0F172A',
+    marginBottom: 16,
+    letterSpacing: -0.3,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   statCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
-    padding: 14,
+    borderColor: '#F1F5F9',
+  },
+  statHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   statIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(11, 45, 62, 0.08)',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F0F9FA',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
-  statValue: { fontSize: 20, fontWeight: '900', color: '#0B2D3E' },
-  statTitle: { fontSize: 12, fontWeight: '600', color: '#5B6B7A', marginTop: 2 },
-  statMeta: { fontSize: 11, fontWeight: '700', color: '#0BA0B2', marginTop: 2 },
+  metaBadge: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statMeta: { fontSize: 11, fontWeight: '800', color: '#10B981' },
+  statBody: {
+    gap: 2,
+  },
+  statValue: { fontSize: 24, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5 },
+  statTitle: { fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 15,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
-    padding: 16,
-    marginBottom: 16,
+    borderColor: '#F1F5F9',
   },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: '#0B2D3E', marginBottom: 12 },
-  chartWrap: { alignItems: 'center', marginBottom: 12 },
-  chart: { borderRadius: 12 },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cardTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  viewAllText: { fontSize: 13, fontWeight: '700', color: '#0BA0B2' },
+  chartWrap: { alignItems: 'center', marginVertical: 10 },
+  chart: { borderRadius: 16 },
   velocityFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F4F8',
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
   },
-  velocityLabel: { fontSize: 10, fontWeight: '800', color: '#5B6B7A', letterSpacing: 0.5 },
-  velocityValue: { fontSize: 13, fontWeight: '700', color: '#0B2D3E', marginTop: 2 },
+  velocityLabel: { fontSize: 10, fontWeight: '800', color: '#94A3B8', letterSpacing: 0.8 },
+  velocityValue: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginTop: 4 },
   velocityRight: { alignItems: 'flex-end' },
   leadRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F4F8',
-    gap: 12,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 14,
   },
-  leadRowLast: {},
-  leadInfo: { flex: 1 },
-  leadName: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
-  leadSource: { fontSize: 12, color: '#5B6B7A', marginTop: 2 },
-  leadScore: { fontSize: 14, fontWeight: '800', color: '#0B2D3E', minWidth: 28 },
-  leadTime: { fontSize: 12, color: '#5B6B7A', minWidth: 48 },
-  cardLinkBtn: { marginTop: 8, paddingVertical: 8 },
-  cardLinkText: { fontSize: 13, fontWeight: '700', color: '#0BA0B2' },
+  leadRowLast: { borderBottomWidth: 0 },
+  leadAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  leadInfo: { flex: 1, gap: 2 },
+  leadName: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  leadSource: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  leadRight: { alignItems: 'flex-end', gap: 4 },
+  scoreBadge: {
+    backgroundColor: '#F0F9FA',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  scoreText: { fontSize: 13, fontWeight: '800', color: '#0BA0B2' },
+  leadScore: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
+  leadTime: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  cardLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F0F9FA',
+    borderRadius: 12,
+    gap: 6,
+  },
+  cardLinkText: { fontSize: 14, fontWeight: '700', color: '#0BA0B2' },
   leadSourceGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -653,81 +667,100 @@ const styles = StyleSheet.create({
   },
   leadSourceCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
-    padding: 14,
+    borderColor: '#F1F5F9',
   },
   leadSourceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   leadSourceDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   leadSourceLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
-    color: '#5B6B7A',
-    letterSpacing: 0.5,
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   leadSourceValue: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
   leadSourceMeta: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#5B6B7A',
-    marginTop: 4,
+    color: '#64748B',
+    marginTop: 2,
   },
   leadSourceFooter: {
-    marginTop: 12,
-    paddingTop: 10,
+    marginTop: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F0F4F8',
-    gap: 4,
+    borderTopColor: '#F1F5F9',
+    gap: 6,
+  },
+  leadSourceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  leadSourceLabelSmall: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94A3B8',
   },
   leadSourceConv: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#5B6B7A',
-    letterSpacing: 0.3,
+    color: '#0F172A',
   },
   leadSourceConvTeal: { color: '#0BA0B2' },
   leadSourceRoi: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: 0.3,
+    color: '#0F172A',
   },
-  leadSourceRoiGreen: { color: '#15803D' },
+  leadSourceRoiGreen: { color: '#10B981' },
   funnelCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 15,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
-    padding: 16,
-    marginBottom: 20,
+    borderColor: '#F1F5F9',
   },
   funnelTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0B2D3E',
-    marginBottom: 14,
+    color: '#0F172A',
   },
   funnelBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
     marginBottom: 8,
   },
   funnelBarLast: {
@@ -735,175 +768,104 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(11, 160, 178, 0.4)',
   },
-  funnelBarLabel: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
-  funnelBarValue: { fontSize: 15, fontWeight: '800', color: '#0B2D3E' },
+  funnelBarLabel: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  funnelValueContainer: {
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  funnelBarValue: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
   heatCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 15,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   heatCardTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0B2D3E',
-    marginBottom: 14,
+    color: '#0F172A',
   },
   heatDistributionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
+    marginTop: 10,
   },
-  heatDistributionItem: { flex: 1, alignItems: 'center' },
-  heatDistributionPct: { fontSize: 20, fontWeight: '800' },
-  heatDistributionSub: { fontSize: 12, fontWeight: '600', color: '#5B6B7A', marginTop: 4 },
+  heatDistributionItem: { flex: 1, alignItems: 'center', gap: 4 },
+  heatDistributionPct: { fontSize: 24, fontWeight: '900', letterSpacing: -1 },
+  heatDistributionSub: { fontSize: 12, fontWeight: '700', color: '#64748B' },
   heatTriggerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: '#F0F4F8',
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
     marginBottom: 8,
+    gap: 12,
   },
   heatTriggerRowLast: { marginBottom: 0 },
-  heatTriggerLabel: { fontSize: 14, fontWeight: '600', color: '#0B2D3E', flex: 1 },
-  heatTriggerPts: { fontSize: 14, fontWeight: '700', color: '#0BA0B2' },
+  triggerIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heatTriggerLabel: { fontSize: 13, fontWeight: '600', color: '#1E293B', flex: 1 },
+  heatTriggerPts: { fontSize: 13, fontWeight: '800', color: '#0BA0B2' },
   sectionsList: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    overflow: 'hidden',
+    borderRadius: 24,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 15,
+    elevation: 2,
+    marginBottom: 40,
   },
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F4F8',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    gap: 14,
+    borderRadius: 16,
+    marginBottom: 4,
   },
-  sectionRowPressed: { backgroundColor: '#F8FBFF' },
+  sectionRowPressed: { backgroundColor: '#F8FAFC' },
   sectionIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(11, 160, 178, 0.12)',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionIconWrapActive: {
-    backgroundColor: '#0BA0B2',
+    backgroundColor: '#0F172A',
   },
-  sectionLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#0B2D3E' },
-  sectionBadge: { fontSize: 13, fontWeight: '700', color: '#5B6B7A', marginRight: 4 },
+  sectionLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#1E293B' },
+  sectionBadge: { fontSize: 13, fontWeight: '700', color: '#64748B', marginRight: 4 },
   currentBadge: {
-    backgroundColor: '#0BA0B2',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  currentBadgeText: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    width: '100%',
-    maxWidth: 440,
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  modalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  sparkleIcon: {
-    fontSize: 24,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalBody: {
-    padding: 24,
-    maxHeight: 400,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 16,
-    fontWeight: '600',
-  },
-  insightsList: {
-    gap: 16,
-  },
-  insightItem: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  insightNumber: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0B2D3E',
-    minWidth: 20,
-  },
-  insightText: {
-    flex: 1,
-    fontSize: 15,
-    color: '#0B2D3E',
-    lineHeight: 22,
-  },
-  modalFooter: {
-    padding: 24,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  closeAnalysisButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#0B2D3E',
-    alignItems: 'center',
-  },
-  closeAnalysisButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
+  currentBadgeText: { fontSize: 11, fontWeight: '800', color: '#10B981' },
   // Activity Log Modal Styles
   activityLogContainer: {
     flex: 1,
@@ -928,12 +890,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activityLogTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0B2D3E',
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
   activityLogSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#64748B',
     marginTop: 2,
     fontWeight: '600',
@@ -960,12 +923,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   activityLogIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   activityLogDetails: {
     flex: 1,
@@ -979,7 +946,7 @@ const styles = StyleSheet.create({
   activityLogActor: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: '#0F172A',
   },
   activityLogAction: {
     fontSize: 14,
@@ -988,8 +955,8 @@ const styles = StyleSheet.create({
   },
   activityLogDetail: {
     fontSize: 13,
-    color: '#0B2D3E',
-    fontWeight: '600',
+    color: '#1E293B',
+    fontWeight: '700',
   },
   activityLogScoreBadge: {
     backgroundColor: '#EA580C',
@@ -1041,14 +1008,18 @@ const styles = StyleSheet.create({
     borderTopColor: '#E8EEF4',
   },
   activityLogCloseButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#0B2D3E',
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#0F172A',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   activityLogCloseButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
   },
 });

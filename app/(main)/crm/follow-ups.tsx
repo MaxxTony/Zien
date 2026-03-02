@@ -1,16 +1,17 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -80,54 +81,52 @@ const TASKS = [
   },
 ];
 
-interface AIRule {
-  id: string;
-  type: 'Email' | 'SMS' | 'Call Task';
-  delay: string;
-  trigger: string;
-  active: boolean;
-  icon: string;
-  iconBg: string;
-}
-
-const INITIAL_AI_RULES: AIRule[] = [
-  { id: '1', type: 'Email', delay: 'AFTER 1 DAYS', trigger: 'New Lead Created', active: true, icon: 'email-outline', iconBg: '#E6F4F1' },
-  { id: '2', type: 'SMS', delay: 'AFTER 2 DAYS', trigger: 'Viewing Completed', active: false, icon: 'message-outline', iconBg: '#EAF5E5' },
-  { id: '3', type: 'Call Task', delay: 'AFTER 4 HOURS', trigger: 'Document Uploaded', active: true, icon: 'phone-outline', iconBg: '#FDF3E3' },
-];
-
 function TaskCard({
   task,
+  onEdit,
+  onDelete,
   onReschedule,
   onDone
 }: {
   task: typeof TASKS[number],
+  onEdit: () => void,
+  onDelete: () => void,
   onReschedule: () => void,
   onDone: () => void
 }) {
   const isHigh = task.priority === 'High';
   const isMedium = task.priority === 'Medium';
+  const isLow = task.priority === 'Low';
   const isCompleted = task.status === 'completed';
 
-  const priorityColor = isHigh ? '#EF4444' : isMedium ? '#F59E0B' : '#6A7D8C';
-  const priorityBg = isHigh ? '#FEF2F2' : isMedium ? '#FFFBEB' : '#F3F6F8';
+  const priorityColor = isHigh ? '#EF4444' : isMedium ? '#F59E0B' : '#64748B';
+  const priorityBg = isHigh ? '#FEF2F2' : isMedium ? '#FFFBEB' : '#F1F5F9';
 
   return (
-    <View style={styles.card}>
-      <View style={styles.cardTop}>
+    <View style={[styles.card, isCompleted && styles.cardCompleted]}>
+      <View style={styles.cardMain}>
         <View style={[styles.cardIconWrap, task.isOverdue && styles.cardIconOverdue, isCompleted && styles.cardIconCompleted]}>
           <MaterialCommunityIcons
-            name={isCompleted ? 'check-circle-outline' : task.icon as any}
+            name={isCompleted ? 'check-circle' : task.icon as any}
             size={22}
-            color={task.isOverdue ? '#EF4444' : isCompleted ? '#10B981' : '#0B2D3E'}
+            color={task.isOverdue ? '#EF4444' : isCompleted ? '#10B981' : '#64748B'}
           />
         </View>
 
-        <View style={styles.cardHeaderInfo}>
-          <Text style={[styles.cardTitle, isCompleted && styles.cardTitleCompleted]}>{task.title}</Text>
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.cardTitle, isCompleted && styles.cardTitleCompleted]} numberOfLines={1}>
+              {task.title}
+            </Text>
+            <View style={[styles.priorityBadge, { backgroundColor: priorityBg }]}>
+              <Text style={[styles.priorityText, { color: priorityColor }]}>{task.priority}</Text>
+            </View>
+          </View>
+
           <Text style={styles.cardContact}>
             Contact: <Text style={styles.cardContactName}>{task.contact}</Text>
           </Text>
+
           <View style={styles.tagsRow}>
             {task.tags.map(tag => (
               <View style={styles.tagPill} key={tag}>
@@ -135,37 +134,57 @@ function TaskCard({
               </View>
             ))}
           </View>
-        </View>
 
-        <View style={[styles.priorityPill, { backgroundColor: priorityBg }]}>
-          <Text style={[styles.priorityText, { color: priorityColor }]}>{task.priority}</Text>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <MaterialCommunityIcons name="folder-outline" size={14} color="#64748B" />
+              <Text style={styles.infoText}>{task.group}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <MaterialCommunityIcons
+                name={task.isOverdue ? "alert-circle-outline" : "clock-outline"}
+                size={14}
+                color={task.isOverdue ? "#EF4444" : "#64748B"}
+              />
+              <Text style={[styles.infoText, task.isOverdue && { color: '#EF4444', fontWeight: '700' }]}>
+                {task.dueDate}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
 
-      <View style={styles.metaRow}>
-        <View style={styles.metaItem}>
-          <MaterialCommunityIcons name="folder-outline" size={16} color="#0B2D3E" style={{ fontWeight: 'bold' }} />
-          <Text style={styles.metaText}>{task.group}</Text>
-        </View>
-        <View style={styles.metaItem}>
-          <Text style={[styles.metaDate, task.isOverdue && { color: '#EF4444' }]}>{task.dueDate}</Text>
-        </View>
-      </View>
+      <View style={[styles.cardActions, isCompleted && { justifyContent: 'flex-end' }]}>
+        {!isCompleted && (
+          <View style={styles.actionIcons}>
+            <Pressable style={styles.actionIconBtn} onPress={onDone}>
+              <MaterialCommunityIcons
+                name="check-circle-outline"
+                size={20}
+                color="#0B2D3E"
+              />
+            </Pressable>
+            <Pressable style={styles.actionIconBtn} onPress={onEdit}>
+              <MaterialCommunityIcons name="pencil-outline" size={20} color="#0B2D3E" />
+            </Pressable>
+            <Pressable style={styles.actionIconBtn} onPress={onDelete}>
+              <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" />
+            </Pressable>
+          </View>
+        )}
 
-      {isCompleted ? (
-        <View style={styles.completedRow}>
-          <Text style={styles.completedText}>Completed</Text>
-        </View>
-      ) : (
-        <View style={styles.actionsRow}>
-          <Pressable style={styles.btnDone} onPress={onDone}>
-            <Text style={styles.btnDoneText}>Done</Text>
+        {isCompleted ? (
+          <View style={styles.completedBadge}>
+            <MaterialCommunityIcons name="check" size={14} color="#10B981" />
+            <Text style={styles.completedLabel}>Completed</Text>
+          </View>
+        ) : (
+          <Pressable style={styles.rescheduleBtn} onPress={onReschedule}>
+            <MaterialCommunityIcons name="calendar-sync-outline" size={16} color="#0B2D3E" />
+            <Text style={styles.rescheduleText}>Reschedule</Text>
           </Pressable>
-          <Pressable style={styles.btnReschedule} onPress={onReschedule}>
-            <Text style={styles.btnRescheduleText}>Reschedule</Text>
-          </Pressable>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }
@@ -175,9 +194,8 @@ export default function FollowUpsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('All');
   const [isAddTaskModalVisible, setAddTaskModalVisible] = useState(false);
-  const [selectedPriority, setSelectedPriority] = useState('High');
-  const [isAiModalVisible, setAiModalVisible] = useState(false);
-  const [aiRules, setAiRules] = useState(INITIAL_AI_RULES);
+  const [editingTask, setEditingTask] = useState<typeof TASKS[number] | null>(null);
+  const [deletingTask, setDeletingTask] = useState<typeof TASKS[number] | null>(null);
   const [tasksList, setTasksList] = useState(TASKS);
   const [rescheduleTask, setRescheduleTask] = useState<typeof TASKS[number] | null>(null);
 
@@ -186,12 +204,54 @@ export default function FollowUpsScreen() {
   const [isGroupDropdownOpen, setGroupDropdownOpen] = useState(false);
   const [isTagDropdownOpen, setTagDropdownOpen] = useState(false);
 
-  const [aiStatusFilter, setAiStatusFilter] = useState('All Statuses');
-  const [isAiStatusDropdownOpen, setAiStatusDropdownOpen] = useState(false);
-  const AI_STATUS_OPTIONS = ['All Statuses', 'Active', 'Inactive'];
+  // Add Task Modal Form States
+  const [modalSubject, setModalSubject] = useState('');
+  const [modalContact, setModalContact] = useState('');
+  const [modalDate, setModalDate] = useState(new Date());
+  const [modalGroup, setModalGroup] = useState('Viewing');
+  const [modalTag, setModalTag] = useState('Report');
+  const [modalPriority, setModalPriority] = useState('Low');
+  const [modalColor, setModalColor] = useState('#8B5CF6');
 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isModalGroupDropdownOpen, setModalGroupDropdownOpen] = useState(false);
+  const [isModalTagDropdownOpen, setModalTagDropdownOpen] = useState(false);
+
+  // Reschedule Form State
+  const [rescheduleDate, setRescheduleDate] = useState(new Date());
+  const [showReschedulePicker, setShowReschedulePicker] = useState(false);
+
+  const TAG_COLORS = ['#0BA0B2', '#F97316', '#0F172A', '#6366F1', '#10B981', '#64748B', '#EC4899', '#8B5CF6'];
   const GROUP_OPTIONS = ['All Groups', 'Sales', 'Viewing', 'Leads', 'Legal'];
   const TAG_OPTIONS = ['All Tags', '#Urgent', '#Report', '#Follow-up', '#New', '#Inventory', '#Archived'];
+
+  const MODAL_GROUP_OPTIONS = ['Sales', 'Marketing', 'Viewing', 'Custom Group...'];
+  const MODAL_TAG_OPTIONS = ['Urgent', 'Follow-up', 'Report', 'Custom Tag...'];
+
+  const openAddModal = () => {
+    setEditingTask(null);
+    setModalSubject('');
+    setModalContact('');
+    setModalDate(new Date());
+    setModalGroup('Viewing');
+    setModalTag('Report');
+    setModalPriority('Low');
+    setModalColor('#8B5CF6');
+    setAddTaskModalVisible(true);
+  };
+
+  const openEditModal = (task: typeof TASKS[number]) => {
+    setEditingTask(task);
+    setModalSubject(task.title);
+    setModalContact(task.contact);
+    // Rough date parsing for demo
+    setModalDate(new Date());
+    setModalGroup(task.group);
+    setModalTag(task.tags[0].replace('#', ''));
+    setModalPriority(task.priority);
+    setModalColor('#0BA0B2');
+    setAddTaskModalVisible(true);
+  };
 
   const filteredTasks = tasksList.filter(task => {
     const matchGroup = groupFilter === 'All Groups' || task.group === groupFilter;
@@ -218,52 +278,22 @@ export default function FollowUpsScreen() {
     setTasksList(prev => prev.map(t => t.id === id ? { ...t, status: 'completed', isOverdue: false } : t));
   };
 
-  const toggleRule = (id: string) => {
-    setAiRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r));
-  };
-
-  const addNewRule = () => {
-    setAiRules(prev => [
-      ...prev,
-      { id: Math.random().toString(), type: 'Email', delay: 'AFTER 1 DAYS', trigger: 'New Trigger Event', active: true, icon: 'email-outline', iconBg: '#E6F4F1' }
-    ]);
+  const handleDeleteTask = (id: string) => {
+    setTasksList(prev => prev.filter(t => t.id !== id));
+    setDeletingTask(null);
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#F4F7F9', '#FFFFFF', '#F4F7F9']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <PageHeader
+        title="Follow-Ups"
+        subtitle="Manage automated and manual interactions with your prospects."
+        onBack={() => router.back()}
+        rightIcon="plus"
+        onRightPress={openAddModal}
       />
 
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.headerTopRow}>
-          <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-            <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-          </Pressable>
-          <View style={styles.headerTitles}>
-            <Text style={styles.title}>Smart Follow-Ups</Text>
-            <Text style={styles.subtitle}>
-              Manage automated and manual interactions required.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.headerActions}>
-          <Pressable style={styles.aiBtn} onPress={() => setAiModalVisible(true)}>
-            <MaterialCommunityIcons name="robot-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.aiBtnText}>AI Configuration</Text>
-          </Pressable>
-          <Pressable style={styles.addTaskBtn} onPress={() => setAddTaskModalVisible(true)}>
-            <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
-            <Text style={styles.addTaskText}>Add Task</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <View>
+      <View style={styles.topTabsContainer}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -283,7 +313,7 @@ export default function FollowUpsScreen() {
         </ScrollView>
       </View>
 
-      <View style={styles.searchWrap}>
+      <View style={styles.searchAndFilterBar}>
         <View style={styles.searchInputContainer}>
           <MaterialCommunityIcons name="magnify" size={20} color="#8DA4B5" />
           <TextInput
@@ -294,40 +324,52 @@ export default function FollowUpsScreen() {
         </View>
       </View>
 
-      <View style={styles.filtersWrap}>
-        <Text style={styles.filterLabel}>Refine by:</Text>
-        <View style={{ position: 'relative', zIndex: 10 }}>
-          <Pressable style={styles.filterDropdown} onPress={() => { setGroupDropdownOpen(!isGroupDropdownOpen); setTagDropdownOpen(false); }}>
-            <Text style={styles.filterDropdownText}>{groupFilter}</Text>
-            <MaterialCommunityIcons name={isGroupDropdownOpen ? "chevron-up" : "chevron-down"} size={18} color="#0B2D3E" />
-          </Pressable>
-          {isGroupDropdownOpen && (
-            <View style={styles.dropdownMenu}>
-              {GROUP_OPTIONS.map(opt => (
-                <Pressable key={opt} style={styles.dropdownItem} onPress={() => { setGroupFilter(opt); setGroupDropdownOpen(false); }}>
-                  <Text style={[styles.dropdownItemText, groupFilter === opt && styles.dropdownItemTextActive]}>{opt}</Text>
-                  {groupFilter === opt && <MaterialCommunityIcons name="check" size={16} color="#0BA0B2" />}
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
+      <View style={styles.refineByRow}>
+        <Text style={styles.refineLabel}>Refine by:</Text>
+        <View style={styles.filterActionsRow}>
+          <View style={{ zIndex: 2000 }}>
+            <Pressable
+              style={styles.filterDropdown}
+              onPress={() => { setGroupDropdownOpen(!isGroupDropdownOpen); setTagDropdownOpen(false); }}
+            >
+              <Text style={styles.filterDropdownText}>{groupFilter}</Text>
+              <MaterialCommunityIcons name={isGroupDropdownOpen ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
+            </Pressable>
+            {isGroupDropdownOpen && (
+              <View style={styles.dropdownMenu}>
+                {GROUP_OPTIONS.map(opt => (
+                  <Pressable key={opt} style={styles.dropdownItem} onPress={() => { setGroupFilter(opt); setGroupDropdownOpen(false); }}>
+                    {groupFilter === opt && (
+                      <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={styles.dropdownCheckIcon} />
+                    )}
+                    <Text style={[styles.dropdownItemText, groupFilter === opt && styles.dropdownItemTextActive]}>{opt}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
 
-        <View style={{ position: 'relative', zIndex: 9 }}>
-          <Pressable style={styles.filterDropdown} onPress={() => { setTagDropdownOpen(!isTagDropdownOpen); setGroupDropdownOpen(false); }}>
-            <Text style={styles.filterDropdownText}>{tagFilter}</Text>
-            <MaterialCommunityIcons name={isTagDropdownOpen ? "chevron-up" : "chevron-down"} size={18} color="#0B2D3E" />
-          </Pressable>
-          {isTagDropdownOpen && (
-            <View style={styles.dropdownMenu}>
-              {TAG_OPTIONS.map(opt => (
-                <Pressable key={opt} style={styles.dropdownItem} onPress={() => { setTagFilter(opt); setTagDropdownOpen(false); }}>
-                  <Text style={[styles.dropdownItemText, tagFilter === opt && styles.dropdownItemTextActive]}>{opt}</Text>
-                  {tagFilter === opt && <MaterialCommunityIcons name="check" size={16} color="#0BA0B2" />}
-                </Pressable>
-              ))}
-            </View>
-          )}
+          <View style={{ zIndex: 1000 }}>
+            <Pressable
+              style={styles.filterDropdown}
+              onPress={() => { setTagDropdownOpen(!isTagDropdownOpen); setGroupDropdownOpen(false); }}
+            >
+              <Text style={styles.filterDropdownText}>{tagFilter}</Text>
+              <MaterialCommunityIcons name={isTagDropdownOpen ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
+            </Pressable>
+            {isTagDropdownOpen && (
+              <View style={styles.dropdownMenu}>
+                {TAG_OPTIONS.map(opt => (
+                  <Pressable key={opt} style={styles.dropdownItem} onPress={() => { setTagFilter(opt); setTagDropdownOpen(false); }}>
+                    {tagFilter === opt && (
+                      <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={styles.dropdownCheckIcon} />
+                    )}
+                    <Text style={[styles.dropdownItemText, tagFilter === opt && styles.dropdownItemTextActive]}>{opt}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -339,6 +381,8 @@ export default function FollowUpsScreen() {
           <TaskCard
             key={t.id}
             task={t}
+            onEdit={() => openEditModal(t)}
+            onDelete={() => setDeletingTask(t)}
             onDone={() => markTaskDone(t.id)}
             onReschedule={() => setRescheduleTask(t)}
           />
@@ -350,47 +394,130 @@ export default function FollowUpsScreen() {
         )}
       </ScrollView>
 
-      {/* Add Task Modal */}
+      {/* Add Task Modal (Full Page) */}
       <Modal
         visible={isAddTaskModalVisible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setAddTaskModalVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setAddTaskModalVisible(false)}>
-          <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Add Follow-Up</Text>
-                <Text style={styles.modalSubtitle}>Schedule a manual follow-up task.</Text>
-              </View>
-              <Pressable style={styles.modalCloseIcon} onPress={() => setAddTaskModalVisible(false)}>
-                <MaterialCommunityIcons name="close" size={16} color="#0B2D3E" />
-              </Pressable>
+        <View style={[styles.fullPageModal, { paddingTop: insets.top }]}>
+          <View style={styles.premiumModalHeader}>
+            <View>
+              <Text style={styles.fullScreenModalTitle}>
+                {editingTask ? 'Edit Follow-Up' : 'Add Follow-Up'}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                {editingTask
+                  ? 'Update your follow-up task details below.'
+                  : 'Schedule a manual follow-up task with intelligence.'}
+              </Text>
             </View>
+            <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => setAddTaskModalVisible(false)}>
+              <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+            </Pressable>
+          </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScroll}>
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.modalContent} contentContainerStyle={{ paddingBottom: 120 }}>
+            <View style={styles.modalBody}>
               <View style={styles.modalFieldGroup}>
-                <Text style={styles.modalLabel}>Task Subject</Text>
-                <TextInput style={styles.modalInput} placeholder="e.g. Call to discuss pricing" placeholderTextColor="#8DA4B5" />
+                <Text style={styles.modalLabel}>Subject</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="e.g. Call to discuss pricing"
+                  placeholderTextColor="#8DA4B5"
+                  value={modalSubject}
+                  onChangeText={setModalSubject}
+                />
               </View>
 
               <View style={styles.modalFieldGroup}>
                 <Text style={styles.modalLabel}>Contact Name</Text>
-                <TextInput style={styles.modalInput} placeholder="Search contacts..." placeholderTextColor="#8DA4B5" />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Search contacts..."
+                  placeholderTextColor="#8DA4B5"
+                  value={modalContact}
+                  onChangeText={setModalContact}
+                />
               </View>
 
-              <View style={styles.modalRow}>
-                <View style={[styles.modalFieldGroup, { flex: 1.2 }]}>
-                  <Text style={styles.modalLabel}>Due Date</Text>
-                  <View style={styles.modalInputWithIcon}>
-                    <Text style={styles.modalDateText}>dd/mm/yyyy</Text>
-                    <MaterialCommunityIcons name="calendar-outline" size={18} color="#0B2D3E" />
+              <View style={styles.modalFieldGroup}>
+                <Text style={styles.modalLabel}>Due Date</Text>
+                <Pressable style={styles.modalInputWithIcon} onPress={() => setShowDatePicker(true)}>
+                  <Text style={styles.modalDateText}>
+                    {modalDate.toLocaleDateString('en-GB')} {modalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                  <MaterialCommunityIcons name="calendar-outline" size={18} color="#0B2D3E" />
+                </Pressable>
+              </View>
+
+              <View style={[styles.modalFieldGroup, { zIndex: 3000 }]}>
+                <Text style={styles.modalLabel}>Group</Text>
+                <Pressable
+                  style={styles.modalDropdownTrigger}
+                  onPress={() => { setModalGroupDropdownOpen(!isModalGroupDropdownOpen); setModalTagDropdownOpen(false); }}
+                >
+                  <Text style={styles.modalDropdownText}>{modalGroup}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                </Pressable>
+                {isModalGroupDropdownOpen && (
+                  <View style={styles.modalFormDropdownMenu}>
+                    {MODAL_GROUP_OPTIONS.map(opt => (
+                      <Pressable
+                        key={opt}
+                        style={styles.modalFormDropdownItem}
+                        onPress={() => { setModalGroup(opt); setModalGroupDropdownOpen(false); }}
+                      >
+                        {modalGroup === opt && (
+                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={styles.modalDropdownCheckIcon} />
+                        )}
+                        <Text style={[styles.modalFormDropdownItemText, modalGroup === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
                   </View>
-                </View>
-                <View style={[styles.modalFieldGroup, { flex: 1 }]}>
-                  <Text style={styles.modalLabel}>Group</Text>
-                  <TextInput style={styles.modalInput} defaultValue="Sales" placeholderTextColor="#8DA4B5" />
+                )}
+              </View>
+
+              <View style={[styles.modalFieldGroup, { zIndex: 2000 }]}>
+                <Text style={styles.modalLabel}>Tag</Text>
+                <Pressable
+                  style={styles.modalDropdownTrigger}
+                  onPress={() => { setModalTagDropdownOpen(!isModalTagDropdownOpen); setModalGroupDropdownOpen(false); }}
+                >
+                  <Text style={styles.modalDropdownText}>{modalTag}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                </Pressable>
+                {isModalTagDropdownOpen && (
+                  <View style={styles.modalFormDropdownMenu}>
+                    {MODAL_TAG_OPTIONS.map(opt => (
+                      <Pressable
+                        key={opt}
+                        style={styles.modalFormDropdownItem}
+                        onPress={() => { setModalTag(opt); setModalTagDropdownOpen(false); }}
+                      >
+                        {modalTag === opt && (
+                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={styles.modalDropdownCheckIcon} />
+                        )}
+                        <Text style={[styles.modalFormDropdownItemText, modalTag === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.modalFieldGroup}>
+                <Text style={styles.modalLabel}>Tag Color Preset</Text>
+                <View style={styles.colorPresetRow}>
+                  {TAG_COLORS.map(color => (
+                    <Pressable
+                      key={color}
+                      onPress={() => setModalColor(color)}
+                      style={[styles.modalTagColorCircleOuter, modalColor === color && { borderColor: color }]}
+                    >
+                      <View style={[styles.modalTagColorCircle, { backgroundColor: color }]} />
+                    </Pressable>
+                  ))}
                 </View>
               </View>
 
@@ -400,195 +527,154 @@ export default function FollowUpsScreen() {
                   {['High', 'Medium', 'Low'].map((p) => (
                     <Pressable
                       key={p}
-                      style={[styles.priorityPillBtn, selectedPriority === p && styles.priorityPillBtnActive]}
-                      onPress={() => setSelectedPriority(p)}
+                      style={[styles.priorityPillBtn, modalPriority === p && styles.priorityPillBtnActive]}
+                      onPress={() => setModalPriority(p)}
                     >
-                      <Text style={[styles.priorityPillText, selectedPriority === p && styles.priorityPillTextActive]}>{p}</Text>
+                      <Text style={[styles.priorityPillText, modalPriority === p && styles.priorityPillTextActive]}>{p}</Text>
                     </Pressable>
                   ))}
                 </View>
               </View>
+            </View>
+          </ScrollView>
 
-              <View style={styles.modalFieldGroup}>
-                <Text style={styles.modalLabel}>Tags</Text>
-                <TextInput style={styles.modalInput} placeholder="Add tags (comma separated)" placeholderTextColor="#8DA4B5" />
+          <Modal
+            visible={showDatePicker}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <Pressable style={styles.pickerOverlay} onPress={() => setShowDatePicker(false)}>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>Select Date & Time</Text>
+                  <Pressable onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.pickerDoneBtn}>Done</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={modalDate}
+                  mode="datetime"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedDate) => {
+                    if (Platform.OS === 'android') setShowDatePicker(false);
+                    if (selectedDate) setModalDate(selectedDate);
+                  }}
+                  textColor="#0B2D3E"
+                />
               </View>
+            </Pressable>
+          </Modal>
 
-              <View style={styles.modalActions}>
-                <Pressable style={styles.modalCancelBtn} onPress={() => setAddTaskModalVisible(false)}>
-                  <Text style={styles.modalCancelBtnText}>Cancel</Text>
-                </Pressable>
-                <Pressable style={styles.modalCreateBtn} onPress={() => setAddTaskModalVisible(false)}>
-                  <Text style={styles.modalCreateBtnText}>Create Follow-Up</Text>
-                </Pressable>
-              </View>
-            </ScrollView>
-          </Pressable>
-        </Pressable>
+          <View style={[styles.fixedBottomActions, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+            <Pressable style={styles.modalCancelBtn} onPress={() => setAddTaskModalVisible(false)}>
+              <Text style={styles.modalCancelBtnText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.modalSaveBtn} onPress={() => setAddTaskModalVisible(false)}>
+              <Text style={styles.modalSaveBtnText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
 
-      {/* Reschedule Task Modal */}
+      {/* Reschedule Task Modal (Bottom Sheet Style) */}
       <Modal
         visible={!!rescheduleTask}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setRescheduleTask(null)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setRescheduleTask(null)}>
-          <Pressable style={styles.rescheduleModalContainer} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.bottomFixModal, { paddingBottom: Math.max(insets.bottom, 20) }]} onStartShouldSetResponder={() => true}>
+            <View style={styles.premiumModalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Reschedule Task</Text>
+                <Text style={[styles.fullScreenModalTitle, { fontSize: 24 }]}>Reschedule Task</Text>
+                <Text style={styles.modalSubtitle}>Choose a new date and time for this follow-up.</Text>
               </View>
-              <Pressable style={styles.modalCloseIcon} onPress={() => setRescheduleTask(null)}>
-                <MaterialCommunityIcons name="close" size={16} color="#0B2D3E" />
+              <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => setRescheduleTask(null)}>
+                <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
               </Pressable>
             </View>
 
-            <View style={styles.modalScroll}>
+            <View style={[styles.modalBody, { paddingBottom: 20 }]}>
               <View style={styles.modalFieldGroup}>
                 <Text style={styles.modalLabel}>New Due Date</Text>
-                <View style={styles.modalInputWithIcon}>
-                  <Text style={styles.modalDateText}>dd/mm/yyyy</Text>
+                <Pressable style={styles.modalInputWithIcon} onPress={() => setShowReschedulePicker(true)}>
+                  <Text style={styles.modalDateText}>
+                    {rescheduleDate.toLocaleDateString('en-GB')} {rescheduleDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
                   <MaterialCommunityIcons name="calendar-outline" size={18} color="#0B2D3E" />
-                </View>
+                </Pressable>
               </View>
 
               <View style={styles.modalActions}>
-                <Pressable style={styles.modalCancelBtn} onPress={() => setRescheduleTask(null)}>
+                <Pressable style={[styles.modalCancelBtn, { flex: 1 }]} onPress={() => setRescheduleTask(null)}>
                   <Text style={styles.modalCancelBtnText}>Cancel</Text>
                 </Pressable>
-                <Pressable style={styles.modalCreateBtn} onPress={() => setRescheduleTask(null)}>
-                  <Text style={styles.modalCreateBtnText}>Save Changes</Text>
+                <Pressable style={[styles.modalSaveBtn, { flex: 1.5 }]} onPress={() => setRescheduleTask(null)}>
+                  <Text style={styles.modalSaveBtnText}>Save Changes</Text>
                 </Pressable>
               </View>
             </View>
-          </Pressable>
+          </View>
         </Pressable>
+
+        <Modal
+          visible={showReschedulePicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowReschedulePicker(false)}
+        >
+          <Pressable style={styles.pickerOverlay} onPress={() => setShowReschedulePicker(false)}>
+            <View style={styles.pickerContainer}>
+              <View style={styles.pickerHeader}>
+                <Text style={styles.pickerTitle}>Select Date & Time</Text>
+                <Pressable onPress={() => setShowReschedulePicker(false)}>
+                  <Text style={styles.pickerDoneBtn}>Done</Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={rescheduleDate}
+                mode="datetime"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  if (Platform.OS === 'android') setShowReschedulePicker(false);
+                  if (selectedDate) setRescheduleDate(selectedDate);
+                }}
+                textColor="#0B2D3E"
+              />
+            </View>
+          </Pressable>
+        </Modal>
       </Modal>
 
-      {/* AI Configuration Modal */}
+      {/* Delete Confirmation Modal */}
       <Modal
-        visible={isAiModalVisible}
+        visible={!!deletingTask}
         transparent
         animationType="fade"
-        onRequestClose={() => setAiModalVisible(false)}
-        style={{ margin: 0 }}
+        onRequestClose={() => setDeletingTask(null)}
       >
-        <Pressable style={styles.aiModalOverlay} onPress={() => setAiModalVisible(false)}>
-          <Pressable style={styles.aiModalContainer} onPress={(e) => e.stopPropagation()}>
-            <LinearGradient
-              colors={['#0F3B56', '#09A7B3']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.aiModalHeaderGradient}
-            >
-              <View style={styles.aiModalHeaderContent}>
-                <View style={styles.aiModalIconWrapper}>
-                  <MaterialCommunityIcons name="robot-outline" size={24} color="#FFFFFF" />
-                </View>
-                <View style={styles.aiModalTitleWrap}>
-                  <Text style={styles.aiModalTitle}>AI Follow-up Rules</Text>
-                  <Text style={styles.aiModalSubtitle}>Define automated triggers and responses.</Text>
-                </View>
-                <Pressable style={styles.aiModalCloseIcon} onPress={() => setAiModalVisible(false)}>
-                  <MaterialCommunityIcons name="close" size={16} color="#FFFFFF" />
-                </Pressable>
-              </View>
-            </LinearGradient>
-
-            <View style={[styles.aiFiltersRow, { position: 'relative', zIndex: 10 }]}>
-              <View style={styles.aiSearchInputWrap}>
-                <TextInput style={styles.aiSearchInput} placeholder="Search rules..." placeholderTextColor="#8DA4B5" />
-              </View>
-
-              <View style={{ flex: 1, position: 'relative' }}>
-                <Pressable
-                  style={styles.aiStatusDropdown}
-                  onPress={() => setAiStatusDropdownOpen(!isAiStatusDropdownOpen)}
-                >
-                  <Text style={styles.aiStatusDropdownText}>{aiStatusFilter}</Text>
-                  <MaterialCommunityIcons name={isAiStatusDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color="#0B2D3E" />
-                </Pressable>
-                {isAiStatusDropdownOpen && (
-                  <View style={styles.dropdownMenuRight}>
-                    {AI_STATUS_OPTIONS.map(opt => (
-                      <Pressable
-                        key={opt}
-                        style={styles.dropdownItem}
-                        onPress={() => { setAiStatusFilter(opt); setAiStatusDropdownOpen(false); }}
-                      >
-                        <Text style={[styles.dropdownItemText, aiStatusFilter === opt && styles.dropdownItemTextActive]}>{opt}</Text>
-                        {aiStatusFilter === opt && <MaterialCommunityIcons name="check" size={16} color="#0BA0B2" />}
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
+        <Pressable style={styles.alertOverlay} onPress={() => setDeletingTask(null)}>
+          <View style={styles.alertContainer} onStartShouldSetResponder={() => true}>
+            <View style={styles.alertIconCircle}>
+              <MaterialCommunityIcons name="alert-outline" size={32} color="#EF4444" />
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.aiModalScroll}>
-              {aiRules
-                .filter(rule => {
-                  if (aiStatusFilter === 'Active') return rule.active === true;
-                  if (aiStatusFilter === 'Inactive') return rule.active === false;
-                  return true;
-                })
-                .map((rule) => (
-                  <View style={styles.aiRuleCard} key={rule.id}>
-                    <View style={[styles.aiRuleIconBg, { backgroundColor: rule.iconBg }]}>
-                      <MaterialCommunityIcons name={rule.icon as any} size={22} color="#0B2D3E" />
-                    </View>
-                    <View style={styles.aiRuleInfo}>
-                      <View style={styles.aiRuleTitleRow}>
-                        <Text style={styles.aiRuleTypeLabel}>{rule.type}</Text>
-                        <Text style={styles.aiRuleDelayLabel}>{rule.delay}</Text>
-                      </View>
-                      <Text style={styles.aiRuleTriggerText}>
-                        Trigger: <Text style={styles.aiRuleTriggerBold}>{rule.trigger}</Text>
-                      </Text>
-                    </View>
-                    <View style={styles.aiRuleActions}>
-                      <Switch
-                        value={rule.active}
-                        onValueChange={() => toggleRule(rule.id)}
-                        trackColor={{ false: '#E2E8F0', true: '#0B2D3E' }}
-                        thumbColor="#FFFFFF"
-                        ios_backgroundColor="#E2E8F0"
-                        style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-                      />
-                      <MaterialCommunityIcons name="tune" size={20} color="#0B2D3E" style={{ marginLeft: 6 }} />
-                    </View>
-                  </View>
-                ))}
+            <Text style={styles.alertTitle}>Delete Follow-Up?</Text>
+            <Text style={styles.alertDescription}>
+              This action cannot be undone. This task will be permanently removed from your schedule.
+            </Text>
 
-              <Pressable style={styles.aiAddNewRuleBtn} onPress={addNewRule}>
-                <MaterialCommunityIcons name="plus" size={18} color="#6A7D8C" />
-                <Text style={styles.aiAddNewRuleText}>Add New Rule</Text>
+            <View style={styles.alertActions}>
+              <Pressable style={styles.alertCancelBtn} onPress={() => setDeletingTask(null)}>
+                <Text style={styles.alertCancelBtnText}>Cancel</Text>
               </Pressable>
-
-              <View style={styles.aiAssistantPrompt}>
-                <MaterialCommunityIcons name="creation" size={20} color="#0B2D3E" />
-                <View style={styles.aiAssistantTextContent}>
-                  <Text style={styles.aiAssistantTitle}>Proactive AI Assistant</Text>
-                  <Text style={styles.aiAssistantSubtitle}>
-                    The AI also analyzes sentiment in replies to prioritize follow-ups automatically.
-                  </Text>
-                </View>
-              </View>
-            </ScrollView>
-
-            <View style={styles.aiModalFooter}>
-              <View style={styles.aiModalActionsRow}>
-                <Pressable style={styles.aiModalCancelBtn} onPress={() => setAiModalVisible(false)}>
-                  <Text style={styles.aiModalCancelBtnText}>Close</Text>
-                </Pressable>
-                <Pressable style={styles.aiModalSaveBtn} onPress={() => setAiModalVisible(false)}>
-                  <Text style={styles.aiModalSaveBtnText}>Save Configuration</Text>
-                </Pressable>
-              </View>
+              <Pressable style={styles.alertDeleteBtn} onPress={() => deletingTask && handleDeleteTask(deletingTask.id)}>
+                <Text style={styles.alertDeleteBtnText}>Delete</Text>
+              </Pressable>
             </View>
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
     </View>
@@ -597,78 +683,205 @@ export default function FollowUpsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { paddingHorizontal: 20, paddingBottom: 16 },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  backBtn: { width: 44, height: 44, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#EAEFF3', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, marginRight: 12 },
-  headerTitles: { flex: 1 },
-  title: { fontSize: 24, fontWeight: '900', color: '#0B2D3E', letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginTop: 2 },
-
-  headerActions: { flexDirection: 'row', gap: 10 },
-  aiBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0BA0B2', paddingVertical: 12, borderRadius: 12, gap: 6 },
-  aiBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
-  addTaskBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B2D3E', paddingVertical: 12, borderRadius: 12, gap: 6 },
-  addTaskText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
-
-  tabsScroll: { paddingHorizontal: 20, marginBottom: 12 },
-  tabItem: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF', marginRight: 8, borderWidth: 1, borderColor: '#EAEFF3' },
-  tabItemActive: { backgroundColor: '#0B2D3E', borderColor: '#0B2D3E' },
-  tabText: { fontSize: 13, fontWeight: '700', color: '#6A7D8C' },
+  topTabsContainer: { marginBottom: 16 },
+  tabsScroll: { paddingHorizontal: 20, gap: 10 },
+  tabItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: 'transparent'
+  },
+  tabItemActive: {
+    backgroundColor: '#0B2D3E',
+    borderColor: '#0B2D3E'
+  },
+  tabText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
   tabTextActive: { color: '#FFFFFF' },
 
-  searchWrap: { paddingHorizontal: 20, marginBottom: 12 },
-  searchInputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', height: 48, borderRadius: 14, paddingHorizontal: 14, borderWidth: 1, borderColor: '#EAEFF3' },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 15, color: '#0B2D3E' },
+  searchAndFilterBar: { paddingHorizontal: 20, marginBottom: 12 },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    height: 52,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: '#0B2D3E', fontWeight: '500' },
 
-  filtersWrap: { flexDirection: 'row', paddingHorizontal: 20, alignItems: 'center', gap: 10, marginBottom: 16, zIndex: 10 },
-  filterLabel: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
-  filterDropdown: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#EAEFF3', gap: 4 },
+  refineByRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+    zIndex: 100
+  },
+  filterActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    zIndex: 2000,
+  },
+  refineLabel: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
+  filterDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    gap: 6
+  },
   filterDropdownText: { fontSize: 13, fontWeight: '700', color: '#0B2D3E' },
-  dropdownMenu: { position: 'absolute', top: '100%', left: 0, minWidth: 140, backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 8, marginTop: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, borderWidth: 1, borderColor: '#EAEFF3' },
-  dropdownMenuRight: { position: 'absolute', top: '100%', right: 0, minWidth: 140, backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 8, marginTop: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, borderWidth: 1, borderColor: '#EAEFF3' },
-  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
-  dropdownItemText: { fontSize: 13, fontWeight: '600', color: '#6A7D8C' },
-  dropdownItemTextActive: { color: '#0BA0B2', fontWeight: '800' },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    minWidth: 160,
+    backgroundColor: '#6A7D8C',
+    borderRadius: 16,
+    paddingVertical: 10,
+    marginTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingLeft: 40
+  },
+  dropdownCheckIcon: {
+    position: 'absolute',
+    left: 14
+  },
+  dropdownItemText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  dropdownItemTextActive: { fontWeight: '900' },
 
   scroll: { flex: 1 },
-  listContainer: { paddingHorizontal: 20, gap: 16, paddingTop: 6 },
+  listContainer: { paddingHorizontal: 20, gap: 16, paddingTop: 4 },
 
-  card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#EAEFF3', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  cardIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#F3F6F8', alignItems: 'center', justifyContent: 'center' },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4
+  },
+  cardCompleted: {
+    backgroundColor: '#F9FAFB',
+    borderColor: '#EAEFF3',
+    opacity: 0.8,
+  },
+  cardMain: { flexDirection: 'row', gap: 16 },
+  cardIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   cardIconOverdue: { backgroundColor: '#FEF2F2' },
   cardIconCompleted: { backgroundColor: '#ECFDF5' },
-  cardHeaderInfo: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: '#0B2D3E', marginBottom: 2 },
+  cardContent: { flex: 1 },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6
+  },
+  cardTitle: { fontSize: 17, fontWeight: '900', color: '#0B2D3E', flex: 1, marginRight: 8 },
   cardTitleCompleted: { color: '#8DA4B5', textDecorationLine: 'line-through' },
-  cardContact: { fontSize: 13, color: '#6A7D8C' },
-  cardContactName: { fontWeight: '700', color: '#0B2D3E' },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  tagPill: { backgroundColor: '#F3F6F8', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  tagText: { fontSize: 11, fontWeight: '700', color: '#6A7D8C' },
 
-  priorityPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  priorityText: { fontSize: 10, fontWeight: '800' },
+  priorityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  priorityText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
 
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#F0F4F7' },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { fontSize: 14, fontWeight: '800', color: '#0B2D3E' },
-  metaDate: { fontSize: 14, fontWeight: '800', color: '#0B2D3E' },
+  cardContact: { fontSize: 14, color: '#64748B', fontWeight: '500' },
+  cardContactName: { fontWeight: '800', color: '#0B2D3E' },
 
-  actionsRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  btnDone: { flex: 1, backgroundColor: '#0B2D3E', paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  btnDoneText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  btnReschedule: { flex: 1, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EAEFF3', paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  btnRescheduleText: { color: '#0B2D3E', fontSize: 14, fontWeight: '700' },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  tagPill: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  tagText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
 
-  completedRow: { alignItems: 'flex-end', marginTop: 12 },
-  completedText: { color: '#10B981', fontSize: 14, fontWeight: '800' },
+  infoGrid: {
+    flexDirection: 'row',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 16
+  },
+  infoItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  infoText: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
+
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 12
+  },
+  actionIcons: { flexDirection: 'row', gap: 10 },
+  actionIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
+  },
+  rescheduleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    paddingHorizontal: 16,
+    height: 40,
+    borderRadius: 12,
+  },
+  rescheduleText: { color: '#0B2D3E', fontSize: 13, fontWeight: '800' },
+
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 10,
+  },
+  completedLabel: { fontSize: 13, fontWeight: '900', color: '#10B981' },
 
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(11, 45, 62, 0.4)',
-    justifyContent: 'center',
-    padding: 20,
+    justifyContent: 'flex-end',
   },
   rescheduleModalContainer: {
     backgroundColor: '#FFFFFF',
@@ -732,28 +945,31 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: '#334155',
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   modalInput: {
-    height: 48,
+    height: 52,
     borderWidth: 1.5,
-    borderColor: '#EAEFF3',
-    borderRadius: 12,
+    borderColor: '#F1F5F9',
+    borderRadius: 16,
     paddingHorizontal: 16,
-    fontSize: 14,
+    fontSize: 15,
     color: '#0B2D3E',
     backgroundColor: '#FFFFFF',
+    fontWeight: '600',
   },
   modalRow: {
     flexDirection: 'row',
     gap: 12,
   },
   modalInputWithIcon: {
-    height: 48,
+    height: 52,
     borderWidth: 1.5,
-    borderColor: '#EAEFF3',
-    borderRadius: 12,
+    borderColor: '#F1F5F9',
+    borderRadius: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -761,8 +977,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   modalDateText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#0B2D3E',
+    fontWeight: '600',
   },
   priorityRow: {
     flexDirection: 'row',
@@ -770,24 +987,24 @@ const styles = StyleSheet.create({
   },
   priorityPillBtn: {
     flex: 1,
-    height: 48,
+    height: 52,
     borderWidth: 1.5,
-    borderColor: '#EAEFF3',
-    borderRadius: 12,
+    borderColor: '#F1F5F9',
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   priorityPillBtnActive: {
     borderColor: '#0B2D3E',
-    borderWidth: 1.5,
+    backgroundColor: '#0B2D3E',
   },
   priorityPillText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: '#64748B',
   },
   priorityPillTextActive: {
-    color: '#0B2D3E',
+    color: '#FFFFFF',
   },
   modalActions: {
     flexDirection: 'row',
@@ -796,262 +1013,282 @@ const styles = StyleSheet.create({
   },
   modalCancelBtn: {
     flex: 1,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
     borderColor: '#EAEFF3',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
   },
-  modalCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
+  modalCancelBtnText: { color: '#0B2D3E', fontSize: 14, fontWeight: '800' },
   modalCreateBtn: {
-    flex: 1.3,
-    height: 48,
-    borderRadius: 12,
+    flex: 1.5,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: '#0B2D3E',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalCreateBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
+  modalCreateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
 
-  aiModalOverlay: {
+  // --- New Modal Styles ---
+  fullPageModal: {
     flex: 1,
-    backgroundColor: 'rgba(11, 45, 62, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  aiModalContainer: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    width: '100%',
-    height: '92%',
-    overflow: 'hidden',
+  },
+  premiumModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+  fullScreenModalTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  fullScreenModalCloseIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F6F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalBody: {
+    paddingHorizontal: 24,
+    paddingTop: 10,
+  },
+  modalDropdownTrigger: {
+    height: 52,
+    borderWidth: 1.5,
+    borderColor: '#F1F5F9',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+  },
+  modalDropdownText: {
+    fontSize: 15,
+    color: '#0B2D3E',
+    fontWeight: '600',
+  },
+  modalFormDropdownMenu: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    backgroundColor: '#6A7D8C',
+    borderRadius: 16,
+    paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 8,
+    zIndex: 5000,
   },
-  aiModalHeaderGradient: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
+  modalFormDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingLeft: 40,
+  },
+  modalFormDropdownItemText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  modalDropdownCheckIcon: {
+    position: 'absolute',
+    left: 14,
+  },
+  colorPresetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 4,
+  },
+  modalTagColorCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+  },
+  modalTagColorCircleOuter: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fixedBottomActions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    gap: 16,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F4F7',
+  },
+  modalSaveBtn: {
+    flex: 1.5,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  modalSaveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerContainer: {
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    paddingBottom: 40,
+    justifyContent: "center",
+    alignItems: "center"
   },
-  aiModalHeaderContent: {
+  pickerHeader: {
+    width: '100%',
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  aiModalIconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  aiModalTitleWrap: {
-    flex: 1,
-  },
-  aiModalTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  aiModalSubtitle: {
-    fontSize: 13,
-    color: '#E0F2FE',
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  aiModalCloseIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiFiltersRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  aiSearchInputWrap: {
-    flex: 1.5,
-  },
-  aiSearchInput: {
-    height: 44,
-    borderWidth: 1,
-    borderColor: '#EAEFF3',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: '#0B2D3E',
-  },
-  aiStatusDropdown: {
-    flex: 1,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#EAEFF3',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  aiStatusDropdownText: {
-    fontSize: 13,
+  pickerTitle: {
+    fontSize: 17,
     fontWeight: '800',
     color: '#0B2D3E',
   },
-  aiModalScroll: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+  pickerDoneBtn: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0BA0B2',
   },
-  aiRuleCard: {
-    flexDirection: 'row',
+  bottomFixModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    width: '100%',
+    marginTop: 'auto',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 45, 62, 0.4)',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#EAEFF3',
-    borderRadius: 16,
-    marginBottom: 12,
+    padding: 24,
   },
-  aiRuleIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  alertContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 32,
+    width: '100%',
+    maxWidth: 340,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.15,
+    shadowRadius: 30,
+    elevation: 10,
+  },
+  alertIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginBottom: 24,
   },
-  aiRuleInfo: {
-    flex: 1,
+  alertTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 12,
+    textAlign: 'center',
   },
-  aiRuleTitleRow: {
+  alertDescription: {
+    fontSize: 15,
+    color: '#6A7D8C',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
+    paddingHorizontal: 10,
+  },
+  alertActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    gap: 16,
+    width: '100%',
   },
-  aiRuleTypeLabel: {
+  alertCancelBtn: {
+    flex: 1,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAEFF3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertCancelBtnText: {
     fontSize: 15,
     fontWeight: '800',
     color: '#0B2D3E',
   },
-  aiRuleDelayLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#8DA4B5',
-  },
-  aiRuleTriggerText: {
-    fontSize: 13,
-    color: '#6A7D8C',
-  },
-  aiRuleTriggerBold: {
-    fontWeight: '700',
-    color: '#0B2D3E',
-  },
-  aiRuleActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  aiAddNewRuleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#1D4ED8',
-    borderStyle: 'dashed',
-    borderRadius: 16,
-    paddingVertical: 14,
-    marginTop: 4,
-    marginBottom: 20,
-    gap: 8,
-  },
-  aiAddNewRuleText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6A7D8C',
-  },
-  aiAssistantPrompt: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FAFCFD',
-    borderWidth: 1,
-    borderColor: '#E4F4F9',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    gap: 12,
-  },
-  aiAssistantTextContent: {
+  alertDeleteBtn: {
     flex: 1,
-  },
-  aiAssistantTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    marginBottom: 4,
-  },
-  aiAssistantSubtitle: {
-    fontSize: 13,
-    color: '#6A7D8C',
-    lineHeight: 18,
-  },
-  aiModalFooter: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 30,
-    borderTopWidth: 1,
-    borderTopColor: '#EAEFF3',
-    backgroundColor: '#FFFFFF',
-  },
-  aiModalActionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  aiModalCancelBtn: {
-    flex: 1,
-    height: 48,
-    borderWidth: 1.5,
-    borderColor: '#EAEFF3',
-    borderRadius: 12,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  aiModalCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  aiModalSaveBtn: {
-    flex: 1.5,
-    height: 48,
-    backgroundColor: '#0B2D3E',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiModalSaveBtnText: {
-    fontSize: 14,
+  alertDeleteBtnText: {
+    fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
   },
 });
+

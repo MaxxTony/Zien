@@ -1,11 +1,15 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +32,7 @@ const INTEGRATIONS = [
 export default function IntegrationsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [requestModalVisible, setRequestModalVisible] = useState(false);
 
   return (
     <LinearGradient
@@ -35,27 +40,22 @@ export default function IntegrationsScreen() {
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
-      <View style={[styles.header, { paddingTop: Math.max(8, insets.top * 0.25) }]}>
-        <Pressable
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.85 }]}
-          onPress={() => router.back()}
-          hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Tools & Integrations</Text>
-          <Text style={styles.subtitle}>
-            Connect ZIEN to your existing software stack.
-          </Text>
-        </View>
-      </View>
+      <PageHeader
+        title="Integrations"
+        subtitle="Connect Zien to your existing software stack and streamline your workflow."
+        onBack={() => router.back()}
+      />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
         showsVerticalScrollIndicator={false}>
+
         <View style={styles.topActionsRow}>
-          <Pressable style={({ pressed }) => [styles.requestBtn, pressed && { opacity: 0.9 }]}>
+          <Pressable
+            style={({ pressed }) => [styles.requestBtn, pressed && { opacity: 0.8 }]}
+            onPress={() => setRequestModalVisible(true)}
+          >
             <Text style={styles.requestBtnText}>Request Integration</Text>
           </Pressable>
         </View>
@@ -65,18 +65,30 @@ export default function IntegrationsScreen() {
             <View key={int.id} style={styles.intCard}>
               <View style={styles.intCardTop}>
                 <View style={styles.intIconWrap}>
-                  <MaterialCommunityIcons name={int.icon} size={24} color="#0B2D3E" />
+                  <MaterialCommunityIcons name={int.icon} size={22} color="#0B2D3E" />
                 </View>
-                <View style={[styles.statusPill, int.status === 'CONNECTED' && styles.statusPillConnected, int.status === 'COMING SOON' && styles.statusPillComingSoon]}>
-                  <Text style={[styles.statusPillText, int.status === 'CONNECTED' && styles.statusPillTextConnected, int.status === 'COMING SOON' && styles.statusPillTextComingSoon]}>
+                <View style={[
+                  styles.statusPill,
+                  int.status === 'CONNECTED' && styles.statusPillConnected,
+                  int.status === 'COMING SOON' && styles.statusPillComingSoon
+                ]}>
+                  <Text style={[
+                    styles.statusPillText,
+                    int.status === 'CONNECTED' && styles.statusPillTextConnected,
+                    int.status === 'COMING SOON' && styles.statusPillTextComingSoon
+                  ]}>
                     {int.status}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.intName}>{int.name}</Text>
-              <Text style={styles.intCategory}>{int.category}</Text>
-              <Text style={styles.intDesc}>{int.desc}</Text>
-              <View style={{ flex: 1 }} />
+
+              <View style={styles.labelGroup}>
+                <Text style={styles.intName}>{int.name}</Text>
+                <Text style={styles.intCategory}>{int.category}</Text>
+              </View>
+
+              <Text style={styles.intDesc} numberOfLines={3}>{int.desc}</Text>
+
               <Pressable
                 style={({ pressed }) => [
                   styles.intActionBtn,
@@ -87,7 +99,6 @@ export default function IntegrationsScreen() {
                 {int.status === 'CONNECTED' && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />}
                 <Text style={[
                   styles.intActionBtnText,
-                  int.status === 'CONNECTED' && styles.intActionBtnTextConnected,
                   int.status === 'COMING SOON' && styles.intActionBtnTextDisabled,
                 ]}>
                   {int.buttonLabel}
@@ -97,6 +108,97 @@ export default function IntegrationsScreen() {
           ))}
         </View>
       </ScrollView>
+
+      {/* Request Integration Modal - Full Page */}
+      <Modal
+        visible={requestModalVisible}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => setRequestModalVisible(false)}
+      >
+        <LinearGradient
+          colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={[styles.background, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Request Integration</Text>
+                <Text style={styles.modalSubtitle}>
+                  Don't see the integration you need? Let us know and we'll prioritize it for development.
+                </Text>
+              </View>
+              <Pressable
+                style={styles.closeBtnSmall}
+                onPress={() => setRequestModalVisible(false)}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {/* Integration Name */}
+              <View style={styles.fieldItem}>
+                <Text style={styles.fieldLabel}>INTEGRATION NAME *</Text>
+                <View style={styles.inputWrap}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="e.g., Asana, Trello, Monday.com"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+              </View>
+
+              {/* Your Email */}
+              <View style={styles.fieldItem}>
+                <Text style={styles.fieldLabel}>YOUR EMAIL *</Text>
+                <View style={styles.inputWrap}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="your@email.com"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              {/* Message */}
+              <View style={styles.fieldItem}>
+                <Text style={styles.fieldLabel}>WHY DO YOU NEED THIS? (Optional)</Text>
+                <View style={[styles.inputWrap, styles.textAreaWrap]}>
+                  <TextInput
+                    style={[styles.textInput, styles.textArea]}
+                    placeholder="Tell us how this integration would help your workflow..."
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooterActions}>
+              <Pressable
+                style={styles.cancelActionBtn}
+                onPress={() => setRequestModalVisible(false)}
+              >
+                <Text style={styles.cancelActionBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.submitActionBtn}
+                onPress={() => setRequestModalVisible(false)}
+              >
+                <MaterialCommunityIcons name="send" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.submitActionBtnText}>Submit Request</Text>
+              </Pressable>
+            </View>
+          </View>
+        </LinearGradient>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -140,110 +242,237 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 10 },
   topActionsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 20,
-    marginTop: -40,
-    zIndex: 10,
+    marginBottom: 16,
   },
   requestBtn: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: '#0B2D3E',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  requestBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+  requestBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   cardsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
     gap: 16,
     paddingBottom: 24,
   },
   intCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     width: '100%',
-    minWidth: 260,
-    flexBasis: 260,
-    flexGrow: 1,
-    flexShrink: 1,
     borderWidth: 1,
     borderColor: '#E8EEF4',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-    display: 'flex',
-    flexDirection: 'column',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 3,
   },
   intCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   intIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8EEF4',
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   statusPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
   },
   statusPillConnected: {
     backgroundColor: 'rgba(11, 160, 178, 0.1)',
   },
   statusPillComingSoon: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
   },
-  statusPillText: { fontSize: 10, fontWeight: '800', color: '#475569' },
+  statusPillText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#64748B',
+    letterSpacing: 0.8,
+  },
   statusPillTextConnected: { color: '#0BA0B2' },
   statusPillTextComingSoon: { color: '#94A3B8' },
+  labelGroup: {
+    marginBottom: 8,
+  },
   intName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
     color: '#0B2D3E',
+    letterSpacing: -0.4,
   },
   intCategory: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#94A3B8',
-    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginTop: 2,
   },
   intDesc: {
-    fontSize: 13,
-    color: '#5B6B7A',
-    lineHeight: 18,
-    marginBottom: 20,
+    fontSize: 14,
+    color: '#64748B',
+    lineHeight: 20,
+    marginBottom: 24,
+    fontWeight: '500',
   },
   intActionBtn: {
-    paddingVertical: 12,
-    borderRadius: 8,
+    height: 52,
+    borderRadius: 14,
     backgroundColor: '#0B2D3E',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   intActionBtnConnected: {
     backgroundColor: '#0BA0B2',
   },
   intActionBtnDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
+    elevation: 0,
+    shadowOpacity: 0,
   },
-  intActionBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
-  intActionBtnTextConnected: { color: '#FFFFFF' },
+  intActionBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF'
+  },
   intActionBtnTextDisabled: { color: '#94A3B8' },
+  // Modal Styles
+  modalContent: {
+    flex: 1,
+    padding: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 32,
+  },
+  modalTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.6,
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 12,
+    lineHeight: 22,
+  },
+  closeBtnSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginLeft: 16,
+  },
+  fieldItem: {
+    marginBottom: 24,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  inputWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    height: 54,
+    justifyContent: 'center',
+  },
+  textAreaWrap: {
+    height: 120,
+    paddingVertical: 12,
+  },
+  textInput: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#0B2D3E',
+  },
+  textArea: {
+    height: '100%',
+  },
+  modalFooterActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  cancelActionBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelActionBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  submitActionBtn: {
+    flex: 1.5,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#0B2D3E',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  submitActionBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
 });

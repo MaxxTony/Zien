@@ -2,46 +2,61 @@ import { PageHeader } from '@/components/ui';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video';
 import { useState } from 'react';
 import {
-    Dimensions,
-    Modal,
+    Linking,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const VIDEO_SOURCE = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4';
-
 export default function ProfileScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [videoModalVisible, setVideoModalVisible] = useState(false);
 
-    const { width } = Dimensions.get('window');
-    const isLargeScreen = width > 768;
+    // Notes State
+    const [notes, setNotes] = useState([
+        { id: '1', text: 'Very interested in modern kitchen and gym space.', date: 'Jan 25, 2026' },
+        { id: '2', text: 'Sent the YouTube walkthrough. She confirmed interest.', date: 'Jan 26, 2026' },
+    ]);
+    const [newNote, setNewNote] = useState('');
+    const [isAddingNote, setIsAddingNote] = useState(false);
 
-    const player = useVideoPlayer(VIDEO_SOURCE, (p) => {
-        p.loop = true;
-    });
+    const handleSaveNote = () => {
+        if (newNote.trim()) {
+            const date = new Date();
+            const formattedDate = date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+
+            const noteObj = {
+                id: Date.now().toString(),
+                text: newNote.trim(),
+                date: formattedDate
+            };
+
+            setNotes([noteObj, ...notes]);
+            setNewNote('');
+            setIsAddingNote(false);
+        }
+    };
 
     return (
         <LinearGradient
-            colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
-            start={{ x: 0.1, y: 0 }}
-            end={{ x: 0.9, y: 1 }}
+            colors={['#F8FAFC', '#F1F5F9']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={[styles.background, { paddingTop: insets.top }]}>
 
             <PageHeader
                 title="Jessica Miller"
-                subtitle="High Intensity Lead • Real Estate"
                 onBack={() => router.back()}
-                rightIcon="dots-vertical"
-                onRightPress={() => { }}
             />
 
             <ScrollView
@@ -52,659 +67,570 @@ export default function ProfileScreen() {
                 ]}
                 showsVerticalScrollIndicator={false}>
 
-                <View style={[styles.grid, isLargeScreen && styles.gridLarge]}>
-
-                    {/* Left Column (Main Content) */}
-                    <View style={[styles.column, isLargeScreen && { flex: 1.6 }]}>
-
-                        {/* 1. Profile Info Card */}
-                        <View style={styles.card}>
-                            <View style={styles.profileHeader}>
-                                <View style={styles.avatar}>
-                                    <Text style={styles.avatarText}>J</Text>
-                                </View>
-                                <View style={styles.profileInfo}>
-                                    <View style={styles.nameRow}>
-                                        <Text style={styles.name}>Jessica Miller</Text>
-                                        <View style={styles.tagWrap}>
-                                            <Text style={styles.tagText}>Hot LEAD</Text>
-                                        </View>
-                                    </View>
-                                    <Text style={styles.contactDetails}>jessica.m@gmail.com • (555) 123-4567</Text>
-                                </View>
+                <View style={styles.contentGrid}>
+                    {/* 1. Profile Info Card */}
+                    <View style={styles.premiumCard}>
+                        <View style={styles.profileHeader}>
+                            <View style={styles.avatarWrap}>
+                                <Text style={styles.avatarText}>J</Text>
                             </View>
-
-                            <View style={styles.metaBoxesRow}>
-                                <View style={styles.metaBox}>
-                                    <Text style={styles.metaLabel}>ATTRIBUTION</Text>
-                                    <View style={styles.metaValueWrap}>
-                                        <Text style={styles.metaValueTextSecondary}>
-                                            <Text style={styles.metaValueTextPrimary}>Staging</Text> → Instagram Post → <Text style={styles.metaValueTextPrimary}>Lead</Text>
-                                        </Text>
+                            <View style={styles.profileDetails}>
+                                <View style={styles.nameBadgeRow}>
+                                    <Text style={styles.profileName}>Jessica Miller</Text>
+                                    <View style={styles.buyerBadge}>
+                                        <Text style={styles.buyerBadgeText}>BUYER</Text>
                                     </View>
                                 </View>
-                                <View style={styles.metaBox}>
-                                    <Text style={styles.metaLabel}>BUDGET</Text>
-                                    <Text style={styles.metaValueTitle}>$1.5M - $2.0M</Text>
-                                </View>
-                            </View>
+                                <Text style={styles.profileContact}>jessica.m@gmail.com • (555) 123-4567</Text>
 
-                            <View style={styles.actionsRow}>
-                                <Pressable style={styles.btnDark}>
-                                    <Text style={styles.btnDarkText}>Send Email</Text>
-                                </Pressable>
-                                <Pressable style={styles.btnLight}>
-                                    <Text style={styles.btnLightText}>Call Case</Text>
-                                </Pressable>
-                                <Pressable style={styles.btnLight}>
-                                    <Text style={styles.btnLightText}>WhatsApp</Text>
-                                </Pressable>
-                            </View>
-                        </View>
-
-                        {/* 2. Automated YouTube Content Card */}
-                        <View style={styles.card}>
-                            <View style={styles.cardHeader}>
-                                <Text style={styles.cardTitle}>Automated YouTube Content</Text>
-                                <Pressable hitSlop={12} onPress={() => setVideoModalVisible(true)}>
-                                    <Text style={styles.linkText}>Manage Video</Text>
-                                </Pressable>
-                            </View>
-
-                            <View style={styles.videoWrap}>
-                                <VideoView
-                                    player={player}
-                                    style={styles.videoPlayer}
-                                    allowsFullscreen
-                                    allowsPictureInPicture
-                                />
-                                <LinearGradient
-                                    colors={['transparent', 'rgba(0,0,0,0.6)']}
-                                    style={styles.videoOverlay}
-                                    pointerEvents="none">
-                                    <Text style={styles.videoTitle}>Automated Walkthrough for Jessica Miller</Text>
-                                </LinearGradient>
-                            </View>
-                        </View>
-
-                        {/* 3. Activity Timeline Card */}
-                        <View style={styles.card}>
-                            <Text style={styles.cardTitle}>Activity Timeline</Text>
-
-                            <View style={styles.timelineList}>
-                                <View style={styles.timelineItem}>
-                                    <View style={styles.timelineIconWrap}>
-                                        <MaterialCommunityIcons name="youtube" size={18} color="#0B2D3E" />
-                                    </View>
-                                    <View style={styles.timelineContent}>
-                                        <View style={styles.timelineRow}>
-                                            <Text style={styles.timelineAction}>Viewed YouTube Walkthrough</Text>
-                                            <Text style={styles.timelineTime}>1 hour ago</Text>
-                                        </View>
-                                        <Text style={styles.timelineStatus}>Completed</Text>
-                                    </View>
-                                </View>
-
-                                <View style={styles.timelineItem}>
-                                    <View style={styles.timelineIconWrap}>
-                                        <MaterialCommunityIcons name="email-outline" size={18} color="#0B2D3E" />
-                                    </View>
-                                    <View style={styles.timelineContent}>
-                                        <View style={styles.timelineRow}>
-                                            <Text style={styles.timelineAction}>Email Click: Floor Plan</Text>
-                                            <Text style={styles.timelineTime}>3 hours ago</Text>
-                                        </View>
-                                        <Text style={styles.timelineStatus}>Clicked</Text>
-                                    </View>
-                                </View>
-
-                                <View style={[styles.timelineItem, styles.timelineItemLast]}>
-                                    <View style={styles.timelineIconWrap}>
-                                        <MaterialCommunityIcons name="sync" size={18} color="#0B2D3E" />
-                                    </View>
-                                    <View style={styles.timelineContent}>
-                                        <View style={styles.timelineRow}>
-                                            <Text style={styles.timelineAction}>CRM Sync: Instagram UTM captured</Text>
-                                            <Text style={styles.timelineTime}>Yesterday</Text>
-                                        </View>
-                                        <Text style={styles.timelineStatus}>Logged</Text>
-                                    </View>
+                                <View style={styles.actionButtonsRow}>
+                                    <Pressable
+                                        style={styles.actionBtnLight}
+                                        onPress={() => Linking.openURL('mailto:jessica.m@gmail.com')}>
+                                        <Text style={styles.actionBtnLightText}>Email</Text>
+                                    </Pressable>
+                                    <Pressable
+                                        style={styles.actionBtnLight}
+                                        onPress={() => Linking.openURL('tel:+15551234567')}>
+                                        <Text style={styles.actionBtnLightText}>Call</Text>
+                                    </Pressable>
+                                    <Pressable
+                                        style={styles.actionBtnLight}
+                                        onPress={() => Linking.openURL('https://wa.me/15551234567')}>
+                                        <Text style={styles.actionBtnLightText}>WhatsApp</Text>
+                                    </Pressable>
                                 </View>
                             </View>
                         </View>
-
                     </View>
 
-                    {/* Right Column (Sidebar) */}
-                    <View style={[styles.column, isLargeScreen && { flex: 1 }]}>
+                    {/* 2. AI Heat Index Card */}
+                    <View style={styles.premiumCard}>
+                        <View style={styles.aiHeatHeader}>
+                            <Text style={styles.aiHeatTitle}>AI Heat Index</Text>
+                            <MaterialCommunityIcons name="fire" size={24} color="#F97316" />
+                        </View>
+                        <View style={styles.heatScoreContainer}>
+                            <View style={styles.heatScoreWrap}>
+                                <Text style={styles.heatScoreValue}>94</Text>
+                                <Text style={styles.heatScoreMax}>/100</Text>
+                            </View>
+                            <Text style={styles.heatStatusText}>DYNAMIC SCORING ACTIVE</Text>
+                        </View>
+                        <View style={styles.heatBreakdown}>
+                            <View style={styles.heatItem}>
+                                <Text style={styles.heatItemLabel}>Property View (Malibu Villa)</Text>
+                                <Text style={styles.heatItemAction}>+15</Text>
+                            </View>
+                            <View style={styles.heatItem}>
+                                <Text style={styles.heatItemLabel}>Email Open (Open House Kit)</Text>
+                                <Text style={styles.heatItemAction}>+5</Text>
+                            </View>
+                            <View style={styles.heatItem}>
+                                <Text style={styles.heatItemLabel}>Showing Attendance</Text>
+                                <Text style={styles.heatItemAction}>+25</Text>
+                            </View>
+                        </View>
+                    </View>
 
-                        {/* 4. AI Heat Index Card */}
-                        <View style={styles.card}>
-                            <View style={styles.cardHeader}>
-                                <Text style={styles.cardTitle}>AI Heat Index</Text>
-                                <MaterialCommunityIcons name="fire" size={20} color="#5B6B7A" />
+                    {/* 3. Pipeline Stage Card */}
+                    <View style={styles.pipelineCard}>
+                        <Text style={styles.pipelineTitleSmall}>CURRENT PIPELINE STAGE</Text>
+                        <Text style={styles.pipelineStageName}>Showing</Text>
+                        <View style={styles.pipelineProgressContainer}>
+                            <View style={[styles.pipelineProgressFill, { width: '75%' }]} />
+                        </View>
+                    </View>
+
+                    {/* 4. Internal Notes Card */}
+                    <View style={styles.premiumCard}>
+                        <View style={styles.notesHeaderRow}>
+                            <Text style={styles.sectionTitle}>Internal Notes</Text>
+                            {!isAddingNote && (
+                                <Pressable
+                                    style={styles.headerAddBtn}
+                                    onPress={() => setIsAddingNote(true)}>
+                                    <MaterialCommunityIcons name="plus" size={18} color="#0BA0B2" />
+                                    <Text style={styles.headerAddBtnText}>Add Note</Text>
+                                </Pressable>
+                            )}
+                        </View>
+
+                        {/* Inline Note Input */}
+                        {isAddingNote && (
+                            <View style={styles.inlineNoteContainer}>
+                                <View style={styles.noteInputWrapper}>
+                                    <TextInput
+                                        style={styles.inlineNoteInput}
+                                        placeholder="Type your notes here..."
+                                        placeholderTextColor="#94A3B8"
+                                        multiline
+                                        autoFocus
+                                        value={newNote}
+                                        onChangeText={setNewNote}
+                                    />
+                                    <View style={styles.inputIconOverlay}>
+                                        <View style={styles.aiIconBadge}>
+                                            <MaterialCommunityIcons name="lightning-bolt" size={14} color="#0BA0B2" />
+                                            <MaterialCommunityIcons name="google" size={14} color="#0B213E" />
+                                        </View>
+                                    </View>
+                                </View>
+                                <View style={styles.inlineNoteActions}>
+                                    <Pressable onPress={() => {
+                                        setNewNote('');
+                                        setIsAddingNote(false);
+                                    }}>
+                                        <Text style={styles.cancelNoteText}>Cancel</Text>
+                                    </Pressable>
+                                    <Pressable
+                                        style={[styles.saveInlineBtn, !newNote.trim() && styles.saveInlineBtnDisabled]}
+                                        onPress={handleSaveNote}
+                                        disabled={!newNote.trim()}>
+                                        <Text style={styles.saveInlineBtnText}>Save Note</Text>
+                                    </Pressable>
+                                </View>
+                            </View>
+                        )}
+
+                        <View style={styles.notesList}>
+                            {notes.map((note) => (
+                                <View key={note.id} style={styles.noteCard}>
+                                    <View style={styles.noteHeader}>
+                                        <Text style={styles.noteLabel}>NOTE</Text>
+                                        <Text style={styles.noteDate}>{note.date}</Text>
+                                    </View>
+                                    <Text style={styles.noteContent}>{note.text}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* 5. Activity Timeline Card */}
+                    <View style={styles.premiumCard}>
+                        <Text style={styles.sectionTitle}>Activity Timeline</Text>
+                        <View style={styles.timelineContainer}>
+                            <View style={styles.timelineItem}>
+                                <View style={styles.timelineIconBg}>
+                                    <MaterialCommunityIcons name="play-circle" size={20} color="#0B213E" />
+                                </View>
+                                <View style={styles.timelineBody}>
+                                    <Text style={styles.timelineTitle}>Viewed YouTube Walkthrough</Text>
+                                    <View style={styles.timelineMeta}>
+                                        <Text style={[styles.statusText, { color: '#0BA0B2' }]}>Completed</Text>
+                                        <Text style={styles.metaDivider}>•</Text>
+                                        <Text style={styles.timeText}>1 hour ago</Text>
+                                    </View>
+                                </View>
                             </View>
 
-                            <View style={styles.heatNumberWrap}>
-                                <Text style={styles.heatNumber}>94</Text>
-                                <Text style={styles.heatMax}>/100</Text>
+                            <View style={styles.timelineItem}>
+                                <View style={styles.timelineIconBg}>
+                                    <MaterialCommunityIcons name="email" size={20} color="#0B213E" />
+                                </View>
+                                <View style={styles.timelineBody}>
+                                    <Text style={styles.timelineTitle}>Email Click: Floor Plan</Text>
+                                    <View style={styles.timelineMeta}>
+                                        <Text style={[styles.statusText, { color: '#F59E0B' }]}>Clicked</Text>
+                                        <Text style={styles.metaDivider}>•</Text>
+                                        <Text style={styles.timeText}>3 hours ago</Text>
+                                    </View>
+                                </View>
                             </View>
-                            <Text style={styles.heatSubtitle}>DYNAMIC INTEREST SCORING ACTIVE</Text>
 
-                            <View style={styles.heatList}>
-                                <View style={styles.heatItem}>
-                                    <Text style={styles.heatItemText}>Property View (Malibu Villa)</Text>
-                                    <Text style={styles.heatItemScore}>+15</Text>
+                            <View style={styles.timelineItemLast}>
+                                <View style={styles.timelineIconBg}>
+                                    <MaterialCommunityIcons name="sync" size={20} color="#0B213E" />
                                 </View>
-                                <View style={styles.heatItem}>
-                                    <Text style={styles.heatItemText}>Email Open (Open House Kit)</Text>
-                                    <Text style={styles.heatItemScore}>+5</Text>
-                                </View>
-                                <View style={styles.heatItem}>
-                                    <Text style={styles.heatItemText}>Showing Attendance</Text>
-                                    <Text style={styles.heatItemScore}>+25</Text>
+                                <View style={styles.timelineBody}>
+                                    <Text style={styles.timelineTitle}>CRM Sync: Instagram captured</Text>
+                                    <View style={styles.timelineMeta}>
+                                        <Text style={[styles.statusText, { color: '#64748B' }]}>Logged</Text>
+                                        <Text style={styles.metaDivider}>•</Text>
+                                        <Text style={styles.timeText}>Yesterday</Text>
+                                    </View>
                                 </View>
                             </View>
                         </View>
-
-                        {/* 5. Pipeline Status Card */}
-                        <View style={styles.card}>
-                            <Text style={styles.cardTitle}>Pipeline Status</Text>
-
-                            <View style={styles.pipelineBox}>
-                                <Text style={styles.pipelineLabel}>CURRENT STAGE</Text>
-                                <Text style={styles.pipelineValue}>Showing</Text>
-
-                                <View style={styles.progressBarBg}>
-                                    <View style={[styles.progressBarFill, { width: '40%' }]} />
-                                </View>
-                            </View>
-                        </View>
-
                     </View>
                 </View>
             </ScrollView>
 
-            {/* Video Management Modal */}
-            <Modal
-                visible={videoModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setVideoModalVisible(false)}>
-                <Pressable style={styles.modalBackdrop} onPress={() => setVideoModalVisible(false)}>
-                    <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Video Management</Text>
-                            <Pressable style={styles.modalCloseBtn} onPress={() => setVideoModalVisible(false)} hitSlop={12}>
-                                <MaterialCommunityIcons name="close" size={16} color="#1E293B" />
-                            </Pressable>
-                        </View>
-
-                        <View style={styles.templateBox}>
-                            <Text style={styles.templateLabel}>Current Template</Text>
-                            <Text style={styles.templateName}>Modern Luxury Walkthrough (v2)</Text>
-                        </View>
-
-                        <Pressable
-                            style={styles.modalOutlineBtn}
-                            onPress={() => {
-                                setVideoModalVisible(false);
-                                router.push('/(main)/crm/video-studio');
-                            }}>
-                            <Text style={styles.modalOutlineBtnText}>Regenerate Video</Text>
-                        </Pressable>
-
-                        <Pressable
-                            style={styles.modalOutlineBtn}
-                            onPress={() => {
-                                setVideoModalVisible(false);
-                                router.push('/(main)/crm/video-studio');
-                            }}>
-                            <Text style={styles.modalOutlineBtnText}>Change Music / Style</Text>
-                        </Pressable>
-
-                        <Pressable style={styles.modalSolidBtn}>
-                            <Text style={styles.modalSolidBtnText}>Download MP4</Text>
-                        </Pressable>
-                    </Pressable>
-                </Pressable>
-            </Modal>
         </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
-    background: {
-        flex: 1,
+    background: { flex: 1 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 16 },
+    contentGrid: { gap: 16 },
+
+    premiumCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 24,
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.05,
+        shadowRadius: 20,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
     },
-    header: {
+
+    // Header Content
+    profileHeader: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        paddingHorizontal: 16,
-        paddingTop: 8,
-        paddingBottom: 12,
-        gap: 10,
+        gap: 16,
     },
-    backBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.9)',
+    avatarWrap: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#0B213E',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: '#E3ECF4',
     },
-    headerCenter: { flex: 1 },
-    title: { fontSize: 22, fontWeight: '900', color: '#0B2D3E', letterSpacing: -0.2 },
-    subtitle: { fontSize: 13, color: '#5B6B7A', fontWeight: '600', marginTop: 4 },
-    scroll: {
-        flex: 1,
+    avatarText: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#FFFFFF',
     },
-    scrollContent: {
-        paddingHorizontal: 16,
-    },
-    grid: {
-        flexDirection: 'column',
-        gap: 16,
-    },
-    gridLarge: {
+    profileDetails: { flex: 1 },
+    nameBadgeRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
     },
-    column: {
-        flexDirection: 'column',
-        gap: 16,
+    profileName: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#0B213E',
+        letterSpacing: -0.5,
     },
-    card: {
+    buyerBadge: {
+        backgroundColor: '#EBFDFF',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    buyerBadgeText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#0BA0B2',
+        letterSpacing: 0.5,
+    },
+    profileContact: {
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '600',
+        marginBottom: 16,
+    },
+    actionButtonsRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    actionBtnDark: {
+        backgroundColor: '#0B213E',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 10,
+    },
+    actionBtnDarkText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#FFFFFF',
+    },
+    actionBtnLight: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: '#E3ECF4',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 10,
+        borderWidth: 1.5,
+        borderColor: '#0BA0B2',
     },
-    cardHeader: {
+    actionBtnLightText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#0BA0B2',
+    },
+
+    // AI Heat Index
+    aiHeatHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 16,
     },
-    cardTitle: {
-        fontSize: 16,
+    aiHeatTitle: {
+        fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
-        letterSpacing: -0.3,
-    },
-    linkText: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: '#0BA0B2',
-    },
-    // Profile Top Card
-    profileHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-        marginBottom: 20,
-    },
-    avatar: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#0B2D3E',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    avatarText: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#FFFFFF',
-    },
-    profileInfo: {
-        flex: 1,
-    },
-    nameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 10,
-        marginBottom: 4,
-    },
-    name: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: '#0B2D3E',
+        color: '#0B213E',
         letterSpacing: -0.5,
     },
-    tagWrap: {
-        backgroundColor: '#FFF1F2',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    tagText: {
-        color: '#F43F5E',
-        fontWeight: '900',
-        fontSize: 10,
-        letterSpacing: 0.5,
-    },
-    contactDetails: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#5B6B7A',
-    },
-    metaBoxesRow: {
-        flexDirection: 'row',
-        gap: 12,
+    heatScoreContainer: {
         marginBottom: 20,
     },
-    metaBox: {
-        flex: 1,
-        backgroundColor: '#F8FBFF',
-        borderRadius: 12,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: '#E3ECF4',
-    },
-    metaLabel: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: '#9CA3AF',
-        letterSpacing: 0.5,
-        marginBottom: 6,
-    },
-    metaValueWrap: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    metaValueTitle: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: '#0B2D3E',
-    },
-    metaValueTextSecondary: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#5B6B7A',
-    },
-    metaValueTextPrimary: {
-        color: '#0BA0B2',
-        fontWeight: '800',
-    },
-    actionsRow: {
-        flexDirection: 'row',
-        gap: 10,
-        flexWrap: 'wrap',
-    },
-    btnDark: {
-        backgroundColor: '#0B2D3E',
-        borderRadius: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    btnDarkText: {
-        color: '#FFFFFF',
-        fontWeight: '800',
-        fontSize: 13,
-    },
-    btnLight: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderWidth: 1,
-        borderColor: '#E3ECF4',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    btnLightText: {
-        color: '#0B2D3E',
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    // Video Card
-    videoWrap: {
-        height: 200,
-        borderRadius: 12,
-        overflow: 'hidden',
-        position: 'relative',
-        backgroundColor: '#000000',
-    },
-    videoPlayer: {
-        width: '100%',
-        height: '100%',
-    },
-    videoOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: 'flex-start', // Place gradient overlay subtly at the top to not interfere heavily with player controls but still allow text legibility
-    },
-    videoTitle: {
-        position: 'absolute',
-        top: 16,
-        left: 16,
-        right: 16,
-        color: '#FFFFFF',
-        fontSize: 13,
-        fontWeight: '800',
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
-    },
-    // Timeline Card
-    timelineList: {
-        marginTop: 16,
-        paddingLeft: 4,
-    },
-    timelineItem: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 24,
-    },
-    timelineItemLast: {
-        marginBottom: 0,
-    },
-    timelineIconWrap: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#F0F4F8',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    timelineContent: {
-        flex: 1,
-    },
-    timelineRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 4,
-    },
-    timelineAction: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0B2D3E',
-        flex: 1,
-        paddingRight: 10,
-    },
-    timelineTime: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: '#9CA3AF',
-    },
-    timelineStatus: {
-        fontSize: 11,
-        fontWeight: '800',
-        color: '#0BA0B2',
-    },
-    // AI Heat Index Card
-    heatNumberWrap: {
+    heatScoreWrap: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        marginBottom: 4,
+        gap: 4,
     },
-    heatNumber: {
-        fontSize: 48,
+    heatScoreValue: {
+        fontSize: 42,
         fontWeight: '900',
-        color: '#EA580C',
+        color: '#F97316',
         letterSpacing: -1,
     },
-    heatMax: {
+    heatScoreMax: {
         fontSize: 16,
-        fontWeight: '800',
-        color: '#9CA3AF',
-        marginLeft: 2,
+        fontWeight: '700',
+        color: '#94A3B8',
     },
-    heatSubtitle: {
-        fontSize: 10,
+    heatStatusText: {
+        fontSize: 11,
         fontWeight: '900',
         color: '#0BA0B2',
-        letterSpacing: 0.5,
-        marginBottom: 20,
+        letterSpacing: 0.8,
+        marginTop: 4,
     },
-    heatList: {
-        backgroundColor: '#F8FBFF',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E3ECF4',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+    heatBreakdown: {
+        gap: 12,
     },
     heatItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 10,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
     },
-    heatItemText: {
-        fontSize: 12,
+    heatItemLabel: {
+        fontSize: 14,
         fontWeight: '700',
         color: '#5B6B7A',
-        flex: 1,
-        paddingRight: 10,
     },
-    heatItemScore: {
-        fontSize: 13,
+    heatItemAction: {
+        fontSize: 14,
         fontWeight: '900',
         color: '#0BA0B2',
     },
-    // Pipeline Status Card
-    pipelineBox: {
-        backgroundColor: '#0B2D3E',
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 16,
+
+    // Pipeline Card
+    pipelineCard: {
+        backgroundColor: '#0B213E',
+        borderRadius: 10,
+        padding: 24,
     },
-    pipelineLabel: {
+    pipelineTitleSmall: {
         fontSize: 10,
-        fontWeight: '800',
-        color: '#9CA3AF',
-        letterSpacing: 0.5,
-        marginBottom: 4,
+        fontWeight: '900',
+        color: '#94A3B8',
+        letterSpacing: 1,
+        marginBottom: 8,
     },
-    pipelineValue: {
-        fontSize: 20,
+    pipelineStageName: {
+        fontSize: 24,
         fontWeight: '900',
         color: '#FFFFFF',
-        marginBottom: 16,
+        marginBottom: 20,
     },
-    progressBarBg: {
+    pipelineProgressContainer: {
         height: 4,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(148, 163, 184, 0.1)',
         borderRadius: 2,
-        overflow: 'hidden',
     },
-    progressBarFill: {
+    pipelineProgressFill: {
         height: '100%',
         backgroundColor: '#0BA0B2',
         borderRadius: 2,
     },
-    // Video Management Modal Styles
-    modalBackdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 24,
+
+    // Section Titles
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#0B213E',
+        letterSpacing: -0.5,
     },
-    modalContent: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 24,
-        width: '100%',
-        maxWidth: 400,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.12,
-        shadowRadius: 24,
-        elevation: 8,
-    },
-    modalHeader: {
+    notesHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        letterSpacing: -0.2,
-    },
-    modalCloseBtn: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: '#F1F5F9',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    templateBox: {
-        backgroundColor: '#F8FBFF',
-        borderWidth: 1,
-        borderColor: '#E3ECF4',
-        borderRadius: 8,
-        padding: 16,
         marginBottom: 20,
     },
-    templateLabel: {
-        fontSize: 12,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 4,
+    headerAddBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#EBFDFF',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
     },
-    templateName: {
+    headerAddBtnText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#0BA0B2',
+    },
+
+    // Internal Notes
+    inlineNoteContainer: {
+        borderWidth: 1.5,
+        borderColor: '#0BA0B2',
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 24,
+    },
+    noteInputWrapper: {
+        minHeight: 120,
+        position: 'relative',
+    },
+    inlineNoteInput: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#1E293B',
+        textAlignVertical: 'top',
+        lineHeight: 22,
+    },
+    inputIconOverlay: {
+        position: 'absolute',
+        right: 0,
+        bottom: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    aiIconBadge: {
+        flexDirection: 'row',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 12,
+        padding: 6,
+        gap: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    inlineNoteActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        gap: 16,
+        marginTop: 12,
+    },
+    cancelNoteText: {
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '700',
         color: '#64748B',
     },
-    modalOutlineBtn: {
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#F0F4F8',
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
+    saveInlineBtn: {
+        backgroundColor: '#0B213E',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        shadowColor: '#0B213E',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    modalOutlineBtnText: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0B2D3E',
+    saveInlineBtnDisabled: {
+        opacity: 0.5,
+        shadowOpacity: 0,
     },
-    modalSolidBtn: {
-        borderRadius: 10,
-        backgroundColor: '#0B2D3E',
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 4,
-    },
-    modalSolidBtnText: {
-        fontSize: 13,
+    saveInlineBtnText: {
+        fontSize: 14,
         fontWeight: '800',
         color: '#FFFFFF',
+    },
+    notesList: { gap: 12 },
+    noteCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    noteHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    noteLabel: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#94A3B8',
+        letterSpacing: 0.5,
+    },
+    noteDate: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#94A3B8',
+    },
+    noteContent: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1E293B',
+        lineHeight: 20,
+    },
+
+    // Activity Timeline
+    timelineContainer: {
+        marginTop: 8,
+    },
+    timelineItem: {
+        flexDirection: 'row',
+        gap: 16,
+        paddingBottom: 24,
+    },
+    timelineItemLast: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    timelineIconBg: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#F8FAFC',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    timelineBody: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    timelineTitle: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#0B213E',
+        marginBottom: 4,
+    },
+    timelineMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: '800',
+    },
+    metaDivider: {
+        fontSize: 12,
+        color: '#CBD5E1',
+    },
+    timeText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#94A3B8',
     },
 });
