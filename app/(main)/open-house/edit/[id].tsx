@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useRouter } from 'expo-router';
+import { router, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -52,7 +52,8 @@ const PROPERTIES: PropertyItem[] = [
 ];
 
 
-export default function OpenHouseCreateScreen() {
+export default function OpenHouseEditScreen() {
+  const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
@@ -93,6 +94,7 @@ export default function OpenHouseCreateScreen() {
           <MaterialCommunityIcons name="arrow-left" size={20} color="#0D9488" />
           <Text style={styles.backBtnText}>Back</Text>
         </Pressable>
+        <Text style={styles.headerSubtitle}> / Edit Event (OH-001)</Text>
       </View>
 
       <View style={styles.stepsWrapper}>
@@ -117,15 +119,6 @@ export default function OpenHouseCreateScreen() {
           activeLabelFontSize={10}
 
         >
-          <ProgressStep label="PROPERTY" removeBtnRow>
-            <Step1SelectProperty
-              selectedPropertyId={selectedPropertyId}
-              onSelectProperty={(id) => {
-                setSelectedPropertyId(id);
-                setActiveStep(1);
-              }}
-            />
-          </ProgressStep>
           <ProgressStep label="DETAILS" removeBtnRow>
             <Step2Details
               eventDate={eventDate}
@@ -146,25 +139,21 @@ export default function OpenHouseCreateScreen() {
               setAgentEmail={setAgentEmail}
               sendReport={sendReport}
               setSendReport={setSendReport}
-              onBack={() => setActiveStep(0)}
-              onContinue={() => setActiveStep(2)}
+              onBack={() => router.back()}
+              onContinue={() => setActiveStep(1)}
             />
           </ProgressStep>
           <ProgressStep label="CUSTOMIZATION" removeBtnRow>
             {!isFinalized ? (
               <Step4Customization
-                selectedPropertyId={selectedPropertyId}
+                selectedPropertyId={selectedPropertyId || '1'}
                 agentName={agentName}
-                onBack={() => setActiveStep(1)}
+                onBack={() => setActiveStep(0)}
                 onFinalize={() => setIsFinalized(true)}
               />
             ) : (
               <Step5SheetReady
-                onGoToDashboard={() => router.back()}
-                onCreateAnother={() => {
-                  setIsFinalized(false);
-                  setActiveStep(0);
-                }}
+                onGoToDashboard={() => router.push('/(main)/open-house' as any)}
               />
             )}
           </ProgressStep>
@@ -325,9 +314,9 @@ function Step2Details({
   return (
     <View style={styles.stepContent}>
       <View style={styles.detailsTitleBlock}>
-        <Text style={styles.detailsTitle}>Open House Details</Text>
+        <Text style={styles.detailsTitle}>Edit Open House Details</Text>
         <Text style={styles.detailsSubtitle}>
-          Set the schedule and contact info.
+          Update the schedule and contact info for 123 Business Way, Los Angeles, CA.
         </Text>
       </View>
       <View style={styles.formCardWrap}>
@@ -730,7 +719,7 @@ function Step4Customization({
             <Text style={styles.actionBackText}>Back</Text>
           </Pressable>
           <Pressable style={styles.actionFinalizeBtn} onPress={onFinalize}>
-            <Text style={styles.actionFinalizeText}>Finalize & Publish</Text>
+            <Text style={styles.actionFinalizeText}>Save & Update Event</Text>
           </Pressable>
         </View>
 
@@ -741,48 +730,43 @@ function Step4Customization({
 
 function Step5SheetReady({
   onGoToDashboard,
-  onCreateAnother,
 }: {
   onGoToDashboard: () => void;
-  onCreateAnother: () => void;
 }) {
   return (
     <View style={styles.stepContent}>
       <ScrollView style={styles.readyScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.readyScrollContent}>
-        <View style={styles.readyIconWrap}>
-          <MaterialCommunityIcons name="rocket-launch" size={56} color="#EA580C" />
-        </View>
-        <Text style={styles.readyTitle}>Sheet Is Ready!</Text>
-        <Text style={styles.readySubtitle}>
-          Your open house marketing engine is fully tuned and multi-channel ready.
+        <Text style={styles.readyTitleCentered}>Changes Saved!</Text>
+        <Text style={styles.readySubtitleCentered}>
+          Your open house event has been successfully updated and is live.
         </Text>
 
         <View style={styles.readyActionsGrid}>
           <Pressable style={styles.readyActionCard}>
             <MaterialCommunityIcons name="file-document-outline" size={24} color="#0B2D3E" />
             <Text style={styles.readyActionCardLabel}>Download PDF</Text>
+            <Text style={styles.readyActionCardSub}>PROPERTY DOSSIER</Text>
           </Pressable>
           <Pressable style={styles.readyActionCard}>
             <MaterialCommunityIcons name="link-variant" size={24} color="#0B2D3E" />
             <Text style={styles.readyActionCardLabel}>Digital Share Link</Text>
+            <Text style={styles.readyActionCardSub}>VISITOR PORTAL</Text>
           </Pressable>
           <Pressable style={styles.readyActionCard}>
             <MaterialCommunityIcons name="share-variant" size={24} color="#0B2D3E" />
-            <Text style={styles.readyActionCardLabel}>Social Media Pack</Text>
+            <Text style={styles.readyActionCardLabel}>Add to campaigns</Text>
+            <Text style={styles.readyActionCardSub}>ADD TO CAMPAIGNS</Text>
           </Pressable>
-          <View style={[styles.readyActionCard, styles.readyActionCardDisabled]}>
-            <MaterialCommunityIcons name="truck-delivery-outline" size={24} color="#9CA3AF" />
-            <Text style={styles.readyActionCardLabelMuted}>Print & Ship</Text>
-            <Text style={styles.readyComingSoon}>COMING SOON</Text>
-          </View>
+          <Pressable style={styles.readyActionCard}>
+            <MaterialCommunityIcons name="plus" size={24} color="#0B2D3E" />
+            <Text style={styles.readyActionCardLabel}>Email Automation</Text>
+            <Text style={styles.readyActionCardSub}>CREATE AI AUTOMATION</Text>
+          </Pressable>
         </View>
 
-        <View style={styles.readyButtonColumn}>
-          <Pressable style={styles.readyPrimaryButton} onPress={onGoToDashboard}>
-            <Text style={styles.readyPrimaryButtonText}>Go to Campaigns Dashboard</Text>
-          </Pressable>
-          <Pressable style={styles.readySecondaryButton} onPress={onCreateAnother}>
-            <Text style={styles.readySecondaryButtonText}>Create Another</Text>
+        <View style={styles.readyButtonColumnMulti}>
+          <Pressable style={styles.readyPrimaryButtonMulti} onPress={onGoToDashboard}>
+            <Text style={styles.readyPrimaryButtonTextMulti}>Back to Manage Open Houses</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -810,6 +794,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#0D9488',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9CA3AF',
   },
   backBtn: {
     width: 44,
@@ -2138,6 +2127,48 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#9CA3AF',
     fontWeight: '500',
+  },
+  readyTitleCentered: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+    textAlign: 'center',
+    marginTop: 40,
+  },
+  readySubtitleCentered: {
+    fontSize: 15,
+    color: '#5B6B7A',
+    fontWeight: '500',
+    lineHeight: 22,
+    marginBottom: 40,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  readyActionCardSub: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  readyButtonColumnMulti: {
+    alignItems: 'center',
+    marginTop: 20,
+    paddingBottom: 40,
+  },
+  readyPrimaryButtonMulti: {
+    backgroundColor: '#0B2D3E',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  readyPrimaryButtonTextMulti: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 

@@ -23,7 +23,6 @@ type PageHeaderProps = {
 export const PageHeader = memo(function PageHeader({
     title,
     subtitle,
-    badgeCount,
     onBack,
     rightIcon,
     onRightPress,
@@ -50,7 +49,7 @@ export const PageHeader = memo(function PageHeader({
             </View>
 
             {/* ── Optional right action button ── */}
-            {rightIcon ? (
+            {rightIcon && (
                 <Pressable
                     style={({ pressed }) => [
                         styles.rightBtn,
@@ -62,9 +61,6 @@ export const PageHeader = memo(function PageHeader({
                 >
                     <MaterialCommunityIcons name={rightIcon as any} size={20} color={rightIconColor} />
                 </Pressable>
-            ) : (
-                /* Spacer so title stays centred when there's no right icon */
-                <View style={styles.rightPlaceholder} />
             )}
         </View>
     );

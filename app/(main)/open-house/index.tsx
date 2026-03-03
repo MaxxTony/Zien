@@ -1,8 +1,11 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
+  Alert,
   Dimensions,
   Pressable,
   ScrollView,
@@ -65,7 +68,7 @@ const COMPLETED_EVENTS = [
   },
 ];
 
-function EventCard({ event, variant }: { event: any; variant: 'live' | 'upcoming' | 'completed' }) {
+function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' | 'upcoming' | 'completed'; onDelete: () => void }) {
   const isLive = variant === 'live';
   const router = useRouter();
 
@@ -109,14 +112,20 @@ function EventCard({ event, variant }: { event: any; variant: 'live' | 'upcoming
               });
             }}
           >
-            {isLive && <MaterialCommunityIcons name="play" size={14} color="#FFF" style={{ marginRight: 4 }} />}
-            {!isLive && <MaterialCommunityIcons name="eye-outline" size={14} color="#FFF" style={{ marginRight: 4 }} />}
-            <Text style={styles.primaryBtnText}>{isLive ? 'Manage Live' : 'View Details'}</Text>
+            {isLive ? (
+              <MaterialCommunityIcons name="play-outline" size={14} color="#FFF" style={{ marginRight: 6 }} />
+            ) : (
+              <MaterialCommunityIcons name="eye-outline" size={14} color="#FFF" style={{ marginRight: 6 }} />
+            )}
+            <Text style={styles.primaryBtnText}>{isLive ? 'Manage' : 'View'}</Text>
           </Pressable>
 
-          <Pressable style={styles.secondaryBtn}>
-            <MaterialCommunityIcons name="content-copy" size={14} color="#0F172A" style={{ marginRight: 4 }} />
-            <Text style={styles.secondaryBtnText}>Duplicate</Text>
+          <Pressable style={styles.iconBtn} onPress={() => router.push(`/(main)/open-house/edit/${event.id}` as any)}>
+            <MaterialCommunityIcons name="pencil-outline" size={16} color="#0D9488" />
+          </Pressable>
+
+          <Pressable style={styles.iconBtnDanger} onPress={onDelete}>
+            <MaterialCommunityIcons name="trash-can-outline" size={16} color="#ef4444" />
           </Pressable>
         </View>
       </View>
@@ -128,6 +137,32 @@ export default function OpenHouseScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const [liveEvents, setLiveEvents] = useState(LIVE_EVENTS);
+  const [upcomingEvents, setUpcomingEvents] = useState(UPCOMING_EVENTS);
+  const [completedEvents, setCompletedEvents] = useState(COMPLETED_EVENTS);
+
+  const handleDelete = (id: string, variant: 'live' | 'upcoming' | 'completed') => {
+    Alert.alert(
+      '',
+      'Are you sure you want to delete this open house event? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'OK',
+          onPress: () => {
+            if (variant === 'live') {
+              setLiveEvents(prev => prev.filter(e => e.id !== id));
+            } else if (variant === 'upcoming') {
+              setUpcomingEvents(prev => prev.filter(e => e.id !== id));
+            } else {
+              setCompletedEvents(prev => prev.filter(e => e.id !== id));
+            }
+          }
+        },
+      ]
+    );
+  };
+
   return (
     <LinearGradient
       colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
@@ -135,17 +170,16 @@ export default function OpenHouseScreen() {
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
       {/* Header Section */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-            <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.screenTitle}>Open House Management</Text>
-            <Text style={styles.screenSubtitle}>Track live visitor engagement and measure convention performance.</Text>
-          </View>
-        </View>
+      <PageHeader
+        title="Open House Management"
+        subtitle="Track live visitor engagement and measure convention performance."
+        onBack={() => router.back()}
+      />
 
+
+
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={styles.headerControls}>
           <View style={styles.kpiCard}>
             <View style={styles.kpiItem}>
@@ -164,10 +198,6 @@ export default function OpenHouseScreen() {
             <Text style={styles.createBtnText}>Create New Event</Text>
           </Pressable>
         </View>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-
 
         <View style={styles.contentSection}>
           {/* Live Today */}
@@ -178,16 +208,16 @@ export default function OpenHouseScreen() {
               <Text style={styles.liveBadgeText}>LIVE NOW</Text>
             </View>
           </View>
-          {LIVE_EVENTS.map(event => (
-            <EventCard key={event.id} event={event} variant="live" />
+          {liveEvents.map(event => (
+            <EventCard key={event.id} event={event} variant="live" onDelete={() => handleDelete(event.id, 'live')} />
           ))}
 
           {/* Upcoming */}
           <Text style={[styles.sectionTitle, { marginVertical: 20 }]}>Upcoming</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
-            {UPCOMING_EVENTS.map(event => (
+            {upcomingEvents.map(event => (
               <View key={event.id} style={{ width: 300 }}>
-                <EventCard event={event} variant="upcoming" />
+                <EventCard event={event} variant="upcoming" onDelete={() => handleDelete(event.id, 'upcoming')} />
               </View>
             ))}
           </ScrollView>
@@ -195,9 +225,9 @@ export default function OpenHouseScreen() {
           {/* Completed */}
           <Text style={[styles.sectionTitle, { marginVertical: 20 }]}>Completed</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}>
-            {COMPLETED_EVENTS.map(event => (
+            {completedEvents.map(event => (
               <View key={event.id} style={{ width: 300, marginRight: 16 }}>
-                <EventCard event={event} variant="completed" />
+                <EventCard event={event} variant="completed" onDelete={() => handleDelete(event.id, 'completed')} />
               </View>
             ))}
           </ScrollView>
@@ -213,46 +243,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 20,
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-    gap: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginTop: 4,
-  },
-  screenTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#0F172A',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  screenSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    maxWidth: '80%',
-    lineHeight: 18,
-  },
   headerControls: {
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 20
   },
   kpiCard: {
     flexDirection: 'row',
@@ -436,20 +436,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  secondaryBtn: {
-    flex: 1,
-    flexDirection: 'row',
+  iconBtn: {
+    width: 64,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingVertical: 10,
     borderRadius: 8,
   },
-  secondaryBtnText: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '700',
+  iconBtnDanger: {
+    width: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#fecdd3', // Soft red pinkish border
+    borderRadius: 8,
   },
 });
