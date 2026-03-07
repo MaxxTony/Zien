@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -16,8 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CONNECTED_ACCOUNTS = [
   { id: 'instagram', name: 'Instagram', handle: '@jordan_smith_re', status: 'CONNECTED' as const, action: 'Manage', icon: 'instagram', color: '#E1306C' },
-  { id: 'facebook', name: 'Facebook', handle: 'Jordan Smith Real Estate', status: 'CONNECTED' as const, action: 'Manage', icon: 'facebook', color: '#1877F2' },
-  { id: 'linkedin', name: 'LinkedIn', handle: 'jordan-smith-re', status: 'DISCONNECTED' as const, action: 'Connect', icon: 'linkedin', color: '#0A66C2' },
+  { id: 'facebook', name: 'Facebook', handle: 'Jordan Smith Real Estate', status: 'DISCONNECTED' as const, action: 'Connect', icon: 'facebook', color: '#1877F2' },
+  { id: 'linkedin', name: 'LinkedIn', handle: 'jordan-smith-re', status: 'PENDING VERIFY' as const, action: 'Connect', icon: 'linkedin', color: '#0A66C2' },
+  { id: 'tiktok', name: 'TikTok', handle: '@jordan_smith_realestate', status: 'CONNECTED' as const, action: 'Manage', icon: 'music-note', color: '#000000' },
 ];
 
 const AUTO_RULES = [
@@ -26,14 +28,6 @@ const AUTO_RULES = [
   { key: 'price_drop', label: 'Auto-post when price drops', value: false },
   { key: 'repost', label: 'Re-post high performing assets weekly', value: true },
 ];
-
-function PlatformLogo({ platform, icon, color }: { platform: string, icon: any, color: string }) {
-  return (
-    <View style={[styles.platformLogo, { backgroundColor: `${color}15` }]}>
-      <MaterialCommunityIcons name={icon} size={24} color={color} />
-    </View>
-  );
-}
 
 export default function AccountsScreen() {
   const insets = useSafeAreaInsets();
@@ -47,18 +41,24 @@ export default function AccountsScreen() {
 
   // Modal States
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [editAccount, setEditAccount] = useState<typeof CONNECTED_ACCOUNTS[0] | null>(null);
+  const [activeAccount, setActiveAccount] = useState<typeof CONNECTED_ACCOUNTS[0] | null>(null);
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('Connected');
 
   const setRule = (key: string, value: boolean) => setRules((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = () => {
     setShowSuccessModal(true);
-    // Simulate API call or delay if needed
-    // setTimeout(() => router.back(), 2000); 
   };
 
-  const handleManage = (account: typeof CONNECTED_ACCOUNTS[0]) => {
-    setEditAccount(account);
+  const handleAccountPress = (account: typeof CONNECTED_ACCOUNTS[0]) => {
+    const statusMap: Record<string, string> = {
+      'CONNECTED': 'Connected',
+      'DISCONNECTED': 'Disconnected',
+      'PENDING VERIFY': 'Pending Verify'
+    };
+    setSelectedStatus(statusMap[account.status] || 'Connected');
+    setActiveAccount(account);
   };
 
   const closeSuccessModal = () => {
@@ -66,8 +66,9 @@ export default function AccountsScreen() {
     router.back();
   };
 
-  const closeEditModal = () => {
-    setEditAccount(null);
+  const closeAccountModal = () => {
+    setActiveAccount(null);
+    setShowStatusPicker(false);
   };
 
   return (
@@ -77,140 +78,159 @@ export default function AccountsScreen() {
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Social & Automation Settings</Text>
-          <Text style={styles.subtitle}>Manage your connected accounts and automation preferences.</Text>
-        </View>
-
+      <View style={styles.headerRow}>
+        <PageHeader
+          title="Account Setting"
+          subtitle="Manage your connected accounts and automation preferences."
+          onBack={() => router.back()}
+          rightIcon="content-save"
+          onRightPress={handleSave}
+          rightIconColor="#0B2341"
+        />
       </View>
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} // Additional padding for footer
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 60 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
 
         {/* Connected Accounts Card */}
         <View style={styles.proCard}>
           <View style={styles.cardHeaderRow}>
-            <MaterialCommunityIcons name="cellphone-link" size={20} color="#0B2D3E" />
-            <Text style={styles.sectionTitle}>Connected Accounts</Text>
+            <View style={styles.headerIconCircle}>
+              <MaterialCommunityIcons name="cellphone-link" size={18} color="#FFF" />
+            </View>
+            <View>
+              <Text style={styles.sectionTitle}>Connected Accounts</Text>
+            </View>
           </View>
 
-          {CONNECTED_ACCOUNTS.map((acc, idx) => (
-            <View
-              key={acc.id}
-              style={[styles.accountRow, idx === CONNECTED_ACCOUNTS.length - 1 && styles.accountRowLast]}>
-              <PlatformLogo platform={acc.name} icon={acc.icon} color={acc.color} />
-              <View style={styles.accountInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.accountName} numberOfLines={1}>{acc.name}</Text>
-                  {acc.status === 'CONNECTED' && (
-                    <MaterialCommunityIcons name="check-decagram" size={14} color="#0BA0B2" />
-                  )}
-                </View>
-                <Text style={styles.accountHandle} numberOfLines={1}>{acc.handle}</Text>
-                <Text style={[
-                  styles.mobileStatusText,
-                  acc.status === 'CONNECTED' ? styles.textConnected : styles.textDisconnected
-                ]}>
-                  {acc.status === 'CONNECTED' ? '● Connected' : '○ Disconnected'}
-                </Text>
-              </View>
-
+          <View style={styles.accountsList}>
+            {CONNECTED_ACCOUNTS.map((acc, index) => (
               <Pressable
-                style={acc.status === 'CONNECTED' ? styles.manageBtn : styles.connectBtn}
-                onPress={() => acc.status === 'CONNECTED' ? handleManage(acc) : {}}
-              >
-                <Text style={acc.status === 'CONNECTED' ? styles.manageBtnText : styles.connectBtnText}>
-                  {acc.action}
-                </Text>
-              </Pressable>
-            </View>
-          ))}
-        </View>
+                key={acc.id}
+                onPress={() => handleAccountPress(acc)}
+                style={({ pressed }) => [
+                  styles.accountRow,
+                  pressed && { opacity: 0.8 },
+                  index === CONNECTED_ACCOUNTS.length - 1 && { borderBottomWidth: 0 }
+                ]}>
+                <View style={styles.accountIconBox}>
+                  <MaterialCommunityIcons name={acc.icon as any} size={22} color={acc.color} />
+                </View>
 
-        {/* Auto-Publishing Rules Card */}
-        <View style={styles.proCard}>
-          <View style={styles.cardHeaderRow}>
-            <MaterialCommunityIcons name="robot-outline" size={20} color="#0B2D3E" />
-            <Text style={styles.sectionTitle}>Auto-Publishing Rules</Text>
+                <View style={styles.accountTextContent}>
+                  <Text style={styles.accountRowName} numberOfLines={1}>{acc.name}</Text>
+                  <Text style={styles.accountRowHandle} numberOfLines={1}>{acc.handle}</Text>
+                </View>
+
+                <View style={styles.accountRowRight}>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusBadgeText}>{acc.status}</Text>
+                  </View>
+                  <View style={styles.manageBtn}>
+                    <Text style={styles.manageBtnText}>{acc.action}</Text>
+                  </View>
+                </View>
+              </Pressable>
+            ))}
           </View>
-          <View style={styles.gradientDivider} />
-          {AUTO_RULES.map((r, idx) => (
-            <View
-              key={r.key}
-              style={[styles.toggleRow, idx === AUTO_RULES.length - 1 && styles.toggleRowLast]}>
-              <Text style={styles.toggleLabel}>{r.label}</Text>
-              <Switch
-                value={rules[r.key] ?? r.value}
-                onValueChange={(v) => setRule(r.key, v)}
-                trackColor={{ false: '#E2E8F0', true: '#0B2D3E' }}
-                thumbColor="#FFFFFF"
-                ios_backgroundColor="#E2E8F0"
-              />
-            </View>
-          ))}
         </View>
 
         {/* Brand Assets Card */}
         <View style={styles.proCard}>
           <View style={styles.cardHeaderRow}>
-            <MaterialCommunityIcons name="palette-outline" size={20} color="#0B2D3E" />
-            <Text style={styles.sectionTitle}>Brand Assets</Text>
+            <View style={[styles.headerIconCircle, { backgroundColor: '#FF6B6B' }]}>
+              <MaterialCommunityIcons name="palette-outline" size={18} color="#FFF" />
+            </View>
+            <View>
+              <Text style={styles.sectionTitle}>Brand Identity</Text>
+              <Text style={styles.sectionSubtitle}>Customize how your posts appear to others.</Text>
+            </View>
           </View>
 
-          <Text style={styles.fieldLabel}>Default Hashtags</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={hashtags}
-            onChangeText={setHashtags}
-            placeholder="#YourBrand #Tag"
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={3}
-          />
-          <Text style={[styles.fieldLabel, { marginTop: 20 }]}>Brand Primary Color</Text>
-          <View style={styles.colorRow}>
-            <View style={[styles.colorSwatch, { backgroundColor: brandColor }]} />
-            <TextInput
-              style={[styles.input, styles.colorInput]}
-              value={brandColor}
-              onChangeText={setBrandColor}
-              placeholder="#0B2341"
-              placeholderTextColor="#9CA3AF"
-              autoCapitalize="characters"
-              maxLength={7}
-            />
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Global Hashtags</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={hashtags}
+                onChangeText={setHashtags}
+                placeholder="#RealEstate #LuxuryLiving"
+                placeholderTextColor="#94A3B8"
+                multiline
+              />
+              <MaterialCommunityIcons name="pound" size={18} color="#94A3B8" style={styles.inputIcon} />
+            </View>
           </View>
 
-          <View style={styles.separator} />
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Brand Primary Color</Text>
+            <View style={styles.colorPickerContainer}>
+              <View style={[styles.colorBox, { backgroundColor: brandColor }]}>
+                <View style={styles.colorBoxInner} />
+              </View>
+              <View style={[styles.inputWrapper, { flex: 1 }]}>
+                <TextInput
+                  style={[styles.input, styles.colorInput]}
+                  value={brandColor}
+                  onChangeText={setBrandColor}
+                  placeholder="#0B2341"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+            </View>
+          </View>
 
-          <View style={[styles.toggleRow, { borderBottomWidth: 0, paddingVertical: 0 }]}>
-            <Text style={styles.toggleLabel}>Auto-Watermark Media</Text>
+          <View style={styles.toggleRowPremium}>
+            <View style={styles.toggleTextContent}>
+              <Text style={styles.toggleTitle}>Media Watermarking</Text>
+              <Text style={styles.toggleDesc}>Automatically add your logo to all assets.</Text>
+            </View>
             <Switch
               value={watermark}
               onValueChange={setWatermark}
-              trackColor={{ false: '#E2E8F0', true: '#0B2D3E' }}
+              trackColor={{ false: '#E2E8F0', true: '#0BA0B2' }}
               thumbColor="#FFFFFF"
               ios_backgroundColor="#E2E8F0"
             />
           </View>
         </View>
 
-      </ScrollView>
+        {/* Auto-Publishing Rules Card */}
+        <View style={styles.proCard}>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.headerIconCircle, { backgroundColor: '#4DABF7' }]}>
+              <MaterialCommunityIcons name="robot-outline" size={18} color="#FFF" />
+            </View>
+            <View>
+              <Text style={styles.sectionTitle}>Automation Rules</Text>
+              <Text style={styles.sectionSubtitle}>Configure AI-driven posting behavior.</Text>
+            </View>
+          </View>
 
-      {/* Fixed Bottom Save Button */}
-      <View style={[styles.bottomFooter, { paddingBottom: insets.bottom + 20 }]}>
-        <Pressable style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>Save Changes</Text>
-        </Pressable>
-      </View>
+          <View style={styles.rulesList}>
+            {AUTO_RULES.map((r) => (
+              <View
+                key={r.key}
+                style={styles.premiumRuleItem}>
+                <View style={styles.ruleInfo}>
+                  <Text style={styles.premiumRuleLabel}>{r.label}</Text>
+                </View>
+                <Switch
+                  value={rules[r.key] ?? r.value}
+                  onValueChange={(v) => setRule(r.key, v)}
+                  trackColor={{ false: '#E2E8F0', true: '#0BA0B2' }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor="#E2E8F0"
+                />
+              </View>
+            ))}
+          </View>
+        </View>
+
+      </ScrollView>
 
       {/* Success Modal */}
       <Modal visible={showSuccessModal} transparent animationType="fade">
@@ -228,36 +248,70 @@ export default function AccountsScreen() {
         </View>
       </Modal>
 
-      {/* Edit Account Modal */}
-      <Modal visible={!!editAccount} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeaderRow}>
-              <View style={[styles.platformLogoSm, { backgroundColor: editAccount?.color + '15' }]}>
-                <MaterialCommunityIcons name={editAccount?.icon as any} size={20} color={editAccount?.color} />
+      {/* Unified Account Action Modal (Bottom Sheet Style) */}
+      <Modal
+        visible={!!activeAccount}
+        transparent
+        animationType="slide">
+        <View style={styles.bottomSheetOverlay}>
+          <Pressable style={styles.flex1} onPress={closeAccountModal} />
+          <View style={[styles.bottomSheetContent, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <View style={[styles.platformIconContainer, { backgroundColor: '#F8FAFC', shadowOpacity: 0 }]}>
+                <MaterialCommunityIcons name={activeAccount?.icon as any} size={28} color="#0B2D3E" />
               </View>
-              <Text style={styles.modalTitleSm}>Edit {editAccount?.name}</Text>
-              <Pressable onPress={closeEditModal} style={{ marginLeft: 'auto' }}>
-                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+              <Text style={styles.modalTitleSm}>Edit {activeAccount?.name}</Text>
+              <Pressable onPress={closeAccountModal} style={styles.modalCloseBtn}>
+                <MaterialCommunityIcons name="close" size={20} color="#94A3B8" />
               </Pressable>
             </View>
 
-            <Text style={styles.fieldLabel}>Username / Handle</Text>
-            <View style={styles.readOnlyInput}>
-              <Text style={styles.readOnlyText}>{editAccount?.handle}</Text>
-            </View>
+            <View style={styles.modalBody}>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                <Text style={styles.fieldLabel}>Username / Handle</Text>
+                <View style={styles.premiumInputContainer}>
+                  <TextInput
+                    style={styles.modalInput}
+                    defaultValue={activeAccount?.handle}
+                  />
+                </View>
 
-            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Connection Status</Text>
-            <View style={styles.readOnlyInput}>
-              <Text style={styles.readOnlyText}>Connected</Text>
-              <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
+                <Text style={[styles.fieldLabel, { marginTop: 24 }]}>Connection Status</Text>
+                <Pressable
+                  style={styles.dropdownTrigger}
+                  onPress={() => setShowStatusPicker(!showStatusPicker)}>
+                  <Text style={styles.dropdownText}>{selectedStatus}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+
+                  {showStatusPicker && (
+                    <View style={styles.dropdownMenu}>
+                      {['Connected', 'Disconnected', 'Pending Verify'].map((status) => (
+                        <Pressable
+                          key={status}
+                          onPress={() => {
+                            setSelectedStatus(status);
+                            setShowStatusPicker(false);
+                          }}
+                          style={styles.dropdownItem}>
+                          {selectedStatus === status && (
+                            <MaterialCommunityIcons name="check" size={16} color="#FFF" style={{ marginRight: 8 }} />
+                          )}
+                          <Text style={styles.dropdownItemText}>{status}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                </Pressable>
+              </ScrollView>
             </View>
 
             <View style={styles.modalActions}>
-              <Pressable style={styles.modalCancelBtn} onPress={closeEditModal}>
+              <Pressable style={styles.modalCancelBtn} onPress={closeAccountModal}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </Pressable>
-              <Pressable style={styles.modalSaveBtn} onPress={closeEditModal}>
+              <Pressable style={styles.modalSaveBtn} onPress={closeAccountModal}>
+                <MaterialCommunityIcons name="check" size={18} color="#FFF" />
                 <Text style={styles.modalSaveText}>Update Account</Text>
               </Pressable>
             </View>
@@ -271,279 +325,293 @@ export default function AccountsScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  headerCenter: { flex: 1 },
-  title: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0B2D3E',
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  headerSaveBtn: {
-    backgroundColor: '#0B2D3E',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  headerSaveText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13
+  headerRow: {
+    position: 'relative',
+    zIndex: 10,
   },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
-
-  bottomFooter: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: -4 },
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  saveBtn: {
-    backgroundColor: '#0B2D3E',
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800'
-  },
+  scrollContent: { paddingHorizontal: 18, paddingTop: 12 },
 
   // Pro Card Styles
   proCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#0A2F48',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 4,
   },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     marginBottom: 20
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  gradientDivider: {
-    height: 2,
-    backgroundColor: '#F1F5F9', // Fallback or distinct divider? Gradient border in mocks usually means distinct section styles.
-    // Using simple divider for now as shown in some mocks, or just relying on spacing.
-    marginBottom: 10,
-    display: 'none' // Hidden based on clean look preference
-  },
-
-  // Account Rows
-  accountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    gap: 14,
-  },
-  accountRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
-  platformLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+  headerIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#0B2341',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  accountInfo: { flex: 1 },
-  accountName: { fontSize: 16, fontWeight: '800', color: '#0B2D3E' },
-  accountHandle: { fontSize: 13, color: '#64748B', fontWeight: '500', marginTop: 2 },
-
-  statusConnectedText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    letterSpacing: 0.5,
-    alignSelf: 'center'
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0B2341',
+    letterSpacing: -0.4,
   },
-  statusDisconnectedText: {
-    fontSize: 11,
+  sectionSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+
+  // Accounts List (Optimized to fix wrap/clutter)
+  accountsList: {
+    gap: 0,
+  },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  accountIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  accountTextContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  accountRowName: {
+    fontSize: 15,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#0B2341',
+  },
+  accountRowHandle: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  accountRowRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 6,
+    marginLeft: 8,
+  },
+  statusBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  statusBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#64748B',
     letterSpacing: 0.5,
-    alignSelf: 'center'
+    textTransform: 'uppercase',
   },
   manageBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    minWidth: 70,
+    alignItems: 'center',
   },
   manageBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#0B2D3E'
-  },
-  connectBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1'
-  },
-  connectBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0B2D3E'
+    color: '#0B2341',
   },
 
-  // Toggles
-  toggleRow: {
+  // Field Groups
+  fieldGroup: {
+    marginBottom: 20,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#334155',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#0B2341',
+    fontWeight: '500',
+  },
+  inputIcon: {
+    position: 'absolute',
+    right: 14,
+    top: 13,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+    paddingRight: 40,
+  },
+  colorPickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  colorBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  colorBoxInner: {
+    flex: 1,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  colorInput: {
+    flex: 1,
+  },
+  toggleRowPremium: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-  },
-  toggleRowLast: { paddingBottom: 0 },
-  toggleLabel: { fontSize: 15, fontWeight: '700', color: '#0B2D3E', flex: 1, marginRight: 16 },
-
-  // Inputs
-  fieldLabel: { fontSize: 13, fontWeight: '700', color: '#64748B', marginBottom: 10 },
-  input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: '#0B2D3E',
-    shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    borderColor: '#F1F5F9',
   },
-  textArea: { minHeight: 100, textAlignVertical: 'top', lineHeight: 22 },
-  colorRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  colorSwatch: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+  toggleTextContent: {
+    flex: 1,
+    marginRight: 10,
   },
-  colorInput: { flex: 1 },
-  separator: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 24
+  toggleTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0B2341',
   },
-
-  mobileStatusText: {
+  toggleDesc: {
     fontSize: 11,
-    fontWeight: '700',
-    marginTop: 6,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 1,
   },
-  textConnected: { color: '#0BA0B2' },
-  textDisconnected: { color: '#94A3B8' },
+
+  // Rules List
+  rulesList: {
+    gap: 10,
+  },
+  premiumRuleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  ruleInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  premiumRuleLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0B2D3E',
+    lineHeight: 18,
+  },
 
   // Modals
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20
+    padding: 24
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 32,
     padding: 32,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 420,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 30,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 20 },
+    shadowRadius: 40,
+    elevation: 15,
   },
   successIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#0B2D3E',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#0BA0B2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24
+    marginBottom: 24,
+    shadowColor: '#0BA0B2',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
     color: '#0B2D3E',
     textAlign: 'center',
-    marginBottom: 12
+    marginBottom: 14,
+    letterSpacing: -0.5,
   },
   modalsubtitle: {
     fontSize: 15,
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 32
+    marginBottom: 32,
+    fontWeight: '500',
   },
   modalBtn: {
     backgroundColor: '#0B2D3E',
     width: '100%',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center'
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#0B2D3E',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
   },
   modalBtnText: {
     color: '#FFFFFF',
@@ -551,53 +619,138 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
 
-  // Edit Modal Specific
-  modalHeaderRow: {
+  // Bottom Sheet Style Modal
+  bottomSheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  flex1: { flex: 1 },
+  bottomSheetContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    padding: 32,
+    paddingTop: 8,
+    minHeight: '75%', // Increased height to prevent clipping
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: -10 },
+    shadowRadius: 24,
+    elevation: 25,
+  },
+  sheetHandle: {
+    width: 44,
+    height: 5,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginVertical: 12,
+  },
+  sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-    marginBottom: 24,
-    gap: 12
+    marginBottom: 32,
   },
-  platformLogoSm: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+  platformIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   modalTitleSm: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0B2D3E'
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+    marginLeft: 16,
   },
-  readOnlyInput: {
-    width: '100%',
+  modalCloseBtn: {
+    marginLeft: 'auto',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBody: {
+    flex: 1, // Take up remaining space
+    width: '100%',
+    zIndex: 10,
+  },
+  premiumInputContainer: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  modalInput: {
+    fontSize: 16,
+    color: '#0B2D3E',
+    fontWeight: '600',
+  },
+  dropdownTrigger: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    zIndex: 50,
   },
-  readOnlyText: {
-    fontSize: 15,
+  dropdownText: {
+    fontSize: 16,
     color: '#0B2D3E',
-    fontWeight: '500'
+    fontWeight: '600',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    right: 0,
+    backgroundColor: '#57534E',
+    borderRadius: 16,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 24,
+    elevation: 30,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  dropdownItemText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   modalActions: {
     flexDirection: 'row',
     width: '100%',
     gap: 12,
-    marginTop: 24
+    marginTop: 'auto', // Push to bottom
+    paddingTop: 20,
+    zIndex: 1,
   },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 18,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     alignItems: 'center',
@@ -606,23 +759,22 @@ const styles = StyleSheet.create({
   },
   modalCancelText: {
     color: '#64748B',
-    fontWeight: '700',
-    fontSize: 14
+    fontWeight: '800',
+    fontSize: 15
   },
   modalSaveBtn: {
-    flex: 1,
+    flex: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 18,
     backgroundColor: '#0B2D3E',
   },
   modalSaveText: {
     color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14
+    fontWeight: '800',
+    fontSize: 15
   }
-
 });

@@ -1,16 +1,19 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Calendar from 'expo-calendar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Dimensions,
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View
 } from 'react-native';
-import { Calendar, DateData } from 'react-native-calendars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Platform = 'IG' | 'FB' | 'LI';
@@ -30,7 +33,7 @@ interface ScheduledEvent {
 // 15 = IG Malibu Villa
 // 16 = FB Open House, LI Market Report
 const EVENTS_BY_DATE: Record<string, ScheduledEvent[]> = {
-  '2026-02-15': [
+  '2026-03-12': [
     {
       id: '1',
       platform: 'IG',
@@ -38,19 +41,19 @@ const EVENTS_BY_DATE: Record<string, ScheduledEvent[]> = {
       time: '10:00 AM',
       location: 'Malibu, CA',
       status: 'SCHEDULED',
-      color: '#F4F4F5',
-      image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80", // Placeholder if available, else we handle missing image
+      color: '#E6E9F0',
+      image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80",
     },
   ],
-  '2026-02-16': [
+  '2026-03-15': [
     {
       id: '2',
       platform: 'FB',
-      label: 'Open House Promo',
+      label: 'Weekend Open House',
       time: '2:00 PM',
       location: 'Beverly Hills',
       status: 'SCHEDULED',
-      color: '#DBEAFE',
+      color: '#E6E9F0',
       image: null
     },
     {
@@ -60,7 +63,7 @@ const EVENTS_BY_DATE: Record<string, ScheduledEvent[]> = {
       time: '9:00 AM',
       location: 'LinkedIn Article',
       status: 'PUBLISHED',
-      color: '#E5E7EB',
+      color: '#E6E9F0',
       image: null
     },
   ],
@@ -76,153 +79,167 @@ export default function SchedulerScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [currentDate, setCurrentDate] = useState('2026-02-01'); // Initial month
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<ScheduledEvent | null>(null);
+  const [nativeEvents, setNativeEvents] = useState<Record<string, ScheduledEvent[]>>({});
 
-  // Month Navigation
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Calendar.requestCalendarPermissionsAsync();
+        if (status === 'granted') {
+          const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+          // Prepared for native event sync implementation
+        }
+      } catch (err) {
+        console.warn('Native Calendar modules not ready. Ensure you have run a native rebuild after updating app.json.', err);
+      }
+    })();
+  }, []);
+
+  const monthLabel = useMemo(() => {
+    return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }, [currentDate]);
+
   const handlePrevMonth = () => {
-    // Basic date manipulation for demo month switch
     const d = new Date(currentDate);
     d.setMonth(d.getMonth() - 1);
-    setCurrentDate(d.toISOString().split('T')[0]);
+    setCurrentDate(d);
   };
 
   const handleNextMonth = () => {
     const d = new Date(currentDate);
     d.setMonth(d.getMonth() + 1);
-    setCurrentDate(d.toISOString().split('T')[0]);
+    setCurrentDate(d);
   };
 
-  const monthLabel = useMemo(() => {
-    return new Date(currentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const calendarDays = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 is Sunday
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // We want Monday start (like firstDay: 1 in previous)
+    // Adjust firstDayOfMonth to Monday start (0=Mon, 6=Sun)
+    let startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+    const days = [];
+
+    // Previous month filler days
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    for (let i = startOffset - 1; i >= 0; i--) {
+      days.push({
+        day: prevMonthDays - i,
+        month: month - 1,
+        year,
+        isExtra: true,
+        dateString: `${year}-${String(month).padStart(2, '0')}-${String(prevMonthDays - i).padStart(2, '0')}`
+      });
+    }
+
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({
+        day: i,
+        month,
+        year,
+        isExtra: false,
+        dateString: `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+      });
+    }
+
+    // Next month filler
+    const remaining = 42 - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      days.push({
+        day: i,
+        month: month + 1,
+        year,
+        isExtra: true,
+        dateString: `${year}-${String(month + 2).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+      });
+    }
+
+    return days;
   }, [currentDate]);
 
-  // Calendar Theme
-  const theme = useMemo(() => ({
-    backgroundColor: '#ffffff',
-    calendarBackground: '#ffffff',
-    textSectionTitleColor: '#64748B',
-    selectedDayBackgroundColor: '#00adf5',
-    selectedDayTextColor: '#ffffff',
-    todayTextColor: '#2d4150',
-    dayTextColor: '#2d4150',
-    textDisabledColor: '#d9e1e8',
-    dotColor: '#0BA0B2',
-    selectedDotColor: '#ffffff',
-    arrowColor: '#0B2D3E',
-    monthTextColor: '#0B2D3E',
-    indicatorColor: '#0BA0B2',
-    textDayFontFamily: 'System',
-    textMonthFontFamily: 'System',
-    textDayHeaderFontFamily: 'System',
-    textDayFontWeight: '600' as const,
-    textMonthFontWeight: 'bold' as const,
-    textDayHeaderFontWeight: '600' as const,
-    textDayFontSize: 14,
-    textMonthFontSize: 16,
-    textDayHeaderFontSize: 11
-  }), []);
-
-  // Custom Day Component
-  const renderDay = ({ date, state }: { date?: DateData, state?: string }) => {
-    if (!date) return <View />;
-
-    const events = EVENTS_BY_DATE[date.dateString] || [];
-    const isToday = state === 'today';
-    const isDisabled = state === 'disabled';
+  const renderDayCell = (dayObj: any) => {
+    const events = EVENTS_BY_DATE[dayObj.dateString] || [];
+    const isToday = dayObj.dateString === new Date().toISOString().split('T')[0];
 
     return (
-      <Pressable
-        style={[styles.dayContainer, isToday && styles.todayContainer]}
-        onPress={() => {
-          // If day has events, open detail for FIRST event for demo, 
-          // or just log. The request says "click on any event show like this [modal]"
-          // Since the calendar cell is small, tapping it could open a day view list logic.
-          // But usually we just tap the event PILL itself.
-          // Let's make the whole day tappable if it has events? 
-          // Better yet, render pills.
-        }}
-      >
-        <Text style={[styles.dayText, isDisabled && styles.disabledText, isToday && styles.todayText]}>
-          {date.day}
+      <View key={dayObj.dateString} style={styles.dayCell}>
+        <Text style={[
+          styles.dayText,
+          dayObj.isExtra && styles.disabledText,
+          isToday && styles.todayText
+        ]}>
+          {dayObj.day}
         </Text>
 
-        <View style={styles.eventPillContainer}>
-          {events.slice(0, 3).map((ev, i) => (
+        <View style={styles.eventStack}>
+          {events.slice(0, 2).map(ev => (
             <Pressable
               key={ev.id}
-              style={[styles.miniPill, { backgroundColor: ev.color || '#F3F4F6' }]}
+              style={[styles.miniPill, { backgroundColor: ev.color || '#F1F5F9' }]}
               onPress={() => setSelectedEvent(ev)}
             >
               <MaterialCommunityIcons
                 name={PLATFORM_CONFIG[ev.platform].icon as any}
                 size={10}
-                color="#1E293B"
+                color="#0B2341"
               />
-              <Text style={styles.miniPillText} numberOfLines={1}>
-                {ev.label}
-              </Text>
+              <Text style={styles.miniPillText} numberOfLines={1}>{ev.label}</Text>
             </Pressable>
           ))}
-          {events.length > 3 && (
-            <Text style={styles.moreEventsText}>+{events.length - 3} more</Text>
+          {events.length > 2 && (
+            <Text style={styles.moreCount}>+{events.length - 2}</Text>
           )}
         </View>
-      </Pressable>
+      </View>
     );
   };
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
+      colors={['#F0F4F8', '#F1F5F9', '#F8FAFC']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerTop}>
-          <Text style={styles.screenTitle}>Social Calendar</Text>
-          <Text style={styles.screenSubtitle}>
-            View and manage your publishing schedule across all platforms.
-          </Text>
-        </View>
-      </View>
+      <PageHeader
+        title="Scheduler"
+        subtitle="View and manage your publishing schedule across all platforms."
+        onBack={() => router.back()}
+        rightIcon="plus"
+        onRightPress={() => router.push('/(main)/social-hub/create-post')}
+      />
 
       <View style={styles.controlsSection}>
         <View style={styles.monthNav}>
-          <Pressable onPress={handlePrevMonth} hitSlop={10}>
-            <MaterialCommunityIcons name="chevron-left" size={24} color="#0B2D3E" />
+          <Pressable onPress={handlePrevMonth} style={styles.navArrow} hitSlop={10}>
+            <MaterialCommunityIcons name="chevron-left" size={20} color="#0B2341" />
           </Pressable>
           <Text style={styles.monthLabel}>{monthLabel}</Text>
-          <Pressable onPress={handleNextMonth} hitSlop={10}>
-            <MaterialCommunityIcons name="chevron-right" size={24} color="#0B2D3E" />
+          <Pressable onPress={handleNextMonth} style={styles.navArrow} hitSlop={10}>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#0B2341" />
           </Pressable>
         </View>
-        <Pressable
-          style={styles.addPostBtn}
-          onPress={() => router.push('/(main)/social-hub/create-post')}
-        >
-          <MaterialCommunityIcons name="plus" size={16} color="#FFFFFF" />
-          <Text style={styles.addPostText}>Add Post</Text>
-        </Pressable>
       </View>
 
       <View style={styles.calendarContainer}>
-        <Calendar
-          key={currentDate} // Force re-render on month change to ensure custom day rendering context is clean
-          current={currentDate}
-          hideArrows={true} // Custom nav
-          renderHeader={() => null} // Custom header
-          dayComponent={renderDay}
-          theme={theme}
-          firstDay={1} // Monday start
-          hideExtraDays={false}
-          style={styles.calendarStyle}
-        />
+        {/* Weekday Headers */}
+        <View style={styles.weekHeader}>
+          {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(day => (
+            <Text key={day} style={styles.weekHeaderText}>{day}</Text>
+          ))}
+        </View>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.daysGrid}>
+            {calendarDays.map(renderDayCell)}
+          </View>
+        </ScrollView>
       </View>
 
       {/* Event Detail Modal */}
@@ -337,102 +354,118 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
+    justifyContent: 'flex-end',
   },
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 8,
+    borderColor: '#F1F5F9',
+    gap: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  navArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   monthLabel: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#0B2D3E',
-    minWidth: 100,
+    fontWeight: '800',
+    color: '#0B2341',
+    minWidth: 120,
     textAlign: 'center',
-  },
-  addPostBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0B2D3E',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-  },
-  addPostText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
   },
 
   // Calendar
   calendarContainer: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 30,
+    elevation: 5,
     padding: 10,
-    margin: 10
   },
-  calendarStyle: {
-    paddingLeft: 0,
-    paddingRight: 0,
-    height: '90%',
+  weekHeader: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 8,
   },
-  dayContainer: {
-    width: '100%',
-    height: 70, // Taller cells for scheduler feel
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+  weekHeaderText: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+  },
+  daysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  dayCell: {
+    width: (Dimensions.get('window').width - 60) / 7, // 7 columns
+    height: 85,
+    borderRightWidth: 0.5,
+    borderBottomWidth: 0.5,
+    borderColor: '#F1F5F9',
     padding: 4,
   },
-  todayContainer: {
-    backgroundColor: '#F8FAFC',
-  },
   dayText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0B2341',
     marginBottom: 4,
-    marginLeft: 4,
   },
   todayText: {
-    color: '#0BA0B2',
-    fontWeight: '800',
+    color: '#3B82F6',
+    fontWeight: '900',
   },
   disabledText: {
-    color: '#CBD5E1',
+    color: '#E2E8F0',
   },
-  eventPillContainer: {
+  eventStack: {
     gap: 4,
+    marginTop: 2,
   },
   miniPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
-    backgroundColor: '#F1F5F9',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
   },
   miniPillText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#0B2341',
     flex: 1,
   },
-  moreEventsText: {
-    fontSize: 10,
+  moreCount: {
+    fontSize: 9,
     color: '#64748B',
+    fontWeight: '800',
+    marginTop: 2,
     marginLeft: 4,
   },
 

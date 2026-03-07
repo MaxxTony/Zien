@@ -1,28 +1,30 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Dimensions,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PLATFORMS = [
-  { name: 'Instagram', pct: 65, color: '#7C3AED' },
-  { name: 'Facebook', pct: 20, color: '#5B6B7A' },
-  { name: 'LinkedIn', pct: 15, color: '#0BA0B2' },
+  { name: 'Instagram', pct: 65, color: '#E1306C', icon: 'instagram' },
+  { name: 'Facebook', pct: 20, color: '#1877F2', icon: 'facebook' },
+  { name: 'LinkedIn', pct: 15, color: '#0A66C2', icon: 'linkedin' },
 ];
 
 const KPI_CARDS = [
-  { title: 'CLICK THRU RATE', value: '3.2%', change: '+0.8% vs last mo', valueColor: '#0BA0B2' },
-  { title: 'WEB VISITS', value: '1,420', change: '+240 vs last mo', valueColor: '#0B2D3E' },
-  { title: 'LEADS GENERATED', value: '28', change: '+12 vs last mo', valueColor: '#EA580C' },
+  { title: 'CLICK RATE', value: '3.2%', change: '+0.8%', icon: 'cursor-default-click-outline', color: '#0BA0B2' },
+  { title: 'WEB VISITS', value: '1,420', change: '+12%', icon: 'web', color: '#6366F1' },
+  { title: 'LEADS', value: '28', change: '+5%', icon: 'account-plus-outline', color: '#F59E0B' },
 ];
 
 export default function AnalyticsScreen() {
@@ -31,8 +33,7 @@ export default function AnalyticsScreen() {
   const [dateRange] = useState('Last 30 Days');
 
   const { width } = Dimensions.get('window');
-  const padding = 16;
-  const chartWidth = Math.max(280, width - padding * 2 - 24);
+  const chartWidth = width - 40;
 
   const engagementData = useMemo(
     () => ({
@@ -47,99 +48,121 @@ export default function AnalyticsScreen() {
       backgroundGradientFrom: '#FFFFFF',
       backgroundGradientTo: '#FFFFFF',
       decimalPlaces: 0,
-      color: (opacity = 1) => `rgba(11, 160, 178, ${opacity * 0.85})`,
-      labelColor: (opacity = 1) => `rgba(91, 107, 122, ${opacity})`,
-      barPercentage: 0.65,
-      propsForBackgroundLines: { stroke: '#E8EEF6', strokeDasharray: '4 6' },
+      color: (opacity = 1) => `rgba(11, 160, 178, ${opacity * 0.9})`,
+      labelColor: (opacity = 1) => `#94A3B8`,
+      barPercentage: 0.6,
+      propsForBackgroundLines: { stroke: '#F1F5F9', strokeWidth: 1 },
     }),
     []
   );
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
+      colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
       style={[styles.background, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Performance Analytics</Text>
-          <Text style={styles.subtitle}>
-            Deep dive into your social reach and lead conversion.
-          </Text>
-        </View>
-      </View>
+
+      <PageHeader
+        title="Analytics"
+        subtitle="Performance insights and engagement growth."
+        onBack={() => router.back()}
+
+      />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}>
-        {/* Date range + Export */}
+
+
+        {/* Top Actions */}
         <View style={styles.topActions}>
-          <Pressable style={styles.dateRangeBtn}>
-            <Text style={styles.dateRangeText}>{dateRange}</Text>
-            <MaterialCommunityIcons name="chevron-down" size={20} color="#5B6B7A" />
+          <Pressable style={styles.topActionBtn}>
+            <Text style={styles.topActionText}>{dateRange}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={16} color="#0B2341" />
           </Pressable>
-          <Pressable style={styles.exportBtn}>
-            <Text style={styles.exportBtnText}>Export Report</Text>
+          <Pressable style={styles.topActionBtn}>
+            <Text style={[styles.topActionText, { color: '#0B2341' }]}>Export Report</Text>
           </Pressable>
         </View>
 
-        {/* Engagement Growth */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Engagement Growth</Text>
-          <View style={styles.chartWrap}>
-            <BarChart
-              data={engagementData}
-              width={chartWidth}
-              height={200}
-              fromZero
-              showValuesOnTopOfBars={false}
-              withInnerLines
-              withHorizontalLabels
-              withVerticalLabels
-              yAxisLabel=""
-              yAxisSuffix=""
-              chartConfig={chartConfig as any}
-              style={styles.chart}
-            />
-          </View>
+        {/* Chart Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Engagement Growth</Text>
         </View>
 
-        {/* Platform Distribution */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Platform Distribution</Text>
-          {PLATFORMS.map((p) => (
-            <View key={p.name} style={styles.platformRow}>
-              <Text style={styles.platformName}>{p.name}</Text>
-              <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${p.pct}%`, backgroundColor: p.color }]} />
+        <View style={styles.chartCard}>
+          <BarChart
+            data={engagementData}
+            width={chartWidth}
+            height={220}
+            fromZero
+            yAxisLabel=""
+            yAxisSuffix=""
+            chartConfig={chartConfig as any}
+            style={styles.chart}
+            withInnerLines={false}
+          />
+        </View>
+
+        {/* Platform Breakdown */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Platform Reach</Text>
+        </View>
+
+        <View style={styles.platformCard}>
+          {PLATFORMS.map((p, i) => (
+            <View key={i} style={styles.platformRow}>
+              <View style={[styles.platformIcon, { backgroundColor: `${p.color}10` }]}>
+                <MaterialCommunityIcons name={p.icon as any} size={18} color={p.color} />
               </View>
-              <Text style={styles.platformPct}>{p.pct}%</Text>
+              <View style={styles.platformInfo}>
+                <View style={styles.platformTagRow}>
+                  <Text style={styles.platformLabel}>{p.name}</Text>
+                  <Text style={styles.percentText}>{p.pct}%</Text>
+                </View>
+                <View style={styles.progressContainer}>
+                  <View style={[styles.progressFill, { width: `${p.pct}%`, backgroundColor: p.color }]} />
+                </View>
+              </View>
             </View>
           ))}
-          <View style={styles.aiInsight}>
-            <MaterialCommunityIcons name="star-four-points" size={16} color="#0BA0B2" />
-            <Text style={styles.aiInsightLabel}>AI INSIGHT</Text>
-          </View>
-          <Text style={styles.aiInsightText}>
-            "Instagram Stories perform 42% better for video-tours between 6 PM and 8 PM."
-          </Text>
         </View>
 
-        {/* KPI cards - stack on mobile */}
+        {/* AI Insight Upgrade */}
+        <LinearGradient
+          colors={['#0B2341', '#1E293B']}
+          style={styles.aiInsightBox}>
+          <View style={styles.aiHeader}>
+            <View style={styles.pulseContainer}>
+              <View style={styles.pulseInner} />
+            </View>
+            <Text style={styles.aiTitle}>NEURAL SYNC INSIGHT</Text>
+          </View>
+          <Text style={styles.aiMessage}>
+            "Your audience engagement peaks during the 11 AM - 1 PM window on Instagram. Converting these visitors into leads is 4.2x more likely if you include a direct CTA in your captions."
+          </Text>
+          <View style={styles.aiFooter}>
+            <Text style={styles.aiConfidence}>Confidence Score: 98%</Text>
+          </View>
+        </LinearGradient>
+
+        {/* KPI Grid */}
         <View style={styles.kpiGrid}>
-          {KPI_CARDS.map((kpi) => (
-            <View key={kpi.title} style={styles.kpiCard}>
-              <Text style={styles.kpiTitle}>{kpi.title}</Text>
-              <Text style={[styles.kpiValue, { color: kpi.valueColor }]}>{kpi.value}</Text>
-              <Text style={styles.kpiChange}>{kpi.change}</Text>
+          {KPI_CARDS.map((kpi, i) => (
+            <View key={i} style={styles.kpiCard}>
+              <View style={[styles.kpiIconBox, { backgroundColor: `${kpi.color}15` }]}>
+                <MaterialCommunityIcons name={kpi.icon as any} size={20} color={kpi.color} />
+              </View>
+              <View style={styles.kpiContent}>
+                <Text style={styles.kpiLabel}>{kpi.title}</Text>
+                <Text style={styles.kpiVal}>{kpi.value}</Text>
+                <Text style={styles.kpiDiff}>{kpi.change}</Text>
+              </View>
             </View>
           ))}
         </View>
+
+
       </ScrollView>
     </LinearGradient>
   );
@@ -147,135 +170,201 @@ export default function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 10,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-  },
-  headerCenter: { flex: 1 },
-  title: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    letterSpacing: -0.2,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#5B6B7A',
-    fontWeight: '600',
-    marginTop: 4,
-  },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16 },
-  topActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 10,
-  },
-  dateRangeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-  },
-  dateRangeText: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
-  exportBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0BA0B2',
-    backgroundColor: 'rgba(11, 160, 178, 0.08)',
-  },
-  exportBtnText: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    padding: 16,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0B2D3E',
-    marginBottom: 14,
-  },
-  chartWrap: { marginHorizontal: -8, alignItems: 'center' },
-  chart: { borderRadius: 16 },
-  platformRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 10,
-  },
-  platformName: { fontSize: 14, fontWeight: '600', color: '#0B2D3E', width: 72 },
-  progressBarBg: {
-    flex: 1,
-    height: 10,
-    backgroundColor: '#E8EEF6',
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  progressBarFill: { height: '100%', borderRadius: 5 },
-  platformPct: { fontSize: 13, fontWeight: '700', color: '#5B6B7A', width: 36, textAlign: 'right' },
-  aiInsight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 16,
-    marginBottom: 6,
-  },
-  aiInsightLabel: { fontSize: 11, fontWeight: '800', color: '#0BA0B2', letterSpacing: 0.5 },
-  aiInsightText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#5B6B7A',
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
+  scrollContent: { paddingHorizontal: 20 },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    marginTop: 10,
+    marginBottom: 24,
   },
   kpiCard: {
-    flex: 1,
-    minWidth: 100,
+    width: '48%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderRadius: 20,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  kpiTitle: {
+  kpiIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  kpiContent: {},
+  kpiLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  kpiVal: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0B2341',
+  },
+  kpiDiff: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
-    letterSpacing: 0.5,
+    color: '#10B981',
+    marginTop: 2,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0B2341',
+  },
+  topActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  topActionBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8 },
+      android: { elevation: 1 },
+    }),
+  },
+  topActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0B2341',
+  },
+  chartCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  chart: {
+    borderRadius: 16,
+    marginRight: 0, // Kit fix
+  },
+  platformCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    marginBottom: 24,
+  },
+  platformRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  platformIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  platformInfo: {
+    flex: 1,
+  },
+  platformTagRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 6,
   },
-  kpiValue: { fontSize: 24, fontWeight: '900' },
-  kpiChange: { fontSize: 12, fontWeight: '600', color: '#16A34A', marginTop: 4 },
+  platformLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0B2341',
+  },
+  percentText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#64748B',
+  },
+  progressContainer: {
+    height: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  aiInsightBox: {
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  pulseContainer: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(11, 160, 178, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pulseInner: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#0BA0B2',
+  },
+  aiTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0BA0B2',
+    letterSpacing: 1.5,
+  },
+  aiMessage: {
+    fontSize: 14,
+    color: '#CBD5E1',
+    fontWeight: '600',
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  aiFooter: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  aiConfidence: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+  },
 });

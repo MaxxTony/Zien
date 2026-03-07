@@ -1,14 +1,19 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Dimensions,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +23,7 @@ const TABS = [
   { id: 'ai-generated', label: 'AI Generated' },
   { id: 'property', label: 'Property' },
   { id: 'open-house', label: 'Open House' },
-  { id: 'evergreen', label: 'Evergreen' },
+  { id: 'custom', label: 'Custom' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -63,7 +68,7 @@ const ALL_CONTENT: ContentCard[] = [
   },
   {
     id: '4',
-    tag: 'EVERGREEN',
+    tag: 'CUSTOM',
     title: 'First Time Buyer Tips',
     platform: 'Facebook',
     lastUsed: 'Dec 28',
@@ -72,56 +77,86 @@ const ALL_CONTENT: ContentCard[] = [
   },
 ];
 
-function ContentCardItem({ item, width }: { item: ContentCard, width: number }) {
+function DeleteConfirmationModal({
+  visible,
+  onClose,
+  onConfirm,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.deleteOverlay}>
+        <View style={styles.deleteContainer}>
+          <View style={styles.deleteIconWrap}>
+            <View style={styles.deleteIconCircle}>
+              <MaterialCommunityIcons name="trash-can-outline" size={32} color="#EF4444" />
+            </View>
+          </View>
+
+          <Text style={styles.deleteTitle}>Delete Asset?</Text>
+          <Text style={styles.deleteSubtitle}>
+            This action cannot be undone. This asset will be permanently removed from your content library.
+          </Text>
+
+          <View style={styles.deleteActions}>
+            <Pressable style={styles.deleteCancelBtn} onPress={onClose}>
+              <Text style={styles.deleteCancelBtnText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.deleteConfirmBtn} onPress={onConfirm}>
+              <Text style={styles.deleteConfirmBtnText}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function ContentCardItem({
+  item,
+  width,
+  onDelete,
+  onEdit
+}: {
+  item: ContentCard;
+  width: number;
+  onDelete: (id: string) => void;
+  onEdit: (item: ContentCard) => void;
+}) {
   return (
     <View style={[styles.card, { width }]}>
       <View style={styles.cardImageWrap}>
         <Image source={item.image} style={styles.cardImage} resizeMode="cover" />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.4)']}
-          style={styles.cardGradientOverlay}
-        />
         <View style={styles.cardTag}>
           <Text style={styles.cardTagText}>{item.tag}</Text>
         </View>
       </View>
 
       <View style={styles.cardContent}>
-        <View style={styles.titleRow}>
-          <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-        </View>
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
 
-        <View style={styles.metaRow}>
-          <View style={styles.platformBadge}>
-            <MaterialCommunityIcons
-              name={item.platform === 'Multi' ? 'layers-outline' : item.platform.toLowerCase() as any}
-              size={12}
-              color="#64748B"
-            />
-            <Text style={styles.platformText}>{item.platform}</Text>
-          </View>
-          <View style={styles.dotSeparator} />
-          <Text style={styles.lastUsedText}>Last used {item.lastUsed}</Text>
-          <View style={styles.usageContainer}>
-            <MaterialCommunityIcons name="history" size={14} color="#0BA0B2" />
-            <Text style={styles.cardUsage}>{item.usage} {item.usage === 1 ? 'Use' : 'Uses'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.divider} />
+        <Text style={styles.metaText}>
+          {item.platform} • Last used {item.lastUsed}
+        </Text>
 
         <View style={styles.cardFooter}>
-
+          <Text style={styles.usageLabel}>Used {item.usage} times</Text>
 
           <View style={styles.cardActions}>
-            <Pressable style={styles.iconBtn} hitSlop={8}>
-              <MaterialCommunityIcons name="pencil-outline" size={16} color="#475569" />
+            <Pressable style={styles.actionIconButton} onPress={() => onEdit(item)}>
+              <MaterialCommunityIcons name="pencil-outline" size={18} color="#94A3B8" />
             </Pressable>
-            <Pressable style={styles.iconBtn} hitSlop={8}>
-              <MaterialCommunityIcons name="content-copy" size={16} color="#475569" />
+            <Pressable style={styles.actionIconButton}>
+              <MaterialCommunityIcons name="content-copy" size={18} color="#94A3B8" />
             </Pressable>
-            <Pressable style={styles.iconBtn} hitSlop={8}>
-              <MaterialCommunityIcons name="share-variant-outline" size={16} color="#475569" />
+            <Pressable style={styles.actionIconButton}>
+              <MaterialCommunityIcons name="share-variant-outline" size={18} color="#94A3B8" />
+            </Pressable>
+            <Pressable style={styles.actionIconButton} onPress={() => onDelete(item.id)}>
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
             </Pressable>
           </View>
         </View>
@@ -130,28 +165,385 @@ function ContentCardItem({ item, width }: { item: ContentCard, width: number }) 
   );
 }
 
+function ImageSourcePicker({
+  visible,
+  onClose,
+  onSelect
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (source: 'camera' | 'library') => void
+}) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <Pressable style={styles.sourceOverlay} onPress={onClose}>
+        <View style={styles.sourceContainer}>
+          <Text style={styles.sourceTitle}>Upload Content</Text>
+          <View style={styles.sourceGrid}>
+            <Pressable
+              style={styles.sourceBtn}
+              onPress={() => { onSelect('camera'); onClose(); }}
+            >
+              <View style={[styles.sourceIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <MaterialCommunityIcons name="camera" size={28} color="#3B82F6" />
+              </View>
+              <Text style={styles.sourceLabel}>Camera</Text>
+            </Pressable>
+            <Pressable
+              style={styles.sourceBtn}
+              onPress={() => { onSelect('library'); onClose(); }}
+            >
+              <View style={[styles.sourceIconWrap, { backgroundColor: '#F0FDF4' }]}>
+                <MaterialCommunityIcons name="image-multiple" size={28} color="#22C55E" />
+              </View>
+              <Text style={styles.sourceLabel}>Gallery</Text>
+            </Pressable>
+          </View>
+          <Pressable style={styles.sourceCancel} onPress={onClose}>
+            <Text style={styles.sourceCancelText}>Cancel</Text>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function SelectionDropdown({
+  visible,
+  options,
+  selectedValue,
+  onSelect,
+  onClose,
+  top,
+  left,
+  width,
+}: {
+  visible: boolean;
+  options: string[];
+  selectedValue: string;
+  onSelect: (val: string) => void;
+  onClose: () => void;
+  top: number;
+  left: number;
+  width: number;
+}) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <Pressable style={styles.dropdownOverlay} onPress={onClose}>
+        <View style={[styles.dropdownMenu, { top, left, width }]}>
+          {options.map((option) => (
+            <Pressable
+              key={option}
+              style={styles.dropdownOption}
+              onPress={() => {
+                onSelect(option);
+                onClose();
+              }}
+            >
+              <View style={styles.dropdownOptionContent}>
+                {selectedValue === option && (
+                  <MaterialCommunityIcons name="check" size={16} color="#FFF" style={{ marginRight: 8 }} />
+                )}
+                <Text style={styles.dropdownOptionText}>{option}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function ContentFormModal({
+  visible,
+  onClose,
+  onSave,
+  editingItem
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSave: (data: Partial<ContentCard>) => void;
+  editingItem?: ContentCard | null;
+}) {
+  const insets = useSafeAreaInsets();
+  const [assetName, setAssetName] = useState('');
+  const [category, setCategory] = useState('Property');
+  const [platform, setPlatform] = useState('Instagram');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
+
+  useEffect(() => {
+    if (editingItem) {
+      setAssetName(editingItem.title);
+      setCategory(editingItem.tag.charAt(0) + editingItem.tag.slice(1).toLowerCase());
+      setPlatform(editingItem.platform);
+      setSelectedImage(typeof editingItem.image === 'object' ? editingItem.image.uri : null);
+    } else {
+      setAssetName('');
+      setCategory('Property');
+      setPlatform('Instagram');
+      setSelectedImage(null);
+    }
+  }, [editingItem, visible]);
+
+  // Dropdown states
+  const [activeDropdown, setActiveDropdown] = useState<'category' | 'platform' | null>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+
+  const CATEGORIES = ['AI Generated', 'Property', 'Open House', 'Custom'];
+  const PLATFORMS_LIST = ['Instagram', 'Facebook', 'LinkedIn', 'TikTok', 'Multi-Platform'];
+
+  const categoryRef = useRef<View>(null);
+  const platformRef = useRef<View>(null);
+
+  const handleOpenDropdown = (type: 'category' | 'platform', ref: React.RefObject<View | null>) => {
+    ref.current?.measure((x, y, width, height, pageX, pageY) => {
+      setDropdownPos({ top: pageY + height + 5, left: pageX, width });
+      setActiveDropdown(type);
+    });
+  };
+
+  const handleImagePick = async (source: 'camera' | 'library') => {
+    let result;
+    if (source === 'camera') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need camera access to take a photo.');
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need gallery access to pick a photo.');
+        return;
+      }
+      result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+    }
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  const handleInternalSave = () => {
+    onSave({
+      title: assetName,
+      tag: category.toUpperCase(),
+      platform: platform,
+      image: selectedImage ? { uri: selectedImage } : null,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={false}>
+      <View style={[styles.modalBg, { paddingTop: insets.top }]}>
+        <View style={styles.modalHeader}>
+          <Pressable onPress={onClose} style={styles.modalCloseBtn}>
+            <MaterialCommunityIcons name="close" size={20} color="#0B2341" />
+          </Pressable>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Upload Area */}
+            <Pressable
+              style={styles.uploadArea}
+              onPress={() => setSourcePickerVisible(true)}
+            >
+              <View style={styles.imagePreviewWrap}>
+                {selectedImage ? (
+                  <>
+                    <Image source={{ uri: selectedImage }} style={styles.previewImg} />
+                    <Pressable
+                      style={styles.previewCloseBtn}
+                      onPress={() => setSelectedImage(null)}
+                    >
+                      <MaterialCommunityIcons name="close" size={14} color="#0B2341" />
+                    </Pressable>
+                  </>
+                ) : (
+                  <View style={[styles.uploadPlaceholder, { height: 180, width: '100%' }]}>
+                    <View style={styles.uploadIconCircle}>
+                      <MaterialCommunityIcons name="plus" size={32} color="#0B2341" />
+                    </View>
+                    <Text style={styles.uploadTitle}>Upload Content Visual</Text>
+                    <Text style={styles.uploadHint}>Recommended: 1080×1080px (PNG, JPG)</Text>
+                  </View>
+                )}
+              </View>
+            </Pressable>
+
+            {/* Form Content */}
+            <View style={styles.formBody}>
+              <Text style={styles.modalMainTitle}>{editingItem ? 'Edit Content Library' : 'Create Library Content'}</Text>
+              <Text style={styles.modalSubTitle}>
+                {editingItem ? 'Modify the selected high-performing social asset.' : 'Add a new piece of high-performing content to your vault.'}
+              </Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Asset Identity</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Modern Exterior - Bel Air"
+                  value={assetName}
+                  onChangeText={setAssetName}
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Category Type</Text>
+                  <Pressable
+                    ref={categoryRef}
+                    style={styles.dropdownWrap}
+                    onPress={() => handleOpenDropdown('category', categoryRef)}
+                  >
+                    <Text style={styles.dropdownValue}>{category}</Text>
+                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2341" />
+                  </Pressable>
+                </View>
+
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Primary Platform</Text>
+                  <Pressable
+                    ref={platformRef}
+                    style={styles.dropdownWrap}
+                    onPress={() => handleOpenDropdown('platform', platformRef)}
+                  >
+                    <Text style={styles.dropdownValue}>{platform}</Text>
+                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2341" />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Fixed Buttons at Bottom */}
+          <View style={[styles.modalActions, {
+            paddingBottom: Math.max(insets.bottom, 24),
+            paddingHorizontal: 24,
+            paddingTop: 16,
+            backgroundColor: '#FFF',
+            borderTopWidth: 1,
+            borderTopColor: '#F1F5F9'
+          }]}>
+            <Pressable style={styles.cancelBtn} onPress={onClose}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.saveBtn} onPress={handleInternalSave}>
+              <Text style={styles.saveBtnText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Custom Dropdown Menus */}
+        <SelectionDropdown
+          visible={activeDropdown === 'category'}
+          options={CATEGORIES}
+          selectedValue={category}
+          onSelect={setCategory}
+          onClose={() => setActiveDropdown(null)}
+          {...dropdownPos}
+        />
+        <SelectionDropdown
+          visible={activeDropdown === 'platform'}
+          options={PLATFORMS_LIST}
+          selectedValue={platform}
+          onSelect={setPlatform}
+          onClose={() => setActiveDropdown(null)}
+          {...dropdownPos}
+        />
+
+        <ImageSourcePicker
+          visible={sourcePickerVisible}
+          onClose={() => setSourcePickerVisible(false)}
+          onSelect={handleImagePick}
+        />
+      </View>
+    </Modal>
+  );
+}
+
 export default function ContentLibraryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('all');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<ContentCard | null>(null);
+  const [contentList, setContentList] = useState(ALL_CONTENT);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const { width } = Dimensions.get('window');
   const padding = 20;
-  const gap = 16;
-  const isTablet = width > 600;
-  const cardWidth = isTablet ? (width - padding * 2 - gap * 2) / 3 : (width - padding * 2 - gap) / 2;
+  const cardWidth = width - padding * 2;
 
   const filteredCards = useMemo(() => {
-    if (activeTab === 'all') return ALL_CONTENT;
+    if (activeTab === 'all') return contentList;
     const tagMap: Record<string, string> = {
       'ai-generated': 'AI GENERATED',
       'property': 'PROPERTY',
       'open-house': 'OPEN HOUSE',
-      'evergreen': 'EVERGREEN',
+      'custom': 'CUSTOM',
     };
     const targetTag = tagMap[activeTab];
-    return ALL_CONTENT.filter(c => c.tag === targetTag);
-  }, [activeTab]);
+    return contentList.filter(c => c.tag === targetTag);
+  }, [activeTab, contentList]);
+
+  const handleDelete = () => {
+    if (itemToDelete) {
+      setContentList(prev => prev.filter(item => item.id !== itemToDelete));
+      setItemToDelete(null);
+    }
+  };
+
+  const handleSave = (data: Partial<ContentCard>) => {
+    if (editingItem) {
+      // Edit mode
+      setContentList(prev => prev.map(item =>
+        item.id === editingItem.id ? { ...item, ...data } as ContentCard : item
+      ));
+    } else {
+      // Create mode
+      const newItem: ContentCard = {
+        id: Math.random().toString(36).substr(2, 9),
+        usage: 0,
+        lastUsed: 'Just now',
+        ...data,
+      } as ContentCard;
+      setContentList(prev => [newItem, ...prev]);
+    }
+    setEditingItem(null);
+    setModalVisible(false);
+  };
+
+  const openCreateModal = () => {
+    setEditingItem(null);
+    setModalVisible(true);
+  };
+
+  const openEditModal = (item: ContentCard) => {
+    setEditingItem(item);
+    setModalVisible(true);
+  };
 
   return (
     <LinearGradient
@@ -160,55 +552,51 @@ export default function ContentLibraryScreen() {
       end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0F172A" />
-        </Pressable>
-        <View style={styles.headerTop}>
-          <Text style={styles.screenTitle}>Content Library</Text>
-          <Text style={styles.screenSubtitle}>
-            Manage and repurpose your high-performing assets.
-          </Text>
-        </View>
-      </View>
+      <PageHeader
+        title="Content Library"
+        subtitle="Manage and reuse your high-performing social assets."
+        onBack={() => router.back()}
+        rightIcon="plus"
+        onRightPress={openCreateModal}
+      />
 
-      <View style={styles.controlsSection}>
-        {/* Tabs */}
+      <ContentFormModal
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingItem(null);
+        }}
+        onSave={handleSave}
+        editingItem={editingItem}
+      />
+
+      <DeleteConfirmationModal
+        visible={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleDelete}
+      />
+
+      <View style={styles.tabsSection}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsContainer}
-          style={styles.tabsScroll}
+          contentContainerStyle={styles.tabsLayout}
         >
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <Pressable
                 key={tab.id}
-                style={[styles.tab, isActive && styles.tabActive]}
+                style={[styles.tabItem, isActive && styles.tabItemActive]}
                 onPress={() => setActiveTab(tab.id)}
               >
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
                   {tab.label}
                 </Text>
               </Pressable>
             );
           })}
         </ScrollView>
-
-        {/* Import Button */}
-        <Pressable style={styles.importBtn}>
-          <LinearGradient
-            colors={['#0F172A', '#1E293B']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.importBtnGradient}
-          >
-            <MaterialCommunityIcons name="plus" size={16} color="#FFF" />
-            <Text style={styles.importBtnText}>Import Assets</Text>
-          </LinearGradient>
-        </Pressable>
       </View>
 
       <ScrollView
@@ -218,7 +606,13 @@ export default function ContentLibraryScreen() {
       >
         <View style={styles.grid}>
           {filteredCards.map((item) => (
-            <ContentCardItem key={item.id} item={item} width={cardWidth} />
+            <ContentCardItem
+              key={item.id}
+              item={item}
+              width={cardWidth}
+              onDelete={(id) => setItemToDelete(id)}
+              onEdit={openEditModal}
+            />
           ))}
         </View>
         {filteredCards.length === 0 && (
@@ -234,99 +628,36 @@ export default function ContentLibraryScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  header: {
+  tabsSection: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-  headerTop: {
-    flex: 1,
-  },
-  screenTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-  },
-  screenSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
-  },
-
-  controlsSection: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    gap: 16,
-  },
-  tabsScroll: { flexGrow: 0 },
-  tabsContainer: {
-    gap: 10,
+  tabsLayout: {
     paddingRight: 20,
+    gap: 24,
   },
-  tab: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+  tabItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  tabActive: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
+  tabItemActive: {
+    borderBottomColor: '#0B2341',
   },
-  tabLabel: {
-    fontSize: 13,
+  tabText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#94A3B8',
   },
-  tabLabelActive: {
-    color: '#FFFFFF',
+  tabTextActive: {
+    color: '#0B2341',
     fontWeight: '700',
-  },
-
-  importBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  importBtnGradient: {
-    flexDirection: 'row',
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  importBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16 },
 
   grid: {
     flexDirection: 'row',
@@ -336,48 +667,36 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderRadius: 0, // Cards in image look flat or very slightly rounded
     overflow: 'hidden',
-    shadowColor: '#64748B',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 4,
-    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 3,
+    marginBottom: 12,
   },
   cardImageWrap: {
-    height: 150,
-    backgroundColor: '#F8FAFC',
+    height: 200,
+    backgroundColor: '#F1F5F9',
     position: 'relative',
   },
   cardImage: {
     width: '100%',
     height: '100%',
   },
-  cardGradientOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-  },
   cardTag: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 10,
+    right: 10,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backdropFilter: 'blur(4px)',
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: '#0B2341',
   },
   cardTagText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
@@ -385,86 +704,38 @@ const styles = StyleSheet.create({
   cardContent: {
     padding: 16,
   },
-  titleRow: {
-    height: 44, // Fixed height for alignment
-    marginBottom: 6,
-  },
   cardTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
-    lineHeight: 22,
-    letterSpacing: -0.3,
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0B2341',
+    marginBottom: 4,
   },
-
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 16,
-  },
-  platformBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  platformText: {
-    fontSize: 11,
-    fontWeight: '600',
+  metaText: {
+    fontSize: 12,
     color: '#64748B',
-  },
-  dotSeparator: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#CBD5E1',
-  },
-  lastUsedText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '500',
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginBottom: 12,
+    fontWeight: '600',
+    marginBottom: 16,
   },
 
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
   },
-  usageContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#ECFEFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  cardUsage: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0891B2',
+  usageLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0B2341',
   },
   cardActions: {
     flexDirection: 'row',
     gap: 4,
   },
-  iconBtn: {
+  actionIconButton: {
     padding: 6,
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
   },
 
   emptyState: {
@@ -478,5 +749,295 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 14,
     fontWeight: '500',
-  }
+  },
+
+  // Modal Styles
+  modalBg: { flex: 1, backgroundColor: '#FFF' },
+  modalHeader: {
+    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    alignItems: 'flex-end',
+    zIndex: 10,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalScroll: { flex: 1 },
+  modalContent: { paddingBottom: 20 },
+  uploadArea: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  uploadPlaceholder: {
+    height: 240,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  uploadIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  uploadTitle: { fontSize: 17, fontWeight: '900', color: '#0B2341', marginBottom: 4 },
+  uploadHint: { fontSize: 13, color: '#94A3B8', fontWeight: '500' },
+
+  imagePreviewWrap: {
+    height: 280,
+    borderRadius: 20,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  previewImg: { width: '100%', height: '100%' },
+  previewCloseBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+
+  formBody: { paddingHorizontal: 24 },
+  modalMainTitle: { fontSize: 26, fontWeight: '900', color: '#0B2341', marginBottom: 8 },
+  modalSubTitle: { fontSize: 15, color: '#64748B', fontWeight: '600', marginBottom: 32, lineHeight: 22 },
+
+  inputGroup: { marginBottom: 24 },
+  inputLabel: { fontSize: 14, fontWeight: '800', color: '#0B2341', marginBottom: 10 },
+  textInput: {
+    height: 58,
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#0B2341',
+    paddingHorizontal: 20,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0B2341',
+  },
+  row: { flexDirection: 'row', gap: 16 },
+  dropdownWrap: {
+    height: 58,
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  dropdownValue: { fontSize: 15, fontWeight: '600', color: '#0B2341' },
+
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  cancelBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelBtnText: { fontSize: 16, fontWeight: '800', color: '#0B2341' },
+  saveBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#0B2341',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnText: { fontSize: 16, fontWeight: '900', color: '#FFF' },
+
+  // Dropdown Styles
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    backgroundColor: 'rgba(74, 69, 66, 0.95)', // Dark brown/gray translucent
+    borderRadius: 12,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  dropdownOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  dropdownOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dropdownOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // Source Picker Styles
+  sourceOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 35, 65, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  sourceContainer: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  sourceTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0B2341',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  sourceGrid: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 40,
+    marginBottom: 32,
+  },
+  sourceBtn: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  sourceIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sourceLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  sourceCancel: {
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sourceCancelText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+
+  // Delete Modal Styles
+  deleteOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 35, 65, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  deleteContainer: {
+    backgroundColor: '#FFF',
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+  },
+  deleteIconWrap: {
+    marginBottom: 20,
+  },
+  deleteIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0B2341',
+    marginBottom: 12,
+  },
+  deleteSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  deleteActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  deleteCancelBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0B2341',
+  },
+  deleteConfirmBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteConfirmBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFF',
+  },
 });

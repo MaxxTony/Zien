@@ -86,6 +86,13 @@
           "locationPermission": "Allow $(PRODUCT_NAME) to use your location"
         }
       ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Zien needs access to your calendar to schedule property viewings and manage your social posting timeline.",
+          "remindersPermission": "Zien needs access to reminders to help you track follow-ups and task deadlines."
+        }
+      ],
       "@react-native-voice/voice"
     ],
     "experiments": {

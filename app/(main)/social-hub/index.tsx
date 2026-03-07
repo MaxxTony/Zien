@@ -1,8 +1,10 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Dimensions,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,14 +13,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const HUB_SECTIONS = [
-  { id: 'create-post', label: 'Create Post', icon: 'plus-box-outline' as const, route: '/(main)/social-hub/create-post' as const },
-  { id: 'content-library', label: 'Content Library', icon: 'file-document-outline' as const, route: '/(main)/social-hub/content-library' as const },
-  { id: 'scheduler', label: 'Scheduler', icon: 'calendar-blank-outline' as const, route: '/(main)/social-hub/scheduler' as const },
-  { id: 'campaigns', label: 'Campaigns', icon: 'flag-outline' as const, route: '/(main)/social-hub/campaigns' as const },
-  { id: 'analytics', label: 'Analytics', icon: 'chart-bar' as const, route: '/(main)/social-hub/analytics' as const },
-  { id: 'automation-rules', label: 'Automation Rules', icon: 'lightning-bolt-outline' as const, route: '/(main)/social-hub/automation-rules' as const },
-  { id: 'accounts', label: 'Accounts', icon: 'account-group-outline' as const, route: '/(main)/social-hub/accounts' as const },
+const HUB_TABS = [
+  { id: 'Overview', label: 'Overview', icon: 'view-grid-outline' as const },
+  { id: 'Create Post', label: 'Create Post', icon: 'plus-box-outline' as const, route: '/(main)/social-hub/create-post' },
+  { id: 'Content Library', label: 'Content Library', icon: 'image-outline' as const, route: '/(main)/social-hub/content-library' },
+  { id: 'Scheduler', label: 'Scheduler', icon: 'calendar-blank-outline' as const, route: '/(main)/social-hub/scheduler' },
+  { id: 'Campaigns', label: 'Campaigns', icon: 'flag-outline' as const, route: '/(main)/social-hub/campaigns' },
+  { id: 'Templates', label: 'Templates', icon: 'content-copy' as const, route: '/(main)/social-hub/templates' },
+  { id: 'Analytics', label: 'Analytics', icon: 'chart-bar' as const, route: '/(main)/social-hub/analytics' },
+  { id: 'Automation Rules', label: 'Automation Rules', icon: 'lightning-bolt-outline' as const, route: '/(main)/social-hub/automation-rules' },
+  { id: 'Accounts Setting', label: 'Accounts Setting', icon: 'account-group-outline' as const, route: '/(main)/social-hub/accounts' },
 ];
 
 const STAT_CARDS = [
@@ -29,25 +33,27 @@ const STAT_CARDS = [
 ];
 
 const UPCOMING_POSTS = [
-  { id: '1', title: 'New Listing: 123 Business Way', platform: 'Instagram', when: 'Today, 3:00 PM' },
-  { id: '2', title: 'Open House Weekend', platform: 'Facebook', when: 'Tomorrow, 10:00 AM' },
-  { id: '3', title: 'Market Update Q1', platform: 'LinkedIn', when: 'Jan 22, 2:00 PM' },
+  { id: '1', title: 'New Listing: 123 Business Way', platform: 'Instagram', when: 'Today, 3:00 PM', image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=200' },
+  { id: '2', title: 'Open House This Weekend!', platform: 'Facebook', when: 'Tomorrow, 10:00 AM', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=200' },
+  { id: '3', title: 'Market Update: Los Angeles', platform: 'LinkedIn', when: 'Jan 22, 2:00 PM', image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=200' },
 ];
 
-const AI_TEMPLATES = [
-  'Just Listed Announcement',
-  'Open House Promo (Weekend)',
-  'Sold: Success Story',
-  'Market Insight Digest',
+const SOCIAL_TEMPLATES = [
+  { id: '1', title: 'Listing Showcase', sub: 'Instagram • High Impact', icon: 'image-outline' as const },
+  { id: '2', title: 'Open House Promo', sub: 'Facebook • Event Drive', icon: 'calendar-star' as const },
+  { id: '3', title: 'Market Success Story', sub: 'LinkedIn • B2B Trust', icon: 'trending-up' as const },
 ];
+
 
 export default function SocialHubScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = Dimensions.get('window');
-  const padding = 16;
+  const hPadding = 18;
   const gap = 12;
-  const statCardWidth = (width - padding * 2 - gap) / 2;
+  const statCardWidth = (width - hPadding * 2 - gap) / 2;
+
+
 
   return (
     <LinearGradient
@@ -55,388 +61,485 @@ export default function SocialHubScreen() {
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Social Media Hub</Text>
-          <Text style={styles.subtitle}>Automate your property promotion and engage with your audience.</Text>
-        </View>
-      </View>
+
+      {/* Page Header */}
+      <PageHeader
+        title="Social Media"
+        subtitle="Automate your property promotion and engage with your audience."
+        onBack={() => router.back()}
+      />
+
+
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        {/* Actions row */}
-        <View style={styles.actionsRow}>
-          <Pressable style={styles.secondaryBtn} onPress={() => router.push('/(main)/social-hub/accounts')}>
-            <MaterialCommunityIcons name="cog-outline" size={18} color="#0B2D3E" />
-            <Text style={styles.secondaryBtnText}>Account Settings</Text>
+
+
+        {/* Header Actions */}
+        <View style={styles.headerActionsMobile}>
+          <Pressable style={styles.accountBtn} onPress={() => router.push('/(main)/social-hub/accounts')}>
+            <Text style={styles.accountBtnText}>Account Setting</Text>
           </Pressable>
-          <Pressable
-            style={styles.primaryBtn}
-            onPress={() => router.push('/(main)/social-hub/create-post')}>
-            <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
-            <Text style={styles.primaryBtnText}>Create New Post</Text>
+          <Pressable style={styles.createBtn} onPress={() => router.push('/(main)/social-hub/create-post')}>
+            <MaterialCommunityIcons name="plus" size={16} color="#FFF" />
+            <Text style={styles.createBtnText}>Create New Post</Text>
           </Pressable>
         </View>
 
-        {/* Stats cards */}
-        <Text style={styles.sectionTitle}>Overview</Text>
+        {/* Overview Section Heading */}
+        <View style={styles.overviewHeader}>
+          <MaterialCommunityIcons name="view-grid-outline" size={20} color="#0B2D3E" />
+          <Text style={styles.overviewHeaderText}>Overview</Text>
+        </View>
+
+        {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          {STAT_CARDS.map((card, idx) => (
-            <View key={card.title} style={[styles.statCard, { width: statCardWidth }]}>
-              <View style={styles.statIconWrap}>
-                <MaterialCommunityIcons name={card.icon} size={20} color="#0B2D3E" />
+          {STAT_CARDS.map((card) => (
+            <View key={card.title} style={[styles.statCardPremium, { width: statCardWidth }]}>
+              <View style={styles.statTop}>
+                <View style={styles.statIconCircle}>
+                  <MaterialCommunityIcons name={card.icon} size={18} color="#0B2D3E" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.statLabel}>{card.title.toUpperCase()}</Text>
+                  <View style={styles.statValueRow}>
+                    <Text style={[styles.statValueText, typeof card.value === 'string' && card.value.length > 8 && { fontSize: 14 }]}>
+                      {card.value}
+                    </Text>
+                    {card.meta && <Text style={styles.statMetaText}>{card.meta}</Text>}
+                  </View>
+                </View>
               </View>
-              <Text style={styles.statValue}>{card.value}</Text>
-              <Text style={styles.statTitle}>{card.title}</Text>
-              <Text style={styles.statMeta}>{card.meta}</Text>
             </View>
           ))}
         </View>
 
-
-
-        {/* Upcoming Posts */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Upcoming Posts</Text>
+        {/* Upcoming Posts Section */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitleText}>Upcoming Posts</Text>
             <Pressable onPress={() => router.push('/(main)/social-hub/scheduler')}>
-              <Text style={styles.cardLink}>View Calendar →</Text>
+              <Text style={styles.sectionLinkText}>View Calendar →</Text>
             </Pressable>
           </View>
-          {UPCOMING_POSTS.map((post) => (
-            <View key={post.id} style={styles.postRow}>
-              <View style={styles.postThumb} />
-              <View style={styles.postInfo}>
-                <Text style={styles.postTitle} numberOfLines={1}>{post.title}</Text>
-                <Text style={styles.postMeta}>{post.platform} · {post.when}</Text>
+          <View style={styles.postsList}>
+            {UPCOMING_POSTS.map((post) => (
+              <View key={post.id} style={styles.postCard}>
+                <Image source={{ uri: post.image }} style={styles.postImage} />
+                <View style={styles.postContent}>
+                  <Text style={styles.postTitleText} numberOfLines={1}>{post.title}</Text>
+                  <Text style={styles.postSubText}>{post.platform} • {post.when}</Text>
+                </View>
+                <Pressable style={styles.editBtn}>
+                  <Text style={styles.editBtnText}>Edit Post</Text>
+                </Pressable>
               </View>
-              <Pressable style={styles.editPostBtn}>
-                <Text style={styles.editPostText}>Edit Post</Text>
+            ))}
+          </View>
+        </View>
+
+        {/* Stacked Layout for Mobile: Templates & Powerups each taking full width */}
+        <View style={styles.stackedCardCol}>
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitleText} numberOfLines={1}>Social Templates</Text>
+              <Pressable hitSlop={10}>
+                <Text style={styles.sectionLinkText}>Manage →</Text>
               </Pressable>
             </View>
-          ))}
-        </View>
-
-        {/* Quick AI Templates */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Quick AI Templates</Text>
-          {AI_TEMPLATES.map((name, i) => (
-            <Pressable key={name} style={styles.templateRow}>
-              <MaterialCommunityIcons name="star-four-points" size={18} color="#0BA0B2" />
-              <Text style={styles.templateText}>{name}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Power-Ups */}
-        <View style={styles.powerUpCard}>
-          <Text style={styles.powerUpTitle}>Power-Ups</Text>
-          <Text style={styles.powerUpDesc}>
-            Connect more accounts to unlock advanced analytics and multi-platform posting.
-          </Text>
-          <View style={styles.platformRow}>
-            <View style={styles.platformIcon}>
-              <MaterialCommunityIcons name="instagram" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.platformIcon}>
-              <MaterialCommunityIcons name="facebook" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.platformIcon}>
-              <MaterialCommunityIcons name="linkedin" size={24} color="#FFFFFF" />
-            </View>
-          </View>
-        </View>
-
-        {/* AI Credits Card */}
-        <View style={styles.usageCard}>
-          <View style={styles.usageHeader}>
-            <View style={styles.usageTitleRow}>
-              <MaterialCommunityIcons name="lightning-bolt" size={20} color="#0BA0B2" />
-              <Text style={styles.usageTitle}>AI Usage</Text>
-            </View>
-            <Text style={styles.usagePercent}>85%</Text>
-          </View>
-          <View style={styles.usageBarBg}>
-            <LinearGradient
-              colors={['#0BA0B2', '#2DD4BF']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ width: '85%', height: '100%', borderRadius: 4 }}
-            />
-          </View>
-          <Text style={styles.usageSubtext}>850 of 1,000 credits used this month.</Text>
-        </View>
-
-        {/* Hub sections */}
-        <Text style={styles.sectionTitle}>Hub sections</Text>
-        <View style={styles.sectionsList}>
-          {HUB_SECTIONS.map((section) => (
-            <Pressable
-              key={section.id}
-              style={({ pressed }) => [styles.sectionRow, pressed && styles.sectionRowPressed]}
-              onPress={() => section.route && router.push(section.route)}
-              disabled={!section.route}>
-              <View style={styles.sectionIconWrap}>
-                <MaterialCommunityIcons name={section.icon} size={22} color="#0B2D3E" />
-              </View>
-              <Text style={styles.sectionLabel}>{section.label}</Text>
-              {section.route ? (
-                <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-              ) : (
-                <View style={styles.currentBadge}>
-                  <Text style={styles.currentBadgeText}>Here</Text>
+            <View style={styles.templatesList}>
+              {SOCIAL_TEMPLATES.map((tmp) => (
+                <View key={tmp.id} style={styles.templateCard}>
+                  <View style={styles.templateIconSmall}>
+                    <MaterialCommunityIcons name={tmp.icon} size={16} color="#0B2D3E" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.templateTitleText}>{tmp.title}</Text>
+                    <Text style={styles.templateSubText}>{tmp.sub}</Text>
+                  </View>
                 </View>
-              )}
-            </Pressable>
-          ))}
+              ))}
+            </View>
+          </View>
+
+          {/* Power-Ups Card */}
+          <View style={styles.powerUpFixedCard}>
+            <Text style={styles.powerUpTitleText}>Power-Ups</Text>
+            <Text style={styles.powerUpDescText}>
+              Connect more accounts to unlock advanced analytics.
+            </Text>
+            <View style={styles.platformIconRow}>
+              <View style={styles.platformIconCircle}><MaterialCommunityIcons name="instagram" size={18} color="#FFF" /></View>
+              <View style={styles.platformIconCircle}><MaterialCommunityIcons name="facebook" size={18} color="#FFF" /></View>
+              <View style={styles.platformIconCircle}><MaterialCommunityIcons name="linkedin" size={18} color="#FFF" /></View>
+            </View>
+          </View>
         </View>
 
-        <View style={{ height: 24 }} />
+        {/* AI Usage Card (Simplified) */}
+        <View style={styles.usageCardPremium}>
+          <View style={styles.usageInfo}>
+            <MaterialCommunityIcons name="lightning-bolt" size={18} color="#0D9488" />
+            <Text style={styles.usageLabel}>AI Generation Credits: <Text style={{ fontWeight: '800' }}>150/1000 left</Text></Text>
+          </View>
+          <View style={styles.usageBar}>
+            <View style={[styles.usageFill, { width: '85%' }]} />
+          </View>
+        </View>
+
+        {/* Restore Hub Sections List at bottom */}
+        <View style={styles.restoreHubContainer}>
+          <Text style={styles.restoreHubTitle}>Explore Social Hub</Text>
+          <View style={styles.restoreHubList}>
+            {HUB_TABS.filter(t => t.id !== 'Overview').map((tab) => (
+              <Pressable
+                key={tab.id}
+                style={styles.restoreHubRow}
+                onPress={() => tab.route && router.push(tab.route as any)}>
+                <View style={styles.restoreHubIconWrap}>
+                  <MaterialCommunityIcons name={tab.icon} size={20} color="#0B2D3E" />
+                </View>
+                <Text style={styles.restoreHubLabel}>{tab.label}</Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </LinearGradient>
   );
 }
 
+// Custom Image component to avoid errors if expo-image is missing, but it was in header
+import { Image } from 'expo-image';
+
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 10,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-  },
-  headerCenter: { flex: 1 },
-  title: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#5B6B7A',
-    fontWeight: '600',
-    marginTop: 2,
-  },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16 },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
-  },
-  secondaryBtn: {
+  scrollContent: { paddingHorizontal: 18 },
+
+
+
+  // Overview Header
+  overviewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
+    gap: 10,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
-  primaryBtn: {
+  overviewHeaderText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+
+  // Restore Hub Sections
+  restoreHubContainer: {
+    marginTop: 24,
+  },
+  restoreHubTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    marginBottom: 16,
+  },
+  restoreHubList: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  restoreHubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  restoreHubIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restoreHubLabel: {
     flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+
+  // Header Actions Mobile
+  headerActionsMobile: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 32,
+    paddingTop: 8,
+  },
+  accountBtn: {
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+  },
+  accountBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  createBtn: {
+    flex: 1,
+    backgroundColor: '#0B2D3E',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    backgroundColor: '#0B2D3E',
-    borderRadius: 12,
   },
-  primaryBtnText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    marginBottom: 12,
+  createBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFF',
   },
+
+  // Stats Premium
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
     marginBottom: 24,
   },
-  statCard: {
+  statCardPremium: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    padding: 14,
-  },
-  statIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(11, 45, 62, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  statValue: { fontSize: 20, fontWeight: '900', color: '#0B2D3E' },
-  statTitle: { fontSize: 12, fontWeight: '600', color: '#5B6B7A', marginTop: 2 },
-  statMeta: { fontSize: 11, fontWeight: '700', color: '#0BA0B2', marginTop: 2 },
-  sectionsList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F4F8',
-  },
-  sectionRowPressed: { backgroundColor: '#F8FBFF' },
-  sectionIconWrap: {
-    width: 40,
-    height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(11, 160, 178, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 14,
+    ...Platform.select({
+      ios: { shadowColor: '#0B2D3E', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8 },
+      android: { elevation: 2 }
+    })
   },
-  sectionLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#0B2D3E' },
-  currentBadge: {
-    backgroundColor: '#0BA0B2',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  currentBadgeText: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    padding: 16,
-    marginBottom: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: '#0B2D3E', marginBottom: 12 },
-  cardLink: { fontSize: 13, fontWeight: '700', color: '#0BA0B2' },
-  postRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F4F8',
-    gap: 12,
-  },
-  postThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#E8EEF6',
-  },
-  postInfo: { flex: 1 },
-  postTitle: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
-  postMeta: { fontSize: 12, color: '#5B6B7A', marginTop: 2 },
-  editPostBtn: { paddingVertical: 6, paddingHorizontal: 10 },
-  editPostText: { fontSize: 13, fontWeight: '700', color: '#0BA0B2' },
-  templateRow: {
+  statTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F4F8',
   },
-  templateText: { fontSize: 14, fontWeight: '600', color: '#0B2D3E' },
-  powerUpCard: {
-    backgroundColor: '#0B2D3E',
+  statIconCircle: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-  },
-  powerUpTitle: { fontSize: 16, fontWeight: '800', color: '#FFFFFF', marginBottom: 6 },
-  powerUpDesc: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 14 },
-  platformRow: { flexDirection: 'row', gap: 12 },
-  platformIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  platformEmoji: { fontSize: 16, color: '#FFFFFF' },
-  usageCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 1,
+  statLabel: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
   },
-  usageHeader: {
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  statValueText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  statMetaText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+
+  // Sections
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.03, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
+      android: { elevation: 1 }
+    })
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
   },
-  usageTitleRow: {
+  sectionTitleText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  sectionLinkText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0D9488',
+  },
+
+  // Posts
+  postsList: { gap: 12 },
+  postCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
-  usageTitle: {
-    fontSize: 15,
+  postImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0',
+  },
+  postContent: { flex: 1 },
+  postTitleText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0B2D3E',
+    marginBottom: 2,
+  },
+  postSubText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  editBtn: {
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  editBtnText: {
+    fontSize: 11,
     fontWeight: '800',
     color: '#0B2D3E',
   },
-  usagePercent: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0BA0B2',
+
+  // Stacked Row
+  stackedCardCol: {
+    gap: 12,
+    marginBottom: 16,
   },
-  usageBarBg: {
-    height: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 4,
+  templatesList: { gap: 10 },
+  templateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F8FAFC',
+    padding: 10,
+    borderRadius: 12,
+  },
+  templateIconSmall: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  templateTitleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  templateSubText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+
+  // Power Up Fixed
+  powerUpFixedCard: {
+    backgroundColor: '#0B2D3E',
+    borderRadius: 20,
+    padding: 18,
+    justifyContent: 'center',
+  },
+  powerUpTitleText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFF',
+    marginBottom: 6,
+  },
+  powerUpDescText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    marginBottom: 16,
+  },
+  platformIconRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  platformIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Usage Premium
+  usageCardPremium: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  usageInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 10,
+  },
+  usageLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  usageBar: {
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
     overflow: 'hidden',
   },
-  usageSubtext: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
+  usageFill: {
+    height: '100%',
+    backgroundColor: '#0D9488',
+    borderRadius: 3,
   },
 });
+

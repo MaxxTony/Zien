@@ -27,7 +27,8 @@ export const PageHeader = memo(function PageHeader({
     rightIcon,
     onRightPress,
     rightIconColor = Theme.accentTeal,
-}: PageHeaderProps) {
+    children,
+}: PageHeaderProps & { children?: React.ReactNode }) {
     return (
         <View style={styles.wrap}>
             {/* ── Back button ── */}
@@ -48,8 +49,10 @@ export const PageHeader = memo(function PageHeader({
                 {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
 
-            {/* ── Optional right action button ── */}
-            {rightIcon && (
+            {/* ── Optional right action button or children ── */}
+            {children ? (
+                <View>{children}</View>
+            ) : rightIcon ? (
                 <Pressable
                     style={({ pressed }) => [
                         styles.rightBtn,
@@ -61,6 +64,8 @@ export const PageHeader = memo(function PageHeader({
                 >
                     <MaterialCommunityIcons name={rightIcon as any} size={20} color={rightIconColor} />
                 </Pressable>
+            ) : (
+                <View style={styles.rightPlaceholder} />
             )}
         </View>
     );
