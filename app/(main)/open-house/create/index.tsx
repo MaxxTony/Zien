@@ -231,7 +231,8 @@ function Step1SelectProperty({
         <Pressable style={styles.addPropertyCard} onPress={() => router.push('/(main)/properties/create')}>
           <MaterialCommunityIcons name="plus" size={32} color="#0D9488" />
           <Text style={styles.addPropertyText}>ADD NEW PROPERTY</Text>
-        </Pressable>      </ScrollView>
+        </Pressable>
+      </ScrollView>
     </View>
   );
 }
@@ -748,41 +749,46 @@ function Step5SheetReady({
 }) {
   return (
     <View style={styles.stepContent}>
-      <ScrollView style={styles.readyScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.readyScrollContent}>
-        <View style={styles.readyIconWrap}>
-          <MaterialCommunityIcons name="rocket-launch" size={56} color="#EA580C" />
-        </View>
-        <Text style={styles.readyTitle}>Sheet Is Ready!</Text>
-        <Text style={styles.readySubtitle}>
-          Your open house marketing engine is fully tuned and multi-channel ready.
-        </Text>
-
-        <View style={styles.readyActionsGrid}>
-          <Pressable style={styles.readyActionCard}>
-            <MaterialCommunityIcons name="file-document-outline" size={24} color="#0B2D3E" />
-            <Text style={styles.readyActionCardLabel}>Download PDF</Text>
-          </Pressable>
-          <Pressable style={styles.readyActionCard}>
-            <MaterialCommunityIcons name="link-variant" size={24} color="#0B2D3E" />
-            <Text style={styles.readyActionCardLabel}>Digital Share Link</Text>
-          </Pressable>
-          <Pressable style={styles.readyActionCard}>
-            <MaterialCommunityIcons name="share-variant" size={24} color="#0B2D3E" />
-            <Text style={styles.readyActionCardLabel}>Social Media Pack</Text>
-          </Pressable>
-          <View style={[styles.readyActionCard, styles.readyActionCardDisabled]}>
-            <MaterialCommunityIcons name="truck-delivery-outline" size={24} color="#9CA3AF" />
-            <Text style={styles.readyActionCardLabelMuted}>Print & Ship</Text>
-            <Text style={styles.readyComingSoon}>COMING SOON</Text>
-          </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.readyMobileScrollContent}
+      >
+        <View style={styles.readyMobileHeader}>
+          <Text style={styles.readyMobileTitle}>Event Added Successfully!</Text>
+          <Text style={styles.readyMobileSubtitle}>
+            Your open house marketing engine is fully tuned and multi-channel ready.
+          </Text>
         </View>
 
-        <View style={styles.readyButtonColumn}>
-          <Pressable style={styles.readyPrimaryButton} onPress={onGoToDashboard}>
-            <Text style={styles.readyPrimaryButtonText}>Go to Campaigns Dashboard</Text>
+        <View style={styles.readyMobileGrid}>
+          <Pressable style={styles.readyMobileCard}>
+            <MaterialCommunityIcons name="file-document-outline" size={32} color="#0B2D3E" />
+            <Text style={styles.readyMobileCardLabel}>Download PDF</Text>
+            <Text style={styles.readyMobileCardSubLabel}>PROPERTY DOSSIER</Text>
           </Pressable>
-          <Pressable style={styles.readySecondaryButton} onPress={onCreateAnother}>
-            <Text style={styles.readySecondaryButtonText}>Create Another</Text>
+          <Pressable style={styles.readyMobileCard}>
+            <MaterialCommunityIcons name="link-variant" size={32} color="#0B2D3E" />
+            <Text style={styles.readyMobileCardLabel}>Digital Share Link</Text>
+            <Text style={styles.readyMobileCardSubLabel}>VISITOR PORTAL</Text>
+          </Pressable>
+          <Pressable style={styles.readyMobileCard}>
+            <MaterialCommunityIcons name="bullhorn-outline" size={32} color="#0B2D3E" />
+            <Text style={styles.readyMobileCardLabel}>Add to campaigns</Text>
+            <Text style={styles.readyMobileCardSubLabel}>ADD TO CAMPAIGNS</Text>
+          </Pressable>
+          <Pressable style={styles.readyMobileCard}>
+            <MaterialCommunityIcons name="email-plus-outline" size={32} color="#0B2D3E" />
+            <Text style={styles.readyMobileCardLabel}>Email Automation</Text>
+            <Text style={styles.readyMobileCardSubLabel}>CREATE AI AUTOMATION</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.readyMobileActions}>
+          <Pressable style={styles.readyMobilePrimaryBtn} onPress={onGoToDashboard}>
+            <Text style={styles.readyMobilePrimaryBtnText}>Manage Live Open Houses</Text>
+          </Pressable>
+          <Pressable style={styles.readyMobileSecondaryBtn} onPress={onCreateAnother}>
+            <Text style={styles.readyMobileSecondaryBtnText}>Create Another</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -1203,120 +1209,101 @@ const styles = StyleSheet.create({
       android: { elevation: 2 },
     }),
   },
-  readyScroll: {
-    flex: 1,
-  },
-  readyScrollContent: {
-    paddingBottom: 32,
+  // Mobile Optimized Step 5 Styles
+  readyMobileScrollContent: {
+    paddingBottom: 40,
     alignItems: 'center',
   },
-  readyIconWrap: {
-    marginTop: 16,
-    marginBottom: 16,
+  readyMobileHeader: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
-  readyTitle: {
-    fontSize: 26,
+  readyMobileTitle: {
+    fontSize: 24,
     fontWeight: '900',
     color: '#0B2D3E',
-    letterSpacing: -0.3,
     textAlign: 'center',
     marginBottom: 10,
   },
-  readySubtitle: {
+  readyMobileSubtitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#5B6B7A',
-    lineHeight: 20,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: 28,
-    paddingHorizontal: 8,
+    lineHeight: 20,
   },
-  readyActionsGrid: {
+  readyMobileGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
     gap: 12,
-    width: '100%',
-    marginBottom: 28,
+    marginBottom: 40,
   },
-  readyActionCard: {
+  readyMobileCard: {
     width: '48%',
-    minWidth: 0,
-    backgroundColor: '#FFFFFF',
+    aspectRatio: 1,
+    backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E4EAF2',
+    borderColor: '#F1F5F9',
     ...Platform.select({
       ios: {
         shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
       },
       android: { elevation: 2 },
     }),
   },
-  readyActionCardDisabled: {
-    opacity: 0.9,
-    backgroundColor: '#F8FAFC',
-  },
-  readyActionCardLabel: {
+  readyMobileCardLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0B2D3E',
     marginTop: 12,
+    textAlign: 'center',
   },
-  readyActionCardLabelMuted: {
-    fontSize: 13,
+  readyMobileCardSubLabel: {
+    fontSize: 8,
     fontWeight: '700',
-    color: '#9CA3AF',
-    marginTop: 12,
+    color: '#94A3B8',
+    marginTop: 4,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  readyComingSoon: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#EA580C',
-    letterSpacing: 0.3,
-    marginTop: 6,
-  },
-  readyButtonColumn: {
+  readyMobileActions: {
     width: '100%',
+    paddingHorizontal: 16,
     gap: 12,
   },
-  readyPrimaryButton: {
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 12,
+  readyMobilePrimaryBtn: {
     backgroundColor: '#0B2D3E',
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 14,
     alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B2D3E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
-        shadowRadius: 4,
-      },
-      android: { elevation: 2 },
-    }),
   },
-  readyPrimaryButtonText: {
+  readyMobilePrimaryBtnText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
   },
-  readySecondaryButton: {
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 12,
+  readyMobileSecondaryBtn: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#0B2D3E',
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  readySecondaryButtonText: {
+  readyMobileSecondaryBtnText: {
     fontSize: 15,
     fontWeight: '700',
     color: '#0B2D3E',

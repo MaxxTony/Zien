@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActionSheetIOS,
     Animated,
     Dimensions,
     Modal,
@@ -125,21 +124,7 @@ export default function EventDashboardScreen() {
     };
 
     const triggerImagePicker = () => {
-        if (Platform.OS === 'ios') {
-            ActionSheetIOS.showActionSheetWithOptions(
-                {
-                    options: ['Cancel', 'Take Photo', 'Choose from Gallery'],
-                    cancelButtonIndex: 0,
-                    tintColor: '#0D9488'
-                },
-                (buttonIndex) => {
-                    if (buttonIndex === 1) handleAddPhoto('camera');
-                    if (buttonIndex === 2) handleAddPhoto('library');
-                }
-            );
-        } else {
-            setShowPickerOptions(true);
-        }
+        setShowPickerOptions(true);
     };
 
     // Animation for blinking dot
@@ -903,7 +888,7 @@ export default function EventDashboardScreen() {
                 </Pressable>
             </Modal>
 
-            {/* Android Image Picker Modal */}
+            {/* Photo Picker Bottom Sheet */}
             <Modal
                 visible={showPickerOptions}
                 transparent
@@ -911,17 +896,37 @@ export default function EventDashboardScreen() {
                 onRequestClose={() => setShowPickerOptions(false)}>
                 <Pressable style={styles.modalBackdrop} onPress={() => setShowPickerOptions(false)}>
                     <View style={styles.pickerModalContent}>
-                        <Text style={styles.pickerModalTitle}>Add Property Photos</Text>
-                        <Pressable style={styles.pickerOption} onPress={() => handleAddPhoto('camera')}>
-                            <MaterialCommunityIcons name="camera" size={24} color="#0D9488" />
-                            <Text style={styles.pickerOptionText}>Take Photo</Text>
-                        </Pressable>
-                        <Pressable style={styles.pickerOption} onPress={() => handleAddPhoto('library')}>
-                            <MaterialCommunityIcons name="image-multiple" size={24} color="#0D9488" />
-                            <Text style={styles.pickerOptionText}>Choose from Gallery</Text>
-                        </Pressable>
-                        <Pressable style={styles.pickerCancel} onPress={() => setShowPickerOptions(false)}>
-                            <Text style={styles.pickerCancelText}>Cancel</Text>
+                        <View style={styles.pickerModalHeader}>
+                            <View style={styles.pickerHandle} />
+                            <Text style={styles.pickerModalTitle}>Add Property Photos</Text>
+                        </View>
+
+                        <View style={styles.pickerOptionsContainer}>
+                            <Pressable style={styles.pickerOption} onPress={() => handleAddPhoto('camera')}>
+                                <View style={styles.pickerIconWrap}>
+                                    <MaterialCommunityIcons name="camera" size={24} color="#0B2D3E" />
+                                </View>
+                                <View style={styles.pickerOptionTextContainer}>
+                                    <Text style={styles.pickerOptionText}>Take Photo</Text>
+                                    <Text style={styles.pickerOptionSub}>Use camera to capture new photos</Text>
+                                </View>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+                            </Pressable>
+
+                            <Pressable style={styles.pickerOption} onPress={() => handleAddPhoto('library')}>
+                                <View style={styles.pickerIconWrap}>
+                                    <MaterialCommunityIcons name="image-multiple" size={24} color="#0B2D3E" />
+                                </View>
+                                <View style={styles.pickerOptionTextContainer}>
+                                    <Text style={styles.pickerOptionText}>Choose from Gallery</Text>
+                                    <Text style={styles.pickerOptionSub}>Select existing photos from library</Text>
+                                </View>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+                            </Pressable>
+                        </View>
+
+                        <Pressable style={styles.pickerCancelBtn} onPress={() => setShowPickerOptions(false)}>
+                            <Text style={styles.pickerCancelBtnText}>Cancel</Text>
                         </Pressable>
                     </View>
                 </Pressable>
@@ -2311,7 +2316,7 @@ const styles = StyleSheet.create({
     premiumCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 24,
-        padding: 24,
+        padding: 15,
         borderWidth: 1,
         borderColor: 'rgba(226, 232, 240, 0.5)',
         shadowColor: '#0B2D3E',
@@ -2525,10 +2530,10 @@ const styles = StyleSheet.create({
     galleryGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 16,
+        gap: 10,
     },
     galleryItem: {
-        width: (SCREEN_WIDTH - 64 - 16) / 2, // 2 column grid for better mobile view as per screenshot
+        width: (SCREEN_WIDTH - 80) / 2, // 2 column grid for better mobile view as per screenshot
         height: 160,
         borderRadius: 20,
         overflow: 'hidden',
@@ -2541,7 +2546,7 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     addPhotoBox: {
-        width: (SCREEN_WIDTH - 64 - 16) / 2,
+        width: (SCREEN_WIDTH - 80) / 2,
         height: 160,
         borderRadius: 20,
         borderWidth: 2,
@@ -2569,7 +2574,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    // Picker Modal Styles
+    // Picker Modal (Bottom Sheet) Styles
     modalBackdrop: {
         flex: 1,
         backgroundColor: 'rgba(11, 45, 62, 0.4)',
@@ -2577,40 +2582,85 @@ const styles = StyleSheet.create({
     },
     pickerModalContent: {
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: 24,
-        paddingBottom: 40,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        paddingHorizontal: 24,
+        paddingTop: 12,
+        paddingBottom: Platform.OS === 'ios' ? 44 : 32,
+        shadowColor: '#0B2D3E',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 20,
+    },
+    pickerModalHeader: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    pickerHandle: {
+        width: 36,
+        height: 5,
+        borderRadius: 2.5,
+        backgroundColor: '#E2E8F0',
+        marginBottom: 16,
     },
     pickerModalTitle: {
         fontSize: 18,
         fontWeight: '900',
         color: '#0B2D3E',
-        marginBottom: 20,
-        textAlign: 'center',
+        letterSpacing: -0.5,
+    },
+    pickerOptionsContainer: {
+        gap: 12,
+        marginBottom: 24,
     },
     pickerOption: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-        gap: 16,
+        backgroundColor: '#F8FAFC',
+        padding: 16,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    pickerIconWrap: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+        shadowColor: '#0D9488',
+        shadowOpacity: 0.08,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 8,
+    },
+    pickerOptionTextContainer: {
+        flex: 1,
     },
     pickerOptionText: {
         fontSize: 16,
-        fontWeight: '700',
-        color: '#0B2D3E',
-    },
-    pickerCancel: {
-        marginTop: 20,
-        alignItems: 'center',
-        paddingVertical: 12,
-    },
-    pickerCancelText: {
-        fontSize: 16,
         fontWeight: '800',
-        color: '#EF4444',
+        color: '#0B2D3E',
+        marginBottom: 2,
+    },
+    pickerOptionSub: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    pickerCancelBtn: {
+        backgroundColor: '#0B2D3E',
+        paddingVertical: 18,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pickerCancelBtnText: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: '#fff',
     },
     specsContainer: {
         gap: 12,
