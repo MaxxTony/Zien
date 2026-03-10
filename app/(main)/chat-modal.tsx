@@ -13,6 +13,7 @@ import {
     Dimensions,
     FlatList,
     KeyboardAvoidingView,
+    Modal,
     Platform,
     Pressable,
     StyleSheet,
@@ -20,7 +21,8 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CHAT_HISTORY } from './chat/index';
 
 const { height } = Dimensions.get('window');
 
@@ -89,11 +91,13 @@ export default function ChatModalScreen() {
     const [voiceText, setVoiceText] = useState('');
     const [isAiTyping, setIsAiTyping] = useState(false);
     const [inputFocused, setInputFocused] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
     const flatListRef = useRef<FlatList>(null);
     const ringScaleAnim = useRef(new Animated.Value(1)).current;
+    const inset = useSafeAreaInsets();
 
     // ── Pulse animation for voice ──────────────────────
     const startPulse = useCallback(() => {
@@ -274,7 +278,7 @@ export default function ChatModalScreen() {
                     </View>
                 </View>
 
-                {/* RIGHT: Clear icon (when messages) + Close */}
+                {/* RIGHT: Clear icon (when messages) + History + Close */}
                 <View style={styles.headerRight}>
                     {hasMessages && (
                         <Pressable
@@ -285,6 +289,13 @@ export default function ChatModalScreen() {
                             <MaterialCommunityIcons name="refresh" size={16} color={Theme.textSecondary} />
                         </Pressable>
                     )}
+                    <Pressable
+                        onPress={() => setShowHistoryModal(true)}
+                        style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.7 }]}
+                        hitSlop={8}
+                    >
+                        <MaterialCommunityIcons name="history" size={16} color={Theme.textSecondary} />
+                    </Pressable>
                     <Pressable
                         onPress={() => router.back()}
                         style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
@@ -420,6 +431,74 @@ export default function ChatModalScreen() {
                     </View>
                 </View>
             </KeyboardAvoidingView>
+            {/* ── History Drawer Modal ── */}
+            <Modal visible={showHistoryModal} transparent animationType="fade">
+                <View style={[styles.historyOverlay, { paddingTop: inset.top }]} >
+                    <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowHistoryModal(false)} />
+                    <Animated.View style={styles.historyPanel}>
+                        <SafeAreaView edges={['top', 'bottom']} style={styles.historySafeArea}>
+                            <View style={styles.historyHeader}>
+                                <Text style={styles.historyHeaderTitle}>Chat History</Text>
+                                <Pressable
+                                    onPress={() => setShowHistoryModal(false)}
+                                    style={({ pressed }) => [styles.closeHistoryBtn, pressed && { opacity: 0.7 }]}
+                                >
+                                    <MaterialCommunityIcons name="close" size={16} color={Theme.textSecondary} />
+                                </Pressable>
+                            </View>
+
+                            <View style={styles.historySearchRow}>
+                                <View style={styles.historySearchBar}>
+                                    <MaterialCommunityIcons name="magnify" size={16} color="#94A3B8" />
+                                    <TextInput
+                                        placeholder="Search your chats..."
+                                        placeholderTextColor="#94A3B8"
+                                        style={styles.historySearchInput}
+                                    />
+                                </View>
+                                <Pressable
+                                    style={({ pressed }) => [styles.historyNewBtn, pressed && { opacity: 0.8 }]}
+                                    onPress={() => {
+                                        setShowHistoryModal(false);
+                                        setMessages([]);
+                                    }}
+                                >
+                                    <MaterialCommunityIcons name="plus" size={14} color="#FFF" />
+                                    <Text style={styles.historyNewBtnText}>New</Text>
+                                </Pressable>
+                            </View>
+
+                            <FlatList
+                                data={CHAT_HISTORY.slice(0, 10)}
+                                keyExtractor={(item) => item.id}
+                                contentContainerStyle={styles.historyList}
+                                showsVerticalScrollIndicator={false}
+                                renderItem={({ item }) => (
+                                    <Pressable
+                                        style={({ pressed }) => [styles.historyCard, pressed && styles.historyCardPressed]}
+                                        onPress={() => {
+                                            setShowHistoryModal(false);
+                                            setMessages([]);
+                                            setTimeout(() => handleSubmit(item.title), 300);
+                                        }}
+                                    >
+                                        <View style={styles.historyIconBox}>
+                                            <MaterialCommunityIcons name={item.icon} size={16} color="#5B6B7A" />
+                                        </View>
+                                        <View style={styles.historyCardContent}>
+                                            <Text style={styles.historyCardTitle} numberOfLines={1}>{item.title}</Text>
+                                            <Text style={styles.historyCardSubtitle}>{item.time}</Text>
+                                        </View>
+                                        <MaterialCommunityIcons name="chevron-right" size={16} color="#E2E8F0" />
+                                    </Pressable>
+                                )}
+                            />
+
+
+                        </SafeAreaView>
+                    </Animated.View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -831,5 +910,150 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 },
         elevation: 3,
+    },
+
+    // ── History Modal ────────────────────────────────
+    historyOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(11, 45, 62, 0.45)',
+        flexDirection: 'row',
+        // justifyContent: 'flex-end',
+    },
+    historyPanel: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#0B2D3E',
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        shadowOffset: { width: -5, height: 0 },
+        elevation: 10,
+    },
+    historySafeArea: {
+        flex: 1,
+    },
+    historyHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    historyHeaderTitle: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#0B2D3E',
+    },
+    closeHistoryBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    historySearchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        gap: 10,
+    },
+    historySearchBar: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 40,
+    },
+    historySearchInput: {
+        flex: 1,
+        marginLeft: 8,
+        fontSize: 13,
+        color: '#0B2D3E',
+        paddingVertical: 0,
+    },
+    historyNewBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0B2D3E',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        height: 40,
+        gap: 6,
+    },
+    historyNewBtnText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '800',
+    },
+    historyList: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        gap: 10,
+    },
+    historyCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        shadowColor: '#000',
+        shadowOpacity: 0.02,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 1,
+    },
+    historyCardPressed: {
+        backgroundColor: '#F8FAFC',
+        borderColor: Theme.accentTeal,
+    },
+    historyIconBox: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    historyCardContent: {
+        flex: 1,
+    },
+    historyCardTitle: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#0B2D3E',
+        marginBottom: 3,
+    },
+    historyCardSubtitle: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#94A3B8',
+    },
+    historyFooter: {
+        padding: 20,
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
+    },
+    fullHistoryBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    fullHistoryText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: Theme.accentTeal,
     },
 });

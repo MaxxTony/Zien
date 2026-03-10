@@ -15,7 +15,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from 'react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -168,6 +168,9 @@ export default function BillingUsageScreen() {
     setSettlementConfirmedVisible(true);
   };
   const closeSettlementConfirmed = () => setSettlementConfirmedVisible(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const openCancelModal = () => setShowCancelModal(true);
+  const closeCancelModal = () => setShowCancelModal(false);
   const referenceNo = (id: string) => 'INV-' + id.replace(/^inv-/, '').toUpperCase();
 
   const usageRows = useMemo<UsageRow[]>(
@@ -310,10 +313,10 @@ export default function BillingUsageScreen() {
     () =>
       leaderboardFilter.trim()
         ? analyticsLeaderboardRows.filter(
-            (r) =>
-              r.name.toLowerCase().includes(leaderboardFilter.toLowerCase().trim()) ||
-              r.primaryDomain.toLowerCase().includes(leaderboardFilter.toLowerCase().trim())
-          )
+          (r) =>
+            r.name.toLowerCase().includes(leaderboardFilter.toLowerCase().trim()) ||
+            r.primaryDomain.toLowerCase().includes(leaderboardFilter.toLowerCase().trim())
+        )
         : analyticsLeaderboardRows,
     [analyticsLeaderboardRows, leaderboardFilter]
   );
@@ -347,7 +350,7 @@ export default function BillingUsageScreen() {
               >
                 <Text style={styles.ledgerDate}>{row.settlementDate}</Text>
                 <Text style={styles.ledgerDesc} numberOfLines={1}>{row.description}</Text>
-                <Pressable onPress={() => {}}>
+                <Pressable onPress={() => { }}>
                   <Text style={styles.ledgerId}>{row.transactionId}</Text>
                 </Pressable>
                 <Text style={styles.ledgerSource}>{row.paymentSource}</Text>
@@ -372,118 +375,174 @@ export default function BillingUsageScreen() {
   );
 
   const renderOverview = () => (
-    <View style={{ gap: 16 }}>
-      <View style={[styles.twoCol, styles.twoColMobile]}>
-        <BillingCard>
-          <View style={styles.planHeader}>
-            <View style={styles.planIcon}>
-              <MaterialCommunityIcons name="diamond-stone" size={18} color={Theme.accentTeal} />
-            </View>
-            <View style={styles.activeBadge}>
-              <Text style={styles.activeBadgeText}>ENTERPRISE ACTIVE</Text>
-            </View>
+    <View style={{ gap: 20 }}>
+      {/* Premium Plan Card */}
+      <View style={styles.premiumPlanCard}>
+        <View style={styles.planBadgeContainer}>
+          <View style={styles.activePillContainer}>
+            <View style={styles.pulseDot} />
+            <Text style={styles.activePillText}>ENTERPRISE ACTIVE</Text>
           </View>
-          <Text style={styles.planName}>Pro Team Edition</Text>
-          <Text style={styles.planPrice}>
-            $249.00 <Text style={styles.planPriceUnit}>/ monthly billing cycle</Text>
-          </Text>
-          <View style={styles.planFeatureList}>
-            <View style={styles.planFeatureRow}>
-              <MaterialCommunityIcons name="clock-outline" size={18} color={Theme.textSecondary} />
-              <Text style={styles.planFeatureText}>10 Professional Agent Seats</Text>
-            </View>
-            <View style={styles.planFeatureRow}>
-              <MaterialCommunityIcons name="clock-outline" size={18} color={Theme.textSecondary} />
-              <Text style={styles.planFeatureText}>Full CRM & Data Integration</Text>
-            </View>
-            <View style={styles.planFeatureRow}>
-              <MaterialCommunityIcons name="calendar" size={18} color={Theme.textSecondary} />
-              <Text style={styles.planFeatureText}>Renews on Feb 12, 2026</Text>
-            </View>
+          <View style={styles.tierIconContainer}>
+            <MaterialCommunityIcons name="diamond-stone" size={24} color="#FFFFFF" />
           </View>
-          <Pressable style={styles.primaryButton} onPress={goToPlans}>
-            <Text style={styles.primaryButtonText}>Manage Enterprise Tier</Text>
+        </View>
+
+        <View style={styles.planInfoMain}>
+          <Text style={styles.planTierTitle}>Enterprise Team Edition</Text>
+          <View style={styles.planPriceRow}>
+            <Text style={styles.planPriceValue}>$249.95</Text>
+            <Text style={styles.planPricePeriod}>/monthly cycle</Text>
+          </View>
+        </View>
+
+        <View style={styles.planDivider} />
+
+        <View style={styles.planFeaturesGrid}>
+          <View style={styles.planFeatureDetail}>
+            <MaterialCommunityIcons name="check-circle" size={18} color="#0BA0B2" />
+            <Text style={styles.planFeatureDetailText}>10 Authorized Seats</Text>
+          </View>
+          <View style={styles.planFeatureDetail}>
+            <MaterialCommunityIcons name="check-circle" size={18} color="#0BA0B2" />
+            <Text style={styles.planFeatureDetailText}>Full Sync Engine</Text>
+          </View>
+          <View style={[styles.planFeatureDetail, { width: '100%', marginTop: 4 }]}>
+            <MaterialCommunityIcons name="calendar-sync" size={18} color="#7B8794" />
+            <Text style={styles.planRenewalText}>Next Renewal: Feb 12, 2026</Text>
+          </View>
+        </View>
+
+        <View style={styles.planActionContainer}>
+          <Pressable style={styles.premiumManageBtn} onPress={goToPlans}>
+            <Text style={styles.premiumManageBtnText}>Manage Enterprise Tier</Text>
           </Pressable>
-        </BillingCard>
-
-        <BillingCard>
-          <View style={styles.resourceCardHeader}>
-            <Text style={styles.cardTitle}>Resource Consumption</Text>
-            <Text style={styles.resourceSubtitle}>Real-time Audit</Text>
-          </View>
-          <View style={{ gap: 14 }}>
-            {usageRows.map((row) => (
-              <UsageProgressRow key={row.label} row={row} />
-            ))}
-          </View>
-          <View style={styles.autoReplenishRow}>
-            <View style={styles.autoReplenishLeft}>
-              <View style={styles.autoReplenishIcon}>
-                <MaterialCommunityIcons name="reload" size={18} color={Theme.accentTeal} />
-              </View>
-              <View>
-                <Text style={styles.autoReplenishTitle}>Auto-Replenish Active</Text>
-                <Text style={styles.autoReplenishSub}>Top up when below 10%</Text>
-              </View>
-            </View>
-            <Pressable style={styles.adjustButton}>
-              <Text style={styles.adjustButtonText}>Adjust</Text>
-            </Pressable>
-          </View>
-        </BillingCard>
-      </View>
-
-      <View style={styles.financialSection}>
-        <View style={styles.financialSectionHeader}>
-          <Text style={styles.sectionTitle}>Financial History & Billing</Text>
-          <Pressable onPress={() => goToTab('history')}>
-            <Text style={styles.linkText}>View Full Ledger →</Text>
+          <Pressable style={styles.cancelSubBtn} onPress={openCancelModal}>
+            <Text style={styles.cancelSubBtnText}>Cancel Subscription</Text>
           </Pressable>
         </View>
-        <BillingCard>
-          {invoices.map((inv, index) => (
-            <View key={inv.id} style={[styles.billingHistoryRow, index === 0 && styles.billingHistoryRowFirst]}>
-              <Pressable style={styles.billingHistoryRowMain} onPress={() => openSettlementModal(inv)}>
-                <Text style={styles.billingHistoryRowDate}>{inv.billingCycle}</Text>
-                <Text style={styles.billingHistoryRowDesc} numberOfLines={1}>{inv.description}</Text>
-                <View style={styles.billingHistoryRowMeta}>
-                  <Text style={styles.billingHistoryRowAmount}>{inv.amount}</Text>
-                  <View style={[styles.statusPill, styles.statusPaid]}>
-                    <Text style={[styles.statusText, styles.statusTextPaid]}>{inv.status.toUpperCase()}</Text>
-                  </View>
-                </View>
-              </Pressable>
-              <Pressable onPress={() => handleInvoiceDownload(inv.id)} style={styles.downloadPdfButton}>
-                <MaterialCommunityIcons name="download" size={20} color={Theme.textOnAccent} />
-                <Text style={styles.downloadPdfButtonText}>PDF</Text>
-              </Pressable>
+      </View>
+
+      {/* Resource Consumption Architecture */}
+      <View style={styles.premiumResourceCard}>
+        <View style={styles.cardHeaderRow}>
+          <View>
+            <Text style={styles.premiumCardTitle}>Resource Consumption</Text>
+            <Text style={styles.premiumCardSubtitle}>Real-time Audit</Text>
+          </View>
+          <MaterialCommunityIcons name="chart-box-outline" size={24} color="#0BA0B2" />
+        </View>
+
+        <View style={styles.usageListContainer}>
+          {usageRows.map((row) => (
+            <View key={row.label} style={styles.premiumUsageRow}>
+              <View style={styles.usageInfoTop}>
+                <Text style={styles.usageLabelText}>{row.label}</Text>
+                <Text style={styles.usageValueText}>
+                  {row.used} <Text style={styles.usageLimitText}>/ {row.limit}</Text>
+                </Text>
+              </View>
+              <View style={styles.premiumProgressTrack}>
+                <View
+                  style={[
+                    styles.premiumProgressFill,
+                    {
+                      width: `${(row.used / row.limit) * 100}%`,
+                      backgroundColor: row.tone === 'warning' ? '#F97316' : '#0BA0B2'
+                    }
+                  ]}
+                />
+              </View>
             </View>
           ))}
-        </BillingCard>
-      </View>
-
-      <BillingCard>
-        <Text style={styles.paymentArchitectureTitle}>PRIMARY PAYMENT ARCHITECTURE</Text>
-        <View style={styles.paymentCard}>
-          <View style={styles.paymentIcon}>
-            <MaterialCommunityIcons name="credit-card" size={20} color={Theme.iconMuted} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.paymentTitle}>Visa ending in 4242</Text>
-            <Text style={styles.paymentSub}>Professional Corporate Account</Text>
-          </View>
         </View>
-        <View style={styles.paymentFooter}>
-          <Text style={styles.paymentExpiry}>Expires 12/2026</Text>
-          <Pressable onPress={openCredentialsModal}>
-            <Text style={styles.linkText}>Update Credentials</Text>
+
+        <View style={styles.autoReplenishCard}>
+          <View style={styles.autoReplenishInfo}>
+            <View style={styles.replenishIconWrap}>
+              <MaterialCommunityIcons name="cached" size={20} color="#0BA0B2" />
+            </View>
+            <View>
+              <Text style={styles.replenishTitle}>Auto-Replenish Active</Text>
+              <Text style={styles.replenishSub}>Top up when below 10%</Text>
+            </View>
+          </View>
+          <Pressable style={styles.replenishAdjustBtn}>
+            <Text style={styles.replenishAdjustBtnText}>Adjust</Text>
           </Pressable>
         </View>
-        <Pressable style={styles.outlineButton} onPress={() => {}}>
-          <MaterialCommunityIcons name="plus" size={18} color={Theme.textPrimary} style={{ marginRight: 6 }} />
-          <Text style={styles.outlineButtonText}>Add Security Backup</Text>
-        </Pressable>
-      </BillingCard>
+      </View>
+
+      {/* Financial History Preview */}
+      <View style={styles.historyPreviewContainer}>
+        <View style={styles.previewHeader}>
+          <Text style={styles.previewTitle}>Financial History & Billing</Text>
+          <Pressable onPress={() => goToTab('history')} style={styles.viewAllBtn}>
+            <Text style={styles.viewAllText}>View All Ledger</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.previewList}>
+          {invoices.map((inv) => (
+            <Pressable key={inv.id} style={styles.previewItem} onPress={() => openSettlementModal(inv)}>
+              <View style={styles.previewItemLeft}>
+                <Text style={styles.previewItemDate}>{inv.billingCycle}</Text>
+                <Text style={styles.previewItemDesc} numberOfLines={1}>{inv.description}</Text>
+              </View>
+              <View style={styles.previewItemRight}>
+                <Text style={styles.previewItemAmount}>{inv.amount}</Text>
+                <View style={styles.paidBadge}>
+                  <Text style={styles.paidBadgeText}>PAID</Text>
+                </View>
+              </View>
+              <Pressable style={styles.previewDownloadBtn} onPress={(e) => { e.stopPropagation(); handleInvoiceDownload(inv.id); }}>
+                <MaterialCommunityIcons name="file-pdf-box" size={24} color="#7B8794" />
+              </Pressable>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      {/* Primary Payment Architecture */}
+      <View style={styles.premiumPaymentCard}>
+        <Text style={styles.paymentSectionHeader}>PRIMARY PAYMENT ARCHITECTURE</Text>
+
+        <View style={styles.visualCardContainer}>
+          <LinearGradient
+            colors={['#0B2D3E', '#1B5E9A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.virtualCreditCard}
+          >
+            <View style={styles.vCardHeader}>
+              <MaterialCommunityIcons name="integrated-circuit-chip" size={32} color="#D1D5DB" />
+              <MaterialCommunityIcons name="wifi" size={24} color="#D1D5DB" style={{ transform: [{ rotate: '90deg' }] }} />
+            </View>
+            <Text style={styles.vCardNumber}>**** **** **** 4242</Text>
+            <View style={styles.vCardFooter}>
+              <View>
+                <Text style={styles.vCardLabel}>CARD HOLDER</Text>
+                <Text style={styles.vCardValue}>JOHN OLAKOYA</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.vCardLabel}>EXPIRES</Text>
+                <Text style={styles.vCardValue}>12 / 26</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.paymentActionsRow}>
+          <Pressable style={styles.paymentActionButton} onPress={openCredentialsModal}>
+            <MaterialCommunityIcons name="credit-card-settings-outline" size={20} color="#0BA0B2" />
+            <Text style={styles.paymentActionText}>Update Credentials</Text>
+          </Pressable>
+          <Pressable style={styles.paymentActionButton}>
+            <MaterialCommunityIcons name="shield-plus-outline" size={20} color="#0BA0B2" />
+            <Text style={styles.paymentActionText}>Add Backup</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 
@@ -498,22 +557,22 @@ export default function BillingUsageScreen() {
               <Text style={styles.cardTitle}>Credit Consumption Trends</Text>
               <Text style={styles.cardSubtitle}>Resource utilization across all team members.</Text>
             </View>
-           
+
           </View>
           <View style={styles.analyticsToggleRow}>
-              <Pressable
-                style={[styles.analyticsToggleBtn, analyticsTimeRange === 'monthly' && styles.analyticsToggleBtnActive]}
-                onPress={() => setAnalyticsTimeRange('monthly')}
-              >
-                <Text style={[styles.analyticsToggleText, analyticsTimeRange === 'monthly' && styles.analyticsToggleTextActive]}>Monthly</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.analyticsToggleBtn, analyticsTimeRange === 'yearly' && styles.analyticsToggleBtnActive]}
-                onPress={() => setAnalyticsTimeRange('yearly')}
-              >
-                <Text style={[styles.analyticsToggleText, analyticsTimeRange === 'yearly' && styles.analyticsToggleTextActive]}>Yearly</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              style={[styles.analyticsToggleBtn, analyticsTimeRange === 'monthly' && styles.analyticsToggleBtnActive]}
+              onPress={() => setAnalyticsTimeRange('monthly')}
+            >
+              <Text style={[styles.analyticsToggleText, analyticsTimeRange === 'monthly' && styles.analyticsToggleTextActive]}>Monthly</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.analyticsToggleBtn, analyticsTimeRange === 'yearly' && styles.analyticsToggleBtnActive]}
+              onPress={() => setAnalyticsTimeRange('yearly')}
+            >
+              <Text style={[styles.analyticsToggleText, analyticsTimeRange === 'yearly' && styles.analyticsToggleTextActive]}>Yearly</Text>
+            </Pressable>
+          </View>
           <View style={{ marginTop: 14, alignItems: 'center' }}>
             <BarChart
               data={consumptionData}
@@ -614,15 +673,15 @@ export default function BillingUsageScreen() {
           <Text style={styles.marketplaceTitle}>Premium Service Studio</Text>
           <Text style={styles.marketplaceSubtitle}>Acquire specialized AI resources for immediate professional deployment.</Text>
         </View>
-      
+
       </View>
       <View style={styles.availableCapitalPill}>
-          <MaterialCommunityIcons name="wallet-outline" size={18} color={Theme.textPrimary} />
-          <View>
-            <Text style={styles.availableCapitalLabel}>AVAILABLE CAPITAL</Text>
-            <Text style={styles.availableCapitalValue}>{availableCapital}</Text>
-          </View>
+        <MaterialCommunityIcons name="wallet-outline" size={18} color={Theme.textPrimary} />
+        <View>
+          <Text style={styles.availableCapitalLabel}>AVAILABLE CAPITAL</Text>
+          <Text style={styles.availableCapitalValue}>{availableCapital}</Text>
         </View>
+      </View>
 
       <View style={styles.marketplaceCardList}>
         {marketplaceItems.map((item) => (
@@ -655,7 +714,7 @@ export default function BillingUsageScreen() {
         <Text style={styles.marketplaceBundlesDesc}>
           Deploy high-volume AI infrastructure across your entire team. Volume licensing includes custom support and dedicated compute resource allocation.
         </Text>
-        <Pressable style={styles.marketplaceBundlesBtn} onPress={() => {}}>
+        <Pressable style={styles.marketplaceBundlesBtn} onPress={() => { }}>
           <Text style={styles.marketplaceBundlesBtnText}>View Enterprise Bundles</Text>
           <MaterialCommunityIcons name="chevron-right" size={22} color={Theme.textPrimary} />
         </Pressable>
@@ -707,7 +766,7 @@ export default function BillingUsageScreen() {
                     <Text style={styles.settlementModalRef}>Reference No: {referenceNo(selectedInvoice.id)}</Text>
                   </View>
                   <Pressable onPress={closeSettlementModal} style={styles.settlementModalClose} hitSlop={12}>
-                    <MaterialCommunityIcons name="close" size={22} color={Theme.textOnAccent} />
+                    <MaterialCommunityIcons name="close" size={16} color="#FFFFFF" />
                   </Pressable>
                 </View>
                 <View style={styles.settlementModalBody}>
@@ -715,32 +774,34 @@ export default function BillingUsageScreen() {
                     <View>
                       <Text style={styles.settlementLabel}>BILL TO</Text>
                       <Text style={styles.settlementValue}>John Olakoya</Text>
-                      <Text style={styles.settlementValue}>Zien Real Estate Group</Text>
+                      <Text style={styles.settlementSubValue}>Zien Real Estate Group</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={styles.settlementLabel}>ISSUE DATE</Text>
                       <Text style={styles.settlementValue}>{selectedInvoice.billingCycle}</Text>
                     </View>
                   </View>
-                  <View style={styles.settlementDivider} />
-                  <View style={styles.settlementLineRow}>
-                    <Text style={styles.settlementLineDesc}>{selectedInvoice.description}</Text>
-                    <Text style={styles.settlementLineAmount}>{selectedInvoice.amount}</Text>
-                  </View>
-                  <View style={styles.settlementLineRow}>
-                    <Text style={styles.settlementLineDescMuted}>Tax (0.00%)</Text>
-                    <Text style={styles.settlementLineAmountMuted}>$0.00</Text>
-                  </View>
-                  <View style={styles.settlementDivider} />
-                  <View style={styles.settlementLineRow}>
-                    <Text style={styles.settlementTotalLabel}>Total Amount Paid</Text>
-                    <Text style={styles.settlementTotalAmount}>{selectedInvoice.amount}</Text>
+
+                  <View style={styles.settlementInvoiceBox}>
+                    <View style={styles.settlementLineRow}>
+                      <Text style={styles.settlementLineDesc}>{selectedInvoice.description}</Text>
+                      <Text style={styles.settlementLineAmount}>{selectedInvoice.amount}</Text>
+                    </View>
+                    <View style={styles.settlementInvoiceDivider} />
+                    <View style={[styles.settlementLineRow, { marginBottom: 12 }]}>
+                      <Text style={styles.settlementLineDescMuted}>Tax (0.00%)</Text>
+                      <Text style={styles.settlementLineAmount}>$0.00</Text>
+                    </View>
+                    <View style={styles.settlementLineRow}>
+                      <Text style={styles.settlementTotalLabel}>Total Amount Paid</Text>
+                      <Text style={styles.settlementTotalAmount}>{selectedInvoice.amount}</Text>
+                    </View>
                   </View>
                 </View>
                 <View style={styles.settlementModalFooter}>
                   <Pressable style={styles.settlementDownloadBtn} onPress={() => { handleInvoiceDownload(selectedInvoice.id); closeSettlementModal(); }}>
                     <Text style={styles.settlementDownloadBtnText}>Download Document</Text>
-                    <MaterialCommunityIcons name="download" size={20} color={Theme.textOnAccent} />
+                    <MaterialCommunityIcons name="download-outline" size={20} color="#FFFFFF" />
                   </Pressable>
                   <Pressable style={styles.settlementCloseBtn} onPress={closeSettlementModal}>
                     <Text style={styles.settlementCloseBtnText}>Close</Text>
@@ -752,94 +813,101 @@ export default function BillingUsageScreen() {
         </Pressable>
       </Modal>
 
-      <Modal visible={showCredentialsModal} transparent animationType="fade">
-        <View style={styles.credentialsModalOverlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={closeCredentialsModal} />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.credentialsModalKAV}
-          >
-            <Pressable style={styles.credentialsModalCard} onPress={() => {}}>
-                  <View style={styles.credentialsModalHeader}>
-                    <View>
-                      <Text style={styles.credentialsModalTitle}>Security Architecture</Text>
-                      <Text style={styles.credentialsModalSubtitle}>Update your primary settlement credentials.</Text>
-                    </View>
-                    <Pressable onPress={closeCredentialsModal} style={styles.credentialsModalClose} hitSlop={12}>
-                      <MaterialCommunityIcons name="close" size={22} color={Theme.textPrimary} />
-                    </Pressable>
-                  </View>
-                  <ScrollView
-                    style={styles.credentialsModalScroll}
-                    contentContainerStyle={styles.credentialsModalScrollContent}
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
-                  >
-                    <Text style={styles.credentialsInputLabel}>Account Holder Name</Text>
-                    <TextInput
-                      style={styles.credentialsInput}
-                      value={credHolderName}
-                      onChangeText={setCredHolderName}
-                      placeholder="John Olakoya"
-                      placeholderTextColor={Theme.inputPlaceholder}
-                      autoCapitalize="words"
-                      autoCorrect={false}
-                    />
-                    <Text style={styles.credentialsInputLabel}>Primary Card Number</Text>
-                    <TextInput
-                      style={styles.credentialsInput}
-                      value={credCardNumber}
-                      onChangeText={setCredCardNumber}
-                      placeholder="**** **** **** 4242"
-                      placeholderTextColor={Theme.inputPlaceholder}
-                      keyboardType="number-pad"
-                      maxLength={19}
-                    />
-                    <View style={styles.credentialsRow}>
-                      <View style={styles.credentialsRowItem}>
-                        <Text style={styles.credentialsInputLabel}>Expiration Date</Text>
-                        <TextInput
-                          style={styles.credentialsInput}
-                          value={credExpiry}
-                          onChangeText={setCredExpiry}
-                          placeholder="MM/YY"
-                          placeholderTextColor={Theme.inputPlaceholder}
-                          keyboardType="number-pad"
-                          maxLength={5}
-                        />
-                      </View>
-                      <View style={styles.credentialsRowItem}>
-                        <Text style={styles.credentialsInputLabel}>Security Code (CVC)</Text>
-                        <TextInput
-                          style={styles.credentialsInput}
-                          value={credCvc}
-                          onChangeText={setCredCvc}
-                          placeholder="•••"
-                          placeholderTextColor={Theme.inputPlaceholder}
-                          keyboardType="number-pad"
-                          secureTextEntry
-                          maxLength={4}
-                        />
-                      </View>
-                    </View>
-                    <View style={styles.credentialsSecurityBox}>
-                      <MaterialCommunityIcons name="shield-check" size={20} color={Theme.textSecondary} />
-                      <Text style={styles.credentialsSecurityText}>
-                        Payments are secured with 256-bit bank-grade encryption. ZIEN never stores your full CVV on our servers.
-                      </Text>
-                    </View>
-                  </ScrollView>
-                  <View style={styles.credentialsModalFooter}>
-                    <Pressable style={styles.credentialsAuthorizeBtn} onPress={handleAuthorizeUpdate}>
-                      <Text style={styles.credentialsAuthorizeBtnText}>Authorize Update</Text>
-                    </Pressable>
-                    <Pressable style={styles.credentialsCancelBtn} onPress={closeCredentialsModal}>
-                      <Text style={styles.credentialsCancelBtnText}>Cancel</Text>
-                    </Pressable>
-                  </View>
-                </Pressable>
-              </KeyboardAvoidingView>
+      <Modal visible={showCredentialsModal} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={[styles.modalFullContainer, { paddingTop: insets.top }]}>
+            <View style={styles.modalHeaderFull}>
+              <View style={styles.modalHeaderInfo}>
+                <Text style={styles.modalTitleFull}>Security Architecture</Text>
+                <Text style={styles.modalSubtitleFull}>Update your primary settlement credentials.</Text>
+              </View>
+              <Pressable onPress={closeCredentialsModal} style={styles.modalCloseBtnFull} hitSlop={12}>
+                <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+              </Pressable>
             </View>
+
+            <ScrollView
+              style={styles.modalScrollBody}
+              contentContainerStyle={styles.credentialsFormBody}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.formSection}>
+                <Text style={styles.fieldLabel}>Account Holder Name</Text>
+                <TextInput
+                  style={styles.premiumInput}
+                  value={credHolderName}
+                  onChangeText={setCredHolderName}
+                  placeholder="John Olakoya"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+
+              <View style={styles.formSection}>
+                <Text style={styles.fieldLabel}>Primary Card Number</Text>
+                <View style={styles.inputWithIcon}>
+                  <TextInput
+                    style={styles.premiumInputFlex}
+                    value={credCardNumber}
+                    onChangeText={setCredCardNumber}
+                    placeholder="**** **** **** 4242"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
+                  />
+                  <View style={styles.cardTypeIcon}>
+                    <MaterialCommunityIcons name="credit-card" size={20} color="#0B2D3E" />
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={[styles.formSection, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Expiration Date</Text>
+                  <TextInput
+                    style={styles.premiumInput}
+                    value={credExpiry}
+                    onChangeText={setCredExpiry}
+                    placeholder="12/26"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                <View style={[styles.formSection, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Security Code (CVC)</Text>
+                  <TextInput
+                    style={styles.premiumInput}
+                    value={credCvc}
+                    onChangeText={setCredCvc}
+                    placeholder="..."
+                    placeholderTextColor="#94A3B8"
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+
+              <View style={styles.securityAuditPill}>
+                <View style={styles.securityBadgeWrap}>
+                  <MaterialCommunityIcons name="shield-check-outline" size={22} color="#0B2D3E" />
+                </View>
+                <Text style={styles.securityAuditText}>
+                  Payments are secured with 256-bit bank-grade encryption. Zien never stores your full CVV on our servers.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={[styles.modalFooterFixed, { paddingBottom: insets.bottom + 24 }]}>
+              <View style={styles.footerBtnGroup}>
+                <Pressable style={styles.authorizeBtn} onPress={handleAuthorizeUpdate}>
+                  <Text style={styles.authorizeBtnText}>Authorize Update</Text>
+                </Pressable>
+                <Pressable style={styles.cancelActionBtn} onPress={closeCredentialsModal}>
+                  <Text style={styles.cancelActionBtnText}>Cancel</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={acquireModalItem !== null} transparent animationType="fade">
@@ -899,6 +967,33 @@ export default function BillingUsageScreen() {
             <Pressable style={styles.settlementConfirmedBtn} onPress={closeSettlementConfirmed}>
               <Text style={styles.settlementConfirmedBtnText}>Return to Dashboard</Text>
             </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showCancelModal} transparent animationType="fade">
+        <View style={styles.cancelModalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeCancelModal} />
+          <View style={styles.cancelModalCard}>
+            <View style={styles.cancelModalHeader}>
+              <Text style={styles.cancelModalTitle}>Cancel Subscription?</Text>
+              <Pressable onPress={closeCancelModal} style={styles.cancelModalClose} hitSlop={12}>
+                <MaterialCommunityIcons name="close" size={22} color="#0B2D3E" />
+              </Pressable>
+            </View>
+            <Text style={styles.cancelModalDesc}>
+              If you cancel, your Professional Agent Seats and CRM Sync features will remain active until the end of your
+              current billing cycle on <Text style={{ fontWeight: '900', color: '#0B2D3E' }}>Feb 12, 2026</Text>. After that,
+              your account will be downgraded to the basic free tier.
+            </Text>
+            <View style={styles.cancelModalFooter}>
+              <Pressable style={styles.keepSubBtn} onPress={closeCancelModal}>
+                <Text style={styles.keepSubBtnText}>Keep Subscription</Text>
+              </Pressable>
+              <Pressable style={styles.confirmCancelBtn} onPress={closeCancelModal}>
+                <Text style={styles.confirmCancelBtnText}>Confirm Cancel</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1505,15 +1600,403 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   paymentTitle: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '900',
     color: '#0B2D3E',
   },
   paymentSub: {
     marginTop: 2,
     fontSize: 12,
-    color: '#7B8794',
+    color: '#5B6B7A',
     fontWeight: '700',
+  },
+
+  // Premium Overview Styles
+  premiumPlanCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  planBadgeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  activePillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#22C55E',
+  },
+  activePillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#166534',
+    letterSpacing: 0.5,
+  },
+  tierIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#0B2D3E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planInfoMain: {
+    marginBottom: 20,
+  },
+  planTierTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  planPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 4,
+    gap: 6,
+  },
+  planPriceValue: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  planPricePeriod: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#7B8794',
+  },
+  planDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginBottom: 20,
+  },
+  planFeaturesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  planFeatureDetail: {
+    width: '47%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planFeatureDetailText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  planRenewalText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#7B8794',
+  },
+  planActionContainer: {
+    gap: 12,
+  },
+  premiumManageBtn: {
+    backgroundColor: '#0B2D3E',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumManageBtnText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  cancelSubBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelSubBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#EF4444',
+  },
+
+  premiumResourceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  premiumCardTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  premiumCardSubtitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7B8794',
+    marginTop: 2,
+  },
+  usageListContainer: {
+    gap: 20,
+    marginBottom: 24,
+  },
+  premiumUsageRow: {
+    gap: 10,
+  },
+  usageInfoTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  usageLabelText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  usageValueText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  usageLimitText: {
+    color: '#9AA7B6',
+    fontWeight: '700',
+  },
+  premiumProgressTrack: {
+    height: 8,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  premiumProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  autoReplenishCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  autoReplenishInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  replenishIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#E0F2F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  replenishTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  replenishSub: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7B8794',
+    marginTop: 1,
+  },
+  replenishAdjustBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  replenishAdjustBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+
+  historyPreviewContainer: {
+    marginTop: 8,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  previewTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  viewAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0BA0B2',
+  },
+  previewList: {
+    gap: 12,
+  },
+  previewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  previewItemLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  previewItemDate: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7B8794',
+  },
+  previewItemDesc: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  previewItemRight: {
+    alignItems: 'flex-end',
+    marginRight: 16,
+    gap: 4,
+  },
+  previewItemAmount: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  paidBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  paidBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#166534',
+  },
+  previewDownloadBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+
+  premiumPaymentCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  paymentSectionHeader: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#7B8794',
+    letterSpacing: 1,
+    marginBottom: 20,
+  },
+  visualCardContainer: {
+    marginBottom: 24,
+  },
+  virtualCreditCard: {
+    borderRadius: 20,
+    padding: 24,
+    height: 180,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  vCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  vCardNumber: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 2,
+  },
+  vCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  vCardLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1,
+  },
+  vCardValue: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  paymentActionsRow: {
+    gap: 12,
+  },
+  paymentActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  paymentActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0B2D3E',
   },
   outlineButton: {
     marginTop: 6,
@@ -1548,7 +2031,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 5,
     flexShrink: 0,
-    alignSelf:"flex-end"
+    alignSelf: "flex-end"
   },
   analyticsToggleBtn: {
     paddingVertical: 8,
@@ -1851,7 +2334,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: Theme.cardBorder,
-    alignSelf:"flex-end"
+    alignSelf: "flex-end"
   },
   availableCapitalLabel: {
     fontSize: 9,
@@ -1982,9 +2465,169 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Theme.textPrimary,
   },
+  // Full-Page Modal Shared Styles (matching Guardian)
+  modalFullContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeaderFull: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 24,
+    paddingBottom: 20,
+  },
+  modalHeaderInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  modalTitleFull: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  modalSubtitleFull: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5B6B7A',
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  modalCloseBtnFull: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalScrollBody: {
+    flex: 1,
+  },
+  modalFooterFixed: {
+    padding: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  footerBtnGroup: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
+  // Credentials Specific Form Styles
+  credentialsFormBody: {
+    padding: 24,
+    gap: 20,
+  },
+  formSection: {
+    gap: 10,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: 0.2,
+  },
+  premiumInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  inputWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    borderRadius: 16,
+    paddingRight: 8,
+  },
+  premiumInputFlex: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  cardTypeIcon: {
+    width: 44,
+    height: 32,
+    backgroundColor: '#0B2D3E',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  securityAuditPill: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    padding: 20,
+    gap: 16,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  securityBadgeWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  securityAuditText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5B6B7A',
+    lineHeight: 18,
+  },
+  authorizeBtn: {
+    flex: 2,
+    backgroundColor: '#0B2D3E',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authorizeBtnText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  cancelActionBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelActionBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#5B6B7A',
+  },
   secureAccessModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(11, 45, 62, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -1992,75 +2635,93 @@ const styles = StyleSheet.create({
   secureAccessModalCard: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: Theme.cardBackground,
-    borderRadius: 22,
-    padding: 22,
-    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
   },
   secureAccessModalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    alignItems: 'center',
+    marginBottom: 20,
   },
   secureAccessModalTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
   },
   secureAccessModalClose: {
-    padding: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secureAccessServiceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: '#F8FAFC',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 14,
+    gap: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
   },
   secureAccessServiceInfo: {
     flex: 1,
-    minWidth: 0,
+    gap: 2,
   },
   secureAccessServiceName: {
     fontSize: 15,
-    fontWeight: '900',
-    color: Theme.textPrimary,
+    fontWeight: '800',
+    color: '#0B2D3E',
   },
   secureAccessServiceMeta: {
     fontSize: 12,
-    color: Theme.textSecondary,
-    marginTop: 4,
     fontWeight: '600',
+    color: '#5B6B7A',
   },
   secureAccessServicePrice: {
     fontSize: 16,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: '#0B2D3E',
   },
   secureAccessTotalRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E3ECF4',
+    marginBottom: 24,
   },
   secureAccessTotalLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: '#5B6B7A',
   },
   secureAccessTotalValue: {
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: '#0B2D3E',
   },
   secureAccessPaymentLabel: {
     fontSize: 12,
-    fontWeight: '800',
-    color: Theme.textPrimary,
+    fontWeight: '900',
+    color: '#0B2D3E',
     marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   secureAccessPaymentRow: {
     flexDirection: 'row',
@@ -2151,6 +2812,83 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: Theme.textOnAccent,
+  },
+  cancelModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 45, 62, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  cancelModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 32,
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  cancelModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cancelModalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  cancelModalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelModalDesc: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#5B6B7A',
+    lineHeight: 22,
+    marginBottom: 32,
+  },
+  cancelModalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  keepSubBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keepSubBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#EF4444',
   },
   modalOverlay: {
     flex: 1,
@@ -2389,36 +3127,42 @@ const styles = StyleSheet.create({
   },
   settlementModalCard: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: Theme.cardBackground,
-    borderRadius: 20,
+    maxWidth: 440,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     overflow: 'hidden',
   },
   settlementModalHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    backgroundColor: Theme.accentDark,
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 16,
+    backgroundColor: '#0B2D3E',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   settlementModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   settlementModalRef: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 4,
+    color: '#94A3B8',
+    marginTop: 6,
   },
   settlementModalClose: {
-    padding: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settlementModalBody: {
-    padding: 20,
-    gap: 16,
+    padding: 24,
+    paddingBottom: 8,
+    gap: 24,
   },
   settlementBillRow: {
     flexDirection: 'row',
@@ -2427,19 +3171,31 @@ const styles = StyleSheet.create({
   },
   settlementLabel: {
     fontSize: 10,
-    fontWeight: '800',
-    color: Theme.textSecondary,
-    letterSpacing: 0.6,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
     marginBottom: 6,
   },
   settlementValue: {
     fontSize: 14,
-    fontWeight: '800',
-    color: Theme.textPrimary,
+    fontWeight: '900',
+    color: '#0B2D3E',
   },
-  settlementDivider: {
+  settlementSubValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#5B6B7A',
+    marginTop: 2,
+  },
+  settlementInvoiceBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 20,
+  },
+  settlementInvoiceDivider: {
     height: 1,
-    backgroundColor: Theme.rowBorder,
+    backgroundColor: '#E3ECF4',
+    marginVertical: 16,
   },
   settlementLineRow: {
     flexDirection: 'row',
@@ -2448,72 +3204,65 @@ const styles = StyleSheet.create({
   },
   settlementLineDesc: {
     fontSize: 14,
-    fontWeight: '800',
-    color: Theme.textPrimary,
+    fontWeight: '900',
+    color: '#0B2D3E',
     flex: 1,
   },
   settlementLineAmount: {
     fontSize: 14,
-    fontWeight: '800',
-    color: Theme.textPrimary,
+    fontWeight: '900',
+    color: '#0B2D3E',
   },
   settlementLineDescMuted: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: '#5B6B7A',
     flex: 1,
   },
-  settlementLineAmountMuted: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Theme.textSecondary,
-  },
   settlementTotalLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: '#0B2D3E',
   },
   settlementTotalAmount: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: '#0B2D3E',
   },
   settlementModalFooter: {
     flexDirection: 'row',
     gap: 12,
-    padding: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: Theme.rowBorder,
+    padding: 24,
   },
   settlementDownloadBtn: {
-    flex: 1,
+    flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Theme.accentDark,
-    paddingVertical: 14,
+    backgroundColor: '#1C1C1E',
+    paddingVertical: 16,
     borderRadius: 14,
   },
   settlementDownloadBtnText: {
     fontSize: 14,
-    fontWeight: '800',
-    color: Theme.textOnAccent,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   settlementCloseBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    flex: 1,
+    paddingVertical: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
-    backgroundColor: Theme.cardBackground,
+    borderColor: '#E3ECF4',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
     justifyContent: 'center',
   },
   settlementCloseBtnText: {
     fontSize: 14,
-    fontWeight: '800',
-    color: Theme.textPrimary,
+    fontWeight: '900',
+    color: '#0B2D3E',
   },
   // Security Architecture (Update Credentials) modal
   credentialsModalOverlay: {

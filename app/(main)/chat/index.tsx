@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type ChatHistoryItem = {
+export type ChatHistoryItem = {
     id: string;
     title: string;
     time: string;
@@ -20,7 +20,7 @@ type ChatHistoryItem = {
     icon: keyof typeof MaterialCommunityIcons.glyphMap;
 };
 
-const CHAT_HISTORY: ChatHistoryItem[] = [
+export const CHAT_HISTORY: ChatHistoryItem[] = [
     {
         id: '1',
         title: 'Property valuation for 124 Ocean Drive',

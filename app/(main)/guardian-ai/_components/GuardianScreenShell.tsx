@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GuardianNav } from './GuardianNav';
+import { GuardianNav, GuardianTabId } from './GuardianNav';
 
 type GuardianScreenShellProps = {
   title: string;
@@ -12,6 +12,8 @@ type GuardianScreenShellProps = {
   showBack?: boolean;
   children: ReactNode;
   showNav?: boolean;
+  activeTab?: GuardianTabId;
+  onTabChange?: (id: GuardianTabId) => void;
 };
 
 export function GuardianScreenShell({
@@ -20,6 +22,8 @@ export function GuardianScreenShell({
   showBack = true,
   children,
   showNav = true,
+  activeTab,
+  onTabChange,
 }: GuardianScreenShellProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -29,7 +33,7 @@ export function GuardianScreenShell({
       colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top}]}>
+      style={[styles.background, { paddingTop: insets.top }]}>
       <View style={styles.headerWrap}>
         <View style={styles.header}>
           {showBack && (
@@ -43,8 +47,12 @@ export function GuardianScreenShell({
           </View>
         </View>
       </View>
-      {children}
-      {showNav && <GuardianNav />}
+      <View style={styles.contentWrap}>
+        {children}
+      </View>
+      {showNav && activeTab && onTabChange && (
+        <GuardianNav activeTab={activeTab} onTabChange={onTabChange} />
+      )}
     </LinearGradient>
   );
 }
@@ -67,4 +75,7 @@ const styles = StyleSheet.create({
   headerTextFull: { marginLeft: 0 },
   title: { fontSize: 20, fontWeight: '900', color: '#0B2D3E' },
   subtitle: { fontSize: 12.5, color: '#5B6B7A', marginTop: 4, fontWeight: '700' },
+  contentWrap: {
+    flex: 1,
+  },
 });

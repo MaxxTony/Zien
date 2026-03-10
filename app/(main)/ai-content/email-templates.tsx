@@ -1,503 +1,526 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
     ActivityIndicator,
+    Clipboard,
     Dimensions,
-    Platform,
+    Keyboard,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    View
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Mock Data for Email Templates
-interface TemplateOption {
-    id: 'just-listed' | 'follow-up' | 'newsletter';
+interface EmailType {
+    id: string;
     title: string;
-    description: string;
     icon: string;
+    placeholder: string;
 }
 
-const TEMPLATE_OPTIONS: TemplateOption[] = [
+const EMAIL_TYPES: EmailType[] = [
     {
-        id: 'just-listed',
+        id: 'just_listed',
         title: 'Just Listed',
-        description: "Announce new inventory to your lead list.",
         icon: 'bell-outline',
+        placeholder: 'e.g. New property at 742 Evergreen Terrace. Modern ranch style, 3 bed, 2 bath, close to schools. Highlight the backyard patio...',
     },
     {
-        id: 'follow-up',
+        id: 'follow_up',
         title: 'Follow-up',
-        description: "Re-engage prospects after a showing.",
-        icon: 'send-outline', // Paper plane look
+        icon: 'send-outline',
+        placeholder: 'e.g. Follow-up for the Malibu beachfront tour. Mention the sunset patio and the private beach access. Propose a meeting on Friday.',
     },
     {
         id: 'newsletter',
         title: 'Newsletter',
-        description: "Monthly market updates and community news.",
-        icon: 'star-outline',
+        icon: 'newspaper-variant-outline',
+        placeholder: 'e.g. Monthly real estate market update for Orange County. Mention current interest rates and new listings in Irvine.',
+    },
+    {
+        id: 'price_drop',
+        title: 'Price Drop',
+        icon: 'lightning-bolt-outline',
+        placeholder: 'e.g. Massive $50k price reduction on the Downtown Penthouse. Mention motivated seller and ready to move in.',
     },
 ];
 
-const GENERATED_TEMPLATES = {
-    'just-listed': `Subject: Exclusive First Look: Stunning New Listing in Brentwood
+const STYLE_TAGS = ['Spam-Safe', 'Conversion Tuned', 'Luxury Tone', 'Dynamic Tags'];
 
-Hi [Client Name],
+const MOCK_EMAIL = {
+    subject: 'Follow-up: The Malibu Beachfront View You Loved',
+    body: `Hi [Client Name],
 
-I hope you're having a great week! I wanted to personally reach out and share a brand new listing that just hit the market. This property perfectly matches the criteria we've discussed.
+It was a pleasure showing you the Malibu beachfront property yesterday. I keep thinking about how much you appreciated the panoramic sunset views from the master suite!
 
-Located in the heart of Brentwood, this home features:
-• 5 Bedrooms / 4.5 Bathrooms
-• Expansive outdoor living area
-• Gourmet chef's kitchen
+As promised, I've attached the detailed floor plans and the private beach access documentation. This property has already seen significant interest since our tour.
 
-Would you like to schedule a private tour this weekend? This one won't last long!
-
-Best,
-[Your Name]`,
-    'follow-up': `Subject: Thoughts on [Property Address]?
-
-Hi [Client Name],
-
-Thank you for touring [Property Address] with me yesterday. I really enjoyed walking you through the property and hearing your initial thoughts.
-
-I wanted to follow up and see if you had any further questions after sleeping on it. I also found a few more details about the HOA amenities that I think you'll appreciate.
-
-Let me know if you'd like to take another look or if you're ready to discuss next steps.
+Would you be available for a quick 10-minute call on Friday to discuss next steps?
 
 Best regards,
-[Your Name]`,
-    'newsletter': `Subject: [Month] Market Update: Is it a good time to buy?
-
-Hi [Client Name],
-
-The real estate market in [City] is constantly shifting, and I wanted to keep you informed on what we're seeing on the ground this month.
-
-📈 Market Highlights:
-• Average sales price is up [X]%
-• Inventory remains tight, favoring sellers
-• Interest rates have stabilized around [X]%
-
-What this means for you:
-If you're thinking of selling, demand is still high for turnkey properties. For buyers, preparation is key to winning in multiple-offer situations.
-
-Check out my latest blog post for a deeper dive, or reply to this email if you'd like a custom valuation of your home.
-
-Warmly,
-[Your Name]`
+[Your Name]
+Zien Realty Group`
 };
-
-type FlowStep = 'selection' | 'loading' | 'preview' | 'success';
 
 export default function EmailTemplatesScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [step, setStep] = useState<FlowStep>('selection');
-    const [selectedTemplate, setSelectedTemplate] = useState<TemplateOption['id'] | null>(null);
 
-    // Preview State
-    const [generatedContent, setGeneratedContent] = useState('');
-    const [isRegenerating, setIsRegenerating] = useState(false);
+    const [selectedType, setSelectedType] = useState('just_listed');
+    const [campaignContext, setCampaignContext] = useState('');
+    const [selectedStyle, setSelectedStyle] = useState('Spam-Safe');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [outputEmail, setOutputEmail] = useState({ subject: '', body: '' });
+    const [hasGenerated, setHasGenerated] = useState(false);
 
-    useEffect(() => {
-        if (step === 'loading') {
-            // Simulate generation time
-            const timer = setTimeout(() => {
-                if (selectedTemplate) {
-                    setGeneratedContent(GENERATED_TEMPLATES[selectedTemplate]);
-                }
-                setStep('preview');
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [step, selectedTemplate]);
+    const handleGenerate = () => {
+        if (!campaignContext.trim()) return;
 
-    const handleTemplateSelect = (id: TemplateOption['id']) => {
-        setSelectedTemplate(id);
-        setStep('loading');
-    };
+        Keyboard.dismiss();
+        setIsGenerating(true);
+        setHasGenerated(false);
+        setOutputEmail({ subject: '', body: '' });
 
-    const handleNewDraft = () => {
-        setIsRegenerating(true);
-        // Simulate API call
+        // Simulate thinking & generating
         setTimeout(() => {
-            if (selectedTemplate) {
-                // Add a slight variation
-                const newText = `Subject: [Revised] ` + GENERATED_TEMPLATES[selectedTemplate].substring(9);
-                setGeneratedContent(newText);
-            }
-            setIsRegenerating(false);
+            setIsGenerating(false);
+            setHasGenerated(true);
+
+            // Typing animation
+            let subjectIndex = 0;
+            let bodyIndex = 0;
+            const fullSubject = MOCK_EMAIL.subject;
+            const fullBody = MOCK_EMAIL.body;
+
+            const timer = setInterval(() => {
+                if (subjectIndex < fullSubject.length) {
+                    setOutputEmail(prev => ({ ...prev, subject: prev.subject + fullSubject.charAt(subjectIndex) }));
+                    subjectIndex++;
+                } else if (bodyIndex < fullBody.length) {
+                    setOutputEmail(prev => ({ ...prev, body: prev.body + fullBody.charAt(bodyIndex) }));
+                    bodyIndex++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, 10);
         }, 1500);
     };
 
-    const handleSave = () => {
-        setStep('success');
+    const copyToClipboard = () => {
+        Clipboard.setString(`Subject: ${outputEmail.subject}\n\n${outputEmail.body}`);
     };
-
-    const handleDone = () => {
-        router.back(); // Go back to AI Content Hub
-    };
-
-    const getTemplateDetails = () => {
-        return TEMPLATE_OPTIONS.find(t => t.id === selectedTemplate) || TEMPLATE_OPTIONS[0];
-    };
-
-    const renderHeader = (title: string, subtitle?: string) => (
-        <View style={styles.header}>
-            <Pressable style={styles.backButton} onPress={() => step === 'selection' ? router.back() : setStep('selection')}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#0B2D3E" />
-            </Pressable>
-            <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>{title}</Text>
-                {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
-            </View>
-        </View>
-    );
-
-    // --- STEP 1: SELECTION ---
-    const renderSelection = () => (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {renderHeader('Email Templates', 'High-converting email copy for every stage of the client journey.')}
-
-            <View style={styles.grid}>
-                {TEMPLATE_OPTIONS.map((template) => (
-                    <Pressable
-                        key={template.id}
-                        style={styles.card}
-                        onPress={() => handleTemplateSelect(template.id)}
-                    >
-                        <View style={styles.iconContainer}>
-                            <MaterialCommunityIcons name={template.icon as any} size={28} color="#0B2D3E" />
-                        </View>
-                        <Text style={styles.cardTitle}>{template.title}</Text>
-                        <Text style={styles.cardDesc}>{template.description}</Text>
-                    </Pressable>
-                ))}
-            </View>
-        </ScrollView>
-    );
-
-    // --- STEP 2: LOADING ---
-    const renderLoading = () => (
-        <View style={styles.centerContainer}>
-            <View style={styles.loaderSpinner}>
-                <ActivityIndicator size="large" color="#0B2D3E" />
-            </View>
-            <Text style={styles.loadingTitle}>Writing Template...</Text>
-            <Text style={styles.loadingSubtitle}>
-                AI is personalizing the draft with high-conversion hooks.
-            </Text>
-        </View>
-    );
-
-    // --- STEP 3: PREVIEW ---
-    const renderPreview = () => {
-        const template = getTemplateDetails();
-        return (
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* Custom Header for Preview with Actions */}
-                <View style={styles.previewHeaderContainer}>
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <Pressable style={styles.backButton} onPress={() => setStep('selection')}>
-                            <MaterialCommunityIcons name="arrow-left" size={24} color="#0B2D3E" />
-                        </Pressable>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.headerTitle}>{template.title} Template</Text>
-                            <Text style={styles.headerSubtitle}>Customize your email draft before saving it to your CMR.</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.headerActions}>
-                        <Pressable
-                            style={styles.regenerateBtn}
-                            onPress={handleNewDraft}
-                            disabled={isRegenerating}
-                        >
-                            {isRegenerating ? (
-                                <ActivityIndicator size="small" color="#0B2D3E" />
-                            ) : (
-                                <>
-                                    <MaterialCommunityIcons name="refresh" size={16} color="#0B2D3E" />
-                                    <Text style={styles.regenerateText}>New Draft</Text>
-                                </>
-                            )}
-                        </Pressable>
-                        <Pressable style={styles.headerSaveBtn} onPress={handleSave}>
-                            <MaterialCommunityIcons name="content-save-outline" size={18} color="#FFFFFF" />
-                            <Text style={styles.headerSaveBtnText}>Save Template</Text>
-                        </Pressable>
-                    </View>
-                </View>
-
-                <View style={styles.previewCard}>
-                    <TextInput
-                        style={styles.previewInput}
-                        multiline
-                        value={generatedContent}
-                        onChangeText={setGeneratedContent}
-                        textAlignVertical="top"
-                    />
-                </View>
-            </ScrollView>
-        );
-    };
-
-    // --- STEP 4: SUCCESS ---
-    const renderSuccess = () => (
-        <View style={styles.centerContainer}>
-            <View style={[styles.successCircle, { backgroundColor: '#0B2D3E' }]}>
-                <MaterialCommunityIcons name="check" size={40} color="#FFFFFF" />
-            </View>
-            <Text style={styles.successTitle}>Template Saved!</Text>
-            <Text style={styles.successSubtitle}>
-                Your email template has been added to your library.
-            </Text>
-            <Pressable style={styles.returnButton} onPress={handleDone}>
-                <Text style={styles.returnButtonText}>Back to Hub</Text>
-            </Pressable>
-        </View>
-    );
 
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F0F6FA', '#E0ECF4', '#F4F0EE']}
+                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
                 style={[styles.background, { paddingTop: insets.top }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
             >
-                {step === 'selection' && renderSelection()}
-                {step === 'loading' && renderLoading()}
-                {step === 'preview' && renderPreview()}
-                {step === 'success' && renderSuccess()}
+                <PageHeader
+                    title="Email Campaign Lab"
+                    subtitle="Compose ultra-personalized, high-conversion email sequences using Zien AI."
+                    onBack={() => router.back()}
+                />
+
+                <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Email Type Tabs */}
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.typeTabs}
+                    >
+                        {EMAIL_TYPES.map((type) => (
+                            <Pressable
+                                key={type.id}
+                                style={[
+                                    styles.typeTab,
+                                    selectedType === type.id && styles.typeTabActive,
+                                ]}
+                                onPress={() => setSelectedType(type.id)}
+                            >
+                                <MaterialCommunityIcons
+                                    name={type.icon as any}
+                                    size={18}
+                                    color={selectedType === type.id ? '#FFFFFF' : '#0B2341'}
+                                />
+                                <Text style={[
+                                    styles.typeTabText,
+                                    selectedType === type.id && styles.typeTabTextActive,
+                                ]}>
+                                    {type.title}
+                                </Text>
+                            </Pressable>
+                        ))}
+                    </ScrollView>
+
+                    {/* Campaign Context Card */}
+                    <View style={styles.inputCard}>
+                        <Text style={styles.cardHeading}>Campaign Context</Text>
+                        <Text style={styles.cardSubtitle}>
+                            Provide specific details about the property, recipient context, or the main call-to-action.
+                        </Text>
+
+                        <TextInput
+                            style={styles.textArea}
+                            multiline
+                            placeholder={EMAIL_TYPES.find(t => t.id === selectedType)?.placeholder}
+                            placeholderTextColor="#94A3B8"
+                            value={campaignContext}
+                            onChangeText={setCampaignContext}
+                            textAlignVertical="top"
+                        />
+
+                        <View style={styles.inputFooter}>
+                            <Pressable
+                                style={[styles.generateBtn, !campaignContext.trim() && styles.generateBtnDisabled]}
+                                onPress={handleGenerate}
+                                disabled={isGenerating || !campaignContext.trim()}
+                            >
+                                {isGenerating ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.generateBtnText}>Generate</Text>
+                                )}
+                            </Pressable>
+                        </View>
+
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagList}>
+                            {STYLE_TAGS.map((tag) => (
+                                <Pressable
+                                    key={tag}
+                                    onPress={() => setSelectedStyle(tag)}
+                                    style={[
+                                        styles.tagPill,
+                                        selectedStyle === tag && styles.tagPillActive,
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.tagPillText,
+                                        selectedStyle === tag && styles.tagPillTextActive,
+                                    ]}>
+                                        {tag}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* Output Card */}
+                    <View style={styles.outputCard}>
+                        <View style={styles.outputHeader}>
+                            <View style={styles.outputStatus}>
+                                <View style={styles.statusDot} />
+                                <Text style={styles.outputTitle} numberOfLines={1}>AI EMAIL OUTPUT</Text>
+                            </View>
+                            <View style={styles.outputActions}>
+                                <Pressable style={styles.iconAction} onPress={copyToClipboard}>
+                                    <MaterialCommunityIcons name="content-copy" size={18} color="#94A3B8" />
+                                </Pressable>
+                                <Pressable style={styles.exportBtn}>
+                                    <MaterialCommunityIcons name="file-document-outline" size={16} color="#FFFFFF" />
+                                    <Text style={styles.exportBtnText}>EXPORT</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+
+                        <View style={styles.outputContent}>
+                            {isGenerating ? (
+                                <View style={styles.loaderState}>
+                                    <ActivityIndicator size="large" color="#0BA0B2" />
+                                    <Text style={styles.loaderText}>Drafting your high-conversion email...</Text>
+                                </View>
+                            ) : hasGenerated ? (
+                                <View style={styles.emailBodyContainer}>
+                                    <View style={styles.subjectRow}>
+                                        <Text style={styles.subjectLabel}>Subject:</Text>
+                                        <TextInput
+                                            style={styles.subjectText}
+                                            value={outputEmail.subject}
+                                            onChangeText={(t) => setOutputEmail(p => ({ ...p, subject: t }))}
+                                        />
+                                    </View>
+                                    <TextInput
+                                        style={styles.emailTextArea}
+                                        multiline
+                                        value={outputEmail.body}
+                                        onChangeText={(t) => setOutputEmail(p => ({ ...p, body: t }))}
+                                        textAlignVertical="top"
+                                    />
+                                </View>
+                            ) : (
+                                <View style={styles.placeholderState}>
+                                    <MaterialCommunityIcons name="lightning-bolt-outline" size={48} color="#1E293B" />
+                                    <Text style={styles.placeholderTitle}>Email Studio Active</Text>
+                                    <Text style={styles.placeholderSubtitle}>
+                                        Enter your campaign brief and click generate to draft a professional email.
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
             </LinearGradient>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    container: { flex: 1 },
+    background: { flex: 1 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 20 },
+
+    // Tabs
+    typeTabs: {
+        paddingVertical: 10,
+        gap: 8,
+        marginBottom: 20,
     },
-    background: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-    },
-    centerContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 40,
-    },
-    header: {
-        marginBottom: 24,
-        marginTop: 10,
+    typeTab: {
         flexDirection: 'row',
-        gap: 10
-    },
-    backButton: {
-        width: 44,
-        height: 44,
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    headerText: {
-        flex: 1,
-        gap: 4,
-        paddingRight: 5,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#0B2D3E',
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        lineHeight: 20,
-        flexWrap: 'wrap',
-    },
-    // Selection Step
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
-        justifyContent: 'center',
-    },
-    card: {
-        width: '100%',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 30, // More padding as per screenshot
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
-        elevation: 3,
-        minHeight: 200,
-    },
-    iconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 20,
-        backgroundColor: '#F8FAFC',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#0B2D3E',
-        marginBottom: 8,
-    },
-    cardDesc: {
-        fontSize: 13,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    // Loading Step
-    loaderSpinner: {
-        marginBottom: 24,
-    },
-    loadingTitle: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    loadingSubtitle: {
-        fontSize: 15,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 40,
-    },
-    // Preview Step
-    previewHeaderContainer: {
-        marginBottom: 24,
-        marginTop: 10,
-        gap: 16,
-    },
-    headerActions: {
-        flexDirection: 'row',
-        gap: 12,
-        alignSelf: 'flex-start',
-        marginTop: 8,
-    },
-    headerSaveBtn: {
-        backgroundColor: '#0B2D3E',
         paddingHorizontal: 16,
         paddingVertical: 10,
-        borderRadius: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    headerSaveBtnText: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    previewCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 12,
-        elevation: 3,
-        marginBottom: 24,
-        minHeight: 400,
-    },
-    regenerateBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
+        marginRight: 8,
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
-    regenerateText: {
+    typeTabActive: {
+        backgroundColor: '#0BA0B2',
+        borderColor: '#0BA0B2',
+    },
+    typeTabText: {
         fontSize: 13,
-        fontWeight: '700',
-        color: '#0B2D3E',
+        fontWeight: '800',
+        color: '#0B2341',
+        marginLeft: 8,
     },
-    previewInput: {
-        fontSize: 15, // Monospace often looks larger, 15 is good
-        color: '#0F172A',
-        lineHeight: 24,
-        fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-        minHeight: 350,
+    typeTabTextActive: {
+        color: '#FFFFFF',
     },
-    // Success Step
-    successCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        alignItems: 'center',
-        justifyContent: 'center',
+
+    // Campaign Context Card
+    inputCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 24,
         marginBottom: 24,
         shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
-        elevation: 5,
+        shadowOpacity: 0.04,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 20,
+        elevation: 4,
     },
-    successTitle: {
-        fontSize: 28,
+    cardHeading: {
+        fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 12,
-        textAlign: 'center',
+        color: '#0B2341',
+        marginBottom: 8,
     },
-    successSubtitle: {
-        fontSize: 15,
+    cardSubtitle: {
+        fontSize: 13,
         color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 24,
-        marginBottom: 32,
+        lineHeight: 18,
+        marginBottom: 20,
     },
-    returnButton: {
-        backgroundColor: '#0B2D3E',
-        paddingHorizontal: 32,
-        paddingVertical: 16,
-        borderRadius: 12,
-        width: 'auto', // Button shouldn't be too wide if not needed, but consistency... 
-        // Previous screens used custom logic? Let's stick to consistent styles. 
-        // In property-description it was width: '100%', in social-media width was '100%'.
-        // In screenshot it looks like a contained button. I'll make it consistent:
-        minWidth: 200,
-        alignItems: 'center',
-    },
-    returnButtonText: {
+    textArea: {
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 16,
+        padding: 16,
+        height: 180,
         fontSize: 15,
-        fontWeight: '700',
+        color: '#0F172A',
+        fontWeight: '600',
+        marginBottom: 20,
+    },
+    inputFooter: {
+        flexDirection: 'row',
+        marginBottom: 16,
+    },
+    generateBtn: {
+        backgroundColor: '#0B2341',
+        paddingHorizontal: 32,
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    generateBtnDisabled: {
+        opacity: 0.6,
+    },
+    generateBtnText: {
         color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '800',
+    },
+    tagList: { marginTop: 10 },
+    tagPill: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
+        backgroundColor: '#F1F5F9',
+        marginRight: 8,
+        justifyContent: 'center',
+    },
+    tagPillActive: {
+        backgroundColor: '#E2E8F0',
+    },
+    tagPillText: {
+        fontSize: 11,
+        color: '#64748B',
+        fontWeight: '700',
+    },
+    tagPillTextActive: {
+        color: '#0B2341',
+    },
+
+    // Output Card
+    outputCard: {
+        backgroundColor: '#0B2341',
+        borderRadius: 24,
+        padding: 16,
+        minHeight: 450,
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 30,
+        elevation: 8,
+    },
+    outputHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#1E293B',
+        paddingBottom: 16,
+    },
+    outputStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexShrink: 1,
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#0BA0B2',
+        marginRight: 6,
+    },
+    outputTitle: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
+    },
+    outputActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    iconAction: {
+        width: 36,
+        height: 36,
+        borderRadius: 8,
+        backgroundColor: '#1E293B',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    exportBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0BA0B2',
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: 8,
+        gap: 6,
+    },
+    exportBtnText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '900',
+    },
+    outputContent: { flex: 1 },
+    loaderState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loaderText: {
+        color: '#94A3B8',
+        marginTop: 16,
+        fontSize: 14,
+        textAlign: 'center',
+    },
+    placeholderState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+    },
+    placeholderTitle: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#64748B',
+        marginTop: 16,
+    },
+    placeholderSubtitle: {
+        fontSize: 13,
+        color: '#475569',
+        textAlign: 'center',
+        marginTop: 8,
+        paddingHorizontal: 40,
+        lineHeight: 18,
+    },
+    emailBodyContainer: {
+        flex: 1,
+        gap: 16,
+    },
+    subjectRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1E293B',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        gap: 8,
+    },
+    subjectLabel: {
+        color: '#64748B',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    subjectText: {
+        flex: 1,
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    emailTextArea: {
+        flex: 1,
+        backgroundColor: '#1E293B',
+        borderRadius: 16,
+        padding: 16,
+        color: '#CBD5E1',
+        fontSize: 14,
+        lineHeight: 22,
+        minHeight: 300,
     },
 });

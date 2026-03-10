@@ -1,661 +1,577 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
+    Image,
+    Keyboard,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Mock Data
-interface StyleOption {
-    id: 'modern' | 'luxury' | 'bold';
+interface PropertyContext {
+    id: string;
     title: string;
-    description: string;
-    icon: string;
+    address: string;
+    image: string;
 }
 
-const STYLE_OPTIONS: StyleOption[] = [
-    {
-        id: 'modern',
-        title: 'Modern Minimal',
-        description: "Clean, spacious design with focus on high-res photography.",
-        icon: 'view-dashboard-outline',
-    },
-    {
-        id: 'luxury',
-        title: 'Luxury Executive',
-        description: "Sophisticated dark modes with gold and navy accents.",
-        icon: 'presentation',
-    },
-    {
-        id: 'bold',
-        title: 'Bold Investment',
-        description: "Data-driven layout optimized for market trends and charts.",
-        icon: 'file-document-outline',
-    },
+const PROPERTIES: PropertyContext[] = [
+    { id: 'generic', title: 'Generic / No Context', address: 'Manual Brief Only', image: '' },
+    { id: 'la_villa', title: 'Los Angeles Villa', address: '123 Business Way', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=100&q=80' },
+    { id: 'malibu_villa', title: 'Malibu Villa', address: '88 Gold Coast', image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=100&q=80' },
+    { id: 'beverly_hills', title: 'Beverly Hills Villa', address: '45 Sunset Blvd', image: 'https://images.unsplash.com/photo-1600596542815-6ad4c727dddf?auto=format&fit=crop&w=100&q=80' },
+    { id: 'miami_villa', title: 'Miami Villa', address: '22 Ocean Drive', image: 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=100&q=80' },
 ];
 
-const SLIDES_DATA = [
-    { id: 1, title: 'Cover Overview', header: 'Cover Overview', content: 'Malibu Villa', subtitle: 'EXCLUSIVE PRESENTATION', type: 'cover' },
-    { id: 2, title: 'Property Profiles', header: 'Property Profile', content: 'The Architecture', subtitle: 'Detailed specifications of the estate.', type: 'split' },
-    { id: 3, title: 'Market Analytics', header: 'Market Analytics', content: 'Growth Trends (+12%)', subtitle: 'Q1 Market Performance Analysis', type: 'chart' },
-    { id: 4, title: 'Comparative Sales', header: 'Recent Comps', content: 'Comparative Sales', subtitle: '3 nearby properties sold above asking.', type: 'list' },
-    { id: 5, title: 'Closing Remarks', header: 'Next Steps', content: 'Closing Remarks', subtitle: 'Schedule a private viewing today.', type: 'text' },
+const NARRATIVE_STYLES = [
+    { id: 'luxury', title: 'Luxury Executive', icon: 'book-open-variant' },
+    { id: 'minimal', title: 'Modern Minimal', icon: 'view-quilt', color: '#0BA0B2' },
+    { id: 'bold', title: 'Bold Investment', icon: 'file-document-outline', color: '#F97316' },
 ];
 
-type FlowStep = 'selection' | 'loading' | 'preview' | 'success';
+const SLIDES = [
+    {
+        chapter: 'CHAPTER 01',
+        title: 'Architectural Grandeur',
+        subtitle: '123 Ocean Drive, Malibu',
+        description: 'An exclusive look into the pinnacle of coastal luxury living, where modern design meets the Pacific horizon.',
+        image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80'
+    },
+    {
+        chapter: 'CHAPTER 02',
+        title: 'The Living Experience',
+        subtitle: 'Interior Mastery',
+        description: 'Open-concept spaces featuring 24ft ceilings, Italian marble flooring, and hand-crafted walnut cabinetry throughout.',
+        image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'
+    },
+    {
+        chapter: 'CHAPTER 03',
+        title: 'Culinary Excellence',
+        subtitle: 'Gourmet Kitchen',
+        description: 'Professional-grade appliances integrated into a minimalist design, perfect for both intimate dining and grand entertaining.',
+        image: 'https://images.unsplash.com/photo-1600607687940-47a04b50975a?auto=format&fit=crop&w=800&q=80'
+    },
+    {
+        chapter: 'CHAPTER 04',
+        title: 'Primary Sanctuary',
+        subtitle: 'Master Suite Retreat',
+        description: 'A private oasis with floor-to-ceiling glass, offering unobstructed ocean views and a spa-inspired en-suite bathroom.',
+        image: 'https://images.unsplash.com/photo-1600566753190-17f0bb2a6c3e?auto=format&fit=crop&w=800&q=80'
+    }
+];
 
 export default function PresentationBuilderScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [step, setStep] = useState<FlowStep>('selection');
-    const [selectedStyle, setSelectedStyle] = useState<StyleOption['id'] | null>(null);
+
+    const [property, setProperty] = useState(PROPERTIES[0]);
+    const [style, setStyle] = useState(NARRATIVE_STYLES[0]);
+    const [brief, setBrief] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [hasGenerated, setHasGenerated] = useState(false);
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
-    // Default to the third slide (Market Analytics) for demo purposes if desired, 
-    // but starting at 0 is standard. The screenshot showed slide 3. 
-    // Let's start at 0.
+    // Dropdown visibility
+    const [showPropDropdown, setShowPropDropdown] = useState(false);
+    const [showStyleDropdown, setShowStyleDropdown] = useState(false);
 
-    // Loading Simulation
-    useEffect(() => {
-        if (step === 'loading') {
-            const timer = setTimeout(() => {
-                setStep('preview');
-                // Optional: Jump to slide 2 (index 2) to match screenshot for "wow" factor if specifically requested, 
-                // but usually user expects start. I'll stick to 0 unless instructed.
-                // Actually, let's auto-advance to slide 2 (Market Analytics) just to match the screenshot 'vibe' initially? 
-                // No, standard behavior is better.
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [step]);
+    const handleGenerate = () => {
+        if (isGenerating) return;
+        Keyboard.dismiss();
+        setIsGenerating(true);
+        setHasGenerated(false);
 
-    const handleStyleSelect = (id: StyleOption['id']) => {
-        setSelectedStyle(id);
-        setStep('loading');
-    };
-
-    const handleNextSlide = () => {
-        if (currentSlideIndex < SLIDES_DATA.length - 1) {
-            setCurrentSlideIndex(prev => prev + 1);
-        }
-    };
-
-    const handlePrevSlide = () => {
-        if (currentSlideIndex > 0) {
-            setCurrentSlideIndex(prev => prev - 1);
-        }
-    };
-
-    const handleReShuffle = () => {
-        setCurrentSlideIndex(0);
-    };
-
-    const handleExport = () => {
-        setStep('success');
-    };
-
-    const handleDone = () => {
-        router.back();
-    };
-
-    const getStyleDetails = () => STYLE_OPTIONS.find(s => s.id === selectedStyle) || STYLE_OPTIONS[0];
-
-    // Helper to render slide content based on type (simulated visual difference)
-    const renderSlideVisual = (slide: typeof SLIDES_DATA[0]) => {
-        const styleId = selectedStyle || 'modern';
-
-        // Visual Tokens matching the screenshot style (Luxury Executive especially)
-        // Screenshot shows a Dark Navy background for the card? Or is it black? Looks like Dark Navy #0F172A or similar.
-        // Accent color seems to be Gold #C0A062.
-
-        const isLuxury = styleId === 'luxury';
-        const bg = isLuxury ? '#0F172A' : '#FFFFFF';
-        const txt = isLuxury ? '#FFFFFF' : '#0B2D3E';
-        const subTxt = isLuxury ? '#94A3B8' : '#64748B';
-        const accent = isLuxury ? '#C0A062' : '#0BA0B2';
-
-        return (
-            <View style={[styles.slideCanvas, { backgroundColor: bg }]}>
-                {/* Inner Content Padding */}
-                <View style={{ flex: 1, padding: 24 }}>
-                    {/* Header */}
-                    <Text style={[styles.slideHeaderTitle, { color: txt }]}>
-                        {slide.header}
-                    </Text>
-
-                    {/* Middle Graphic / Content */}
-                    <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                        {slide.type === 'chart' ? (
-                            <>
-                                <MaterialCommunityIcons name="poll" size={80} color={accent} />
-                                <Text style={[styles.slideMainContent, { color: txt, marginTop: 20 }]}>
-                                    {slide.content}
-                                </Text>
-                            </>
-                        ) : slide.type === 'cover' ? (
-                            <>
-                                <View style={{ width: 60, height: 2, backgroundColor: accent, marginBottom: 20 }} />
-                                <Text style={[styles.slideMainContent, { color: txt, textAlign: 'center', fontSize: 32 }]}>
-                                    {slide.content}
-                                </Text>
-                                <Text style={[styles.slideSubtitle, { color: accent, marginTop: 10 }]}>
-                                    {slide.subtitle}
-                                </Text>
-                            </>
-                        ) : (
-                            // Generic layout for others
-                            <>
-                                <MaterialCommunityIcons name={
-                                    slide.type === 'split' ? 'image-outline' :
-                                        slide.type === 'list' ? 'format-list-bulleted' : 'text-box-outline'
-                                } size={64} color={isLuxury ? '#334155' : '#E2E8F0'} />
-                                <Text style={[styles.slideMainContent, { color: txt, marginTop: 20, textAlign: 'center' }]}>
-                                    {slide.content}
-                                </Text>
-                                <Text style={[styles.slideSubtitle, { color: subTxt, marginTop: 10, textAlign: 'center' }]}>
-                                    {slide.subtitle}
-                                </Text>
-                            </>
-                        )}
-                    </View>
-
-                    {/* Footer / Page Number */}
-                    <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ fontSize: 10, fontWeight: '600', color: isLuxury ? '#475569' : '#CBD5E1' }}>
-                            PAGE {slide.id}/{SLIDES_DATA.length}
-                        </Text>
-                    </View>
-                </View>
-            </View>
-        );
-    };
-
-    const renderHeader = (title: string, subtitle?: string) => (
-        <View style={styles.header}>
-            <Pressable style={styles.backButton} onPress={() => step === 'selection' ? router.back() : setStep('selection')}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#0B2D3E" />
-            </Pressable>
-            <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>{title}</Text>
-                {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
-            </View>
-        </View>
-    );
-
-    // --- STEP 1: SELECTION ---
-    const renderSelection = () => (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {renderHeader('Presentation Builder', 'Select a visual aesthetic for your dynamic listing presentation.')}
-
-            <View style={styles.grid}>
-                {STYLE_OPTIONS.map((item) => (
-                    <Pressable
-                        key={item.id}
-                        style={styles.card}
-                        onPress={() => handleStyleSelect(item.id)}
-                    >
-                        <View style={styles.iconContainer}>
-                            <MaterialCommunityIcons name={item.icon as any} size={28} color="#0B2D3E" />
-                        </View>
-                        <Text style={styles.cardTitle}>{item.title}</Text>
-                        <Text style={styles.cardDesc}>{item.description}</Text>
-                    </Pressable>
-                ))}
-            </View>
-        </ScrollView>
-    );
-
-    // --- STEP 2: LOADING ---
-    const renderLoading = () => {
-        const style = getStyleDetails();
-        return (
-            <View style={styles.centerContainer}>
-                <View style={[styles.loaderSpinner, { marginBottom: 30 }]}>
-                    <ActivityIndicator size="large" color="#0B2D3E" />
-                </View>
-                <Text style={styles.loadingTitle}>Building {style.title} Deck...</Text>
-                <Text style={styles.loadingSubtitle}>
-                    AI is populating slides with market data, property features, and brand voice.
-                </Text>
-            </View>
-        );
-    };
-
-    // --- STEP 3: PREVIEW (MOBILE PRO LEVEL DESIGN) ---
-    const renderPreview = () => {
-        const style = getStyleDetails();
-        const currentSlide = SLIDES_DATA[currentSlideIndex];
-
-        return (
-            <ScrollView contentContainerStyle={styles.scrollContentPreview} showsVerticalScrollIndicator={false}>
-                {/* 1. Header Area with Back Button */}
-                <View style={styles.proHeader}>
-                    <Pressable style={styles.backButton} onPress={() => setStep('selection')}>
-                        <MaterialCommunityIcons name="arrow-left" size={24} color="#0F172A" />
-                    </Pressable>
-                    <View style={styles.proHeaderTexts}>
-                        <Text style={styles.proHeaderTitle}>{style.title}</Text>
-                        <Text style={styles.proHeaderTitle}>Presentation</Text>
-                        <Text style={styles.proHeaderSubtitle}>Visualize and refine your personalized CMA presentation.</Text>
-                    </View>
-                </View>
-
-                {/* 2. Action Buttons Row */}
-                <View style={styles.actionButtonsRow}>
-                    <Pressable style={styles.shuffleBtn} onPress={handleReShuffle}>
-                        <MaterialCommunityIcons name="shuffle-variant" size={16} color="#0B2D3E" />
-                        <Text style={styles.shuffleBtnText}>Re-shuffle</Text>
-                    </Pressable>
-                    <Pressable style={styles.exportBtn} onPress={handleExport}>
-                        <MaterialCommunityIcons name="file-pdf-box" size={18} color="#FFFFFF" />
-                        <Text style={styles.exportBtnText}>Export as PDF</Text>
-                    </Pressable>
-                </View>
-
-                {/* 3. Slide Status Bar */}
-                <View style={styles.slideStatusRow}>
-                    <Text style={styles.slideStatusTitle}>{currentSlide.title.toUpperCase()}</Text>
-                    <Text style={styles.slideStatusCount}>Slide {currentSlideIndex + 1} of {SLIDES_DATA.length}</Text>
-                </View>
-
-                {/* 4. Main Slide Card */}
-                <View style={styles.slideCardContainer}>
-                    {renderSlideVisual(currentSlide)}
-                </View>
-
-                {/* 5. Navigation Controls (Arrows + Dots) */}
-                <View style={styles.navControlsContainer}>
-                    <Pressable
-                        style={styles.circleNavBtn}
-                        onPress={handlePrevSlide}
-                        disabled={currentSlideIndex === 0}
-                    >
-                        <MaterialCommunityIcons
-                            name="chevron-left"
-                            size={28}
-                            color={currentSlideIndex === 0 ? "#E2E8F0" : "#0B2D3E"}
-                        />
-                    </Pressable>
-
-                    <View style={styles.paginationDots}>
-                        {SLIDES_DATA.map((_, idx) => (
-                            <View
-                                key={idx}
-                                style={[
-                                    styles.dot,
-                                    idx === currentSlideIndex ? styles.dotActive : styles.dotInactive
-                                ]}
-                            />
-                        ))}
-                    </View>
-
-                    <Pressable
-                        style={styles.circleNavBtn}
-                        onPress={handleNextSlide}
-                        disabled={currentSlideIndex === SLIDES_DATA.length - 1}
-                    >
-                        <MaterialCommunityIcons
-                            name="chevron-right"
-                            size={28}
-                            color={currentSlideIndex === SLIDES_DATA.length - 1 ? "#E2E8F0" : "#0B2D3E"}
-                        />
-                    </Pressable>
-                </View>
-
-            </ScrollView>
-        );
-    };
-
-    // --- STEP 4: SUCCESS ---
-    const renderSuccess = () => {
-        const style = getStyleDetails();
-        return (
-            <View style={styles.centerContainer}>
-                <View style={[styles.successCircle, { backgroundColor: '#0B2D3E' }]}>
-                    <MaterialCommunityIcons name="check" size={40} color="#FFFFFF" />
-                </View>
-                <Text style={styles.successTitle}>Deck Exported!</Text>
-                <Text style={styles.successSubtitle}>
-                    Your {style.title} presentation has been generated and is ready for download.
-                </Text>
-                <Pressable style={styles.returnButton} onPress={handleDone}>
-                    <Text style={styles.returnButtonText}>Back to Hub</Text>
-                </Pressable>
-            </View>
-        );
+        setTimeout(() => {
+            setIsGenerating(false);
+            setHasGenerated(true);
+            setCurrentSlideIndex(0);
+        }, 3000);
     };
 
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F0F6FA', '#E0ECF4', '#F4F0EE']}
+                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
                 style={[styles.background, { paddingTop: insets.top }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
             >
-                {step === 'selection' && renderSelection()}
-                {step === 'loading' && renderLoading()}
-                {step === 'preview' && renderPreview()}
-                {step === 'success' && renderSuccess()}
+                <PageHeader
+                    title="Presentation Lab"
+                    subtitle="Compose architectural listing decks and market reports with autonomous AI logic."
+                    onBack={() => router.back()}
+                />
+
+                <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    scrollEnabled={!showPropDropdown && !showStyleDropdown}
+                >
+                    {/* Selectors Row */}
+                    <View style={[styles.selectorsRow, { zIndex: (showPropDropdown || showStyleDropdown) ? 5000 : 100 }]}>
+                        <View style={[styles.selectorWrapper, { zIndex: showPropDropdown ? 2000 : 100 }]}>
+                            <Text style={styles.selectorLabel}>TARGET PROPERTY</Text>
+                            <Pressable
+                                style={[styles.selectorBtn, showPropDropdown && styles.selectorBtnActive]}
+                                onPress={() => {
+                                    setShowPropDropdown(!showPropDropdown);
+                                    setShowStyleDropdown(false);
+                                }}
+                            >
+                                <MaterialCommunityIcons name="cube-outline" size={18} color="#0B2341" />
+                                <Text style={styles.selectorValue} numberOfLines={1}>
+                                    {property.id === 'generic' ? 'Select Property Context' : property.title}
+                                </Text>
+                                <MaterialCommunityIcons name={showPropDropdown ? "chevron-up" : "chevron-down"} size={18} color="#94A3B8" />
+                            </Pressable>
+
+                            {showPropDropdown && (
+                                <View style={styles.dropdown}>
+                                    {PROPERTIES.map((p) => (
+                                        <Pressable
+                                            key={p.id}
+                                            style={styles.dropdownOption}
+                                            onPress={() => {
+                                                setProperty(p);
+                                                setShowPropDropdown(false);
+                                            }}
+                                        >
+                                            {p.image ? (
+                                                <Image source={{ uri: p.image }} style={styles.optionImage} />
+                                            ) : (
+                                                <View style={styles.optionIconPlaceholder}>
+                                                    <MaterialCommunityIcons name="cube-outline" size={16} color="#0B2341" />
+                                                </View>
+                                            )}
+                                            <View style={styles.optionTextCenter}>
+                                                <Text style={styles.optionTitle}>{p.title}</Text>
+                                                <Text style={styles.optionSubtitle}>{p.address}</Text>
+                                            </View>
+                                            {property.id === p.id && <MaterialCommunityIcons name="check" size={16} color="#0BA0B2" />}
+                                        </Pressable>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={[styles.selectorWrapper, { zIndex: showStyleDropdown ? 2000 : 50 }]}>
+                            <Text style={styles.selectorLabel}>VISUAL NARRATIVE STYLE</Text>
+                            <Pressable
+                                style={[styles.selectorBtn, showStyleDropdown && styles.selectorBtnActive]}
+                                onPress={() => {
+                                    setShowStyleDropdown(!showStyleDropdown);
+                                    setShowPropDropdown(false);
+                                }}
+                            >
+                                <MaterialCommunityIcons name={style.icon as any} size={18} color={style.color || "#0B2341"} />
+                                <Text style={styles.selectorValue}>{style.title}</Text>
+                                <MaterialCommunityIcons name={showStyleDropdown ? "chevron-up" : "chevron-down"} size={18} color="#94A3B8" />
+                            </Pressable>
+
+                            {showStyleDropdown && (
+                                <View style={styles.dropdown}>
+                                    {NARRATIVE_STYLES.map((s) => (
+                                        <Pressable
+                                            key={s.id}
+                                            style={styles.dropdownOption}
+                                            onPress={() => {
+                                                setStyle(s);
+                                                setShowStyleDropdown(false);
+                                            }}
+                                        >
+                                            <MaterialCommunityIcons name={s.icon as any} size={18} color={s.color || "#0B2341"} />
+                                            <Text style={styles.optionTitleStyle}>{s.title}</Text>
+                                            {style.id === s.id && <MaterialCommunityIcons name="check" size={16} color="#0BA0B2" />}
+                                        </Pressable>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Brief Card */}
+                    <View style={styles.inputCard}>
+                        <Text style={styles.cardHeading}>Deck Objective</Text>
+                        <Text style={styles.cardSubtitle}>
+                            Describe the property highlights, target audience, and local market data to populate the deck.
+                        </Text>
+                        <TextInput
+                            style={styles.textArea}
+                            multiline
+                            placeholder="e.g. Luxury listing deck for 123 Malibu Ocean Drive. Mention the recent market appreciation of 12% in the area and the premium smart-home features."
+                            placeholderTextColor="#94A3B8"
+                            value={brief}
+                            onChangeText={setBrief}
+                            textAlignVertical="top"
+                        />
+                        <Pressable
+                            style={[styles.generateBtn, isGenerating && styles.generateBtnDisabled]}
+                            onPress={handleGenerate}
+                            disabled={isGenerating}
+                        >
+                            <Text style={styles.generateBtnText}>Generate</Text>
+                        </Pressable>
+
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillList} scrollEnabled={false}>
+                            {['PDF Export', 'Dynamic Charts', 'Brand Assets', 'Multi-Device'].map((pill) => (
+                                <View key={pill} style={styles.pill}><Text style={styles.pillText}>{pill}</Text></View>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* Preview Engine Card */}
+                    <View style={styles.outputCard}>
+                        <View style={styles.outputHeader}>
+                            <View style={styles.outputStatus}>
+                                <View style={styles.statusDot} />
+                                <Text style={styles.outputTitle}>PREVIEW ENGINE</Text>
+                            </View>
+                            <View style={styles.outputActions}>
+                                <Pressable style={styles.iconAction}>
+                                    <MaterialCommunityIcons name="download" size={16} color="#94A3B8" />
+                                </Pressable>
+                                {hasGenerated && (
+                                    <View style={styles.mainActions}>
+                                        <Pressable style={styles.editBtn}>
+                                            <MaterialCommunityIcons name="pencil-outline" size={14} color="#CBD5E1" />
+                                        </Pressable>
+                                        <Pressable style={styles.exportBtn}>
+                                            <MaterialCommunityIcons name="share-variant-outline" size={14} color="#FFFFFF" />
+                                        </Pressable>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+
+                        <View style={styles.outputContent}>
+                            {isGenerating ? (
+                                <View style={styles.loaderState}>
+                                    <ActivityIndicator size="large" color="#0BA0B2" />
+                                    <Text style={styles.loaderText}>Assembling architectural deck...</Text>
+                                </View>
+                            ) : hasGenerated ? (
+                                <View style={styles.presentationView}>
+                                    <View style={styles.slideContainer}>
+                                        <Image source={{ uri: SLIDES[currentSlideIndex].image }} style={styles.slideImage} />
+                                        <View style={styles.slideContent}>
+                                            <Text style={styles.slideChapter}>{SLIDES[currentSlideIndex].chapter}</Text>
+                                            <Text style={styles.slideTitle}>{SLIDES[currentSlideIndex].title}</Text>
+                                            <Text style={styles.slideSubtitle}>{SLIDES[currentSlideIndex].subtitle}</Text>
+                                            <View style={styles.slideDivider} />
+                                            <Text style={styles.slideDescription}>{SLIDES[currentSlideIndex].description}</Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.navigationRow}>
+                                        <View style={styles.progressDots}>
+                                            {SLIDES.map((_, i) => (
+                                                <View key={i} style={[styles.dot, currentSlideIndex === i && styles.dotActive]} />
+                                            ))}
+                                        </View>
+                                        <View style={styles.navControls}>
+                                            <Pressable
+                                                style={styles.navBtn}
+                                                onPress={() => setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))}
+                                            >
+                                                <MaterialCommunityIcons name="chevron-left" size={24} color="#FFFFFF" />
+                                            </Pressable>
+                                            <Text style={styles.pageIndicator}>
+                                                {String(currentSlideIndex + 1).padStart(2, '0')}/{String(SLIDES.length).padStart(2, '0')}
+                                            </Text>
+                                            <Pressable
+                                                style={[styles.navBtn, styles.navBtnPrimary]}
+                                                onPress={() => setCurrentSlideIndex(Math.min(SLIDES.length - 1, currentSlideIndex + 1))}
+                                            >
+                                                <MaterialCommunityIcons name="chevron-right" size={24} color="#FFFFFF" />
+                                            </Pressable>
+                                        </View>
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={styles.placeholderState}>
+                                    <MaterialCommunityIcons name="lightning-bolt-outline" size={48} color="#1E293B" />
+                                    <Text style={styles.placeholderTitle}>Presentation Lab Ready</Text>
+                                    <Text style={styles.placeholderSubtitle}>Enter your property brief and select a template to generate a professional deck.</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
             </LinearGradient>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    background: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-    },
-    scrollContentPreview: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-        paddingTop: 10,
-    },
-    centerContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 40,
-    },
-    header: {
-        marginBottom: 24,
-        marginTop: 10,
-        flexDirection: 'row',
-        gap: 10
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    headerText: {
-        flex: 1,
-        gap: 4,
-        paddingRight: 5,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#0B2D3E',
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        lineHeight: 20,
-        flexWrap: 'wrap',
-    },
-    // SELECTION STEP
-    grid: {
+    container: { flex: 1 },
+    background: { flex: 1 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 20 },
+
+    // Selectors
+    selectorsRow: {
         gap: 16,
+        marginBottom: 24,
     },
-    card: {
+    selectorWrapper: {
+        width: '100%',
+        gap: 8,
+        position: 'relative',
+    },
+    selectorLabel: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: '#0B2341',
+        letterSpacing: 0.8,
+        marginBottom: 4,
+    },
+    selectorBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        gap: 12,
+        shadowColor: '#000',
+        shadowOpacity: 0.02,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 8,
+        elevation: 1,
+    },
+    selectorBtnActive: {
+        borderColor: '#0BA0B2',
+        borderWidth: 2,
+    },
+    selectorValue: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#0B2341',
+    },
+
+    // Dropdown
+    dropdown: {
+        position: 'absolute',
+        top: 84,
+        left: 0,
+        right: 0,
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
-        padding: 24,
-        alignItems: 'center',
+        padding: 8,
         shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
-        elevation: 3,
-        minHeight: 180,
+        shadowOpacity: 0.15,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 20,
+        elevation: 20,
+        zIndex: 2000,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
     },
-    iconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 20,
+    dropdownOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        borderRadius: 14,
+        gap: 12,
+    },
+    optionImage: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+    },
+    optionIconPlaceholder: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
         backgroundColor: '#F8FAFC',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 16,
     },
-    cardTitle: {
-        fontSize: 18,
+    optionTextCenter: {
+        flex: 1,
+    },
+    optionTitle: {
+        fontSize: 13,
         fontWeight: '800',
-        color: '#0B2D3E',
+        color: '#0B2341',
+    },
+    optionSubtitle: {
+        fontSize: 11,
+        color: '#94A3B8',
+    },
+    optionTitleStyle: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#0B2341',
+    },
+
+    // Brief Card
+    inputCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 20,
+        elevation: 4,
+    },
+    cardHeading: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#0B2341',
         marginBottom: 8,
     },
-    cardDesc: {
-        fontSize: 14,
+    cardSubtitle: {
+        fontSize: 13,
         color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 22,
+        lineHeight: 18,
+        marginBottom: 20,
     },
-    // LOADING STEP
-    loaderSpinner: {
-        // just container styles
-    },
-    loadingTitle: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    loadingSubtitle: {
+    textArea: {
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 16,
+        padding: 16,
+        height: 150,
         fontSize: 15,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 40,
+        color: '#0F172A',
+        fontWeight: '600',
+        marginBottom: 20,
     },
-    // PREVIEW STEP (PRO REDESIGN)
-    proHeader: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 24,
-    },
-    proHeaderTexts: {
-        flex: 1,
-        paddingRight: 10,
-    },
-    proHeaderTitle: {
-        fontSize: 26,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        lineHeight: 32,
-    },
-    proHeaderSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        marginTop: 6,
-        lineHeight: 20,
-    },
-    actionButtonsRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 30,
-    },
-    shuffleBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
+    generateBtn: {
+        backgroundColor: '#0B2341',
         borderRadius: 12,
         paddingVertical: 14,
-        gap: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.03,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 1,
-    },
-    shuffleBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#0B2D3E',
-    },
-    exportBtn: {
-        flex: 1,
-        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#0B2D3E',
-        borderRadius: 12,
-        paddingVertical: 14,
-        gap: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 8,
-        elevation: 3,
+        marginBottom: 20,
     },
-    exportBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFFFFF',
+    generateBtnDisabled: { opacity: 0.6 },
+    generateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+    pillList: { flexDirection: 'row', gap: 8 },
+    pill: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+    pillText: { fontSize: 10, fontWeight: '700', color: '#64748B' },
+
+    // Output Card
+    outputCard: {
+        backgroundColor: '#0B2341',
+        borderRadius: 24,
+        padding: 16,
+        minHeight: 550,
     },
-    slideStatusRow: {
+    outputHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
-        paddingHorizontal: 4,
+        marginBottom: 24,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#1E293B',
     },
-    slideStatusTitle: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#64748B',
-        textTransform: 'uppercase',
+    outputStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
-    slideStatusCount: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#94A3B8',
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#0BA0B2',
+        marginRight: 8
     },
-    slideCardContainer: {
-        width: '100%',
-        height: 300,
+    outputTitle: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 1.2
+    },
+    outputActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
+    mainActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    iconAction: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: '#1E293B',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    editBtn: {
+        width: 34,
+        height: 34,
+        backgroundColor: '#1E293B',
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    editBtnText: { color: '#CBD5E1', fontSize: 8, fontWeight: '900' },
+    exportBtn: {
+        backgroundColor: '#0BA0B2',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6
+    },
+    exportBtnText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+
+    // Presentation View
+    outputContent: { flex: 1 },
+    presentationView: { flex: 1 },
+    slideContainer: {
         backgroundColor: '#FFFFFF',
         borderRadius: 24,
         overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowOffset: { width: 0, height: 8 },
-        shadowRadius: 16,
-        elevation: 8,
-        marginBottom: 30,
+        minHeight: 480,
     },
-    slideCanvas: {
-        flex: 1,
-    },
-    slideHeaderTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    slideMainContent: {
-        fontSize: 24,
-        fontWeight: '800',
-        textAlign: 'center',
-    },
-    slideSubtitle: {
-        fontSize: 12,
-        fontWeight: '600',
-        letterSpacing: 1,
-        textTransform: 'uppercase',
-    },
-    navControlsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 12,
-    },
-    circleNavBtn: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    paginationDots: {
-        flexDirection: 'row',
-        gap: 12,
-        alignItems: 'center',
-    },
-    dot: {
-        height: 8,
-        borderRadius: 4,
-    },
-    dotActive: {
-        backgroundColor: '#0B2D3E',
-        width: 20,
-    },
-    dotInactive: {
-        backgroundColor: '#CBD5E1',
-        width: 8,
-    },
-    // SUCCESS STEP
-    successCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    successTitle: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    successSubtitle: {
-        fontSize: 15,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 24,
-        marginBottom: 32,
-    },
-    returnButton: {
-        backgroundColor: '#0B2D3E',
-        paddingHorizontal: 32,
-        paddingVertical: 16,
-        borderRadius: 12,
-        minWidth: 200,
-        alignItems: 'center',
-    },
-    returnButtonText: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
+    slideImage: { width: '100%', height: 220, resizeMode: 'cover' },
+    slideContent: { padding: 20, justifyContent: 'flex-start' },
+    slideChapter: { fontSize: 10, fontWeight: '900', color: '#94A3B8', marginBottom: 6, letterSpacing: 1 },
+    slideTitle: { fontSize: 24, fontWeight: '900', color: '#0B2341', lineHeight: 28, marginBottom: 8 },
+    slideSubtitle: { fontSize: 14, fontWeight: '700', color: '#0BA0B2', marginBottom: 12 },
+    slideDivider: { width: 30, height: 2, backgroundColor: '#0B2341', marginBottom: 16 },
+    slideDescription: { fontSize: 13, color: '#475569', lineHeight: 20 },
+
+    // Nav
+    navigationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 },
+    progressDots: { flexDirection: 'row', gap: 6 },
+    dot: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#1E293B' },
+    dotActive: { backgroundColor: '#0BA0B2' },
+    navControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    navBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1E293B', alignItems: 'center', justifyContent: 'center' },
+    navBtnPrimary: { borderWidth: 2, borderColor: '#0BA0B2' },
+    pageIndicator: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+
+    // States
+    loaderState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    loaderText: { color: '#94A3B8', marginTop: 16, fontSize: 14 },
+    placeholderState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
+    placeholderTitle: { fontSize: 16, fontWeight: '900', color: '#64748B', marginTop: 16 },
+    placeholderSubtitle: { fontSize: 13, color: '#475569', textAlign: 'center', marginTop: 8, paddingHorizontal: 40, lineHeight: 18 },
 });

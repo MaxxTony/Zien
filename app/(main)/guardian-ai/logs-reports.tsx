@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { GuardianScreenShell } from './_components/GuardianScreenShell';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const METRIC_CARDS = [
   { id: 'telemetry', icon: 'console' as const, label: 'Total Telemetry', value: '4.2k' },
@@ -27,17 +27,15 @@ const AUDIT_ROWS = [
   { id: '6', time: 'Feb 05 9:14 AM', event: 'Broker Escalation Resolved', category: 'Incident', agent: 'HQ Commander', severity: 'LOW' as const },
 ];
 
-export default function GuardianLogsReportsScreen() {
+export function LogsReportsView() {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [incidentCategory, setIncidentCategory] = useState('Situational Anomalies');
   const [disclosureText, setDisclosureText] = useState('');
 
   return (
-    <GuardianScreenShell
-      title="Audit Logs & Governance"
-      subtitle="Centralized repository for operational telemetry and safety compliance records."
-      showBack={true}>
+    <>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -46,70 +44,89 @@ export default function GuardianLogsReportsScreen() {
         <View style={styles.actionRow}>
           <Pressable style={styles.exportBtn}>
             <MaterialCommunityIcons name="download-outline" size={18} color="#0B2D3E" />
-            <Text style={styles.exportBtnText}>Export Master Archive</Text>
+            <Text style={styles.exportBtnText}>Archive</Text>
           </Pressable>
           <Pressable style={styles.fileReportBtn} onPress={() => setShowSafetyModal(true)}>
             <MaterialCommunityIcons name="file-document-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.fileReportBtnText}>File Safety Report</Text>
+            <Text style={styles.fileReportBtnText}>Safety Report</Text>
           </Pressable>
         </View>
 
-        {/* Metric cards */}
-        <View style={styles.metricRow}>
+        {/* Metric Grid */}
+        <View style={styles.premiumMetricGrid}>
           {METRIC_CARDS.map((m) => (
-            <View key={m.id} style={styles.metricCard}>
-              <View style={styles.metricIconWrap}>
-                <MaterialCommunityIcons name={m.icon} size={22} color="#0B2D3E" />
+            <View key={m.id} style={styles.premiumMetricCard}>
+              <View style={styles.premiumMetricIconWrap}>
+                <MaterialCommunityIcons name={m.icon} size={24} color="#0BA0B2" />
               </View>
-              <Text style={styles.metricLabel}>{m.label}</Text>
-              <Text style={styles.metricValue}>{m.value}</Text>
+              <View style={styles.premiumMetricInfo}>
+                <Text style={styles.premiumMetricLabel} numberOfLines={1}>{m.label}</Text>
+                <Text style={styles.premiumMetricValue}>{m.value}</Text>
+              </View>
             </View>
           ))}
         </View>
 
         {/* Operation Audit Trail */}
-        <View style={styles.trailCard}>
-          <Text style={styles.trailTitle}>Operation Audit Trail</Text>
-          <View style={styles.trailToolbar}>
-            <View style={styles.searchWrap}>
+        <View style={styles.premiumTrailContainer}>
+          <Text style={styles.premiumTrailTitle}>Operation Audit Trail</Text>
+          <View style={styles.premiumTrailToolbar}>
+            <View style={styles.premiumSearchBox}>
               <MaterialCommunityIcons name="magnify" size={20} color="#7B8794" />
               <TextInput
-                style={styles.searchInput}
-                placeholder="Search by agent, event, or category..."
+                style={styles.premiumSearchInput}
+                placeholder="Search telemetry..."
                 placeholderTextColor="#9AA7B6"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
             </View>
-            <Pressable style={styles.toolbarBtn}>
-              <MaterialCommunityIcons name="calendar-outline" size={18} color="#0B2D3E" />
-              <Text style={styles.toolbarBtnText}>Date Range</Text>
+            <Pressable style={styles.premiumToolbarAction}>
+              <MaterialCommunityIcons name="calendar-range" size={18} color="#0B2D3E" />
+              <Text style={styles.premiumToolbarActionText}>Range</Text>
             </Pressable>
-            <Pressable style={styles.toolbarBtn}>
-              <MaterialCommunityIcons name="filter-outline" size={18} color="#0B2D3E" />
-              <Text style={styles.toolbarBtnText}>Advanced</Text>
+            <Pressable style={styles.premiumToolbarAction}>
+              <MaterialCommunityIcons name="tune" size={18} color="#0B2D3E" />
             </Pressable>
           </View>
-          {AUDIT_ROWS.map((row, idx) => (
-            <View key={row.id} style={[styles.auditRow, idx === 0 && { borderTopWidth: 0 }]}>
-              <View style={styles.auditRowTime}>
-                <MaterialCommunityIcons name="clock-outline" size={14} color="#7B8794" />
-                <Text style={styles.auditTimeText}>{row.time}</Text>
-              </View>
-              <Text style={styles.auditEvent}>{row.event}</Text>
-              <View style={styles.auditRowMeta}>
-                <View style={styles.categoryPill}>
-                  <Text style={styles.categoryPillText}>{row.category}</Text>
+
+          <View style={styles.auditList}>
+            {AUDIT_ROWS.map((row, idx) => (
+              <View key={row.id} style={[styles.premiumAuditItem, idx === 0 && { borderTopWidth: 0 }]}>
+                <View style={styles.auditItemHeader}>
+                  <View style={styles.auditTimeRow}>
+                    <MaterialCommunityIcons name="clock-outline" size={14} color="#7B8794" />
+                    <Text style={styles.auditTimeTextPremium}>{row.time}</Text>
+                  </View>
+                  <View style={[
+                    styles.severityBadge,
+                    row.severity === 'CRITICAL' && styles.severityCriticalBadge,
+                    row.severity === 'WARNING' && styles.severityWarningBadge,
+                  ]}>
+                    <Text style={[
+                      styles.severityBadgeText,
+                      row.severity === 'CRITICAL' && styles.severityCriticalText,
+                      row.severity === 'WARNING' && styles.severityWarningText,
+                    ]}>
+                      {row.severity}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.auditAgent}>{row.agent}</Text>
+
+                <Text style={styles.auditItemTitle}>{row.event}</Text>
+
+                <View style={styles.auditItemFooter}>
+                  <View style={styles.auditCategoryPill}>
+                    <Text style={styles.auditCategoryText}>{row.category.toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.auditAgentInfo}>
+                    <MaterialCommunityIcons name="account-circle-outline" size={14} color="#5B6B7A" />
+                    <Text style={styles.auditAgentName}>{row.agent}</Text>
+                  </View>
+                </View>
               </View>
-              <View style={[styles.severityDot, row.severity === 'CRITICAL' && styles.severityCritical, row.severity === 'WARNING' && styles.severityWarning]}>
-                <Text style={[styles.severityText, row.severity === 'CRITICAL' && styles.severityTextCritical, row.severity === 'WARNING' && styles.severityTextWarning]}>
-                  • {row.severity}
-                </Text>
-              </View>
-            </View>
-          ))}
+            ))}
+          </View>
           <Pressable style={styles.loadArchivedBtn}>
             <Text style={styles.loadArchivedBtnText}>Load Archived Logs</Text>
           </Pressable>
@@ -118,55 +135,64 @@ export default function GuardianLogsReportsScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Safety Disclosure Modal */}
       <Modal
         visible={showSafetyModal}
-        transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowSafetyModal(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setShowSafetyModal(false)}>
-          <Pressable style={styles.safetyModalCard} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.safetyModalHeader}>
-              <View>
-                <Text style={styles.safetyModalTitle}>Safety Disclosure</Text>
-                <Text style={styles.safetyModalSubtitle}>File a manual incident or situational safety report.</Text>
+        <View style={[styles.modalFullContainer, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={styles.modalHeaderFull}>
+            <View style={styles.modalHeaderInfo}>
+              <Text style={styles.modalTitleFull}>Safety Disclosure</Text>
+              <Text style={styles.modalSubtitleFull}>File a manual incident or situational safety report.</Text>
+            </View>
+            <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowSafetyModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+            <View style={styles.disclosureFormContainer}>
+              <Text style={styles.formFieldLabel}>Incident Category</Text>
+              <Pressable style={styles.disclosureDropdown}>
+                <Text style={styles.disclosureDropdownText}>{incidentCategory}</Text>
+                <MaterialCommunityIcons name="chevron-down" size={24} color="#5B6B7A" />
+              </Pressable>
+
+              <Text style={styles.formFieldLabel}>Detailed Disclosure</Text>
+              <TextInput
+                style={styles.disclosureTextArea}
+                placeholder="Provide high-fidelity details regarding the situational anomaly..."
+                placeholderTextColor="#9AA7B6"
+                value={disclosureText}
+                onChangeText={setDisclosureText}
+                multiline
+              />
+
+              <Text style={styles.formFieldLabel}>Evidence / Documentation (Optional)</Text>
+              <Pressable style={styles.disclosureUploadZone}>
+                <View style={styles.uploadIconCircle}>
+                  <MaterialCommunityIcons name="cloud-upload-outline" size={32} color="#0BA0B2" />
+                </View>
+                <Text style={styles.uploadZoneTitle}>Upload Incident Documentation</Text>
+                <Text style={styles.uploadZoneSub}>Max file size 25MB • PDF, JPG, PNG</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooterFixed}>
+            <Pressable style={styles.submitVaultBtnPremium} onPress={() => setShowSafetyModal(false)}>
+              <View style={styles.btnContentRow}>
+                <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.submitVaultBtnTextPremium}>Submit to Zien Vault</Text>
               </View>
-              <Pressable style={styles.safetyModalClose} onPress={() => setShowSafetyModal(false)}>
-                <MaterialCommunityIcons name="close" size={22} color="#5B6B7A" />
-              </Pressable>
-            </View>
-            <Text style={[styles.formLabel, { marginTop: 0 }]}>Incident Category</Text>
-            <Pressable style={styles.dropdown}>
-              <Text style={styles.dropdownText}>{incidentCategory}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={22} color="#5B6B7A" />
             </Pressable>
-            <Text style={styles.formLabel}>Detailed Disclosure</Text>
-            <TextInput
-              style={styles.textArea}
-              placeholder="Provide high-fidelity details regarding the situational anomaly..."
-              placeholderTextColor="#9AA7B6"
-              value={disclosureText}
-              onChangeText={setDisclosureText}
-              multiline
-              numberOfLines={4}
-            />
-            <Text style={styles.formLabel}>Evidence / Documentation (Optional)</Text>
-            <Pressable style={styles.uploadZone}>
-              <MaterialCommunityIcons name="tray-arrow-up" size={32} color="#7B8794" />
-              <Text style={styles.uploadZoneText}>Upload Incident Documentation</Text>
+            <Pressable style={styles.cancelBtnPremiumFull} onPress={() => setShowSafetyModal(false)}>
+              <Text style={styles.cancelBtnTextPremiumFull}>Cancel Submission</Text>
             </Pressable>
-            <View style={styles.safetyModalActions}>
-              <Pressable style={styles.submitVaultBtn}>
-                <Text style={styles.submitVaultBtnText}>Submit to Vault</Text>
-              </Pressable>
-              <Pressable style={styles.cancelBtn} onPress={() => setShowSafetyModal(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
-    </GuardianScreenShell>
+    </>
   );
 }
 
@@ -186,202 +212,362 @@ const styles = StyleSheet.create({
     borderColor: '#0BA0B2',
     backgroundColor: '#FFFFFF',
   },
-  exportBtnText: { fontSize: 12, fontWeight: '800', color: '#0B2D3E' },
+  exportBtnText: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
   fileReportBtn: {
-    flex: 1,
+    flex: 1.2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingVertical: 14,
+    borderRadius: 16,
     backgroundColor: '#0B2D3E',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  fileReportBtnText: { fontSize: 12, fontWeight: '900', color: '#FFFFFF' },
-  metricRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
-  metricCard: {
+  fileReportBtnText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
+
+  // Premium Metric & Trail Styles
+  premiumMetricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  premiumMetricCard: {
     flex: 1,
-    minWidth: 75,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
+    minWidth: '47%',
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  metricIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(11, 160, 178, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  metricLabel: { fontSize: 9, fontWeight: '900', color: '#7B8794', letterSpacing: 0.3 },
-  metricValue: { fontSize: 16, fontWeight: '900', color: '#0B2D3E' },
-  trailCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 18,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#E3ECF4',
     shadowColor: '#0B2D3E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
+    gap: 14,
   },
-  trailTitle: { fontSize: 18, fontWeight: '900', color: '#0B2D3E', marginBottom: 14 },
-  trailToolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
-  searchWrap: {
-    flex: 1,
-    minWidth: 140,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#F7FBFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  searchInput: { flex: 1, fontSize: 13, fontWeight: '700', color: '#0B2D3E', padding: 0 },
-  toolbarBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    backgroundColor: '#FFFFFF',
-  },
-  toolbarBtnText: { fontSize: 12, fontWeight: '800', color: '#0B2D3E' },
-  auditRow: {
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
-    gap: 6,
-  },
-  auditRowTime: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  auditTimeText: { fontSize: 12, fontWeight: '700', color: '#7B8794' },
-  auditEvent: { fontSize: 14, fontWeight: '900', color: '#0B2D3E' },
-  auditRowMeta: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  categoryPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: '#EEF3F8',
-  },
-  categoryPillText: { fontSize: 11, fontWeight: '800', color: '#0B2D3E' },
-  auditAgent: { fontSize: 12, fontWeight: '700', color: '#5B6B7A' },
-  severityDot: {},
-  severityText: { fontSize: 12, fontWeight: '800', color: '#16A34A' },
-  severityCritical: {},
-  severityWarning: {},
-  severityTextCritical: { color: '#DC2626' },
-  severityTextWarning: { color: '#EA580C' },
-  loadArchivedBtn: {
-    marginTop: 16,
-    paddingVertical: 12,
+  premiumMetricIconWrap: {
+    width: 48,
+    height: 48,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
+    backgroundColor: '#EEF3F8',
     alignItems: 'center',
-  },
-  loadArchivedBtnText: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
-  bottomSpacer: { height: 8 },
-  // Safety Disclosure Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 45, 62, 0.4)',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
-  safetyModalCard: {
-    width: '100%',
-    maxWidth: 400,
+  premiumMetricInfo: {
+    flex: 1,
+  },
+  premiumMetricLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#7B8794',
+    letterSpacing: 0.4,
+  },
+  premiumMetricValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginTop: 2,
+  },
+  premiumTrailContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
     borderColor: '#E3ECF4',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  safetyModalHeader: {
+  premiumTrailTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 16,
+    letterSpacing: -0.5,
+  },
+  premiumTrailToolbar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    gap: 10,
     marginBottom: 20,
   },
-  safetyModalTitle: { fontSize: 20, fontWeight: '900', color: '#0B2D3E' },
-  safetyModalSubtitle: { fontSize: 12.5, fontWeight: '700', color: '#5B6B7A', marginTop: 4, lineHeight: 18 },
-  safetyModalClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#EEF3F8',
+  premiumSearchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  premiumSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0B2D3E',
+  },
+  premiumToolbarAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  premiumToolbarActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  auditList: {
+    gap: 0,
+  },
+  premiumAuditItem: {
+    paddingVertical: 18,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 8,
+  },
+  auditItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  auditTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  auditTimeTextPremium: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#7B8794',
+  },
+  severityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+  },
+  severityCriticalBadge: {
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+  },
+  severityWarningBadge: {
+    backgroundColor: 'rgba(234, 88, 12, 0.1)',
+  },
+  severityBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#16A34A',
+  },
+  severityCriticalText: {
+    color: '#DC2626',
+  },
+  severityWarningText: {
+    color: '#EA580C',
+  },
+  auditItemTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    lineHeight: 22,
+  },
+  auditItemFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  auditCategoryPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#F1F5F9',
+  },
+  auditCategoryText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#5B6B7A',
+    letterSpacing: 0.5,
+  },
+  auditAgentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  auditAgentName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5B6B7A',
+  },
+  loadArchivedBtn: {
+    marginTop: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  loadArchivedBtnText: { fontSize: 14, fontWeight: '800', color: '#0B2D3E' },
+  bottomSpacer: { height: 32 },
+
+  // Full-Page Modal Styles
+  modalFullContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeaderFull: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 24,
+    paddingBottom: 20,
+  },
+  modalHeaderInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  modalTitleFull: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  modalSubtitleFull: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5B6B7A',
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  modalCloseBtnFull: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  formLabel: { fontSize: 13, fontWeight: '800', color: '#0B2D3E', marginBottom: 8, marginTop: 14 },
-  dropdown: {
+  modalScrollBody: {
+    flex: 1,
+  },
+  disclosureFormContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  formFieldLabel: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 10,
+    marginTop: 20,
+    letterSpacing: 0.3,
+  },
+  disclosureDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F7FBFF',
-    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E3ECF4',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  dropdownText: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
-  textArea: {
-    backgroundColor: '#F7FBFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 14,
+  disclosureDropdownText: {
+    fontSize: 15,
     fontWeight: '700',
     color: '#0B2D3E',
-    minHeight: 100,
-    textAlignVertical: 'top',
   },
-  uploadZone: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#D7DEE7',
-    borderRadius: 16,
-    paddingVertical: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F7FBFF',
-    marginBottom: 8,
-  },
-  uploadZoneText: { fontSize: 13, fontWeight: '800', color: '#5B6B7A' },
-  safetyModalActions: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  submitVaultBtn: {
-    flex: 1,
-    backgroundColor: '#0B2D3E',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  submitVaultBtnText: { fontSize: 14, fontWeight: '900', color: '#FFFFFF' },
-  cancelBtn: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
+  disclosureTextArea: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E3ECF4',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0B2D3E',
+    minHeight: 120,
+    textAlignVertical: 'top',
   },
-  cancelBtnText: { fontSize: 14, fontWeight: '800', color: '#0B2D3E' },
+  disclosureUploadZone: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    borderRadius: 20,
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  uploadIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(11, 160, 178, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  uploadZoneTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  uploadZoneSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#7B8794',
+    marginTop: 4,
+  },
+  modalFooterFixed: {
+    padding: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  submitVaultBtnPremium: {
+    backgroundColor: '#0B2D3E',
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  submitVaultBtnTextPremium: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  cancelBtnPremiumFull: {
+    marginTop: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cancelBtnTextPremiumFull: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#5B6B7A',
+  },
+  btnContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 });

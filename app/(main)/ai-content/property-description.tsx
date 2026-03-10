@@ -1,793 +1,511 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
     ActivityIndicator,
-    Animated,
-    Dimensions,
+    Clipboard,
     Image,
-    Platform,
+    Keyboard,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    View,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Mock Data for Contexts
+
 interface PropertyOption {
     id: string;
     title: string;
-    subtitle: string | null;
+    address: string;
     image: string | null;
-    badge: string | null;
+    defaultValue: string;
 }
 
 const PROPERTY_OPTIONS: PropertyOption[] = [
     {
         id: 'generic',
         title: 'Generic Property',
-        subtitle: 'Create description from scratch without linking a property.',
+        address: 'Start from scratch',
         image: null,
-        badge: null,
+        defaultValue: '',
     },
     {
         id: 'prop-1',
-        title: '123 Business Way, Los Angeles, CA',
-        subtitle: null,
-        image: 'https://images.unsplash.com/photo-1600596542815-6ad4c727dddf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        badge: 'READY',
+        title: 'Los Angeles Villa',
+        address: '123 Business Way',
+        image: 'https://images.unsplash.com/photo-1600596542815-6ad4c727dddf?auto=format&fit=crop&w=400&q=80',
+        defaultValue: 'Stunning property at 123 Business Way, Los Angeles, CA. High ceilings, natural light, premium finishes.',
     },
     {
         id: 'prop-2',
-        title: '88 Gold Coast, Malibu, CA',
-        subtitle: null,
-        image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        badge: 'READY',
+        title: 'Malibu Villa',
+        address: '88 Gold Coast',
+        image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=400&q=80',
+        defaultValue: 'Stunning property at 88 Gold Coast, Malibu, CA. High ceilings, natural light, premium finishes.',
+    },
+    {
+        id: 'prop-3',
+        title: 'Beverly Hills Villa',
+        address: '45 Sunset Blvd',
+        image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=400&q=80',
+        defaultValue: 'Stunning property at 45 Sunset Blvd, Beverly Hills, CA. High ceilings, natural light, premium finishes.',
+    },
+    {
+        id: 'prop-4',
+        title: 'Miami Villa',
+        address: '22 Ocean Drive',
+        image: 'https://images.unsplash.com/photo-1512918766671-ed6a07be301f?auto=format&fit=crop&w=400&q=80',
+        defaultValue: 'Stunning property at 22 Ocean Drive, Miami, FL. High ceilings, natural light, premium finishes.',
     },
 ];
 
-const GENERATED_DESCRIPTION = `Welcome to 123 Business Way, a stunning contemporary estate in the heart of Los Angeles. This architectural masterpiece features soaring ceilings, floor-to-ceiling windows, and an open concept layout perfect for modern living.
+const STYLE_OPTIONS = ['Cinematic', 'Professional', 'Minimalist', 'Emotional'];
 
-The chef's kitchen boasts top-of-the-line appliances and custom cabinetry, flowing seamlessly into the spacious living area. Retreat to the primary suite with its spa-like bath and private balcony overlooking the lush grounds.
+const MOCK_OUTPUT = `Perched majestically above the shimmering coastline,`;
 
-Outside, a sparkling pool and manicured gardens create a private oasis. Located just minutes from world-class dining and shopping, this home offers the ultimate Southern California lifestyle.`;
-
-type FlowStep = 'selection' | 'parameters' | 'loading' | 'preview' | 'success';
-
-const TONE_OPTIONS = [
-    'Luxury & Exclusive',
-    'Professional & Corporate',
-    'Friendly & Casual',
-    'Urgent & Persuasive',
-    'Witty & Humorous',
-    'Minimalist & Clean',
-];
-
-const LENGTH_OPTIONS = [
-    'Standard (3-4 paragraphs)',
-    'Short / Teaser',
-    'Detailed / Full Specs',
-    'Social Media Caption',
-];
-
-export default function PropertyDescriptionScreen() {
+export default function PropertyDescriptionLabScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [step, setStep] = useState<FlowStep>('selection');
-    const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
 
-    // Form State
-    const [length, setLength] = useState(LENGTH_OPTIONS[0]);
-    const [tone, setTone] = useState(TONE_OPTIONS[0]);
-    const [showLengthPicker, setShowLengthPicker] = useState(false);
-    const [showTonePicker, setShowTonePicker] = useState(false);
+    const [selectedProperty, setSelectedProperty] = useState('generic');
+    const [inputFeatures, setInputFeatures] = useState('');
+    const [selectedStyle, setSelectedStyle] = useState('Cinematic');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [output, setOutput] = useState('');
+    const [hasGenerated, setHasGenerated] = useState(false);
 
-    // Preview State
-    const [generatedContent, setGeneratedContent] = useState(GENERATED_DESCRIPTION);
-    const [isRegenerating, setIsRegenerating] = useState(false);
+    const handleGenerate = () => {
+        if (!inputFeatures.trim()) return;
 
-    // Animation for loading bar
-    const progressAnim = useRef(new Animated.Value(0)).current;
+        Keyboard.dismiss();
+        setIsGenerating(true);
+        setHasGenerated(false);
+        setOutput('');
 
-    useEffect(() => {
-        if (step === 'loading') {
-            Animated.timing(progressAnim, {
-                toValue: 1,
-                duration: 3000,
-                useNativeDriver: false,
-            }).start(() => {
-                setStep('preview');
-            });
-        }
-    }, [step]);
-
-    const handlePropertySelect = (id: string) => {
-        setSelectedProperty(id);
-        setStep('loading');
-    };
-
-    const handleStartGeneration = () => {
-        setStep('loading');
-    };
-
-    const handleRegenerate = () => {
-        setIsRegenerating(true);
-        // Simulate API call
+        // Simulate thinking time
         setTimeout(() => {
-            const newText = `Rediscover luxury at 123 Business Way.\n\n` + GENERATED_DESCRIPTION;
-            setGeneratedContent(newText);
-            setIsRegenerating(false);
+            setIsGenerating(false);
+            setHasGenerated(true);
+
+            // Start typing animation
+            let index = 0;
+            const textToType = MOCK_OUTPUT;
+            const speed = 20; // ms per character
+
+            const timer = setInterval(() => {
+                if (index < textToType.length) {
+                    setOutput((prev) => prev + textToType.charAt(index));
+                    index++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, speed);
         }, 1500);
     };
 
-    const handleSave = () => {
-        setStep('success');
+    const copyToClipboard = () => {
+        Clipboard.setString(output);
     };
-
-    const handleDone = () => {
-        router.back(); // Go back to AI Content Hub
-    };
-
-    const renderHeader = (title: string, subtitle?: string) => (
-        <View style={styles.header}>
-            <Pressable style={styles.backButton} onPress={() => step === 'selection' ? router.back() : setStep('selection')}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#0B2D3E" />
-            </Pressable>
-            <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>{title}</Text>
-                {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
-            </View>
-        </View>
-    );
-
-    // --- STEP 1: SELECT PROPERTY ---
-    const renderSelection = () => (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {renderHeader('Property Description', 'Select a property context or create a generic listing description.')}
-
-            <View style={styles.grid}>
-                {PROPERTY_OPTIONS.map((prop) => (
-                    <Pressable
-                        key={prop.id}
-                        style={[styles.contextCard, selectedProperty === prop.id && styles.contextCardActive]}
-                        onPress={() => handlePropertySelect(prop.id)}
-                    >
-                        {prop.image ? (
-                            <>
-                                <Image source={{ uri: prop.image }} style={styles.contextImage} resizeMode="cover" />
-                                <View style={styles.contextOverlay} />
-                                <View style={styles.contextContent}>
-                                    {prop.badge && (
-                                        <View style={styles.badge}>
-                                            <Text style={styles.badgeText}>{prop.badge}</Text>
-                                        </View>
-                                    )}
-                                    <View style={{ marginTop: 'auto' }}>
-                                        <Text style={styles.contextTitleImage} numberOfLines={2}>
-                                            {prop.title}
-                                        </Text>
-                                        {prop.subtitle && (
-                                            <Text style={styles.contextSubtitleImage}>{prop.subtitle}</Text>
-                                        )}
-                                    </View>
-                                </View>
-                            </>
-                        ) : (
-                            <View style={styles.genericContent}>
-                                <View style={styles.genericIconCircle}>
-                                    <MaterialCommunityIcons name="cube-outline" size={32} color="#0B2D3E" />
-                                </View>
-                                <Text style={styles.contextTitleGeneric}>{prop.title}</Text>
-                                <Text style={styles.contextSubtitleGeneric}>{prop.subtitle}</Text>
-                            </View>
-                        )}
-                    </Pressable>
-                ))}
-            </View>
-        </ScrollView>
-    );
-
-    // --- STEP 2: GENERATION PARAMETERS ---
-    const renderParameters = () => (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {renderHeader('Description Details', "Customize the tone and length of your property description.")}
-
-            <View style={styles.card}>
-                {/* Length Picker */}
-                <View style={[styles.inputGroup, { zIndex: 20 }]}>
-                    <Text style={styles.inputLabel}>Description Length</Text>
-                    <Pressable
-                        style={styles.pickerView}
-                        onPress={() => {
-                            setShowLengthPicker(!showLengthPicker);
-                            setShowTonePicker(false);
-                        }}
-                    >
-                        <Text style={styles.pickerText}>{length}</Text>
-                        <MaterialCommunityIcons
-                            name={showLengthPicker ? "chevron-up" : "chevron-down"}
-                            size={24}
-                            color="#64748B"
-                        />
-                    </Pressable>
-                    {showLengthPicker && (
-                        <View style={styles.dropdownList}>
-                            {LENGTH_OPTIONS.map((option) => (
-                                <Pressable
-                                    key={option}
-                                    style={[styles.dropdownItem, length === option && styles.dropdownItemActive]}
-                                    onPress={() => {
-                                        setLength(option);
-                                        setShowLengthPicker(false);
-                                    }}
-                                >
-                                    <Text style={[
-                                        styles.dropdownItemText,
-                                        length === option && styles.dropdownItemTextActive
-                                    ]}>
-                                        {option}
-                                    </Text>
-                                    {length === option && (
-                                        <MaterialCommunityIcons name="check" size={18} color="#0B2D3E" />
-                                    )}
-                                </Pressable>
-                            ))}
-                        </View>
-                    )}
-                </View>
-
-                {/* Tone Picker */}
-                <View style={[styles.inputGroup, { zIndex: 10 }]}>
-                    <Text style={styles.inputLabel}>Tone of Voice</Text>
-                    <Pressable
-                        style={styles.pickerView}
-                        onPress={() => {
-                            setShowTonePicker(!showTonePicker);
-                            setShowLengthPicker(false);
-                        }}
-                    >
-                        <Text style={styles.pickerText}>{tone}</Text>
-                        <MaterialCommunityIcons
-                            name={showTonePicker ? "chevron-up" : "chevron-down"}
-                            size={24}
-                            color="#64748B"
-                        />
-                    </Pressable>
-                    {showTonePicker && (
-                        <View style={styles.dropdownList}>
-                            {TONE_OPTIONS.map((option) => (
-                                <Pressable
-                                    key={option}
-                                    style={[styles.dropdownItem, tone === option && styles.dropdownItemActive]}
-                                    onPress={() => {
-                                        setTone(option);
-                                        setShowTonePicker(false);
-                                    }}
-                                >
-                                    <Text style={[
-                                        styles.dropdownItemText,
-                                        tone === option && styles.dropdownItemTextActive
-                                    ]}>
-                                        {option}
-                                    </Text>
-                                    {tone === option && (
-                                        <MaterialCommunityIcons name="check" size={18} color="#0B2D3E" />
-                                    )}
-                                </Pressable>
-                            ))}
-                        </View>
-                    )}
-                </View>
-            </View>
-
-            <View style={styles.footerActions}>
-                <Pressable style={styles.secondaryButton} onPress={() => setStep('selection')}>
-                    <Text style={styles.secondaryButtonText}>Back</Text>
-                </Pressable>
-                <Pressable style={styles.primaryButton} onPress={handleStartGeneration}>
-                    <Text style={styles.primaryButtonText}>Generate Description</Text>
-                    <MaterialCommunityIcons name="auto-fix" size={20} color="#FFFFFF" />
-                </Pressable>
-            </View>
-        </ScrollView>
-    );
-
-    // --- STEP 3: LOADING ---
-    const renderLoading = () => (
-        <View style={styles.centerContainer}>
-            <View style={styles.loaderCircle}>
-                <ActivityIndicator size="large" color="#FFFFFF" />
-            </View>
-            <Text style={styles.loadingTitle}>Crafting Description...</Text>
-            <Text style={styles.loadingSubtitle}>
-                Analyzing architectural details and luxury market trends.
-            </Text>
-        </View>
-    );
-
-    // --- STEP 4: PREVIEW ---
-    // --- STEP 4: PREVIEW ---
-    const renderPreview = () => (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {/* Custom Header for Preview with Actions */}
-            <View style={styles.previewHeaderContainer}>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <Pressable style={styles.backButton} onPress={() => setStep('selection')}>
-                        <MaterialCommunityIcons name="arrow-left" size={24} color="#0B2D3E" />
-                    </Pressable>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.headerTitle}>Review & Refine</Text>
-                        <Text style={styles.headerSubtitle}>Fine-tune your AI-generated copy for perfection.</Text>
-                    </View>
-                </View>
-
-                <View style={styles.headerActions}>
-                    <Pressable
-                        style={styles.regenerateBtn}
-                        onPress={handleRegenerate}
-                        disabled={isRegenerating}
-                    >
-                        {isRegenerating ? (
-                            <ActivityIndicator size="small" color="#0B2D3E" />
-                        ) : (
-                            <>
-                                <MaterialCommunityIcons name="refresh" size={16} color="#0B2D3E" />
-                                <Text style={styles.regenerateText}>Regenerate</Text>
-                            </>
-                        )}
-                    </Pressable>
-                    <Pressable style={styles.headerSaveBtn} onPress={handleSave}>
-                        <MaterialCommunityIcons name="content-save-outline" size={18} color="#FFFFFF" />
-                        <Text style={styles.headerSaveBtnText}>Save Description</Text>
-                    </Pressable>
-                </View>
-            </View>
-
-            <View style={styles.previewCard}>
-                <TextInput
-                    style={styles.previewInput}
-                    multiline
-                    value={generatedContent}
-                    onChangeText={setGeneratedContent}
-                    textAlignVertical="top"
-                />
-            </View>
-        </ScrollView>
-    );
-
-    // --- STEP 5: SUCCESS ---
-    // --- STEP 5: SUCCESS ---
-    const renderSuccess = () => (
-        <View style={styles.centerContainer}>
-            <View style={[styles.successCircle, { backgroundColor: '#0B2D3E' }]}>
-                <MaterialCommunityIcons name="check" size={40} color="#FFFFFF" />
-            </View>
-            <Text style={styles.successTitle}>Listing Saved!</Text>
-            <Text style={styles.successSubtitle}>
-                Your property description has been successfully added to your library.
-            </Text>
-            <Pressable style={styles.returnButton} onPress={handleDone}>
-                <Text style={styles.returnButtonText}>Back to AI Content Hub</Text>
-            </Pressable>
-        </View>
-    );
 
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F0F6FA', '#E0ECF4', '#F4F0EE']}
+                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
                 style={[styles.background, { paddingTop: insets.top }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
             >
-                {step === 'selection' && renderSelection()}
-                {step === 'parameters' && renderParameters()}
-                {step === 'loading' && renderLoading()}
-                {step === 'preview' && renderPreview()}
-                {step === 'success' && renderSuccess()}
+                <PageHeader
+                    title="Property Description Lab"
+                    subtitle="Transform raw property details into high-converting architectural narratives."
+                    onBack={() => router.back()}
+                />
+
+                <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Property Selector */}
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.propertyList}
+                    >
+                        {PROPERTY_OPTIONS.map((prop) => (
+                            <Pressable
+                                key={prop.id}
+                                style={[
+                                    styles.propertyCard,
+                                    selectedProperty === prop.id && styles.propertyCardSelected,
+                                ]}
+                                onPress={() => {
+                                    setSelectedProperty(prop.id);
+                                    setInputFeatures(prop.defaultValue);
+                                }}
+                            >
+                                <View style={styles.propertyIconContainer}>
+                                    {prop.image ? (
+                                        <Image source={{ uri: prop.image }} style={styles.propertyImage} />
+                                    ) : (
+                                        <View style={styles.genericIconBox}>
+                                            <MaterialCommunityIcons name="cube-outline" size={20} color="#0B2341" />
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={styles.propertyText}>
+                                    <Text style={styles.propertyTitle} numberOfLines={1}>{prop.title}</Text>
+                                    <Text style={styles.propertyAddress} numberOfLines={1}>{prop.address}</Text>
+                                </View>
+                            </Pressable>
+                        ))}
+                    </ScrollView>
+
+                    {/* Input Features Card */}
+                    <View style={styles.inputCard}>
+                        <Text style={styles.cardHeading}>Input Features</Text>
+                        <Text style={styles.cardSubtitle}>Describe key details like rooms, views, materials, or special amenities.</Text>
+
+                        <TextInput
+                            style={styles.textArea}
+                            multiline
+                            placeholder="e.g. 5 bedrooms, infinity pool, floor-to-ceiling windows with ocean views, Italian marble kitchen..."
+                            placeholderTextColor="#94A3B8"
+                            value={inputFeatures}
+                            onChangeText={setInputFeatures}
+                            textAlignVertical="top"
+                        />
+
+                        <View style={styles.inputFooter}>
+                            <Pressable
+                                style={[styles.generateBtn, !inputFeatures.trim() && styles.generateBtnDisabled]}
+                                onPress={handleGenerate}
+                                disabled={isGenerating || !inputFeatures.trim()}
+                            >
+                                {isGenerating ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <>
+                                        <Text style={styles.generateBtnText}>Generate</Text>
+                                    </>
+                                )}
+                            </Pressable>
+
+
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.styleList} scrollEnabled={false}>
+                            {STYLE_OPTIONS.map((style) => (
+                                <Pressable
+                                    key={style}
+                                    onPress={() => setSelectedStyle(style)}
+                                    style={[
+                                        styles.stylePill,
+                                        selectedStyle === style && styles.stylePillActive,
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.stylePillText,
+                                        selectedStyle === style && styles.stylePillTextActive,
+                                    ]}>
+                                        {style}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* AI Output Card */}
+                    <View style={styles.outputCard}>
+                        <View style={styles.outputHeader}>
+                            <View style={styles.outputStatus}>
+                                <View style={styles.statusDot} />
+                                <Text style={styles.outputTitle}>AI GENERATION OUTPUT</Text>
+                            </View>
+                            {hasGenerated && (
+                                <View style={styles.outputActions}>
+                                    <Pressable style={styles.iconAction} onPress={copyToClipboard}>
+                                        <MaterialCommunityIcons name="content-copy" size={18} color="#94A3B8" />
+                                    </Pressable>
+                                    <Pressable style={styles.saveBtn}>
+                                        <MaterialCommunityIcons name="content-save-outline" size={18} color="#FFFFFF" />
+                                        <Text style={styles.saveBtnText}>SAVE</Text>
+                                    </Pressable>
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.outputArea}>
+                            {isGenerating ? (
+                                <View style={styles.placeholderState}>
+                                    <ActivityIndicator size="large" color="#0BA0B2" />
+                                    <Text style={styles.placeholderTitle}>AI is Crafting...</Text>
+                                </View>
+                            ) : hasGenerated ? (
+                                <TextInput
+                                    style={styles.outputText}
+                                    multiline
+                                    value={output}
+                                    onChangeText={setOutput}
+                                    textAlignVertical="top"
+                                />
+                            ) : (
+                                <View style={styles.placeholderState}>
+                                    <MaterialCommunityIcons name="lightning-bolt-outline" size={48} color="#1E293B" />
+                                    <Text style={styles.placeholderTitle}>Your Masterpiece Awaits</Text>
+                                    <Text style={styles.placeholderSubtitle}>
+                                        Fill in the property details and click generate to see the magic happen.
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
             </LinearGradient>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    background: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-    },
-    centerContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 40,
-    },
-    header: {
-        marginBottom: 24,
-        marginTop: 10,
-        flexDirection: 'row',
-        gap: 10
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    headerText: {
-        flex: 1,
-        gap: 4,
-        paddingRight: 5,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#0B2D3E',
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        lineHeight: 20,
-        flexWrap: 'wrap',
-    },
-    grid: {
-        gap: 16,
-        flexDirection: 'row', // Updated to allow horizontal structure if needed, or stick to veritcal. Screenshot shows Horizontal cards? No, they look like they could be horizontal or wrapped.
-        // The screenshot shows 3 cards in a row. It's likely a horizontal scroll or a grid with multiple items. 
-        // In mobile view (React Native), a horizontal scrollview is usually used for a row of cards, or flexWrap for a grid.
-        // In create.tsx it was a vertical list (gap 16).
-        // If I want to match the screenshot which shows them side-by-side (likely desktop or tablet view, or just horizontal scroll), 
-        // I will use flexWrap: 'wrap' and calculate width.
-        flexWrap: 'wrap',
-    },
-    contextCard: {
-        // Screenshot shows them side by side.
-        width: Platform.OS === 'web' ? '32%' : '100%', // Fallback for mobile
-        minWidth: 300,
-        flex: 1,
-        height: 220, // Taller cards
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
-        elevation: 3,
-        borderWidth: 2,
-        borderColor: 'transparent',
-    },
-    contextCardActive: {
-        borderColor: '#0BA0B2',
-    },
-    contextImage: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    contextOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.2)', // Lighter overlay
-    },
-    contextContent: {
-        flex: 1,
-        padding: 20,
-        justifyContent: 'space-between',
-    },
-    badge: {
-        alignSelf: 'flex-end',
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    badgeText: {
-        fontSize: 11,
-        fontWeight: '800',
-        color: '#0B2D3E',
-        textTransform: 'uppercase',
-    },
-    contextTitleImage: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#FFFFFF',
-        marginBottom: 4,
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
-    },
-    contextSubtitleImage: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: 'rgba(255,255,255,0.95)',
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
-    },
-    genericContent: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-        backgroundColor: '#F1F5F9',
-    },
-    genericIconCircle: {
-        width: 64,
-        height: 64,
-        borderRadius: 20, // Squircle
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    contextTitleGeneric: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#0B2D3E',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    contextSubtitleGeneric: {
-        fontSize: 13,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 18,
-    },
-    // Parameters Page
-    card: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.03,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 12,
-        elevation: 3,
-        marginBottom: 24,
-    },
-    inputGroup: {
+    container: { flex: 1 },
+    background: { flex: 1 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 20 },
+
+    // Property Selector
+    propertyList: {
+        paddingVertical: 10,
+        gap: 12,
         marginBottom: 20,
     },
-    inputLabel: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#0B2D3E',
-        marginBottom: 8,
-    },
-    pickerView: {
+    propertyCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        padding: 12,
+        width: 220,
         borderWidth: 1,
         borderColor: '#E2E8F0',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+        shadowColor: '#000',
+        shadowOpacity: 0.02,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 1,
     },
-    pickerText: {
-        fontSize: 15,
-        color: '#0B2D3E',
-        fontWeight: '500',
+    propertyCardSelected: {
+        borderColor: '#0BA0B2',
+        borderWidth: 2,
+        backgroundColor: '#F0FDFA',
     },
-    dropdownList: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        marginTop: 8,
-        paddingVertical: 4,
-        marginBottom: 16,
-    },
-    dropdownItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-    },
-    dropdownItemActive: {
-        backgroundColor: '#F1F5F9',
-        borderLeftWidth: 3,
-        borderLeftColor: '#0B2D3E',
-    },
-    dropdownItemText: {
-        fontSize: 14,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    dropdownItemTextActive: {
-        color: '#0B2D3E',
-        fontWeight: '700',
-    },
-    footerActions: {
-        gap: 12,
-    },
-    primaryButton: {
-        backgroundColor: '#0B2D3E',
-        borderRadius: 16,
-        flexDirection: 'row',
+    propertyIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        overflow: 'hidden',
+        marginRight: 12,
+        backgroundColor: '#F8FAFC',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 16,
-        gap: 8,
-        shadowColor: '#0B2D3E',
-        shadowOpacity: 0.25,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
+    },
+    propertyImage: {
+        width: '100%',
+        height: '100%',
+    },
+    genericIconBox: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#F1F5F9',
+    },
+    propertyText: { flex: 1 },
+    propertyTitle: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#0B2341',
+        marginBottom: 2,
+    },
+    propertyAddress: {
+        fontSize: 11,
+        color: '#94A3B8',
+        fontWeight: '600',
+    },
+
+    // Input Features Card
+    inputCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 20,
         elevation: 4,
     },
-    primaryButtonText: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#FFFFFF',
+    cardHeading: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#0B2341',
+        marginBottom: 8,
     },
-    secondaryButton: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
+    cardSubtitle: {
+        fontSize: 13,
+        color: '#64748B',
+        lineHeight: 18,
+        marginBottom: 20,
+    },
+    textArea: {
+        backgroundColor: '#F8FAFC',
         borderWidth: 1,
         borderColor: '#E2E8F0',
-    },
-    secondaryButtonText: {
+        borderRadius: 16,
+        padding: 16,
+        height: 180,
         fontSize: 15,
-        fontWeight: '700',
-        color: '#0B2D3E',
+        color: '#0F172A',
+        fontWeight: '600',
+        marginBottom: 20,
     },
-    // Loading Step
-    loaderCircle: {
-        marginBottom: 24,
-    },
-    loadingTitle: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    loadingSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 40,
-    },
-    progressBarBg: {
-        width: '100%',
-        height: 6,
-        backgroundColor: '#E2E8F0',
-        borderRadius: 3,
-        overflow: 'hidden',
-    },
-    progressBarFill: {
-        height: '100%',
-        backgroundColor: '#0BA0B2',
-        borderRadius: 3,
-    },
-    // Preview Step
-    previewHeaderContainer: {
-        marginBottom: 24,
-        marginTop: 10,
+    inputFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: 16,
     },
-    headerActions: {
-        flexDirection: 'row',
-        gap: 12,
-        alignSelf: 'flex-start',
-        marginTop: 8,
-    },
-    headerSaveBtn: {
-        backgroundColor: '#0B2D3E',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    headerSaveBtnText: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    previewCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 12,
-        elevation: 3,
-        marginBottom: 24,
-        minHeight: 400,
-    },
-    regenerateBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    regenerateText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#0B2D3E',
-    },
-    previewInput: {
-        fontSize: 16,
-        color: '#0F172A',
-        lineHeight: 28,
-        fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-        minHeight: 350,
-    },
-    // Success Step
-    successCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
+    generateBtn: {
+        backgroundColor: '#0B2341',
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 24,
+        minWidth: 120,
+    },
+    generateBtnDisabled: {
+        opacity: 0.6,
+    },
+    generateBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '800',
+    },
+    styleList: { flex: 1, marginTop: 10 },
+    stylePill: {
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 8,
+        backgroundColor: '#F1F5F9',
+        marginRight: 8,
+        height: 32,
+        justifyContent: 'center',
+    },
+    stylePillActive: {
+        backgroundColor: '#E2E8F0',
+    },
+    stylePillText: {
+        fontSize: 8,
+        color: '#64748B',
+        fontWeight: '700',
+    },
+    stylePillTextActive: {
+        color: '#0B2341',
+    },
+
+    // Output Card
+    outputCard: {
+        backgroundColor: '#0B2341',
+        borderRadius: 24,
+        padding: 24,
+        minHeight: 400,
         shadowColor: '#000',
         shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 30,
+        elevation: 8,
     },
-    successTitle: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 12,
-        textAlign: 'center',
+    outputHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
     },
-    successSubtitle: {
-        fontSize: 15,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 24,
-        marginBottom: 32,
-    },
-    returnButton: {
-        backgroundColor: '#0B2D3E',
-        paddingHorizontal: 32,
-        paddingVertical: 16,
-        borderRadius: 12,
-        width: '100%',
+    outputStatus: {
+        flexDirection: 'row',
         alignItems: 'center',
     },
-    returnButtonText: {
-        fontSize: 15,
-        fontWeight: '700',
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#0BA0B2',
+        marginRight: 8,
+    },
+    outputTitle: {
+        fontSize: 12,
+        fontWeight: '900',
         color: '#FFFFFF',
+        letterSpacing: 1,
+    },
+    outputActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    iconAction: {
+        width: 36,
+        height: 36,
+        borderRadius: 8,
+        backgroundColor: '#1E293B',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    saveBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0BA0B2',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        gap: 6,
+    },
+    saveBtnText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '900',
+    },
+    outputArea: {
+        flex: 1,
+    },
+    outputText: {
+        fontSize: 16,
+        color: '#CBD5E1',
+        lineHeight: 28,
+        fontWeight: '500',
+    },
+    placeholderState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+    },
+    placeholderTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    placeholderSubtitle: {
+        fontSize: 13,
+        color: '#94A3B8',
+        textAlign: 'center',
+        lineHeight: 20,
+        paddingHorizontal: 20,
     },
 });
+

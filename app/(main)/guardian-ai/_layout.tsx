@@ -10,9 +10,6 @@ export default function GuardianAiLayout() {
       }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="monitoring" />
-      <Stack.Screen name="risk-charts" />
-      <Stack.Screen name="policy-manager" />
-      <Stack.Screen name="interventions" />
       <Stack.Screen name="logs-reports" />
       <Stack.Screen name="admin" />
     </Stack>

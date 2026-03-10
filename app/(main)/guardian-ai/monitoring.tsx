@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { GuardianScreenShell } from './_components/GuardianScreenShell';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const AUDIT_ITEMS = [
   { id: '1', label: 'ENCRYPTION LAYER', value: 'AES-256 GCM', status: 'Optimal', icon: 'lock-outline' as const },
@@ -44,7 +44,8 @@ const ACTIVE_ALERTS = [
   { id: '3', icon: 'heart-pulse' as const, title: 'System heartbeat normal', time: '14m ago', color: '#0BA0B2' },
 ];
 
-export default function GuardianMonitoringScreen() {
+export function MonitoringView() {
+  const insets = useSafeAreaInsets();
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showDeployModal, setShowDeployModal] = useState(false);
   const [sessionDeployed, setSessionDeployed] = useState(false);
@@ -59,10 +60,7 @@ export default function GuardianMonitoringScreen() {
   const telemetryLines = sessionDeployed ? [TELEMETRY_SESSION_LINE, ...TELEMETRY_LINES_BASE] : TELEMETRY_LINES_BASE;
 
   return (
-    <GuardianScreenShell
-      title="Mission Control & Monitoring"
-      subtitle="High-fidelity surveillance architecture for active field operations."
-      showBack={true}>
+    <>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -209,110 +207,129 @@ export default function GuardianMonitoringScreen() {
       {/* Security Architecture Audit Modal */}
       <Modal
         visible={showAuditModal}
-        transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowAuditModal(false)}>
-        <Pressable style={styles.auditModalOverlay} onPress={() => setShowAuditModal(false)}>
-          <Pressable style={styles.auditModalCard} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.auditModalHeader}>
-              <View>
-                <Text style={styles.auditModalTitle}>Security Architecture Audit</Text>
-                <Text style={styles.auditModalSubtitle}>
-                  Technical verification of active safety protocols.
-                </Text>
-              </View>
-              <Pressable style={styles.auditModalClose} onPress={() => setShowAuditModal(false)}>
-                <MaterialCommunityIcons name="close" size={20} color="#5B6B7A" />
-              </Pressable>
+        <View style={[styles.modalFullContainer, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={styles.modalHeaderFull}>
+            <View style={styles.modalHeaderInfo}>
+              <Text style={styles.modalTitleFull}>Security Architecture Audit</Text>
+              <Text style={styles.modalSubtitleFull}>
+                Technical verification of active safety protocols.
+              </Text>
             </View>
-            {AUDIT_ITEMS.map((item) => (
-              <View key={item.id} style={styles.auditItemRow}>
-                <MaterialCommunityIcons name={item.icon} size={20} color="#0B2D3E" />
-                <View style={styles.auditItemCenter}>
-                  <Text style={styles.auditItemLabel}>{item.label}</Text>
-                  <Text style={styles.auditItemValue}>{item.value}</Text>
-                </View>
-                <View style={styles.auditStatusPill}>
-                  <Text style={styles.auditStatusPillText}>{item.status}</Text>
-                </View>
-              </View>
-            ))}
-            <View style={styles.auditIntegrityBlock}>
-              <View style={styles.auditIntegrityIcon}>
-                <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" />
-              </View>
-              <View style={styles.auditIntegrityText}>
-                <Text style={styles.auditIntegrityTitle}>Core Integrity Verified</Text>
-                <Text style={styles.auditIntegritySub}>
-                  All safety subsystems are operating within nominal enterprise parameters.
-                </Text>
-              </View>
-            </View>
-            <Pressable style={styles.auditCloseBtn} onPress={() => setShowAuditModal(false)}>
-              <Text style={styles.auditCloseBtnText}>Close Technical Audit</Text>
+            <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowAuditModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
             </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+            <View style={styles.auditListContainer}>
+              {AUDIT_ITEMS.map((item) => (
+                <View key={item.id} style={styles.auditItemRowFull}>
+                  <View style={styles.auditIconWrapFull}>
+                    <MaterialCommunityIcons name={item.icon} size={22} color="#0B2D3E" />
+                  </View>
+                  <View style={styles.auditItemCenter}>
+                    <Text style={styles.auditItemLabelFull}>{item.label}</Text>
+                    <Text style={styles.auditItemValueFull}>{item.value}</Text>
+                  </View>
+                  <View style={styles.auditStatusPillFull}>
+                    <Text style={styles.auditStatusPillTextFull}>{item.status}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.auditIntegrityBlockPremium}>
+                <View style={styles.auditIntegrityIconPremium}>
+                  <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
+                </View>
+                <View style={styles.auditIntegrityText}>
+                  <Text style={styles.auditIntegrityTitlePremium}>Core Integrity Verified</Text>
+                  <Text style={styles.auditIntegritySubPremium}>
+                    All safety subsystems are operating within nominal enterprise parameters.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooterFixed}>
+            <Pressable style={styles.initAuditBtnPremium} onPress={() => setShowAuditModal(false)}>
+              <Text style={styles.initAuditBtnTextPremium}>Close Technical Audit</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
 
-      {/* Deployment Architecture Modal */}
       <Modal
         visible={showDeployModal}
-        transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowDeployModal(false)}>
-        <Pressable style={styles.auditModalOverlay} onPress={() => setShowDeployModal(false)}>
-          <Pressable style={styles.deployModalCard} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.auditModalHeader}>
-              <View>
-                <Text style={styles.auditModalTitle}>Deployment Architecture</Text>
-                <Text style={styles.auditModalSubtitle}>
-                  Initialize a new secure monitoring session.
-                </Text>
+        <View style={[styles.modalFullContainer, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={styles.modalHeaderFull}>
+            <View style={styles.modalHeaderInfo}>
+              <Text style={styles.modalTitleFull}>Deployment Architecture</Text>
+              <Text style={styles.modalSubtitleFull}>Initialize a new secure monitoring session.</Text>
+            </View>
+            <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowDeployModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+            <View style={styles.deployFormContainer}>
+              <Text style={styles.deployFieldLabel}>Asset Identification</Text>
+              <View style={styles.deployInputBoxFull}>
+                <MaterialCommunityIcons name="account-outline" size={22} color="#7B8794" />
+                <TextInput
+                  style={styles.deployInputFull}
+                  value={assetId}
+                  onChangeText={setAssetId}
+                  placeholder="Asset ID or Name"
+                  placeholderTextColor="#9AA7B6"
+                />
               </View>
-              <Pressable style={styles.auditModalClose} onPress={() => setShowDeployModal(false)}>
-                <MaterialCommunityIcons name="close" size={20} color="#5B6B7A" />
+
+              <Text style={styles.deployFieldLabel}>Deployment Zone</Text>
+              <View style={styles.deployInputBoxFull}>
+                <MaterialCommunityIcons name="map-marker-outline" size={22} color="#7B8794" />
+                <TextInput
+                  style={styles.deployInputFull}
+                  value={deployZone}
+                  onChangeText={setDeployZone}
+                  placeholder="Secure Location Address"
+                  placeholderTextColor="#9AA7B6"
+                />
+              </View>
+
+              <Text style={styles.deployFieldLabel}>Session Duration</Text>
+              <Pressable style={styles.deployDropdownFull}>
+                <View style={styles.dropdownInfoRow}>
+                  <MaterialCommunityIcons name="clock-outline" size={22} color="#7B8794" />
+                  <Text style={styles.deployDropdownTextFull}>30 Minutes</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-down" size={24} color="#5B6B7A" />
+              </Pressable>
+
+              <Text style={styles.deployFieldLabel}>Escalation Policy</Text>
+              <Pressable style={styles.deployDropdownFull}>
+                <View style={styles.dropdownInfoRow}>
+                  <MaterialCommunityIcons name="shield-account-outline" size={22} color="#7B8794" />
+                  <Text style={styles.deployDropdownTextFull}>Standard Ladder</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-down" size={24} color="#5B6B7A" />
               </Pressable>
             </View>
-            <Text style={[styles.deployLabel, { marginTop: 0 }]}>Asset Identification</Text>
-            <View style={styles.deployInputWrap}>
-              <MaterialCommunityIcons name="account-outline" size={20} color="#7B8794" />
-              <TextInput
-                style={styles.deployInput}
-                value={assetId}
-                onChangeText={setAssetId}
-                placeholder="Asset Identification"
-                placeholderTextColor="#9AA7B6"
-              />
-            </View>
-            <Text style={styles.deployLabel}>Deployment Zone</Text>
-            <View style={styles.deployInputWrap}>
-              <MaterialCommunityIcons name="map-marker-outline" size={20} color="#7B8794" />
-              <TextInput
-                style={styles.deployInput}
-                value={deployZone}
-                onChangeText={setDeployZone}
-                placeholder="Deployment Zone"
-                placeholderTextColor="#9AA7B6"
-              />
-            </View>
-            <Text style={styles.deployLabel}>Session Duration</Text>
-            <Pressable style={styles.deployDropdown}>
-              <Text style={styles.deployDropdownText}>30 Minutes</Text>
-              <MaterialCommunityIcons name="chevron-down" size={22} color="#5B6B7A" />
+          </ScrollView>
+
+          <View style={styles.modalFooterFixed}>
+            <Pressable style={styles.initAuditBtnPremium} onPress={handleAuthenticateDeploy}>
+              <Text style={styles.initAuditBtnTextPremium}>AUTHENTICATE & DEPLOY</Text>
             </Pressable>
-            <Text style={styles.deployLabel}>Escalation Policy</Text>
-            <Pressable style={styles.deployDropdown}>
-              <Text style={styles.deployDropdownText}>Standard Ladder</Text>
-              <MaterialCommunityIcons name="chevron-down" size={22} color="#5B6B7A" />
-            </Pressable>
-            <Pressable style={styles.authenticateDeployBtn} onPress={handleAuthenticateDeploy}>
-              <Text style={styles.authenticateDeployBtnText}>AUTHENTICATE & DEPLOY</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
-    </GuardianScreenShell>
+    </>
   );
 }
 
@@ -609,4 +626,195 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   authenticateDeployBtnText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF', letterSpacing: 0.5 },
+
+  // Full-Page Modal Styles
+  modalFullContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeaderFull: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 24,
+    paddingBottom: 20,
+  },
+  modalHeaderInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  modalTitleFull: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  modalSubtitleFull: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5B6B7A',
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  modalCloseBtnFull: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalScrollBody: {
+    flex: 1,
+  },
+  auditListContainer: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  auditItemRowFull: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    borderRadius: 20,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+  },
+  auditIconWrapFull: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  auditItemLabelFull: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#7B8794',
+    letterSpacing: 0.5,
+  },
+  auditItemValueFull: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginTop: 2,
+  },
+  auditStatusPillFull: {
+    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  auditStatusPillTextFull: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#16A34A',
+  },
+  auditIntegrityBlockPremium: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0B2D3E',
+    borderRadius: 22,
+    padding: 24,
+    marginTop: 20,
+    marginBottom: 40,
+    gap: 16,
+  },
+  auditIntegrityIconPremium: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  auditIntegrityTitlePremium: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  auditIntegritySubPremium: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  modalFooterFixed: {
+    padding: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  initAuditBtnPremium: {
+    backgroundColor: '#0B2D3E',
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  initAuditBtnTextPremium: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+
+  // Deployment Full-Page Styles
+  deployFormContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  deployFieldLabel: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 10,
+    marginTop: 20,
+    letterSpacing: 0.3,
+  },
+  deployInputBoxFull: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  deployInputFull: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0B2D3E',
+    padding: 0,
+  },
+  deployDropdownFull: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  dropdownInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  deployDropdownTextFull: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
 });

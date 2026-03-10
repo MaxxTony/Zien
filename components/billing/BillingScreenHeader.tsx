@@ -1,8 +1,8 @@
+import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { memo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Theme } from '@/constants/theme';
 
 export type BillingTabKey = 'overview' | 'history' | 'analytics' | 'marketplace';
 
@@ -11,11 +11,11 @@ const TABS: Array<{
   label: string;
   icon: string;
 }> = [
-  { key: 'overview', label: 'Overview', icon: 'view-dashboard-outline' },
-  { key: 'history', label: 'History', icon: 'history' },
-  { key: 'analytics', label: 'Analytics', icon: 'chart-bar' },
-  { key: 'marketplace', label: 'Marketplace', icon: 'storefront-outline' },
-];
+    { key: 'overview', label: 'Overview', icon: 'view-dashboard-outline' },
+    { key: 'history', label: 'History', icon: 'history' },
+    { key: 'analytics', label: 'Analytics', icon: 'chart-bar' },
+    { key: 'marketplace', label: 'Marketplace', icon: 'storefront-outline' },
+  ];
 
 type BillingScreenHeaderProps = {
   activeTab: BillingTabKey;
@@ -32,7 +32,7 @@ function BillingScreenHeaderComponent({ activeTab, onTabChange }: BillingScreenH
           <MaterialCommunityIcons name="arrow-left" size={22} color={Theme.textPrimary} />
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Subscription & Capital</Text>
+          <Text style={styles.title}>Billing & Usage</Text>
           <Text style={styles.subtitle}>
             Manage your enterprise tier, financial history, and resource allocation.
           </Text>
@@ -55,7 +55,7 @@ function BillingScreenHeaderComponent({ activeTab, onTabChange }: BillingScreenH
               <MaterialCommunityIcons
                 name={t.icon as any}
                 size={16}
-                color={isActive ? Theme.textOnAccent : Theme.textSecondary}
+                color={isActive ? Theme.textPrimary : Theme.textSecondary}
                 style={styles.tabIcon}
               />
               <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{t.label}</Text>
@@ -71,73 +71,83 @@ export const BillingScreenHeader = memo(BillingScreenHeaderComponent);
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    gap: 16,
     backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Theme.surfaceSoft,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: '#E3ECF4',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   headerText: {
     flex: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Theme.textPrimary,
-    letterSpacing: -0.3,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 12.5,
-    color: Theme.textSecondary,
+    fontSize: 13,
+    color: '#5B6B7A',
     marginTop: 4,
-    lineHeight: 17,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   tabsScroll: {
     flexGrow: 0,
   },
   tabsContent: {
     flexDirection: 'row',
-    gap: 10,
-    paddingRight: 18,
+    backgroundColor: '#F1F5F9',
+    padding: 4,
+    borderRadius: 14,
+    gap: 4,
   },
   tabPill: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: Theme.surfaceSoft,
-    borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
   },
   tabIcon: {
     marginRight: 6,
   },
   tabText: {
-    fontSize: 12.5,
-    color: Theme.textSecondary,
-    fontWeight: '700',
+    fontSize: 13,
+    color: '#5B6B7A',
+    fontWeight: '800',
   },
   tabPillActive: {
-    backgroundColor: Theme.accentDark,
-    borderColor: Theme.accentDark,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
   tabTextActive: {
-    color: Theme.textOnAccent,
+    color: '#0B2D3E',
   },
 });

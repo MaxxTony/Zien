@@ -1,501 +1,504 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
     ActivityIndicator,
+    Clipboard,
     Dimensions,
-    Platform,
+    Image,
+    Keyboard,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    View
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Mock Data for Social Media Platforms
 interface PlatformOption {
-    id: 'instagram' | 'facebook' | 'linkedin';
+    id: string;
     title: string;
-    description: string;
     icon: string;
-    color: string;
-    bgColor: string;
+    defaultValue: string;
 }
 
 const PLATFORM_OPTIONS: PlatformOption[] = [
     {
         id: 'instagram',
         title: 'Instagram',
-        description: "Craft optimized posts for Instagram's unique audience.",
         icon: 'instagram',
-        color: '#E1306C',
-        bgColor: '#FDF2F8',
+        defaultValue: 'e.g. Modern Malibu mansion with sunrise lighting, architectural pool shot. Mention the 5 bed, 7 bath features...',
     },
     {
         id: 'facebook',
         title: 'Facebook',
-        description: "Craft optimized posts for Facebook's unique audience.",
         icon: 'facebook',
-        color: '#1877F2',
-        bgColor: '#EFF6FF',
+        defaultValue: 'e.g. Beautiful family home in Los Angeles. Spacious backyard, open floor plan. Mention the proximity to schools...',
     },
     {
         id: 'linkedin',
         title: 'LinkedIn',
-        description: "Craft optimized posts for LinkedIn's unique audience.",
         icon: 'linkedin',
-        color: '#0A66C2',
-        bgColor: '#F0F9FF',
+        defaultValue: 'e.g. Professional office space in downtown Miami. Modern amenities, great views. Mention the business connectivity...',
+    },
+    {
+        id: 'tiktok',
+        title: 'TikTok',
+        icon: 'music-note',
+        defaultValue: 'e.g. Trendy loft in Brooklyn. City views, industrial chic. Mention the vibrant neighborhood vibes...',
     },
 ];
 
-const GENERATED_POSTS = {
-    instagram: `🏠 JUST LISTED: A masterpiece of modern architecture.\n\nExperience the pinnacle of luxury living in this stunning feature. Every detail has been curated for the discerning homeowner.\n\n✨ Key features:\n• Panoramic city views\n• Bespoke designer finishes\n• Private outdoor oasis\n\nContact us for a private tour today! #RealEstate #LuxuryLiving #DreamHome`,
-    facebook: `🏠 JUST LISTED: A masterpiece of modern architecture.\n\nExperience the pinnacle of luxury living in this stunning Facebook feature. Every detail has been curated for the discerning homeowner.\n\n✨ Key features:\n• Panoramic city views\n• Bespoke designer finishes\n• Private outdoor oasis\n\nContact us for a private tour today! #RealEstate #LuxuryLiving #FacebookRealEstate`,
-    linkedin: `Excited to announce our newest listing: A masterpiece of modern architecture.\n\nThis property represents the pinnacle of luxury living, with every detail curated for the discerning homeowner.\n\nKey Highlights:\n• Panoramic city views\n• Bespoke designer finishes\n• Private outdoor oasis\n\nPerfect for executives looking for a private retreat. DM to schedule a showing. #RealEstate #LuxuryProperty #NewListing`
-};
+const STYLE_OPTIONS = ['Viral Hook', 'Emoji Optimized', 'AI Visual', 'One-Click Post'];
 
-type FlowStep = 'selection' | 'loading' | 'preview' | 'success';
+const MOCK_CAPTION = `🏠 JUST LISTED: A masterpiece of modern architecture. 
 
-export default function SocialMediaPostsScreen() {
+Step into a world where design meets tranquility. This meticulously crafted residence at 123 Business Way offers the perfect balance of industrial chic and warm, natural aesthetics. 
+
+Featuring soaring ceilings, bespoke timber detailing, and an open-concept flow that redefines luxury living. Your new chapter starts here. 🗝️✨
+
+#RealEstate #ModernArchitecture #JustListed #LuxuryLiving`;
+
+const MOCK_IMAGE = 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80';
+
+export default function SocialPostLabScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [step, setStep] = useState<FlowStep>('selection');
-    const [selectedPlatform, setSelectedPlatform] = useState<PlatformOption['id'] | null>(null);
 
-    // Preview State
-    const [generatedContent, setGeneratedContent] = useState('');
-    const [isRegenerating, setIsRegenerating] = useState(false);
+    const [selectedPlatform, setSelectedPlatform] = useState('instagram');
+    const [campaignContext, setCampaignContext] = useState('');
+    const [selectedStyle, setSelectedStyle] = useState('Viral Hook');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [outputCaption, setOutputCaption] = useState('');
+    const [hasGenerated, setHasGenerated] = useState(false);
 
-    // Animation for loading bar (unused visually but kept for logic if needed, simplified here)
-    // const progressAnim = useRef(new Animated.Value(0)).current;
+    const handleGenerate = () => {
+        if (!campaignContext.trim()) return;
 
-    useEffect(() => {
-        if (step === 'loading') {
-            // Simulate generation time
-            const timer = setTimeout(() => {
-                if (selectedPlatform) {
-                    setGeneratedContent(GENERATED_POSTS[selectedPlatform]);
-                }
-                setStep('preview');
-            }, 3000); // 3 seconds delay as per "after some sec"
-            return () => clearTimeout(timer);
-        }
-    }, [step, selectedPlatform]);
+        Keyboard.dismiss();
+        setIsGenerating(true);
+        setHasGenerated(false);
+        setOutputCaption('');
 
-    const handlePlatformSelect = (id: PlatformOption['id']) => {
-        setSelectedPlatform(id);
-        setStep('loading');
-    };
-
-    const handleRegenerate = () => {
-        setIsRegenerating(true);
-        // Simulate API call
+        // Simulate thinking & generating
         setTimeout(() => {
-            if (selectedPlatform) {
-                // Add a slight variation to signify regeneration
-                const newText = `✨ REFRESHED CONTENT ✨\n\n` + GENERATED_POSTS[selectedPlatform];
-                setGeneratedContent(newText);
-            }
-            setIsRegenerating(false);
+            setIsGenerating(false);
+            setHasGenerated(true);
+
+            // Start typing animation for caption
+            let index = 0;
+            const textToType = MOCK_CAPTION;
+            const speed = 15;
+
+            const timer = setInterval(() => {
+                if (index < textToType.length) {
+                    setOutputCaption((prev) => prev + textToType.charAt(index));
+                    index++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, speed);
         }, 1500);
     };
 
-    const handleSave = () => {
-        setStep('success');
-    };
-
-    const handleDone = () => {
-        router.back(); // Go back to AI Content Hub
-    };
-
-    const getPlatformDetails = () => {
-        return PLATFORM_OPTIONS.find(p => p.id === selectedPlatform) || PLATFORM_OPTIONS[0];
-    };
-
-    const renderHeader = (title: string, subtitle?: string) => (
-        <View style={styles.header}>
-            <Pressable style={styles.backButton} onPress={() => step === 'selection' ? router.back() : setStep('selection')}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#0B2D3E" />
-            </Pressable>
-            <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>{title}</Text>
-                {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
-            </View>
-        </View>
-    );
-
-    // --- STEP 1: SELECTION ---
-    const renderSelection = () => (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {renderHeader('Social Media Posts', 'Select your target platform and let AI craft the perfect caption.')}
-
-            <View style={styles.platformsGrid}>
-                {PLATFORM_OPTIONS.map((platform) => (
-                    <Pressable
-                        key={platform.id}
-                        style={styles.platformCard}
-                        onPress={() => handlePlatformSelect(platform.id)}
-                    >
-                        <View style={[styles.iconContainer, { backgroundColor: platform.bgColor }]}>
-                            <MaterialCommunityIcons name={platform.icon as any} size={32} color={platform.color} />
-                        </View>
-                        <Text style={styles.platformTitle}>{platform.title}</Text>
-                        <Text style={styles.platformDesc}>{platform.description}</Text>
-                    </Pressable>
-                ))}
-            </View>
-        </ScrollView>
-    );
-
-    // --- STEP 2: LOADING ---
-    const renderLoading = () => {
-        const platform = getPlatformDetails();
-        return (
-            <View style={styles.centerContainer}>
-                <View style={styles.loaderIconContainer}>
-                    <MaterialCommunityIcons name="auto-fix" size={48} color="#0B2D3E" />
-                    {/* Overlaying a spinner or just using activity indicator independently often looks cleaner. 
-                         The screenshot shows a specific icon setup. Using ActivityIndicator for simplicity + icon.
-                     */}
-                </View>
-                <ActivityIndicator size="large" color="#0B2D3E" style={{ marginBottom: 20 }} />
-
-                <Text style={styles.loadingTitle}>Generating {platform.title} Content...</Text>
-                <Text style={styles.loadingSubtitle}>
-                    AI is writing high-engagement copy tailored for social speed.
-                </Text>
-            </View>
-        );
-    };
-
-    // --- STEP 3: PREVIEW ---
-    const renderPreview = () => {
-        const platform = getPlatformDetails();
-        return (
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* Custom Header for Preview with Actions */}
-                <View style={styles.previewHeaderContainer}>
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <Pressable style={styles.backButton} onPress={() => setStep('selection')}>
-                            <MaterialCommunityIcons name="arrow-left" size={24} color="#0B2D3E" />
-                        </Pressable>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.headerTitle}>{platform.title} Draft</Text>
-                            <View style={styles.optimizedBadge}>
-                                <MaterialCommunityIcons name="check" size={14} color="#10B981" />
-                                <Text style={styles.optimizedText}>Optimized for current {platform.title} trends.</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.headerActions}>
-                        <Pressable
-                            style={styles.regenerateBtn}
-                            onPress={handleRegenerate}
-                            disabled={isRegenerating}
-                        >
-                            {isRegenerating ? (
-                                <ActivityIndicator size="small" color="#0B2D3E" />
-                            ) : (
-                                <>
-                                    <MaterialCommunityIcons name="refresh" size={16} color="#0B2D3E" />
-                                    <Text style={styles.regenerateText}>Refresh</Text>
-                                </>
-                            )}
-                        </Pressable>
-                        <Pressable style={styles.headerSaveBtn} onPress={handleSave}>
-                            <MaterialCommunityIcons name="content-save-outline" size={18} color="#FFFFFF" />
-                            <Text style={styles.headerSaveBtnText}>Save Post</Text>
-                        </Pressable>
-                    </View>
-                </View>
-
-                <View style={styles.previewCard}>
-                    {/* Simulating the platform header in preview could be nice, but simple text input is requested */}
-                    <TextInput
-                        style={styles.previewInput}
-                        multiline
-                        value={generatedContent}
-                        onChangeText={setGeneratedContent}
-                        textAlignVertical="top"
-                    />
-                </View>
-            </ScrollView>
-        );
-    };
-
-    // --- STEP 4: SUCCESS ---
-    const renderSuccess = () => {
-        const platform = getPlatformDetails();
-        return (
-            <View style={styles.centerContainer}>
-                <View style={[styles.successCircle, { backgroundColor: '#0B2D3E' }]}>
-                    <MaterialCommunityIcons name="check" size={40} color="#FFFFFF" />
-                </View>
-                <Text style={styles.successTitle}>Post Ready!</Text>
-                <Text style={styles.successSubtitle}>
-                    Your {platform.title} post has been saved to your content library.
-                </Text>
-                <Pressable style={styles.returnButton} onPress={handleDone}>
-                    <Text style={styles.returnButtonText}>Back to Hub</Text>
-                </Pressable>
-            </View>
-        );
+    const copyToClipboard = () => {
+        Clipboard.setString(outputCaption);
     };
 
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F0F6FA', '#E0ECF4', '#F4F0EE']}
+                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
                 style={[styles.background, { paddingTop: insets.top }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
             >
-                {step === 'selection' && renderSelection()}
-                {step === 'loading' && renderLoading()}
-                {step === 'preview' && renderPreview()}
-                {step === 'success' && renderSuccess()}
+                <PageHeader
+                    title="Social Post Lab"
+                    subtitle="Generate high-engagement captions and AI visuals for every platform in seconds."
+                    onBack={() => router.back()}
+                />
+
+                <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Platform Tabs */}
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.platformTabs}
+
+                    >
+                        {PLATFORM_OPTIONS.map((platform) => (
+                            <Pressable
+                                key={platform.id}
+                                style={[
+                                    styles.platformTab,
+                                    selectedPlatform === platform.id && styles.platformTabActive,
+                                ]}
+                                onPress={() => {
+                                    setSelectedPlatform(platform.id);
+                                }}
+                            >
+                                <MaterialCommunityIcons
+                                    name={platform.icon as any}
+                                    size={18}
+                                    color={selectedPlatform === platform.id ? '#FFFFFF' : '#0B2341'}
+                                />
+                                <Text style={[
+                                    styles.platformTabText,
+                                    selectedPlatform === platform.id && styles.platformTabTextActive,
+                                ]}>
+                                    {platform.title}
+                                </Text>
+                            </Pressable>
+                        ))}
+                    </ScrollView>
+
+                    {/* Campaign Context Card */}
+                    <View style={styles.inputCard}>
+                        <Text style={styles.cardHeading}>Campaign Context</Text>
+                        <Text style={styles.cardSubtitle}>
+                            Describe what you want to post. Mention the property, key features, or the mood for the image.
+                        </Text>
+
+                        <TextInput
+                            style={styles.textArea}
+                            multiline
+                            placeholder={PLATFORM_OPTIONS.find(p => p.id === selectedPlatform)?.defaultValue}
+                            placeholderTextColor="#94A3B8"
+                            value={campaignContext}
+                            onChangeText={setCampaignContext}
+                            textAlignVertical="top"
+                        />
+
+                        <View style={styles.inputFooter}>
+                            <Pressable
+                                style={[styles.generateBtn, !campaignContext.trim() && styles.generateBtnDisabled]}
+                                onPress={handleGenerate}
+                                disabled={isGenerating || !campaignContext.trim()}
+                            >
+                                {isGenerating ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.generateBtnText}>Generate</Text>
+                                )}
+                            </Pressable>
+                        </View>
+
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.styleList} scrollEnabled={false}>
+                            {STYLE_OPTIONS.map((style) => (
+                                <Pressable
+                                    key={style}
+                                    onPress={() => setSelectedStyle(style)}
+                                    style={[
+                                        styles.stylePill,
+                                        selectedStyle === style && styles.stylePillActive,
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.stylePillText,
+                                        selectedStyle === style && styles.stylePillTextActive,
+                                    ]}>
+                                        {style}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* Preview & Multimedia Card */}
+                    <View style={styles.outputCard}>
+                        <View style={styles.outputHeader}>
+                            <View style={styles.outputStatus}>
+                                <View style={styles.statusDot} />
+                                <Text style={styles.outputTitle} numberOfLines={1}>POST PREVIEW</Text>
+                            </View>
+                            {hasGenerated && (
+                                <View style={styles.outputActions}>
+                                    <Pressable style={styles.iconAction} onPress={copyToClipboard}>
+                                        <MaterialCommunityIcons name="content-copy" size={18} color="#94A3B8" />
+                                    </Pressable>
+                                    <Pressable style={styles.exportBtn}>
+                                        <MaterialCommunityIcons name="share-variant-outline" size={18} color="#FFFFFF" />
+                                        <Text style={styles.exportBtnText}>EXPORT POST</Text>
+                                    </Pressable>
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.outputContent}>
+                            <View style={styles.imagePreviewContainer}>
+                                <Image source={{ uri: MOCK_IMAGE }} style={styles.previewImage} />
+                            </View>
+
+                            {isGenerating ? (
+                                <View style={styles.loadingState}>
+                                    <ActivityIndicator size="small" color="#0BA0B2" />
+                                    <Text style={styles.loadingText}>Building your social media presence...</Text>
+                                </View>
+                            ) : hasGenerated ? (
+                                <View style={styles.captionArea}>
+                                    <TextInput
+                                        style={styles.captionText}
+                                        multiline
+                                        value={outputCaption}
+                                        onChangeText={setOutputCaption}
+                                        textAlignVertical="top"
+                                    />
+                                </View>
+                            ) : (
+                                <View style={styles.placeholderState}>
+                                    <MaterialCommunityIcons name="lightning-bolt-outline" size={24} color="#64748B" />
+                                    <Text style={styles.placeholderTitle}>Creative Studio Ready</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
             </LinearGradient>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    container: { flex: 1 },
+    background: { flex: 1 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 20 },
+
+    // Platform Tabs
+    platformTabs: {
+        paddingVertical: 10,
+        gap: 8,
+        marginBottom: 20,
     },
-    background: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-    },
-    centerContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 40,
-    },
-    header: {
-        marginBottom: 24,
-        marginTop: 10,
+    platformTab: {
         flexDirection: 'row',
-        gap: 10
-    },
-    backButton: {
-        width: 44,
-        height: 44,
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    headerText: {
-        flex: 1,
-        gap: 4,
-        paddingRight: 5,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#0B2D3E',
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        lineHeight: 20,
-        flexWrap: 'wrap',
-    },
-    // Selection Step
-    platformsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
-        justifyContent: 'center',
-    },
-    platformCard: {
-        width: '100%',
-        // Logic for responsive grid: 
-        // On mobile 100%, on larger screens maybe side by side. 
-        // Screenshot shows 3 cards, possibly horizontal scrollable or just stacked. 
-        // Let's settle for stacked full width on mobile for better touch targets, or slightly smaller to fit.
-        // If we want to mimic screenshot exactly (side by side), we need horizontal scroll view or Flex Wrap with defined widths.
-        // Assuming mobile vertical scroll is default for RN apps unless specified.
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 24,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
-        elevation: 3,
-        marginBottom: 0, // Handled by gap
-        minHeight: 200,
-    },
-    iconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    platformTitle: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#0B2D3E',
-        marginBottom: 8,
-    },
-    platformDesc: {
-        fontSize: 13,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    // Loading Step
-    loaderIconContainer: {
-        marginBottom: 24,
-        opacity: 0.5,
-    },
-    loadingTitle: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    loadingSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 40,
-    },
-    // Preview Step
-    previewHeaderContainer: {
-        marginBottom: 24,
-        marginTop: 10,
-        gap: 16,
-    },
-    optimizedBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 4,
-    },
-    optimizedText: {
-        fontSize: 13,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    headerActions: {
-        flexDirection: 'row',
-        gap: 12,
-        alignSelf: 'flex-start',
-        marginTop: 8,
-    },
-    headerSaveBtn: {
-        backgroundColor: '#0B2D3E',
         paddingHorizontal: 16,
         paddingVertical: 10,
-        borderRadius: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    headerSaveBtnText: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    previewCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 12,
-        elevation: 3,
-        marginBottom: 24,
-        minHeight: 400,
-    },
-    regenerateBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
+        marginRight: 8,
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
-    regenerateText: {
+    platformTabActive: {
+        backgroundColor: '#0BA0B2',
+        borderColor: '#0BA0B2',
+    },
+    platformTabText: {
         fontSize: 13,
-        fontWeight: '700',
-        color: '#0B2D3E',
+        fontWeight: '800',
+        color: '#0B2341',
+        marginLeft: 8,
     },
-    previewInput: {
-        fontSize: 16,
-        color: '#0F172A',
-        lineHeight: 28,
-        fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-        minHeight: 350,
-    },
-    // Success Step
-    successCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    successTitle: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#0B2D3E',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    successSubtitle: {
-        fontSize: 15,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 24,
-        marginBottom: 32,
-    },
-    returnButton: {
-        backgroundColor: '#0B2D3E',
-        paddingHorizontal: 32,
-        paddingVertical: 16,
-        borderRadius: 12,
-        width: '100%',
-        alignItems: 'center',
-    },
-    returnButtonText: {
-        fontSize: 15,
-        fontWeight: '700',
+    platformTabTextActive: {
         color: '#FFFFFF',
     },
+
+    // Campaign Context Card
+    inputCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 20,
+        elevation: 4,
+    },
+    cardHeading: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#0B2341',
+        marginBottom: 8,
+    },
+    cardSubtitle: {
+        fontSize: 13,
+        color: '#64748B',
+        lineHeight: 18,
+        marginBottom: 20,
+    },
+    textArea: {
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 16,
+        padding: 16,
+        height: 180,
+        fontSize: 15,
+        color: '#0F172A',
+        fontWeight: '600',
+        marginBottom: 20,
+    },
+    inputFooter: {
+        flexDirection: 'row',
+        marginBottom: 16,
+    },
+    generateBtn: {
+        backgroundColor: '#0B2341',
+        paddingHorizontal: 32,
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    generateBtnDisabled: {
+        opacity: 0.6,
+    },
+    generateBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '800',
+    },
+    styleList: { marginTop: 10 },
+    stylePill: {
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 8,
+        backgroundColor: '#F1F5F9',
+        marginRight: 8,
+        height: 32,
+        justifyContent: 'center',
+    },
+    stylePillActive: {
+        backgroundColor: '#E2E8F0',
+    },
+    stylePillText: {
+        fontSize: 8,
+        color: '#64748B',
+        fontWeight: '700',
+    },
+    stylePillTextActive: {
+        color: '#0B2341',
+    },
+
+    // Output Card
+    outputCard: {
+        backgroundColor: '#0B2341',
+        borderRadius: 24,
+        padding: 16,
+        minHeight: 500,
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 30,
+        elevation: 8,
+    },
+    outputHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    outputStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexShrink: 1,
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#0BA0B2',
+        marginRight: 6,
+    },
+    outputTitle: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
+    },
+    outputActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    iconAction: {
+        width: 36,
+        height: 36,
+        borderRadius: 8,
+        backgroundColor: '#1E293B',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    exportBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0BA0B2',
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 8,
+        gap: 4,
+    },
+    exportBtnText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '900',
+    },
+    outputContent: { flex: 1 },
+    previewContainer: { gap: 16 },
+    imagePreviewContainer: {
+        width: '100%',
+        height: 320,
+        borderRadius: 16,
+        overflow: 'hidden',
+        backgroundColor: '#1E293B',
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    captionArea: {
+        backgroundColor: '#1E293B',
+        borderRadius: 16,
+        padding: 16,
+        minHeight: 120,
+        marginTop: 16,
+    },
+    captionText: {
+        fontSize: 14,
+        color: '#CBD5E1',
+        lineHeight: 22,
+        fontWeight: '500',
+    },
+    loadingState: {
+        height: 120,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#1E293B',
+        borderRadius: 16,
+        marginTop: 16,
+    },
+    loadingText: {
+        color: '#94A3B8',
+        marginTop: 12,
+        fontSize: 13,
+        textAlign: 'center',
+    },
+    placeholderState: {
+        height: 120,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#1E293B',
+        borderRadius: 16,
+        marginTop: 16,
+    },
+    placeholderTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#64748B',
+        marginTop: 12,
+    },
 });
+

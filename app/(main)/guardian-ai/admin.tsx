@@ -1,5 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useState } from 'react';
 import {
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,79 +9,88 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { GuardianScreenShell } from './_components/GuardianScreenShell';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const STAT_CARDS = [
- {
-   id: 'policies',
-   icon: 'cog-outline' as const,
-   label: 'SECURITY POLICIES',
-   value: '14 Active',
- },
- {
-   id: 'personnel',
-   icon: 'account-group-outline' as const,
-   label: 'VERIFIED PERSONNEL',
-   value: '86 Total',
- },
- {
-   id: 'escalation',
-   icon: 'bell-outline' as const,
-   label: 'ESCALATION NODES',
-   value: '04 HQ',
- },
- {
-   id: 'sync',
-   icon: 'database-outline' as const,
-   label: 'DATABASE SYNC',
-   value: 'Optimal',
- },
+  {
+    id: 'policies',
+    icon: 'cog-outline' as const,
+    label: 'SECURITY POLICIES',
+    value: '14 Active',
+  },
+  {
+    id: 'personnel',
+    icon: 'account-group-outline' as const,
+    label: 'VERIFIED PERSONNEL',
+    value: '86 Total',
+  },
+  {
+    id: 'escalation',
+    icon: 'bell-outline' as const,
+    label: 'ESCALATION NODES',
+    value: '04 HQ',
+  },
+  {
+    id: 'sync',
+    icon: 'database-outline' as const,
+    label: 'DATABASE SYNC',
+    value: 'Optimal',
+  },
 ];
 
 const TEAM_ACCESS_ROLES = [
- {
-   id: 'global',
-   title: 'Global Administrator',
-   desc: 'Full system architecture and policy control.',
-   tag: 'Universal',
- },
- {
-   id: 'hq',
-   title: 'HQ Watch Commander',
-   desc: 'Emergency escalation and live stream access.',
-   tag: 'Surveillance',
- },
- {
-   id: 'supervisor',
-   title: 'Team Supervisor',
-   desc: 'Report generation and agent oversight.',
-   tag: 'Governance',
- },
- {
-   id: 'field',
-   title: 'Field Agent',
-   desc: 'Individual session and safety tools.',
-   tag: 'Operational',
- },
+  {
+    id: 'global',
+    title: 'Global Administrator',
+    desc: 'Full system architecture and policy control.',
+    tag: 'Universal',
+  },
+  {
+    id: 'hq',
+    title: 'HQ Watch Commander',
+    desc: 'Emergency escalation and live stream access.',
+    tag: 'Surveillance',
+  },
+  {
+    id: 'supervisor',
+    title: 'Team Supervisor',
+    desc: 'Report generation and agent oversight.',
+    tag: 'Governance',
+  },
+  {
+    id: 'field',
+    title: 'Field Agent',
+    desc: 'Individual session and safety tools.',
+    tag: 'Operational',
+  },
 ];
 
-export default function GuardianAdminScreen() {
+const GOVERNANCE_AUDIT_ITEMS = [
+  { id: '1', label: 'Role Integrity Check', status: 'Passed', icon: 'account-group-outline' as const },
+  { id: '2', label: 'Data Encryption Audit', status: 'Optimal', icon: 'lock-outline' as const },
+  { id: '3', label: 'Audit Trail Consistency', status: 'Verified', icon: 'pulse' as const },
+  { id: '4', label: 'API Endpoint Security', status: 'Secure', icon: 'key-outline' as const },
+];
+
+export function AdminView() {
+  const insets = useSafeAreaInsets();
+  const [showProvisionModal, setShowProvisionModal] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [clearanceLevel, setClearanceLevel] = useState('L1');
+
   return (
-    <GuardianScreenShell
-      title="System Governance & Admin"
-      subtitle="Manage safety protocols, team escalations, and high-fidelity access control."
-      showBack={true}>
+    <>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
         {/* Action buttons */}
         <View style={styles.actionRow}>
-          <Pressable style={styles.auditBtn}>
+          <Pressable style={styles.auditBtn} onPress={() => setShowAuditModal(true)}>
             <MaterialCommunityIcons name="refresh" size={20} color="#0B2D3E" />
             <Text style={styles.auditBtnText}>Run Security Audit</Text>
           </Pressable>
-          <Pressable style={styles.provisionBtn}>
+          <Pressable style={styles.provisionBtn} onPress={() => setShowProvisionModal(true)}>
             <MaterialCommunityIcons name="account-plus-outline" size={20} color="#FFFFFF" />
             <Text style={styles.provisionBtnText}>Provision Access</Text>
           </Pressable>
@@ -155,7 +166,130 @@ export default function GuardianAdminScreen() {
           </View>
         </View>
       </ScrollView>
-    </GuardianScreenShell>
+
+      {/* Provision Node Access Full-Page Modal */}
+      <Modal
+        visible={showProvisionModal}
+        animationType="slide"
+        onRequestClose={() => setShowProvisionModal(false)}>
+        <View style={[styles.modalFullContainer, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={styles.modalHeaderFull}>
+            <View style={styles.modalHeaderInfo}>
+              <Text style={styles.modalTitleFull}>Provision Node Access</Text>
+              <Text style={styles.modalSubtitleFull}>Authorize new personnel with safety-level clearances.</Text>
+            </View>
+            <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowProvisionModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+            <View style={styles.provisionFormContainer}>
+              <Text style={styles.formFieldLabel}>Target Personnel</Text>
+              <View style={styles.provisionInputBox}>
+                <MaterialCommunityIcons name="account-search-outline" size={22} color="#7B8794" />
+                <TextInput
+                  style={styles.provisionInput}
+                  placeholder="Search by name or email..."
+                  placeholderTextColor="#9AA7B6"
+                />
+              </View>
+
+              <Text style={styles.formFieldLabel}>Enterprise Role</Text>
+              <Pressable style={styles.provisionDropdown}>
+                <Text style={styles.provisionDropdownText}>HQ Watch Commander</Text>
+                <MaterialCommunityIcons name="chevron-down" size={24} color="#5B6B7A" />
+              </Pressable>
+
+              <Text style={styles.formFieldLabel}>Safety Clearance Level</Text>
+              <View style={styles.clearanceToggleRow}>
+                {['L1-Standard', 'L2-Verified', 'L3-Full'].map((level) => (
+                  <Pressable
+                    key={level}
+                    onPress={() => setClearanceLevel(level.split('-')[0])}
+                    style={[
+                      styles.clearanceBtn,
+                      clearanceLevel === level.split('-')[0] && styles.clearanceBtnActive
+                    ]}>
+                    <Text style={[
+                      styles.clearanceBtnText,
+                      clearanceLevel === level.split('-')[0] && styles.clearanceBtnTextActive
+                    ]}>
+                      {level}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <View style={styles.secureProvisionBlock}>
+                <View style={styles.secureIconWrap}>
+                  <MaterialCommunityIcons name="shield-lock-outline" size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.secureTextContent}>
+                  <Text style={styles.secureProvisionTitle}>Secure Provisioning</Text>
+                  <Text style={styles.secureProvisionSub}>
+                    Credentials will be transmitted via encrypted Zien Vault link.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooterFixed}>
+            <View style={styles.footerBtnGroup}>
+              <Pressable style={styles.authorizeBtn} onPress={() => setShowProvisionModal(false)}>
+                <Text style={styles.authorizeBtnText}>Authorize Access</Text>
+              </Pressable>
+              <Pressable style={styles.cancelActionBtn} onPress={() => setShowProvisionModal(false)}>
+                <Text style={styles.cancelActionBtnText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Full Governance Audit Full-Page Modal */}
+      <Modal
+        visible={showAuditModal}
+        animationType="slide"
+        onRequestClose={() => setShowAuditModal(false)}>
+        <View style={[styles.modalFullContainer, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={styles.modalHeaderFull}>
+            <View style={styles.modalHeaderInfo}>
+              <Text style={styles.modalTitleFull}>Full Governance Audit</Text>
+              <Text style={styles.modalSubtitleFull}>Technical verification of roles, permissions, and system integrity.</Text>
+            </View>
+            <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowAuditModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+            <View style={styles.auditListContainerPremium}>
+              {GOVERNANCE_AUDIT_ITEMS.map((item) => (
+                <View key={item.id} style={styles.auditItemRowPremium}>
+                  <View style={styles.auditIconCirclePremium}>
+                    <MaterialCommunityIcons name={item.icon} size={22} color="#0B2D3E" />
+                  </View>
+                  <View style={styles.auditItemMain}>
+                    <Text style={styles.auditItemLabelPremium}>{item.label}</Text>
+                  </View>
+                  <View style={styles.auditItemStatusBadge}>
+                    <Text style={styles.auditItemStatusText}>{item.status}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooterFixed}>
+            <Pressable style={styles.closeAuditFullBtn} onPress={() => setShowAuditModal(false)}>
+              <Text style={styles.closeAuditFullBtnText}>Close Audit Report</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -344,4 +478,246 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   auditLogsBtnText: { fontSize: 12, fontWeight: '800', color: '#0B2D3E' },
+
+  // Full-Page Modal Styles
+  modalFullContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeaderFull: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 24,
+    paddingBottom: 20,
+  },
+  modalHeaderInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  modalTitleFull: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  modalSubtitleFull: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5B6B7A',
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  modalCloseBtnFull: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalScrollBody: {
+    flex: 1,
+  },
+  provisionFormContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  formFieldLabel: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 10,
+    marginTop: 20,
+    letterSpacing: 0.3,
+  },
+  provisionInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  provisionInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0B2D3E',
+  },
+  provisionDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  provisionDropdownText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0B2D3E',
+  },
+  clearanceToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  clearanceBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    alignItems: 'center',
+  },
+  clearanceBtnActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#0B2D3E',
+    borderWidth: 2,
+  },
+  clearanceBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#5B6B7A',
+  },
+  clearanceBtnTextActive: {
+    color: '#0B2D3E',
+    fontWeight: '900',
+  },
+  secureProvisionBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0B2D3E',
+    borderRadius: 22,
+    padding: 24,
+    marginTop: 32,
+    gap: 16,
+  },
+  secureIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secureTextContent: {
+    flex: 1,
+  },
+  secureProvisionTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  secureProvisionSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  modalFooterFixed: {
+    padding: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  footerBtnGroup: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  authorizeBtn: {
+    flex: 2,
+    backgroundColor: '#0B2D3E',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authorizeBtnText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  cancelActionBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelActionBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#5B6B7A',
+  },
+
+  // Governance Audit Specific
+  auditListContainerPremium: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  auditItemRowPremium: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  auditIconCirclePremium: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  auditItemMain: {
+    flex: 1,
+  },
+  auditItemLabelPremium: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  auditItemStatusBadge: {
+    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  auditItemStatusText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#16A34A',
+  },
+  closeAuditFullBtn: {
+    backgroundColor: '#0B2D3E',
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  closeAuditFullBtnText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
 });

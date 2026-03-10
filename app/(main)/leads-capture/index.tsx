@@ -1,113 +1,261 @@
+import { ExternalLink } from '@/components/external-link';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
+    Alert,
     FlatList,
+    Modal,
     Pressable,
     StyleSheet,
     Text,
-    TextInput,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type LeadCaptureItem = {
     id: string;
     title: string;
-    time: string;
-    status: string;
+    type: string;
+    visitorDensity: string;
+    trend: string;
+    trendType: 'up' | 'down';
+    conversion: string;
+    leads: number;
+    status: 'LIVE' | 'OPTIMIZING' | 'DRAFT';
     icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    color: string;
+    url: string;
 };
 
 const CAPTURE_HISTORY: LeadCaptureItem[] = [
     {
         id: '1',
-        title: 'Main Website Contact Form',
-        time: 'Active',
-        status: '42 leads this week',
-        icon: 'form-select',
+        title: 'Malibu Villa Listing',
+        type: 'Property Page',
+        visitorDensity: '1.4k',
+        trend: '+12%',
+        trendType: 'up',
+        conversion: '3.0%',
+        leads: 42,
+        status: 'LIVE',
+        icon: 'home-city-outline',
+        color: '#6366F1',
+        url: 'https://zien.com/preview/malibu-villa',
     },
     {
         id: '2',
-        title: 'Facebook Lead Gen Campaign',
-        time: 'Active',
-        status: '12 new inquiries',
-        icon: 'facebook',
+        title: 'Beverly Hills Open House',
+        type: 'Check-In Page',
+        visitorDensity: '856',
+        trend: '+24%',
+        trendType: 'up',
+        conversion: '14.9%',
+        leads: 128,
+        status: 'LIVE',
+        icon: 'account-group-outline',
+        color: '#0EA5E9',
+        url: 'https://zien.com/preview/beverly-hills',
     },
     {
         id: '3',
-        title: 'Open House QR Code',
-        time: '2 days ago',
-        status: '8 scans recorded',
-        icon: 'qrcode-scan',
+        title: 'Agent Bio - Becker',
+        type: 'Bio-Link Page',
+        visitorDensity: '2.1k',
+        trend: '-2%',
+        trendType: 'down',
+        conversion: '0.7%',
+        leads: 15,
+        status: 'OPTIMIZING',
+        icon: 'account-badge-outline',
+        color: '#F97316',
+        url: 'https://zien.com/preview/agent-becker',
     },
-    {
-        id: '4',
-        title: 'Zien Card Digital Tap',
-        time: '3 days ago',
-        status: '15 connections made',
-        icon: 'card-account-phone-outline',
-    },
+];
+
+const METRICS = [
+    { label: 'TOTAL REACH', value: '4.3k', icon: 'account-group' },
+    { label: 'CAPTURE RATE', value: '18.4%', icon: 'chart-arc' },
+    { label: 'AVG. ENGAGEMENT', value: '2m 14s', icon: 'clock-outline' },
 ];
 
 export default function LeadsCaptureScreen() {
     const router = useRouter();
+    const [showModal, setShowModal] = useState(false);
+    const [captureHistory, setCaptureHistory] = useState<LeadCaptureItem[]>(CAPTURE_HISTORY);
+
+    const handleDelete = (id: string, title: string) => {
+        Alert.alert(
+            "Delete Lead Capture",
+            `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => {
+                        setCaptureHistory(prev => prev.filter(item => item.id !== id));
+                    }
+                }
+            ]
+        );
+    };
+
+    const renderMetric = (item: typeof METRICS[0], index: number) => (
+        <View key={index} style={styles.metricCard}>
+            <View style={styles.metricIconContainer}>
+                <MaterialCommunityIcons name={item.icon as any} size={18} color={Theme.textSecondary} />
+            </View>
+            <View>
+                <Text style={styles.metricLabel}>{item.label}</Text>
+                <Text style={styles.metricValue}>{item.value}</Text>
+            </View>
+        </View>
+    );
 
     const renderItem = ({ item }: { item: LeadCaptureItem }) => (
-        <Pressable
-            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-            onPress={() => router.push({
-                pathname: '/(main)/chat-modal',
-                params: { initialMessage: item.title }
-            })}
-        >
-            <View style={styles.iconBox}>
-                <MaterialCommunityIcons name={item.icon} size={18} color="#5B6B7A" />
+        <View style={styles.leadCard}>
+            <View style={styles.leadCardHeader}>
+                <View style={[styles.leadIconBox, { backgroundColor: `${item.color}15` }]}>
+                    <MaterialCommunityIcons name={item.icon} size={20} color={item.color} />
+                </View>
+                <View style={styles.leadTitleContent}>
+                    <Text style={styles.leadTitle}>{item.title}</Text>
+                    <Text style={styles.leadType}>{item.type}</Text>
+                </View>
+                <View style={styles.actionRow}>
+                    <ExternalLink href={item.url as any}>
+                        <View style={styles.miniActionBtn}>
+                            <MaterialCommunityIcons name="open-in-new" size={16} color={Theme.textSecondary} />
+                        </View>
+                    </ExternalLink>
+                    <Pressable style={styles.miniActionBtn} onPress={() => setShowModal(true)}>
+                        <MaterialCommunityIcons name="pencil-outline" size={16} color={Theme.textSecondary} />
+                    </Pressable>
+                    <Pressable
+                        style={[styles.miniActionBtn, styles.deleteBtn]}
+                        onPress={() => handleDelete(item.id, item.title)}
+                    >
+                        <MaterialCommunityIcons name="trash-can-outline" size={16} color="#EF4444" />
+                    </Pressable>
+                </View>
             </View>
-            <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardSubtitle}>
-                    {item.time} <Text style={styles.dot}>•</Text> {item.status}
-                </Text>
+
+            <View style={styles.divider} />
+
+            <View style={styles.leadStatsRow}>
+                <View style={styles.leadStatItem}>
+                    <Text style={styles.leadStatLabel}>VISITOR DENSITY</Text>
+                    <View style={styles.row}>
+                        <Text style={styles.leadStatValue}>{item.visitorDensity}</Text>
+                        <View style={[
+                            styles.trendBadge,
+                            { backgroundColor: item.trendType === 'up' ? '#ECFDF5' : '#FEF2F2' }
+                        ]}>
+                            <Text style={[
+                                styles.trendText,
+                                { color: item.trendType === 'up' ? '#10B981' : '#EF4444' }
+                            ]}>
+                                {item.trend}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+
+                <View style={styles.leadStatItem}>
+                    <Text style={styles.leadStatLabel}>CONVERSION</Text>
+                    <Text style={styles.leadStatValue}>
+                        {item.conversion} <Text style={styles.leadsCount}>({item.leads} leads)</Text>
+                    </Text>
+                </View>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={18} color="#E2E8F0" />
-        </Pressable>
+
+            <View style={styles.leadCardFooter}>
+                <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: item.status === 'LIVE' ? '#ECFDF5' : '#FFF7ED' }
+                ]}>
+                    <View style={[
+                        styles.statusDot,
+                        { backgroundColor: item.status === 'LIVE' ? '#10B981' : '#F97316' }
+                    ]} />
+                    <Text style={[
+                        styles.statusText,
+                        { color: item.status === 'LIVE' ? '#059669' : '#D97706' }
+                    ]}>
+                        {item.status}
+                    </Text>
+                </View>
+            </View>
+        </View>
     );
 
     return (
         <SafeAreaView style={styles.container}>
             <PageHeader
-                title="Leads Capture"
-                subtitle="Manage your lead sources"
+                title="Lead Capture"
+                subtitle="Deploy high-conversion architectural funnels for every stage of the real estate lifecycle."
                 onBack={() => router.back()}
+
             />
 
-            <View style={styles.headerActionRow}>
-                <View style={styles.searchBar}>
-                    <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
-                    <TextInput
-                        placeholder="Search capture sources..."
-                        placeholderTextColor="#94A3B8"
-                        style={styles.searchInput}
-                    />
-                </View>
-                <Pressable
-                    style={({ pressed }) => [styles.newBtn, pressed && { opacity: 0.8 }]}
-                    onPress={() => router.push({ pathname: '/(main)/chat-modal', params: { action: 'new_source' } })}
-                >
-                    <MaterialCommunityIcons name="plus" size={18} color="#fff" />
-                    <Text style={styles.newBtnText}>Create</Text>
-                </Pressable>
-            </View>
-
             <FlatList
-                data={CAPTURE_HISTORY}
+                data={captureHistory}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
+                ListHeaderComponent={
+                    <View style={styles.headerContent}>
+                        <View style={styles.metricsRow}>
+                            {METRICS.map(renderMetric)}
+                        </View>
+
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Active Lead Capture</Text>
+                            <Text style={styles.sectionSubtitle}>
+                                Real-time performance metrics for your distributed capture network.
+                            </Text>
+                        </View>
+                    </View>
+                }
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
             />
+
+            <View style={styles.fabContainer}>
+                <Pressable
+                    style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 }]}
+                    onPress={() => setShowModal(true)}
+                >
+                    <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+                    <Text style={styles.fabText}>Create New Lead Capture</Text>
+                </Pressable>
+            </View>
+            <Modal
+                visible={showModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowModal(false)}
+            >
+                <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalIconContainer}>
+                            <MaterialCommunityIcons name="web-off" size={48} color={Theme.accentTeal} />
+                        </View>
+                        <Text style={styles.modalTitle}>Feature Limited</Text>
+                        <Text style={styles.modalDescription}>
+                            This feature is currently not available on the app version. Please try this on our web  for the full experience.
+                        </Text>
+                        <Pressable
+                            style={styles.modalButton}
+                            onPress={() => setShowModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Got it</Text>
+                        </Pressable>
+                    </View>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -115,94 +263,306 @@ export default function LeadsCaptureScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F4F7FB',
+        backgroundColor: '#F1F6FB', // Matches the light part of the gradient in screenshot
     },
-    headerActionRow: {
-        flexDirection: 'row',
-        gap: 12,
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 16,
-    },
-    searchBar: {
-        flex: 1,
+    headerCreateBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFF',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        height: 44,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 14,
-        color: '#102A43',
-        marginLeft: 8,
-    },
-    newBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#102A43',
+        backgroundColor: '#0B2D3E',
         borderRadius: 10,
-        paddingHorizontal: 14,
-        height: 44,
-        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        gap: 4,
     },
-    newBtnText: {
+    headerCreateBtnText: {
         color: '#FFF',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '700',
     },
-    listContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 30,
-        gap: 12,
+    headerContent: {
+        paddingHorizontal: 18,
+        paddingTop: 10,
     },
-    card: {
+    heroSection: {
+        marginBottom: 24,
+    },
+    heroTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#0B2D3E',
+        marginBottom: 8,
+    },
+    heroDesc: {
+        fontSize: 15,
+        color: Theme.textSecondary,
+        lineHeight: 22,
+        maxWidth: '90%',
+    },
+    metricsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 32,
+    },
+    metricCard: {
+        flex: 1,
+        minWidth: '45%',
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFF',
         borderRadius: 16,
         padding: 16,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
+        gap: 12,
         shadowColor: '#000',
-        shadowOpacity: 0.02,
+        shadowOpacity: 0.04,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
         elevation: 2,
     },
-    cardPressed: {
-        backgroundColor: '#F8FAFC',
-        borderColor: Theme.accentTeal,
-    },
-    iconBox: {
+    metricIconContainer: {
         width: 36,
         height: 36,
-        borderRadius: 8,
+        borderRadius: 10,
         backgroundColor: '#F1F5F9',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 14,
     },
-    cardContent: {
-        flex: 1,
-    },
-    cardTitle: {
-        fontSize: 15,
+    metricLabel: {
+        fontSize: 10,
         fontWeight: '800',
-        color: '#102A43',
+        color: Theme.textMuted,
+        letterSpacing: 0.5,
+        marginBottom: 2,
+    },
+    metricValue: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#0B2D3E',
+    },
+    sectionHeader: {
+        marginBottom: 16,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#0B2D3E',
         marginBottom: 4,
     },
-    cardSubtitle: {
-        fontSize: 12,
-        color: '#627D98',
-        lineHeight: 16,
+    sectionSubtitle: {
+        fontSize: 13,
+        color: Theme.textSecondary,
     },
-    dot: {
-        color: '#BCCCDC',
-        marginHorizontal: 2,
+    listContainer: {
+        paddingBottom: 100, // Increased to account for FAB
+    },
+    fabContainer: {
+        position: 'absolute',
+        bottom: 30,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    fab: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0B2D3E',
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 30,
+        gap: 8,
+        shadowColor: '#0B2D3E',
+        shadowOpacity: 0.3,
+        shadowRadius: 15,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 10,
+    },
+    fabText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '800',
+        letterSpacing: -0.2,
+    },
+    leadCard: {
+        backgroundColor: '#FFF',
+        borderRadius: 20,
+        marginHorizontal: 18,
+        marginBottom: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        shadowColor: '#000',
+        shadowOpacity: 0.03,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
+    },
+    leadCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 14,
+    },
+    leadIconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    leadTitleContent: {
+        flex: 1,
+    },
+    leadTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#0B2D3E',
+        marginBottom: 2,
+    },
+    leadType: {
+        fontSize: 12,
+        color: Theme.textSecondary,
+        fontWeight: '500',
+    },
+    actionRow: {
+        flexDirection: 'row',
+        gap: 6,
+    },
+    miniActionBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: '#F8FAFC',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    deleteBtn: {
+        backgroundColor: '#FEF2F2',
+        borderColor: '#FEE2E2',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#F1F5F9',
+        marginBottom: 14,
+    },
+    leadStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 14,
+    },
+    leadStatItem: {
+        flex: 1,
+    },
+    leadStatLabel: {
+        fontSize: 9,
+        fontWeight: '800',
+        color: Theme.textMuted,
+        letterSpacing: 0.5,
+        marginBottom: 6,
+    },
+    leadStatValue: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#0B2D3E',
+    },
+    leadsCount: {
+        fontSize: 12,
+        color: Theme.textSecondary,
+        fontWeight: '400',
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    trendBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    trendText: {
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    leadCardFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 6,
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    statusText: {
+        fontSize: 11,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: '#FFF',
+        borderRadius: 24,
+        padding: 32,
+        width: '100%',
+        maxWidth: 340,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 10,
+    },
+    modalIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#F0F9FA',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#0B2D3E',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    modalDescription: {
+        fontSize: 15,
+        color: Theme.textSecondary,
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 24,
+    },
+    modalButton: {
+        backgroundColor: '#0B2D3E',
+        paddingHorizontal: 32,
+        paddingVertical: 14,
+        borderRadius: 16,
+        width: '100%',
+        alignItems: 'center',
+    },
+    modalButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });

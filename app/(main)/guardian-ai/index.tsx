@@ -1,24 +1,24 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   LayoutAnimation,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TextInput,
-  UIManager,
-  View,
+  View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GuardianTabId } from './_components/GuardianNav';
 import { GuardianScreenShell } from './_components/GuardianScreenShell';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import { AdminView } from './admin';
+import { LogsReportsView } from './logs-reports';
+import { MonitoringView } from './monitoring';
 
 const DURATION_OPTIONS = [
   { label: '15m', minutes: 15 },
@@ -125,9 +125,47 @@ const INTELLIGENCE_TOOLS = [
   },
 ];
 
+interface VerificationLead {
+  id: string;
+  name: string;
+  subtitle: string;
+  status: string;
+  statusType: 'success' | 'warning';
+  path: string[] | null;
+}
+
+const VERIFICATION_LEADS_INITIAL: VerificationLead[] = [
+  {
+    id: '1',
+    name: 'Jessica Miller',
+    subtitle: 'Manhattan • AI Scenario',
+    status: 'CLEARED',
+    statusType: 'success',
+    path: ['Social Match', 'DRE Sync', 'Fraud Check'],
+  },
+  {
+    id: '2',
+    name: 'Robert Chen',
+    subtitle: 'Brooklyn • Manual Route',
+    status: 'IN REVIEW',
+    statusType: 'warning',
+    path: null,
+  },
+];
+
+const CRM_LEADS_MOCK = [
+  { id: '101', name: 'Alex Rivera', email: 'alex.r@studio.com', city: 'Miami' },
+  { id: '102', name: 'Linda Foster', email: 'l.foster@realty.com', city: 'Coral Gables' },
+  { id: '103', name: 'Marcus Wright', email: 'm.wright@invest.com', city: 'San Francisco' },
+  { id: '104', name: 'Sofia Garcia', email: 's.garcia@tech.com', city: 'Seattle' },
+  { id: '105', name: 'James Wilson', email: 'j.wilson@build.com', city: 'Austin' },
+];
+
 export default function GuardianAiOverviewScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<(typeof TOP_TABS)[number]['id']>('intelligence');
+  const insets = useSafeAreaInsets();
+  const [currentTab, setCurrentTab] = useState<GuardianTabId>('overview');
+  const [activeTab, setActiveTab] = useState<(typeof TOP_TABS)[number]['id']>('guardian');
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [clientIdentityRef, setClientIdentityRef] = useState('');
   const [selectedMinutes, setSelectedMinutes] = useState(30);
@@ -143,6 +181,15 @@ export default function GuardianAiOverviewScreen() {
   const [showSosModal, setShowSosModal] = useState(false);
   const [metricsView, setMetricsView] = useState<'realtime' | 'historic'>('realtime');
   const [incidentSearch, setIncidentSearch] = useState('');
+  const [verificationLeads, setVerificationLeads] = useState<VerificationLead[]>(VERIFICATION_LEADS_INITIAL);
+  const [showCrmModal, setShowCrmModal] = useState(false);
+  const [crmSearchQuery, setCrmSearchQuery] = useState('');
+  const [selectedCrmIds, setSelectedCrmIds] = useState<string[]>([]);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualAddress, setManualAddress] = useState('');
   const guardianIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const resetGuardianTimer = () => {
@@ -192,454 +239,770 @@ export default function GuardianAiOverviewScreen() {
     setGuardianChatOpen((prev) => !prev);
   };
 
+  const toggleLeadSelection = (id: string) => {
+    setSelectedCrmIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedCrmIds.length === CRM_LEADS_MOCK.length) {
+      setSelectedCrmIds([]);
+    } else {
+      setSelectedCrmIds(CRM_LEADS_MOCK.map(l => l.id));
+    }
+  };
+
+  const handleImportAndVerify = () => {
+    const newLeads = CRM_LEADS_MOCK.filter(l => selectedCrmIds.includes(l.id)).map(l => ({
+      id: l.id,
+      name: l.name,
+      subtitle: `${l.city} • AI Scenario`,
+      status: 'CLEARED',
+      statusType: 'success' as const,
+      path: ['Social Match', 'DRE Sync', 'Fraud Check'],
+    }));
+
+    setVerificationLeads(prev => [...prev, ...newLeads]);
+    setShowCrmModal(false);
+    setSelectedCrmIds([]);
+    setCrmSearchQuery('');
+  };
+
+  const handleManualVerify = () => {
+    if (!manualName || !manualEmail || !manualPhone) return;
+
+    const newLead: VerificationLead = {
+      id: Date.now().toString(),
+      name: manualName,
+      subtitle: manualAddress || 'Local Registry • Manual Route',
+      status: 'IN REVIEW',
+      statusType: 'warning',
+      path: null,
+    };
+
+    setVerificationLeads(prev => [newLead, ...prev]);
+    setShowManualForm(false);
+    setManualName('');
+    setManualEmail('');
+    setManualPhone('');
+    setManualAddress('');
+  };
+
+  const handleVerifyLead = (id: string) => {
+    setVerificationLeads(prev => prev.map(lead => {
+      if (lead.id === id) {
+        return {
+          ...lead,
+          status: 'CLEARED',
+          statusType: 'success',
+          path: ['Social Match', 'DRE Sync', 'Fraud Check'],
+        };
+      }
+      return lead;
+    }));
+  };
+
+  const getShellConfig = () => {
+    switch (currentTab) {
+      case 'monitoring':
+        return {
+          title: 'Mission Control & Monitoring',
+          subtitle: 'High-fidelity surveillance architecture for active field operations.',
+        };
+      case 'logs-reports':
+        return {
+          title: 'Audit Logs & Governance',
+          subtitle: 'Centralized repository for operational telemetry and safety compliance records.',
+        };
+      case 'admin':
+        return {
+          title: 'System Governance & Admin',
+          subtitle: 'Manage safety protocols, team escalations, and high-fidelity access control.',
+        };
+      default:
+        return {
+          title: 'AI Guardian Intelligence',
+          subtitle: 'High-fidelity safety monitoring and automated emergency escalation.',
+        };
+    }
+  };
+
+  const shellConfig = getShellConfig();
+
   return (
     <GuardianScreenShell
-      title="AI Guardian Intelligence"
-      subtitle="High-fidelity safety monitoring and automated emergency escalation."
-      showBack={true}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        {/* Top tabs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.topTabs}>
-          {TOP_TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <Pressable
-                key={tab.id}
-                style={[styles.topTab, isActive && styles.topTabActive]}
-                onPress={() => setActiveTab(tab.id)}>
-                <Text style={[styles.topTabText, isActive && styles.topTabTextActive]}>
-                  {tab.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <Pressable
-              style={styles.missionControl}
-              onPress={() => router.push('/(main)/guardian-ai/monitoring')}>
-              <MaterialCommunityIcons name="earth" size={22} color="#FFFFFF" />
-              <Text style={styles.missionControlText}>Mission Control</Text>
-            </Pressable>
+      title={shellConfig.title}
+      subtitle={shellConfig.subtitle}
+      showBack={true}
+      activeTab={currentTab}
+      onTabChange={setCurrentTab}>
 
-        {/* Tab content: sirf niche ka content change */}
-        {activeTab === 'intelligence' && (
-          <>
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>Client Verification</Text>
-                <Pressable style={styles.newAuditBtn} onPress={() => setShowAuditModal(true)}>
-                  <Text style={styles.newAuditText}>New Audit</Text>
-                </Pressable>
-              </View>
-              {CLIENTS.map((client, index) => (
-                <View
-                  key={client.id}
-                  style={[styles.clientRow, index === 0 && styles.clientRowFirst]}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {client.name.split(' ').map((n) => n[0]).join('')}
+      {currentTab === 'overview' && (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}>
+          {/* Premium Sub-Navigation */}
+          <View style={styles.topTabsContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.topTabsScroll}>
+              {TOP_TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <Pressable
+                    key={tab.id}
+                    style={[styles.topTabPill, isActive && styles.topTabPillActive]}
+                    onPress={() => setActiveTab(tab.id)}>
+                    <Text style={[styles.topTabPillText, isActive && styles.topTabPillTextActive]}>
+                      {tab.label}
                     </Text>
-                  </View>
-                  <View style={styles.clientInfo}>
-                    <Text style={styles.clientName}>{client.name}</Text>
-                    <Text style={styles.clientStatus}>{client.status}</Text>
-                    {client.confidence != null && (
-                      <Text style={styles.confidence}>{client.confidence}% CONFIDENCE</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <Pressable
+            style={styles.premiumMissionBtn}
+            onPress={() => setCurrentTab('monitoring')}>
+            <View style={styles.premiumMissionIconWrap}>
+              <MaterialCommunityIcons name="earth" size={20} color="#FFFFFF" />
+            </View>
+            <View style={styles.premiumMissionTextWrap}>
+              <Text style={styles.premiumMissionTitle}>Mission Control Center</Text>
+              <Text style={styles.premiumMissionSub}>Initialize global monitoring sequence</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.6)" />
+          </Pressable>
+
+          {/* Tab content: sirf niche ka content change */}
+          {activeTab === 'intelligence' && (
+            <>
+              <View style={styles.premiumCard}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.premiumCardTitle}>Client Verification</Text>
+                  <Pressable style={styles.premiumNewAuditBtn} onPress={() => setShowAuditModal(true)}>
+                    <Text style={styles.premiumNewAuditText}>New Audit</Text>
+                  </Pressable>
+                </View>
+                {CLIENTS.map((client, index) => (
+                  <View
+                    key={client.id}
+                    style={[styles.premiumClientRow, index === 0 && styles.premiumClientRowFirst]}>
+                    <LinearGradient
+                      colors={['#0B2D3E', '#1B4D66']}
+                      style={styles.premiumAvatar}>
+                      <Text style={styles.avatarText}>
+                        {client.name.split(' ').map((n) => n[0]).join('')}
+                      </Text>
+                    </LinearGradient>
+                    <View style={styles.clientInfo}>
+                      <Text style={styles.clientName}>{client.name}</Text>
+                      <Text style={styles.clientStatus}>{client.status}</Text>
+                      {client.confidence != null && (
+                        <View style={styles.confidenceWrap}>
+                          <View style={styles.confidenceBarBg}>
+                            <View style={[styles.confidenceBarFill, { width: `${client.confidence}%` }]} />
+                          </View>
+                          <Text style={styles.confidenceText}>{client.confidence}% Confidence</Text>
+                        </View>
+                      )}
+                    </View>
+                    {client.action ? (
+                      <Pressable style={styles.premiumVerifyBtn}>
+                        <Text style={styles.premiumVerifyBtnText}>{client.action}</Text>
+                      </Pressable>
+                    ) : (
+                      <View style={styles.verifiedBadge}>
+                        <MaterialCommunityIcons name="check-decagram" size={18} color="#16A34A" />
+                      </View>
                     )}
                   </View>
-                  {client.action && (
-                    <Pressable style={styles.verifyBtn}>
-                      <Text style={styles.verifyBtnText}>{client.action}</Text>
-                    </Pressable>
-                  )}
-                </View>
-              ))}
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Operational Intelligence</Text>
-              {INTELLIGENCE_TOOLS.map((tool, index) => (
-                <View
-                  key={tool.id}
-                  style={[styles.toolRow, index === 0 && styles.toolRowFirst]}>
-                  <View style={styles.toolIconWrap}>
-                    <MaterialCommunityIcons name={tool.icon} size={22} color="#0B2D3E" />
-                  </View>
-                  <Text style={styles.toolTitle}>{tool.title}</Text>
-                  <Pressable
-                    style={[styles.toolBtn, tool.statusStyle === 'active' && styles.toolBtnActive]}>
-                    <Text
-                      style={[
-                        styles.toolBtnText,
-                        tool.statusStyle === 'active' && styles.toolBtnTextActive,
-                      ]}>
-                      {tool.status}
-                    </Text>
-                  </Pressable>
-                </View>
-              ))}
-              <Text style={styles.toolDescription}>
-                Intelligence tools monitor your surroundings and biometric data to trigger
-                escalations when anomalies are detected.
-              </Text>
-            </View>
-          </>
-        )}
+                ))}
+              </View>
 
-        {activeTab === 'guardian' && (
-          <>
-            <View style={styles.card}>
-              <View style={styles.badgeRow}>
-                <MaterialCommunityIcons
-                  name={guardianTimerActive ? 'clock-check-outline' : 'clock-outline'}
-                  size={14}
-                  color="#5B6B7A"
-                />
-                <Text style={styles.badgeText}>PRIMARY SAFETY ARCHITECTURE</Text>
-              </View>
-              <View style={styles.timerRing}>
-                <Text style={styles.timerValue}>
-                  {formatGuardianTime(guardianSecondsLeft)}
-                </Text>
-                <Text style={styles.timerLabel}>
-                  {guardianTimerActive ? 'COUNTDOWN ACTIVE' : 'READY FOR DEPLOYMENT'}
-                </Text>
-              </View>
-              <View style={styles.durationRow}>
-                {DURATION_OPTIONS.map((opt) => {
-                  const isSelected = selectedMinutes === opt.minutes;
-                  const disabled = guardianTimerActive;
-                  return (
+              <View style={styles.premiumCard}>
+                <Text style={styles.premiumCardTitle}>Operational Intelligence</Text>
+                {INTELLIGENCE_TOOLS.map((tool, index) => (
+                  <View
+                    key={tool.id}
+                    style={[styles.premiumToolRow, index === 0 && styles.premiumToolRowFirst]}>
+                    <View style={styles.premiumToolIconWrap}>
+                      <MaterialCommunityIcons name={tool.icon} size={22} color="#0B2D3E" />
+                    </View>
+                    <View style={styles.toolTextWrap}>
+                      <Text style={styles.premiumToolTitle}>{tool.title}</Text>
+                      <Text style={styles.premiumToolSub}>System subsystem {tool.statusStyle}</Text>
+                    </View>
                     <Pressable
-                      key={opt.minutes}
-                      style={[
-                        styles.durationBtn,
-                        isSelected && !disabled && styles.durationBtnActive,
-                        disabled && styles.durationBtnDisabled,
-                      ]}
-                      onPress={() => !disabled && setSelectedMinutes(opt.minutes)}
-                      disabled={disabled}>
+                      style={[styles.premiumToolBtn, tool.statusStyle === 'active' && styles.premiumToolBtnActive]}>
                       <Text
                         style={[
-                          styles.durationBtnText,
-                          isSelected && !disabled && styles.durationBtnTextActive,
-                          disabled && styles.durationBtnTextDisabled,
+                          styles.premiumToolBtnText,
+                          tool.statusStyle === 'active' && styles.premiumToolBtnTextActive,
                         ]}>
-                        {opt.label}
+                        {tool.status}
                       </Text>
                     </Pressable>
-                  );
-                })}
-              </View>
-              {!guardianTimerActive ? (
-                <Pressable style={styles.activateBtn} onPress={startGuardianTimer}>
-                  <MaterialCommunityIcons name="play" size={20} color="#FFFFFF" />
-                  <Text style={styles.activateBtnText}>Activate Guardian</Text>
-                </Pressable>
-              ) : (
-                <View style={styles.guardianActionRow}>
-                  <Pressable style={styles.pauseProtectionBtn} onPress={resetGuardianTimer}>
-                    <MaterialCommunityIcons name="pause" size={20} color="#0B2D3E" />
-                    <Text style={styles.pauseProtectionBtnText}>Pause Protection</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.emergencySosBtn}
-                    onPress={() => setShowSosModal(true)}>
-                    <MaterialCommunityIcons name="alert" size={20} color="#FFFFFF" />
-                    <Text style={styles.emergencySosBtnText}>EMERGENCY SOS</Text>
-                  </Pressable>
-                </View>
-              )}
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <MaterialCommunityIcons name="battery-high" size={18} color="#0B2D3E" />
-                  <View>
-                    <Text style={styles.statValue}>86%</Text>
-                    <Text style={styles.statLabel}>DEVICE VITALITY</Text>
                   </View>
-                </View>
-                <View style={styles.statItem}>
-                  <MaterialCommunityIcons name="wifi" size={18} color="#0B2D3E" />
-                  <View>
-                    <Text style={styles.statValue}>Excellent</Text>
-                    <Text style={styles.statLabel}>SIGNAL STRENGTH</Text>
-                  </View>
-                </View>
-                <View style={styles.statItem}>
-                  <MaterialCommunityIcons name="clock-outline" size={18} color="#0B2D3E" />
-                  <View>
-                    <Text style={styles.statValue}>2m ago</Text>
-                    <Text style={styles.statLabel}>LAST CHECK-IN</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Real-time Surveillance</Text>
-              <View style={[styles.survRow, styles.survRowFirst]}>
-                <View style={styles.survIconWrap}>
-                  <MaterialCommunityIcons name="crosshairs-gps" size={22} color="#0B2D3E" />
-                </View>
-                <View style={styles.survText}>
-                  <Text style={styles.survTitle}>Live Location Sync</Text>
-                  <Text style={styles.survSub}>Streaming coordinates to broker.</Text>
-                </View>
-                <View style={styles.pillActive}>
-                  <Text style={styles.pillActiveText}>ACTIVE</Text>
-                </View>
-              </View>
-              <View style={styles.survRow}>
-                <View style={styles.survIconWrap}>
-                  <MaterialCommunityIcons name="message-text-outline" size={22} color="#0B2D3E" />
-                </View>
-                <View style={styles.survText}>
-                  <Text style={styles.survTitle}>Guardian Chat</Text>
-                  <Text style={styles.survSub}>
-                    {guardianChatOpen ? 'Secure channel is live.' : 'Secured p2p comms channel.'}
+                ))}
+                <View style={styles.intelHintBox}>
+                  <MaterialCommunityIcons name="information-outline" size={16} color="#5B6B7A" />
+                  <Text style={styles.intelHintText}>
+                    Intelligence tools monitor your surroundings and biometric data to trigger
+                    escalations when anomalies are detected.
                   </Text>
                 </View>
-                <Pressable
-                  style={[styles.pillSecure, guardianChatOpen && styles.pillSecureActive]}
-                  onPress={toggleGuardianChat}>
-                  <Text style={[styles.pillSecureText, guardianChatOpen && styles.pillSecureTextActive]}>
-                    {guardianChatOpen ? 'Secure Close' : 'Secure Open'}
-                  </Text>
-                </Pressable>
               </View>
-              {guardianChatOpen && (
-                <View style={styles.secureMessageBlock}>
-                  <Text style={styles.secureMessageDesc}>
-                    <Text style={styles.secureMessageBold}>Guardian AI:</Text> Secure channel initialized. Stay connected during active showings.
-                  </Text>
-                  <View style={styles.secureMessageRow}>
-                    <TextInput
-                      style={styles.secureMessageInput}
-                      placeholder="Send secure message..."
-                      placeholderTextColor="#9AA7B6"
-                      value={secureMessage}
-                      onChangeText={setSecureMessage}
-                    />
-                    <Pressable style={styles.secureSendBtn}>
-                      <Text style={styles.secureSendBtnText}>Send</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              )}
-            </View>
-            <View style={styles.sosCard}>
-              <Text style={styles.sosLabel}>PRIMARY SOS CONTACT</Text>
-              <Text style={styles.sosName}>Zien Brokerage - HQ</Text>
-              <Pressable style={styles.emergencyCallBtn}>
-                <MaterialCommunityIcons name="phone" size={18} color="#0B2D3E" />
-                <Text style={styles.emergencyCallBtnText}>Emergency Call</Text>
-              </Pressable>
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Automated Policies</Text>
-              {GUARDIAN_POLICIES.map((p, index) => (
-                <View key={p.key} style={[styles.policyRow, index === 0 && styles.policyRowFirst]}>
-                  <MaterialCommunityIcons name={p.icon} size={20} color="#5B6B7A" />
-                  <Text style={styles.policyLabel}>{p.label}</Text>
-                  <Switch
-                    value={guardianPolicies[p.key]}
-                    onValueChange={(v) => setGuardianPolicies((prev) => ({ ...prev, [p.key]: v }))}
-                    trackColor={{ false: '#D7DEE7', true: '#0B2D3E' }}
-                    thumbColor="#FFFFFF"
+            </>
+          )}
+
+          {activeTab === 'guardian' && (
+            <>
+              <View style={styles.card}>
+                <View style={styles.badgeRow}>
+                  <MaterialCommunityIcons
+                    name={guardianTimerActive ? 'clock-check-outline' : 'clock-outline'}
+                    size={14}
+                    color="#5B6B7A"
                   />
+                  <Text style={styles.badgeText}>PRIMARY SAFETY ARCHITECTURE</Text>
                 </View>
-              ))}
-            </View>
-          </>
-        )}
-
-        {activeTab === 'metrics' && (
-          <>
-            <View style={styles.card}>
-              <View style={styles.metricsCardHeader}>
-                <View>
-                  <Text style={styles.sectionTitle}>Safety Risk Architecture</Text>
-                  <Text style={styles.metricsSubtitle}>
-                    Projected and active risk metrics based on regional intelligence.
+                <View style={styles.timerRing}>
+                  <Text style={styles.timerValue}>
+                    {formatGuardianTime(guardianSecondsLeft)}
+                  </Text>
+                  <Text style={styles.timerLabel}>
+                    {guardianTimerActive ? 'COUNTDOWN ACTIVE' : 'READY FOR DEPLOYMENT'}
                   </Text>
                 </View>
-                <View style={styles.metricsToggleRow}>
-                  <Pressable
-                    style={[styles.metricsToggleBtn, metricsView === 'realtime' && styles.metricsToggleBtnActive]}
-                    onPress={() => setMetricsView('realtime')}>
-                    <Text style={[styles.metricsToggleText, metricsView === 'realtime' && styles.metricsToggleTextActive]}>
-                      Real-time
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.metricsToggleBtn, metricsView === 'historic' && styles.metricsToggleBtnActive]}
-                    onPress={() => setMetricsView('historic')}>
-                    <Text style={[styles.metricsToggleText, metricsView === 'historic' && styles.metricsToggleTextActive]}>
-                      Historic
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-              <View style={styles.barChartRow}>
-                {RISK_METRICS.map((m) => (
-                  <View key={m.label} style={styles.barChartItem}>
-                    <Text style={styles.barChartValue}>{m.value}%</Text>
-                    <View style={styles.barChartBarWrap}>
-                      <View
+                <View style={styles.durationRow}>
+                  {DURATION_OPTIONS.map((opt) => {
+                    const isSelected = selectedMinutes === opt.minutes;
+                    const disabled = guardianTimerActive;
+                    return (
+                      <Pressable
+                        key={opt.minutes}
                         style={[
-                          styles.barChartBar,
-                          { height: Math.max(4, (m.value / 100) * 100) },
-                          m.dark ? styles.barChartBarDark : styles.barChartBarLight,
+                          styles.durationBtn,
+                          isSelected && !disabled && styles.durationBtnActive,
+                          disabled && styles.durationBtnDisabled,
                         ]}
-                      />
-                    </View>
-                    <Text style={styles.barChartLabel} numberOfLines={2}>{m.label}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Intervention History</Text>
-              {INTERVENTION_HISTORY.map((item, index) => (
-                <View
-                  key={item.id}
-                  style={[styles.interventionRow, index === 0 && styles.interventionRowFirst]}>
-                  <View style={styles.interventionIconWrap}>
-                    <MaterialCommunityIcons name={item.icon} size={20} color="#0B2D3E" />
-                  </View>
-                  <Text style={styles.interventionTitle} numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <Text style={styles.interventionTimeRight}>{item.time}</Text>
+                        onPress={() => !disabled && setSelectedMinutes(opt.minutes)}
+                        disabled={disabled}>
+                        <Text
+                          style={[
+                            styles.durationBtnText,
+                            isSelected && !disabled && styles.durationBtnTextActive,
+                            disabled && styles.durationBtnTextDisabled,
+                          ]}>
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
-              ))}
-            </View>
-          </>
-        )}
-
-        {activeTab === 'admin' && (
-          <>
-            <View style={styles.card}>
-              <View style={styles.adminSectionHeader}>
-                <Text style={styles.sectionTitle}>Security Architecture Protocols</Text>
-                <Pressable style={styles.saveMasterBtn}>
-                  <Text style={styles.saveMasterBtnText}>Save Master Policies</Text>
-                </Pressable>
-              </View>
-              <View style={styles.protocolGrid}>
-                {ADMIN_PROTOCOLS.map((p) => (
-                  <View key={p.id} style={styles.protocolCard}>
-                    <MaterialCommunityIcons name={p.icon} size={24} color="#0B2D3E" />
-                    <Text style={styles.protocolCardTitle}>{p.title}</Text>
-                    <Text style={styles.protocolCardDesc}>{p.desc}</Text>
-                    <Pressable style={styles.configureArchBtn}>
-                      <Text style={styles.configureArchBtnText}>Configure Architecture</Text>
+                {!guardianTimerActive ? (
+                  <Pressable style={styles.activateBtn} onPress={startGuardianTimer}>
+                    <MaterialCommunityIcons name="play" size={20} color="#FFFFFF" />
+                    <Text style={styles.activateBtnText}>Activate Guardian</Text>
+                  </Pressable>
+                ) : (
+                  <View style={styles.guardianActionRow}>
+                    <Pressable style={styles.pauseProtectionBtn} onPress={resetGuardianTimer}>
+                      <MaterialCommunityIcons name="pause" size={20} color="#0B2D3E" />
+                      <Text style={styles.pauseProtectionBtnText}>Pause Protection</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.emergencySosBtn}
+                      onPress={() => setShowSosModal(true)}>
+                      <MaterialCommunityIcons name="alert" size={20} color="#FFFFFF" />
+                      <Text style={styles.emergencySosBtnText}>EMERGENCY SOS</Text>
                     </Pressable>
                   </View>
-                ))}
+                )}
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <MaterialCommunityIcons name="battery-high" size={18} color="#0B2D3E" />
+                    <View>
+                      <Text style={styles.statValue}>86%</Text>
+                      <Text style={styles.statLabel}>DEVICE VITALITY</Text>
+                    </View>
+                  </View>
+                  <View style={styles.statItem}>
+                    <MaterialCommunityIcons name="wifi" size={18} color="#0B2D3E" />
+                    <View>
+                      <Text style={styles.statValue}>Excellent</Text>
+                      <Text style={styles.statLabel}>SIGNAL STRENGTH</Text>
+                    </View>
+                  </View>
+                  <View style={styles.statItem}>
+                    <MaterialCommunityIcons name="clock-outline" size={18} color="#0B2D3E" />
+                    <View>
+                      <Text style={styles.statValue}>2m ago</Text>
+                      <Text style={styles.statLabel}>LAST CHECK-IN</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Master Incident Audit</Text>
-              <View style={styles.incidentSearchWrap}>
-                <MaterialCommunityIcons name="magnify" size={20} color="#7B8794" />
-                <TextInput
-                  style={styles.incidentSearchInput}
-                  placeholder="Search incident logs..."
-                  placeholderTextColor="#9AA7B6"
-                  value={incidentSearch}
-                  onChangeText={setIncidentSearch}
-                />
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Real-time Surveillance</Text>
+                <View style={[styles.survRow, styles.survRowFirst]}>
+                  <View style={styles.survIconWrap}>
+                    <MaterialCommunityIcons name="crosshairs-gps" size={22} color="#0B2D3E" />
+                  </View>
+                  <View style={styles.survText}>
+                    <Text style={styles.survTitle}>Live Location Sync</Text>
+                    <Text style={styles.survSub}>Streaming coordinates to broker.</Text>
+                  </View>
+                  <View style={styles.pillActive}>
+                    <Text style={styles.pillActiveText}>ACTIVE</Text>
+                  </View>
+                </View>
+                <View style={styles.survRow}>
+                  <View style={styles.survIconWrap}>
+                    <MaterialCommunityIcons name="message-text-outline" size={22} color="#0B2D3E" />
+                  </View>
+                  <View style={styles.survText}>
+                    <Text style={styles.survTitle}>Guardian Chat</Text>
+                    <Text style={styles.survSub}>
+                      {guardianChatOpen ? 'Secure channel is live.' : 'Secured p2p comms channel.'}
+                    </Text>
+                  </View>
+                  <Pressable
+                    style={[styles.pillSecure, guardianChatOpen && styles.pillSecureActive]}
+                    onPress={toggleGuardianChat}>
+                    <Text style={[styles.pillSecureText, guardianChatOpen && styles.pillSecureTextActive]}>
+                      {guardianChatOpen ? 'Secure Close' : 'Secure Open'}
+                    </Text>
+                  </Pressable>
+                </View>
+                {guardianChatOpen && (
+                  <View style={styles.secureMessageBlock}>
+                    <Text style={styles.secureMessageDesc}>
+                      <Text style={styles.secureMessageBold}>Guardian AI:</Text> Secure channel initialized. Stay connected during active showings.
+                    </Text>
+                    <View style={styles.secureMessageRow}>
+                      <TextInput
+                        style={styles.secureMessageInput}
+                        placeholder="Send secure message..."
+                        placeholderTextColor="#9AA7B6"
+                        value={secureMessage}
+                        onChangeText={setSecureMessage}
+                      />
+                      <Pressable style={styles.secureSendBtn}>
+                        <Text style={styles.secureSendBtnText}>Send</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
               </View>
-              <View style={styles.incidentList}>
-                {INCIDENT_LOGS.map((inc) => (
-                  <View key={inc.id} style={styles.incidentCard}>
-                    <View style={styles.incidentCardRow}>
-                      <Text style={styles.incidentLabel}>TIMESTAMP</Text>
-                      <Text style={styles.incidentValue}>{inc.timestamp}</Text>
+              <View style={styles.sosCard}>
+                <Text style={styles.sosLabel}>PRIMARY SOS CONTACT</Text>
+                <Text style={styles.sosName}>Zien Brokerage - HQ</Text>
+                <Pressable style={styles.emergencyCallBtn}>
+                  <MaterialCommunityIcons name="phone" size={18} color="#0B2D3E" />
+                  <Text style={styles.emergencyCallBtnText}>Emergency Call</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.premiumCard}>
+                <View style={styles.hubHeaderRow}>
+                  <View style={styles.hubTitleSection}>
+                    <View style={styles.hubIconWrap}>
+                      <MaterialCommunityIcons name="target" size={20} color="#FFFFFF" />
                     </View>
-                    <View style={styles.incidentCardRow}>
-                      <Text style={styles.incidentLabel}>INCIDENT LEVEL</Text>
-                      <Text style={[styles.incidentValue, inc.levelRed && styles.incidentLevelRed]}>{inc.level}</Text>
-                    </View>
-                    <View style={styles.incidentCardRow}>
-                      <Text style={styles.incidentLabel}>AGENT ASSIGNED</Text>
-                      <Text style={styles.incidentValue}>{inc.agent}</Text>
-                    </View>
-                    <View style={styles.incidentCardRow}>
-                      <Text style={styles.incidentLabel}>PROTOCOL TRIGGERED</Text>
-                      <Text style={styles.incidentValue}>{inc.protocol}</Text>
-                    </View>
-                    <View style={[styles.incidentCardRow, styles.incidentCardRowLast]}>
-                      <Text style={styles.incidentLabel}>RESOLUTION</Text>
-                      <View style={styles.resolutionPill}>
-                        <Text style={styles.resolutionPillText}>{inc.resolution}</Text>
+                    <View>
+                      <Text style={styles.premiumCardTitle}>Lead Verification Hub</Text>
+                      <View style={styles.engineStatusRow}>
+                        <View style={styles.enginePulse} />
+                        <Text style={styles.engineStatusText}>ENGINE STANDBY</Text>
                       </View>
                     </View>
                   </View>
+                </View>
+
+                <View style={styles.hubActionContainer}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.hubActionBtn,
+                      pressed && styles.hubActionBtnPressed,
+                    ]}
+                    onPress={() => setShowCrmModal(true)}>
+                    <View style={styles.hubActionIconWrap}>
+                      <MaterialCommunityIcons name="database-import" size={20} color="#0BA0B2" />
+                    </View>
+                    <Text style={styles.hubActionLabel}>Import CRM</Text>
+                  </Pressable>
+
+                  <View style={styles.hubActionSeparator} />
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.hubActionBtn,
+                      pressed && styles.hubActionBtnPressed,
+                    ]}
+                    onPress={() => setShowManualForm(!showManualForm)}>
+                    <View style={styles.hubActionIconWrap}>
+                      <MaterialCommunityIcons name="account-plus-outline" size={20} color="#0BA0B2" />
+                    </View>
+                    <Text style={styles.hubActionLabel}>Manual Entry</Text>
+                  </Pressable>
+                </View>
+
+                {showManualForm && (
+                  <View style={styles.manualFormContainer}>
+                    <View style={styles.manualFormHeader}>
+                      <MaterialCommunityIcons name="account-plus-outline" size={20} color="#0B2D3E" />
+                      <Text style={styles.manualFormTitle}>QUICK MANUAL ADMISSION</Text>
+                    </View>
+
+                    <View style={styles.manualFieldRow}>
+                      <Text style={styles.manualLabel}>Full Legal Name <Text style={styles.requiredStar}>*</Text></Text>
+                      <TextInput
+                        style={styles.manualInput}
+                        placeholder="e.g. Jessica Miller"
+                        placeholderTextColor="#9AA7B6"
+                        value={manualName}
+                        onChangeText={setManualName}
+                      />
+                    </View>
+
+                    <View style={styles.manualFieldRow}>
+                      <Text style={styles.manualLabel}>Email Address <Text style={styles.requiredStar}>*</Text></Text>
+                      <TextInput
+                        style={styles.manualInput}
+                        placeholder="name@example.com"
+                        placeholderTextColor="#9AA7B6"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={manualEmail}
+                        onChangeText={setManualEmail}
+                      />
+                    </View>
+
+                    <View style={styles.manualFieldRow}>
+                      <Text style={styles.manualLabel}>Phone Number <Text style={styles.requiredStar}>*</Text></Text>
+                      <TextInput
+                        style={styles.manualInput}
+                        placeholder="+1 (555) 000-0000"
+                        placeholderTextColor="#9AA7B6"
+                        keyboardType="phone-pad"
+                        value={manualPhone}
+                        onChangeText={setManualPhone}
+                      />
+                    </View>
+
+                    <View style={styles.manualFieldRow}>
+                      <Text style={styles.manualLabel}>Address (Optional)</Text>
+                      <TextInput
+                        style={[styles.manualInput, styles.manualInputArea]}
+                        placeholder="Street, City, Zip"
+                        placeholderTextColor="#9AA7B6"
+                        multiline
+                        value={manualAddress}
+                        onChangeText={setManualAddress}
+                      />
+                    </View>
+
+                    <Pressable
+                      style={[styles.manualVerifyBtn, (!manualName || !manualEmail || !manualPhone) && styles.btnDisabled]}
+                      onPress={handleManualVerify}
+                      disabled={!manualName || !manualEmail || !manualPhone}>
+                      <MaterialCommunityIcons name="shield-check-outline" size={20} color="#FFFFFF" />
+                      <Text style={styles.manualVerifyBtnText}>Verify</Text>
+                    </Pressable>
+                  </View>
+                )}
+
+                {verificationLeads.map((lead: VerificationLead, index: number) => (
+                  <View key={lead.id} style={styles.hubLeadCard}>
+                    <View style={styles.hubLeadHeader}>
+                      <View style={styles.hubAvatarWrap}>
+                        <LinearGradient
+                          colors={['#0BA0B2', '#20B2AA']}
+                          style={styles.hubAvatarGradient}>
+                          <Text style={styles.hubAvatarText}>{lead.name[0]}</Text>
+                        </LinearGradient>
+                      </View>
+                      <View style={styles.hubLeadInfo}>
+                        <Text style={styles.hubLeadName}>{lead.name}</Text>
+                        <Text style={styles.hubLeadSub}>{lead.subtitle}</Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.hubStatusBadge,
+                          lead.statusType === 'success' ? styles.hubStatusSuccess : styles.hubStatusWarning,
+                        ]}>
+                        <Text
+                          style={[
+                            styles.hubStatusText,
+                            lead.statusType === 'success' ? styles.hubStatusTextSuccess : styles.hubStatusTextWarning,
+                          ]}>
+                          {lead.status}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {lead.status === 'IN REVIEW' && (
+                      <View style={styles.hubInReviewRow}>
+                        <Pressable style={styles.hubReviewActionBtn} onPress={() => handleVerifyLead(lead.id)}>
+                          <MaterialCommunityIcons name="email-outline" size={16} color="#0B2D3E" />
+                          <Text style={styles.hubReviewActionText}>Verify Email</Text>
+                        </Pressable>
+                        <Pressable style={styles.hubReviewActionBtn} onPress={() => handleVerifyLead(lead.id)}>
+                          <MaterialCommunityIcons name="phone-outline" size={16} color="#0B2D3E" />
+                          <Text style={styles.hubReviewActionText}>Verify Phone</Text>
+                        </Pressable>
+                      </View>
+                    )}
+
+                    {lead.path && (
+                      <View style={styles.hubAiPathBox}>
+                        <Text style={styles.hubAiPathLabel}>AI VERIFICATION PATH</Text>
+                        <View style={styles.hubPathChipsRow}>
+                          {lead.path.map((step: string) => (
+                            <View key={step} style={styles.hubPathChip}>
+                              <MaterialCommunityIcons
+                                name="check-circle-outline"
+                                size={14}
+                                color="#0BA0B2"
+                              />
+                              <Text style={styles.hubPathChipText}>{step}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+                  </View>
                 ))}
               </View>
-            </View>
-          </>
-        )}
 
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Automated Policies</Text>
+                {GUARDIAN_POLICIES.map((p, index) => (
+                  <View key={p.key} style={[styles.policyRow, index === 0 && styles.policyRowFirst]}>
+                    <MaterialCommunityIcons name={p.icon} size={20} color="#5B6B7A" />
+                    <Text style={styles.policyLabel}>{p.label}</Text>
+                    <Switch
+                      value={guardianPolicies[p.key]}
+                      onValueChange={(v) => setGuardianPolicies((prev) => ({ ...prev, [p.key]: v }))}
+                      trackColor={{ false: '#D7DEE7', true: '#0B2D3E' }}
+                      thumbColor="#FFFFFF"
+                    />
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
 
-      {/* Intelligence Audit Modal */}
+          {activeTab === 'metrics' && (
+            <>
+              <View style={styles.card}>
+                <View style={styles.metricsCardHeader}>
+                  <View>
+                    <Text style={styles.sectionTitle}>Safety Risk Architecture</Text>
+                    <Text style={styles.metricsSubtitle}>
+                      Projected and active risk metrics based on regional intelligence.
+                    </Text>
+                  </View>
+                  <View style={styles.metricsToggleRow}>
+                    <Pressable
+                      style={[styles.metricsToggleBtn, metricsView === 'realtime' && styles.metricsToggleBtnActive]}
+                      onPress={() => setMetricsView('realtime')}>
+                      <Text style={[styles.metricsToggleText, metricsView === 'realtime' && styles.metricsToggleTextActive]}>
+                        Real-time
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.metricsToggleBtn, metricsView === 'historic' && styles.metricsToggleBtnActive]}
+                      onPress={() => setMetricsView('historic')}>
+                      <Text style={[styles.metricsToggleText, metricsView === 'historic' && styles.metricsToggleTextActive]}>
+                        Historic
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+                <View style={styles.barChartRow}>
+                  {RISK_METRICS.map((m) => (
+                    <View key={m.label} style={styles.barChartItem}>
+                      <Text style={styles.barChartValue}>{m.value}%</Text>
+                      <View style={styles.barChartBarWrap}>
+                        <View
+                          style={[
+                            styles.barChartBar,
+                            { height: Math.max(4, (m.value / 100) * 100) },
+                            m.dark ? styles.barChartBarDark : styles.barChartBarLight,
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.barChartLabel} numberOfLines={2}>{m.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Intervention History</Text>
+                {INTERVENTION_HISTORY.map((item, index) => (
+                  <View
+                    key={item.id}
+                    style={[styles.interventionRow, index === 0 && styles.interventionRowFirst]}>
+                    <View style={styles.interventionIconWrap}>
+                      <MaterialCommunityIcons name={item.icon} size={20} color="#0B2D3E" />
+                    </View>
+                    <Text style={styles.interventionTitle} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.interventionTimeRight}>{item.time}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+
+          {activeTab === 'admin' && (
+            <>
+              <View style={styles.card}>
+                <View style={styles.adminSectionHeader}>
+                  <Text style={styles.sectionTitle}>Security Architecture Protocols</Text>
+                  <Pressable style={styles.saveMasterBtn}>
+                    <Text style={styles.saveMasterBtnText}>Save Master Policies</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.protocolGrid}>
+                  {ADMIN_PROTOCOLS.map((p) => (
+                    <View key={p.id} style={styles.protocolCard}>
+                      <MaterialCommunityIcons name={p.icon} size={24} color="#0B2D3E" />
+                      <Text style={styles.protocolCardTitle}>{p.title}</Text>
+                      <Text style={styles.protocolCardDesc}>{p.desc}</Text>
+                      <Pressable style={styles.configureArchBtn}>
+                        <Text style={styles.configureArchBtnText}>Configure Architecture</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Master Incident Audit</Text>
+                <View style={styles.incidentSearchWrap}>
+                  <MaterialCommunityIcons name="magnify" size={20} color="#7B8794" />
+                  <TextInput
+                    style={styles.incidentSearchInput}
+                    placeholder="Search incident logs..."
+                    placeholderTextColor="#9AA7B6"
+                    value={incidentSearch}
+                    onChangeText={setIncidentSearch}
+                  />
+                </View>
+                <View style={styles.incidentList}>
+                  {INCIDENT_LOGS.map((inc) => (
+                    <View key={inc.id} style={styles.incidentCard}>
+                      <View style={styles.incidentCardRow}>
+                        <Text style={styles.incidentLabel}>TIMESTAMP</Text>
+                        <Text style={styles.incidentValue}>{inc.timestamp}</Text>
+                      </View>
+                      <View style={styles.incidentCardRow}>
+                        <Text style={styles.incidentLabel}>INCIDENT LEVEL</Text>
+                        <Text style={[styles.incidentValue, inc.levelRed && styles.incidentLevelRed]}>{inc.level}</Text>
+                      </View>
+                      <View style={styles.incidentCardRow}>
+                        <Text style={styles.incidentLabel}>AGENT ASSIGNED</Text>
+                        <Text style={styles.incidentValue}>{inc.agent}</Text>
+                      </View>
+                      <View style={styles.incidentCardRow}>
+                        <Text style={styles.incidentLabel}>PROTOCOL TRIGGERED</Text>
+                        <Text style={styles.incidentValue}>{inc.protocol}</Text>
+                      </View>
+                      <View style={[styles.incidentCardRow, styles.incidentCardRowLast]}>
+                        <Text style={styles.incidentLabel}>RESOLUTION</Text>
+                        <View style={styles.resolutionPill}>
+                          <Text style={styles.resolutionPillText}>{inc.resolution}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </>
+          )}
+
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+      )}
+
+      {currentTab === 'monitoring' && <MonitoringView />}
+      {currentTab === 'logs-reports' && <LogsReportsView />}
+      {currentTab === 'admin' && <AdminView />}
+
+      {/* Intelligence Audit Modal: Refactored to Full Page */}
       <Modal
         visible={showAuditModal}
-        transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowAuditModal(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setShowAuditModal(false)}>
-          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Intelligence Audit</Text>
-                <Text style={styles.modalSubtitle}>Analyze client credentials for field safety.</Text>
-              </View>
-              <Pressable
-                style={styles.modalCloseBtn}
-                onPress={() => setShowAuditModal(false)}>
-                <MaterialCommunityIcons name="close" size={20} color="#5B6B7A" />
-              </Pressable>
+        <View
+          style={[
+            styles.modalFullContainer,
+            { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) },
+          ]}>
+          <View style={styles.modalHeaderFull}>
+            <View style={styles.modalHeaderInfo}>
+              <Text style={styles.modalTitleFull}>Intelligence Audit</Text>
+              <Text style={styles.modalSubtitleFull}>Analyze client credentials for field safety.</Text>
             </View>
-
-            <Text style={styles.uploadSectionLabel}>Government ID Upload</Text>
-            <Pressable style={styles.uploadZone}>
-              <MaterialCommunityIcons name="tray-arrow-down" size={36} color="#7B8794" />
-              <Text style={styles.uploadZoneTitle}>Upload ID Document</Text>
-              <Text style={styles.uploadZoneHint}>Support PDF, JPG, PNG</Text>
+            <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowAuditModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
             </Pressable>
+          </View>
 
-            <Text style={styles.uploadSectionLabel}>Client Identity Reference</Text>
-            <TextInput
-              style={styles.identityInput}
-              placeholder="e.g. David Thompson"
-              placeholderTextColor="#9AA7B6"
-              value={clientIdentityRef}
-              onChangeText={setClientIdentityRef}
-            />
+          <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalFormContent}>
+              <Text style={styles.uploadSectionLabelFull}>Government ID Upload</Text>
+              <Pressable style={styles.uploadZoneFull}>
+                <LinearGradient
+                  colors={['#F7FBFF', '#FFFFFF']}
+                  style={styles.uploadZoneGradient}>
+                  <View style={styles.uploadIconCircle}>
+                    <MaterialCommunityIcons name="tray-arrow-down" size={32} color="#0BA0B2" />
+                  </View>
+                  <Text style={styles.uploadZoneTitleFull}>Upload ID Document</Text>
+                  <Text style={styles.uploadZoneHintFull}>Support PDF, JPG, PNG (Max 10MB)</Text>
+                </LinearGradient>
+              </Pressable>
 
-            <View style={styles.modalActions}>
-              <Pressable
-                style={styles.initAuditBtn}
-                onPress={() => setShowAuditModal(false)}>
-                <Text style={styles.initAuditBtnText}>Initialize Audit</Text>
-              </Pressable>
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={() => setShowAuditModal(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </Pressable>
+              <Text style={styles.uploadSectionLabelFull}>Client Identity Reference</Text>
+              <TextInput
+                style={styles.identityInputFull}
+                placeholder="e.g. David Thompson"
+                placeholderTextColor="#9AA7B6"
+                value={clientIdentityRef}
+                onChangeText={setClientIdentityRef}
+              />
+
+              <View style={styles.securityNoteBox}>
+                <View style={styles.securityNoteHeader}>
+                  <MaterialCommunityIcons name="shield-lock" size={18} color="#0BA0B2" />
+                  <Text style={styles.securityNoteTitle}>Encrypted Processing</Text>
+                </View>
+                <Text style={styles.securityNoteText}>
+                  All identity documents are processed through our Zien-Shield™ layer. Data is
+                  obfuscated and never stored on local device memory.
+                </Text>
+              </View>
             </View>
-          </Pressable>
-        </Pressable>
+          </ScrollView>
+
+          <View style={styles.modalFooterFixed}>
+            <Pressable style={styles.initAuditBtnPremium} onPress={() => setShowAuditModal(false)}>
+              <Text style={styles.initAuditBtnTextPremium}>Initialize Audit</Text>
+            </Pressable>
+            <Pressable style={styles.cancelBtnPremium} onPress={() => setShowAuditModal(false)}>
+              <Text style={styles.cancelBtnTextPremium}>Return to Guardian</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {/* Emergency SOS Modal */}
@@ -668,6 +1031,114 @@ export default function GuardianAiOverviewScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* CRM Import Modal */}
+      <Modal
+        visible={showCrmModal}
+        animationType="slide"
+        onRequestClose={() => setShowCrmModal(false)}>
+        <View
+          style={[
+            styles.modalFullContainer,
+            { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) },
+          ]}>
+          <View style={styles.modalHeaderFull}>
+            <View style={styles.modalHeaderInfo}>
+              <Text style={styles.modalTitleFull}>Import for Auto-Verification</Text>
+              <Text style={styles.modalSubtitleFull}>
+                Select clients to run through the AI Guardian engine.
+              </Text>
+            </View>
+            <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowCrmModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+            </Pressable>
+          </View>
+
+          <View style={styles.crmSearchContainer}>
+            <View style={styles.crmSearchBox}>
+              <MaterialCommunityIcons name="magnify" size={20} color="#9AA7B6" />
+              <TextInput
+                style={styles.crmSearchInput}
+                placeholder="Search 1,000+ leads by name or email..."
+                placeholderTextColor="#9AA7B6"
+                value={crmSearchQuery}
+                onChangeText={setCrmSearchQuery}
+              />
+            </View>
+          </View>
+
+          <View style={styles.crmSelectionHeader}>
+            <Text style={styles.crmSelectionCount}>
+              {selectedCrmIds.length} of {CRM_LEADS_MOCK.length} leads selected
+            </Text>
+            <Pressable onPress={handleSelectAll}>
+              <Text style={styles.crmSelectAllText}>
+                {selectedCrmIds.length === CRM_LEADS_MOCK.length ? 'DESELECT ALL' : 'SELECT ALL'}
+              </Text>
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+            <View style={styles.crmLeadsList}>
+              {CRM_LEADS_MOCK.filter(
+                (l) =>
+                  l.name.toLowerCase().includes(crmSearchQuery.toLowerCase()) ||
+                  l.email.toLowerCase().includes(crmSearchQuery.toLowerCase())
+              ).map((lead) => {
+                const isSelected = selectedCrmIds.includes(lead.id);
+                return (
+                  <Pressable
+                    key={lead.id}
+                    style={[styles.crmLeadItem, isSelected && styles.crmLeadItemSelected]}
+                    onPress={() => toggleLeadSelection(lead.id)}>
+                    <View style={[styles.crmCheckbox, isSelected && styles.crmCheckboxChecked]}>
+                      {isSelected && (
+                        <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
+                      )}
+                    </View>
+                    <View style={styles.crmLeadInfo}>
+                      <Text style={styles.crmLeadName}>{lead.name}</Text>
+                      <Text style={styles.crmLeadSub}>
+                        {lead.email} • {lead.city}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooterFixed}>
+            <Pressable
+              style={[
+                styles.initAuditBtnPremium,
+                selectedCrmIds.length === 0 && styles.btnDisabled,
+              ]}
+              onPress={handleImportAndVerify}
+              disabled={selectedCrmIds.length === 0}>
+              <View style={styles.btnContentRow}>
+                <MaterialCommunityIcons
+                  name="creation"
+                  size={20}
+                  color="#FFFFFF"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.initAuditBtnTextPremium}>
+                  Import & Verify {selectedCrmIds.length}
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={styles.cancelBtnPremium}
+              onPress={() => {
+                setSelectedCrmIds([]);
+                setCrmSearchQuery('');
+              }}>
+              <Text style={styles.cancelBtnTextPremium}>Clear</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </GuardianScreenShell>
   );
 }
@@ -679,47 +1150,248 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
   },
-  topTabs: {
+  topTabsContainer: {
+    backgroundColor: 'rgba(215, 233, 242, 0.4)',
+    borderRadius: 20,
+    padding: 6,
+    marginBottom: 20,
+  },
+  topTabsScroll: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
+    gap: 4,
   },
-  topTab: {
-    paddingHorizontal: 16,
+  topTabPill: {
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    borderRadius: 16,
+    backgroundColor: 'transparent',
   },
-  topTabActive: {
-    borderColor: '#0BA0B2',
-    backgroundColor: 'rgba(11, 160, 178, 0.08)',
+  topTabPillActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  topTabText: {
+  topTabPillText: {
     fontSize: 13,
     fontWeight: '800',
     color: '#5B6B7A',
+    letterSpacing: 0.2,
   },
-  topTabTextActive: {
+  topTabPillTextActive: {
     color: '#0B2D3E',
   },
-  missionControl: {
+  premiumMissionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
     backgroundColor: '#0B2D3E',
-    paddingVertical: 14,
-    borderRadius: 16,
-    marginBottom: 20,
+    padding: 16,
+    borderRadius: 22,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  missionControlText: {
-    fontSize: 15,
+  premiumMissionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  premiumMissionTextWrap: {
+    flex: 1,
+  },
+  premiumMissionTitle: {
+    fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
   },
-  card: {
+  premiumMissionSub: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
+  },
+  premiumCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 22,
+    marginBottom: 20,
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(227, 236, 244, 0.5)',
+  },
+  premiumCardTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.3,
+  },
+  premiumNewAuditBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#F0F7FF',
+    borderWidth: 1,
+    borderColor: '#D0E6FF',
+  },
+  premiumNewAuditText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  premiumClientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F4F8',
+  },
+  premiumClientRowFirst: {
+    paddingTop: 8,
+  },
+  premiumAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  confidenceWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 8,
+  },
+  confidenceBarBg: {
+    width: 60,
+    height: 4,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  confidenceBarFill: {
+    height: '100%',
+    backgroundColor: '#16A34A',
+    borderRadius: 2,
+  },
+  confidenceText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#16A34A',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  premiumVerifyBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: '#0B2D3E',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  premiumVerifyBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  verifiedBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(22, 163, 74, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumToolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F4F8',
+  },
+  premiumToolRowFirst: {
+    paddingTop: 8,
+  },
+  premiumToolIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#F0F7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  toolTextWrap: {
+    flex: 1,
+  },
+  premiumToolTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  premiumToolSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#5B6B7A',
+    marginTop: 2,
+  },
+  premiumToolBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  premiumToolBtnActive: {
+    backgroundColor: '#0BA0B2',
+    borderColor: '#0BA0B2',
+  },
+  premiumToolBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  premiumToolBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  intelHintBox: {
+    flexDirection: 'row',
+    gap: 10,
     backgroundColor: '#F7FBFF',
+    padding: 16,
+    borderRadius: 18,
+    marginTop: 18,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#D0E6FF',
+  },
+  intelHintText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#5B6B7A',
+    lineHeight: 18,
+  },
+  // Legacy styles for compatibility with other tabs
+  card: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
@@ -731,41 +1403,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0B2D3E',
-  },
-  newAuditBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-  },
-  newAuditText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  clientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
-  },
-  clientRowFirst: { borderTopWidth: 0 },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#0B2D3E',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   avatarText: {
     color: '#FFFFFF',
@@ -783,79 +1420,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#5B6B7A',
     marginTop: 2,
-  },
-  confidence: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#16A34A',
-    letterSpacing: 0.5,
-    marginTop: 4,
-  },
-  verifyBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#0BA0B2',
-  },
-  verifyBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  toolRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
-  },
-  toolRowFirst: { borderTopWidth: 0 },
-  toolIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toolTitle: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  toolBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E3ECF4',
-  },
-  toolBtnActive: {
-    backgroundColor: 'rgba(11, 160, 178, 0.12)',
-    borderColor: '#0BA0B2',
-  },
-  toolBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  toolBtnTextActive: {
-    color: '#0BA0B2',
-  },
-  toolDescription: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#5B6B7A',
-    lineHeight: 18,
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
   },
   // Guardian tab
   badgeRow: {
@@ -1331,6 +1895,355 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0B2D3E',
   },
+  // Full Page Modal Styles
+  modalFullContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeaderFull: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F4F8',
+  },
+  modalHeaderInfo: {
+    flex: 1,
+  },
+  modalTitleFull: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: -0.5,
+  },
+  modalSubtitleFull: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#5B6B7A',
+    marginTop: 2,
+  },
+  modalCloseBtnFull: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F5F9FC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
+  },
+  modalScrollBody: {
+    flex: 1,
+  },
+  modalFormContent: {
+    padding: 24,
+  },
+  uploadSectionLabelFull: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  uploadZoneFull: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#D0E6FF',
+    marginBottom: 24,
+  },
+  uploadZoneGradient: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0047FF',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+  },
+  uploadZoneTitleFull: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginTop: 20,
+  },
+  uploadZoneHintFull: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5B6B7A',
+    marginTop: 6,
+  },
+  identityInputFull: {
+    backgroundColor: '#F5F9FC',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0B2D3E',
+    marginBottom: 24,
+  },
+  securityNoteBox: {
+    backgroundColor: 'rgba(11, 160, 178, 0.05)',
+    padding: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(11, 160, 178, 0.1)',
+  },
+  securityNoteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  securityNoteTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0BA0B2',
+  },
+  securityNoteText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#5B6B7A',
+    lineHeight: 19,
+  },
+  modalFooterFixed: {
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F4F8',
+    gap: 12,
+  },
+  initAuditBtnPremium: {
+    backgroundColor: '#0B2D3E',
+    paddingVertical: 16,
+    borderRadius: 18,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  initAuditBtnTextPremium: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  cancelBtnPremium: {
+    paddingVertical: 16,
+    borderRadius: 18,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  cancelBtnTextPremium: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#5B6B7A',
+  },
+  hubHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 12,
+  },
+  hubTitleSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hubIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#0B2D3E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  engineStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  enginePulse: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#9AA7B6',
+    borderWidth: 1,
+    borderColor: '#9AA7B6',
+  },
+  engineStatusText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#9AA7B6',
+    letterSpacing: 0.5,
+  },
+  hubActionContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F7FBFF',
+    borderRadius: 20,
+    padding: 4,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    alignItems: 'stretch',
+  },
+  hubActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 8,
+    borderRadius: 16,
+  },
+  hubActionBtnPressed: {
+    backgroundColor: 'rgba(11, 160, 178, 0.08)',
+  },
+  hubActionIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0BA0B2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  hubActionLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
+  hubActionSeparator: {
+    width: 1,
+    backgroundColor: '#E3ECF4',
+    marginVertical: 8,
+  },
+  hubLeadCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    marginBottom: 12,
+    shadowColor: '#0B2D3E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  hubLeadHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hubAvatarWrap: {
+    marginRight: 12,
+  },
+  hubAvatarGradient: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hubAvatarText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  hubLeadInfo: {
+    flex: 1,
+  },
+  hubLeadName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  hubLeadSub: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7B8794',
+    marginTop: 2,
+  },
+  hubStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  hubStatusSuccess: {
+    backgroundColor: 'rgba(11, 160, 178, 0.08)',
+  },
+  hubStatusWarning: {
+    backgroundColor: '#FFF4E5',
+  },
+  hubStatusText: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  hubStatusTextSuccess: {
+    color: '#0BA0B2',
+  },
+  hubStatusTextWarning: {
+    color: '#FF8C00',
+  },
+  hubAiPathBox: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F4F8',
+    borderStyle: 'dashed',
+  },
+  hubAiPathLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#9AA7B6',
+    letterSpacing: 0.6,
+    marginBottom: 10,
+  },
+  hubPathChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  hubPathChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F5F9FC',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+  },
+  hubPathChipText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0B2D3E',
+  },
   // Emergency SOS Modal
   sosModalCard: {
     width: '100%',
@@ -1393,5 +2306,198 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0B2D3E',
     letterSpacing: 0.4,
+  },
+
+  // CRM Import Styles
+  crmSearchContainer: {
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  crmSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  crmSearchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0B2D3E',
+  },
+  crmSelectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  crmSelectionCount: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#5B6B7A',
+  },
+  crmSelectAllText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0BA0B2',
+  },
+  crmLeadsList: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    gap: 12,
+  },
+  crmLeadItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  crmLeadItemSelected: {
+    borderColor: '#0BA0B2',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0BA0B2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  crmCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  crmCheckboxChecked: {
+    borderColor: '#0BA0B2',
+    backgroundColor: '#0BA0B2',
+  },
+  crmLeadInfo: {
+    flex: 1,
+  },
+  crmLeadName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0B2D3E',
+  },
+  crmLeadSub: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7B8794',
+    marginTop: 2,
+  },
+  btnDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#94A3B8',
+  },
+  btnContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  // Manual Form Styles
+  manualFormContainer: {
+    marginVertical: 16,
+    padding: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    borderStyle: 'dashed',
+    backgroundColor: '#F8FAFC',
+  },
+  manualFormHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  manualFormTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    letterSpacing: 0.5,
+  },
+  manualFieldRow: {
+    marginBottom: 16,
+  },
+  manualLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0B2D3E',
+    marginBottom: 8,
+  },
+  requiredStar: {
+    color: '#DC2626',
+  },
+  manualInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0B2D3E',
+  },
+  manualInputArea: {
+    height: 80,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+  },
+  manualVerifyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#7B8794', // Match the gray in image
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+  manualVerifyBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+
+  // In Review Row Styles
+  hubInReviewRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F4F8',
+  },
+  hubReviewActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F5F9FC',
+    borderWidth: 1,
+    borderColor: '#E3ECF4',
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  hubReviewActionText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0B2D3E',
   },
 });

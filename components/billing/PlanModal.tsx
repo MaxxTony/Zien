@@ -1,19 +1,19 @@
 import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type PlanKey = 'starter' | 'professional' | 'team' | 'brokerage';
+type PlanKey = 'starter' | 'elite' | 'professional' | 'team' | 'brokerage';
 
 type PlanFeature = {
   icon: string;
@@ -25,17 +25,22 @@ const PLAN_FEATURES: Record<PlanKey, PlanFeature[]> = {
   starter: [
     { icon: 'lightning-bolt-outline', highlight: '500', suffix: ' Platform Credits' },
     { icon: 'account-group-outline', highlight: '1', suffix: ' Authorized Seats' },
-    { icon: 'database-outline', highlight: 'Standard', suffix: ' Data Architecture' },
+    { icon: 'database-outline', highlight: 'Standard', suffix: ' CRM Sync' },
   ],
   professional: [
     { icon: 'lightning-bolt-outline', highlight: '2,500', suffix: ' Platform Credits' },
     { icon: 'account-group-outline', highlight: '2', suffix: ' Authorized Seats' },
-    { icon: 'database-outline', highlight: 'Enriched', suffix: ' Data Architecture' },
+    { icon: 'database-outline', highlight: 'Enriched', suffix: ' CRM Tools' },
+  ],
+  elite: [
+    { icon: 'lightning-bolt-outline', highlight: '1,200', suffix: ' Platform Credits' },
+    { icon: 'account-group-outline', highlight: '1', suffix: ' Authorized Seats' },
+    { icon: 'database-outline', highlight: 'CRM', suffix: ' Auto-Sync' },
   ],
   team: [
     { icon: 'lightning-bolt-outline', highlight: '10,000', suffix: ' Platform Credits' },
     { icon: 'account-group-outline', highlight: '10', suffix: ' Authorized Seats' },
-    { icon: 'database-outline', highlight: 'Full Sync', suffix: ' Data Architecture' },
+    { icon: 'database-outline', highlight: 'Full Sync', suffix: ' Engine' },
   ],
   brokerage: [
     { icon: 'lightning-bolt-outline', highlight: 'Custom', suffix: ' Platform Credits' },
@@ -103,13 +108,15 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
   const plans = useMemo(
     () =>
       [
-        { key: 'starter' as const, label: 'STARTER', price: '$49', unit: '/mo', cta: { label: 'Select Tier', tone: 'dark' as const } },
-        { key: 'professional' as const, label: 'PROFESSIONAL', price: '$99', unit: '/mo', cta: { label: 'Select Tier', tone: 'dark' as const } },
-        { key: 'team' as const, label: 'TEAM', price: '$249', unit: '/mo', cta: { label: 'Active', tone: 'disabled' as const }, isCurrent: true },
-        { key: 'brokerage' as const, label: 'BROKERAGE', price: 'Custom', unit: '', cta: { label: 'Contact Partner', tone: 'dark' as const } },
+        { key: 'starter' as const, label: 'STARTER', price: '$29.95', unit: '/mo', cta: { label: 'Upgrade', tone: 'dark' as const } },
+        { key: 'elite' as const, label: 'ELITE', price: '$59.95', unit: '/mo', cta: { label: 'Upgrade', tone: 'dark' as const } },
+        { key: 'professional' as const, label: 'PROFESSIONAL', price: '$99.95', unit: '/mo', cta: { label: 'Upgrade', tone: 'dark' as const } },
+        { key: 'team' as const, label: 'TEAM', price: '$249.95', unit: '/mo', cta: { label: 'Active', tone: 'disabled' as const }, isCurrent: true },
       ] as const,
     []
   );
+
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   const openDowngradeConfirm = (plan: Exclude<PlanKey, 'team'>) => {
     setPendingPlan(plan);
@@ -154,22 +161,54 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
           </Pressable>
         </View>
 
-        <ScrollView
+        <Animated.ScrollView
           horizontal={!isNarrow}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.planScroller, isNarrow && styles.planScrollerVertical]}
+          contentContainerStyle={[
+            styles.planScroller,
+            isNarrow && styles.planScrollerVertical,
+            !isNarrow && { paddingHorizontal: 40 }
+          ]}
           style={isNarrow ? undefined : styles.planScrollView}
+          snapToInterval={!isNarrow ? cardWidth + 16 : undefined}
+          decelerationRate="fast"
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
         >
-          {plans.map((p) => {
+          {plans.map((p, index) => {
             const isCurrent = 'isCurrent' in p && p.isCurrent === true;
             const features = PLAN_FEATURES[p.key];
+
+            // Parallax interpolation
+            const inputRange = [
+              (index - 1) * (cardWidth + 16),
+              index * (cardWidth + 16),
+              (index + 1) * (cardWidth + 16),
+            ];
+
+            const scale = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.92, 1, 0.92],
+              extrapolate: 'clamp',
+            });
+
+            const opacity = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.7, 1, 0.7],
+              extrapolate: 'clamp',
+            });
+
             return (
-              <View
+              <Animated.View
                 key={p.key}
                 style={[
                   styles.planCard,
                   !isNarrow && { width: cardWidth, minWidth: cardWidth },
                   isCurrent && styles.planCardCurrent,
+                  !isNarrow && { transform: [{ scale }], opacity }
                 ]}
               >
                 {isCurrent && (
@@ -186,7 +225,7 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
                   {features.map((f, i) => (
                     <View key={i} style={styles.featureRow}>
                       <View style={styles.featureIconWrap}>
-                        <MaterialCommunityIcons name={f.icon as any} size={18} color={Theme.accentTeal} />
+                        <MaterialCommunityIcons name={f.icon as any} size={18} color="#0BA0B2" />
                       </View>
                       <Text style={styles.featureText} numberOfLines={2}>
                         <Text style={styles.featureHighlight}>{f.highlight}</Text>
@@ -196,20 +235,16 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
                   ))}
                 </View>
                 <Pressable
-                  disabled={p.cta.tone === 'disabled'}
+                  disabled={p.cta.tone === 'disabled' && isCurrent}
                   style={[
                     styles.planCta,
                     p.cta.tone === 'dark' && !isCurrent && styles.planCtaDark,
                     p.cta.tone === 'disabled' && styles.planCtaDisabled,
-                    isCurrent && styles.planCtaOutline,
+                    isCurrent && styles.planCtaActive,
                   ]}
                   onPress={() => {
-                    if (p.cta.tone === 'disabled') return;
-                    if (p.key === 'brokerage') {
-                      onClose();
-                      return;
-                    }
-                    if (p.key === 'starter' || p.key === 'professional') openDowngradeConfirm(p.key);
+                    if (isCurrent) return;
+                    // Logic to handle upgrade/downgrade
                   }}
                 >
                   <Text
@@ -217,16 +252,16 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
                       styles.planCtaText,
                       p.cta.tone === 'dark' && !isCurrent && styles.planCtaTextDark,
                       p.cta.tone === 'disabled' && styles.planCtaTextDisabled,
-                      isCurrent && styles.planCtaTextOutline,
+                      isCurrent && styles.planCtaTextActive,
                     ]}
                   >
                     {p.cta.label}
                   </Text>
                 </Pressable>
-              </View>
+              </Animated.View>
             );
           })}
-        </ScrollView>
+        </Animated.ScrollView>
 
         <View style={styles.noteCard}>
           <MaterialCommunityIcons name="information-outline" size={20} color={Theme.accentTeal} />
@@ -405,13 +440,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
   },
-  planCtaDark: { backgroundColor: Theme.accentDark, borderColor: Theme.accentDark },
-  planCtaOutline: { backgroundColor: 'transparent', borderColor: Theme.accentDark },
-  planCtaDisabled: { backgroundColor: Theme.surfaceIcon, borderColor: Theme.cardBorder },
-  planCtaText: { fontSize: 14, fontWeight: '800' },
-  planCtaTextDark: { color: Theme.textOnAccent },
-  planCtaTextOutline: { color: Theme.accentDark },
-  planCtaTextDisabled: { color: Theme.textSecondary },
+  planCtaDark: { backgroundColor: '#0B2D3E', borderColor: '#0B2D3E' },
+  planCtaActive: { backgroundColor: '#FFFFFF', borderColor: '#E3ECF4', borderWidth: 1 },
+  planCtaDisabled: { backgroundColor: '#FFFFFF', borderColor: '#F1F5F9' },
+  planCtaText: { fontSize: 14, fontWeight: '900' },
+  planCtaTextDark: { color: '#FFFFFF' },
+  planCtaTextActive: { color: '#0B2D3E' },
+  planCtaTextDisabled: { color: '#0B2D3E' },
   noteCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
