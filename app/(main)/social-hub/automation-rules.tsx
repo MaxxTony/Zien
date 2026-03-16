@@ -236,7 +236,7 @@ export default function AutomationRulesScreen() {
                 }}>
                 <View style={styles.dropdownMenuItemInner}>
                   {selected === opt && (
-                    <MaterialCommunityIcons name="check" size={16} color="#FFF" style={{ marginRight: 8 }} />
+                    <MaterialCommunityIcons name="check" size={16} color={colors.textPrimary} style={{ marginRight: 8 }} />
                   )}
                   <Text style={styles.dropdownMenuItemText}>{opt}</Text>
                 </View>
@@ -252,7 +252,7 @@ export default function AutomationRulesScreen() {
 
   return (
     <LinearGradient
-      colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+      colors={colors.backgroundGradient as any}
       style={[styles.background, { paddingTop: insets.top }]}>
 
       <PageHeader
@@ -582,7 +582,7 @@ function getStyles(colors: any) {
     paddingVertical: 14,
     fontSize: 15,
     fontWeight: '600',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -593,7 +593,7 @@ function getStyles(colors: any) {
   sectionTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   sectionCount: {
     fontSize: 12,
@@ -633,7 +633,7 @@ function getStyles(colors: any) {
   ruleLabelTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   textPaused: { color: colors.textMuted },
@@ -764,7 +764,7 @@ function getStyles(colors: any) {
     flex: 1,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   floatingAction: {
     position: 'absolute',
@@ -773,7 +773,7 @@ function getStyles(colors: any) {
     alignItems: 'center',
   },
   createRuleFab: {
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.accentTeal,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -815,10 +815,12 @@ function getStyles(colors: any) {
     padding: 20,
   },
   dropdownMenuContent: {
-    backgroundColor: '#3F3F3F',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     width: '100%',
     paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.4,
     shadowOffset: { width: 0, height: 6 },
@@ -834,7 +836,7 @@ function getStyles(colors: any) {
     alignItems: 'center',
   },
   dropdownMenuItemText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -864,7 +866,7 @@ function getStyles(colors: any) {
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    borderBottomColor: colors.cardBorder,
   },
   modalScroll: {
     paddingHorizontal: 24,
@@ -882,12 +884,12 @@ function getStyles(colors: any) {
   modalTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2341'
+    color: colors.textPrimary
   },
   fieldLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
     marginBottom: 10,
   },
   inputGroup: {
@@ -950,14 +952,14 @@ function getStyles(colors: any) {
     paddingLeft: 4,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   modalActions: {
     flexDirection: 'row',
     gap: 16,
     padding: 24,
     borderTopWidth: 1,
-    borderTopColor: '#F8FAFC',
+    borderTopColor: colors.cardBorder,
     backgroundColor: colors.cardBackground,
   },
   modalCancelBtn: {
@@ -983,7 +985,7 @@ function getStyles(colors: any) {
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.accentTeal,
   },
   modalSaveText: {
     color: '#FFFFFF',

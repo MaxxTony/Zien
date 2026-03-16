@@ -41,7 +41,7 @@ DM for a private tour!
 
 // Unsplash high-quality real estate images
 const MEDIA_GRID = [
-  { id: 'm1', uri: 'https://images.unsplash.com/photo-1600585154340-be6199f7d009?auto=format&fit=crop&q=80&w=800' },
+  { id: 'm1', uri: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&q=80&w=800' },
   { id: 'm2', uri: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&q=80&w=800' },
   { id: 'm3', uri: 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&q=80&w=800' },
   { id: 'm4', uri: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800' },
@@ -163,7 +163,7 @@ function PostPreviewCard({
 }
 
 export default function CreatePostScreen() {
-  const { colors } = useAppTheme();
+  const { colors, theme } = useAppTheme();
   const styles = getStyles(colors);
 
   const insets = useSafeAreaInsets();
@@ -246,7 +246,7 @@ export default function CreatePostScreen() {
           </View>
         </View>
         <View style={styles.successContent}>
-          <MaterialCommunityIcons name="rocket-launch" size={72} color="#0B2341" style={{ marginBottom: 20 }} />
+          <MaterialCommunityIcons name="rocket-launch" size={72} color={theme === 'dark' ? '#FFFFFF' : '#0B2341'} style={{ marginBottom: 20 }} />
           <Text style={styles.successTitle}>Post Scheduled!</Text>
           <Text style={styles.successDesc}>
             Your posts have been queued and will be published automatically.{"\n"}We'll notify you once they're live.
@@ -438,7 +438,7 @@ export default function CreatePostScreen() {
         <PostPreviewCard
           caption={caption}
           previewPlatform={previewPlatform}
-          selectedMedia={lastSelectedMediaUri}
+          selectedMedia={selectedMediaIds.length > 0 ? lastSelectedMediaUri : undefined}
           onPreviewPlatformChange={setPreviewPlatform}
         />
       </ScrollView>

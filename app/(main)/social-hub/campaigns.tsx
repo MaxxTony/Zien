@@ -124,17 +124,17 @@ function StatusPill({ status }: { status: Status }) {
   const isActive = status === 'ACTIVE';
   const isCompleted = status === 'COMPLETED';
 
-  let bg = '#F1F5F9';
-  let text = '#475569';
+  let bg = colors.badgeMutedBg;
+  let text = colors.textSecondary;
 
   if (isActive) {
-    bg = '#DCFCE7';
-    text = '#15803D';
+    bg = 'rgba(22, 163, 74, 0.12)';
+    text = '#16A34A';
   } else if (isCompleted) {
-    bg = '#F1F5F9';
-    text = '#0B2341';
+    bg = colors.badgeMutedBg;
+    text = colors.textPrimary;
   } else if (status === 'PAUSED') {
-    bg = '#FFFBEB';
+    bg = 'rgba(245, 158, 11, 0.12)';
     text = '#F59E0B';
   }
 
@@ -306,7 +306,7 @@ export default function CampaignsScreen() {
 
   return (
     <LinearGradient
-      colors={['#F8FAFC', '#FFFFFF']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -334,7 +334,7 @@ export default function CampaignsScreen() {
           </View>
           <View style={styles.filterGroup}>
             <Pressable style={styles.filterBtn}>
-              <MaterialCommunityIcons name="filter-variant" size={20} color="#0B2341" />
+              <MaterialCommunityIcons name="filter-variant" size={20} color={colors.textPrimary} />
             </Pressable>
             <Pressable
               style={styles.platformSelector}
@@ -346,7 +346,7 @@ export default function CampaignsScreen() {
                     platformFilter === 'linkedin' ? 'LinkedIn' :
                       platformFilter === 'tiktok' ? 'TikTok' : platformFilter}
               </Text>
-              <MaterialCommunityIcons name="chevron-down" size={18} color="#0B2341" />
+              <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textPrimary} />
             </Pressable>
           </View>
         </View>
@@ -447,7 +447,7 @@ export default function CampaignsScreen() {
       <Modal visible={modalVisible} transparent={false} animationType="slide">
         <View style={[styles.fullModalSub, { paddingTop: insets.top }]}>
           <LinearGradient
-            colors={['#FFFFFF', '#F8FAFC']}
+            colors={colors.backgroundGradient as any}
             style={styles.fullModalContent}>
 
             <View style={styles.fullModalHeader}>
@@ -470,7 +470,7 @@ export default function CampaignsScreen() {
                   onPress={() => setModalVisible(false)}
                   style={styles.closeBtn}
                 >
-                  <MaterialCommunityIcons name="close" size={24} color="#0B2341" />
+                  <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
                 </Pressable>
               </View>
             </View>
@@ -525,7 +525,7 @@ export default function CampaignsScreen() {
                       onPress={() => setAudienceDropdownVisible(true)}
                     >
                       <Text style={styles.advancedDropdownText} numberOfLines={1}>{formAudienceStrategy}</Text>
-                      <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2341" />
+                      <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                     </Pressable>
                   </View>
                   <View style={styles.dropdownHalf}>
@@ -540,7 +540,7 @@ export default function CampaignsScreen() {
                       onPress={() => setTemplateDropdownVisible(true)}
                     >
                       <Text style={styles.advancedDropdownText} numberOfLines={1}>{formTemplate}</Text>
-                      <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2341" />
+                      <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                     </Pressable>
                   </View>
                 </View>
@@ -573,7 +573,7 @@ export default function CampaignsScreen() {
                         <Text style={styles.scheduleInputText}>
                           {formScheduledDate.toLocaleDateString('en-GB')}
                         </Text>
-                        <MaterialCommunityIcons name="calendar" size={18} color="#0B2341" />
+                        <MaterialCommunityIcons name="calendar" size={18} color={colors.textPrimary} />
                       </Pressable>
 
                       <Pressable
@@ -584,7 +584,7 @@ export default function CampaignsScreen() {
                         <Text style={styles.scheduleInputText}>
                           {formScheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                         </Text>
-                        <MaterialCommunityIcons name="clock" size={18} color="#0B2341" />
+                        <MaterialCommunityIcons name="clock" size={18} color={colors.textPrimary} />
                       </Pressable>
                     </View>
 
@@ -822,7 +822,7 @@ export default function CampaignsScreen() {
       {/* Campaign Intelligence Analytics Modal */}
       <Modal visible={analyticsVisible} transparent={false} animationType="slide">
         <View style={[styles.fullModalSub, { paddingTop: insets.top }]}>
-          <LinearGradient colors={['#FFFFFF', '#F8FAFC']} style={styles.fullModalContent}>
+          <LinearGradient colors={colors.backgroundGradient as any} style={styles.fullModalContent}>
             <View style={styles.fullModalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fullModalTitle}>Campaign Intelligence</Text>
@@ -834,7 +834,7 @@ export default function CampaignsScreen() {
                 onPress={() => setAnalyticsVisible(false)}
                 style={styles.closeBtn}
               >
-                <MaterialCommunityIcons name="close" size={24} color="#0B2341" />
+                <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
               </Pressable>
             </View>
 
@@ -850,7 +850,7 @@ export default function CampaignsScreen() {
                   <View key={i} style={styles.intelligenceCard}>
                     <View style={styles.intelHeader}>
                       <View style={styles.intelIconBox}>
-                        <MaterialCommunityIcons name={stat.icon as any} size={18} color="#0B2341" />
+                        <MaterialCommunityIcons name={stat.icon as any} size={18} color={colors.textPrimary} />
                       </View>
                       <View style={styles.intelTrendBox}>
                         <Text style={styles.intelTrendText}>{stat.trend}</Text>
@@ -991,7 +991,7 @@ function getStyles(colors: any) {
   platformSelectorText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   controlsSection: {
     paddingHorizontal: 20,
@@ -1017,7 +1017,7 @@ function getStyles(colors: any) {
     flex: 1,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
 
   scroll: { flex: 1 },
@@ -1059,7 +1059,7 @@ function getStyles(colors: any) {
   campaignName: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
     lineHeight: 22,
     marginBottom: 12,
   },
@@ -1070,7 +1070,7 @@ function getStyles(colors: any) {
     marginBottom: 20,
   },
   audienceTag: {
-    backgroundColor: '#F0F7FF',
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -1078,7 +1078,7 @@ function getStyles(colors: any) {
   audienceTagText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#1E40AF',
+    color: colors.textPrimary,
     letterSpacing: 0.5,
   },
   launchDate: {
@@ -1098,7 +1098,7 @@ function getStyles(colors: any) {
   },
   statsGrid: {
     flexDirection: 'row',
-    backgroundColor: '#FBFDFF',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -1119,7 +1119,7 @@ function getStyles(colors: any) {
   statValue: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   statSubValue: {
     fontSize: 9,
@@ -1174,7 +1174,7 @@ function getStyles(colors: any) {
   fullModalTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   fullModalSubtitle: {
     fontSize: 12,
@@ -1217,12 +1217,12 @@ function getStyles(colors: any) {
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   advancedLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
     marginBottom: 8,
     marginTop: 16,
   },
@@ -1234,7 +1234,7 @@ function getStyles(colors: any) {
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   advancedPlatformRow: {
     flexDirection: 'row',
@@ -1285,7 +1285,7 @@ function getStyles(colors: any) {
   advancedDropdownText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0B2341',
+    color: colors.textPrimary,
     flex: 1,
   },
   labelWithAction: {
@@ -1312,7 +1312,7 @@ function getStyles(colors: any) {
     borderRadius: 8,
   },
   scheduleBtnActive: {
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.accentTeal,
   },
   scheduleBtnText: {
     fontSize: 12,
@@ -1329,7 +1329,7 @@ function getStyles(colors: any) {
     borderStyle: 'dashed',
     borderRadius: 16,
     padding: 20,
-    backgroundColor: '#F0FDFA',
+    backgroundColor: 'rgba(11, 160, 178, 0.08)',
   },
   aiHeader: {
     flexDirection: 'row',
@@ -1361,11 +1361,11 @@ function getStyles(colors: any) {
     borderRadius: 12,
     padding: 12,
     fontSize: 13,
-    color: '#0B2341',
+    color: colors.textPrimary,
     minHeight: 60,
   },
   fullSaveBtn: {
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.accentTeal,
     paddingVertical: 18,
     borderRadius: 14,
     alignItems: 'center',
@@ -1392,7 +1392,7 @@ function getStyles(colors: any) {
   statCardTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   statCardLabel: {
@@ -1410,7 +1410,7 @@ function getStyles(colors: any) {
   reachValue: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   reachTrend: {
     fontSize: 11,
@@ -1427,7 +1427,7 @@ function getStyles(colors: any) {
   peakValue: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   aiBadge: {
     fontSize: 9,
@@ -1480,7 +1480,7 @@ function getStyles(colors: any) {
   complianceTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   complianceItem: {
@@ -1492,7 +1492,7 @@ function getStyles(colors: any) {
   complianceText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
 
   // Generic Dropdown stuff
@@ -1504,7 +1504,7 @@ function getStyles(colors: any) {
     position: 'absolute',
     left: 20,
     right: 20,
-    backgroundColor: '#3F3F3F',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 12,
     shadowColor: colors.cardShadowColor,
@@ -1512,13 +1512,15 @@ function getStyles(colors: any) {
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
     elevation: 10,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   dropdownContainer: {
     position: 'absolute',
     top: 250,
     right: 20,
     width: 200,
-    backgroundColor: '#3F3F3F',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 12,
     shadowColor: colors.cardShadowColor,
@@ -1526,6 +1528,8 @@ function getStyles(colors: any) {
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
     elevation: 10,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -1534,7 +1538,7 @@ function getStyles(colors: any) {
     gap: 12,
   },
   dropdownText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1565,7 +1569,7 @@ function getStyles(colors: any) {
   scheduleInputText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   modalOverlayDark: {
     flex: 1,
@@ -1588,7 +1592,7 @@ function getStyles(colors: any) {
   pickerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   pickerGrid: {
     gap: 12,
@@ -1600,12 +1604,12 @@ function getStyles(colors: any) {
     alignItems: 'center',
   },
   pickerItemActive: {
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.accentTeal,
   },
   pickerItemText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   pickerItemTextActive: {
     color: '#FFFFFF',
@@ -1666,7 +1670,7 @@ function getStyles(colors: any) {
   intelValue: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   analyticsMainRow: {
     gap: 20,
@@ -1681,7 +1685,7 @@ function getStyles(colors: any) {
   analyticsSectionTitle: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -1743,7 +1747,7 @@ function getStyles(colors: any) {
   streamUserName: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   streamMetaRow: {
     flexDirection: 'row',
@@ -1798,7 +1802,7 @@ function getStyles(colors: any) {
   metricVal: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   metricBarBg: {
     height: 6,
@@ -1812,9 +1816,11 @@ function getStyles(colors: any) {
   },
   republishBox: {
     marginTop: 20,
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     padding: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   republishLabel: {
     fontSize: 9,
@@ -1826,7 +1832,7 @@ function getStyles(colors: any) {
   republishValue: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   republishSub: {
     fontSize: 10,

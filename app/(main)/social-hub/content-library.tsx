@@ -181,7 +181,7 @@ function ImageSourcePicker({
   onClose: () => void;
   onSelect: (source: 'camera' | 'library') => void
 }) {
-  const { colors } = useAppTheme();
+  const { colors, theme } = useAppTheme();
   const styles = getStyles(colors);
 
   if (!visible) return null;
@@ -196,8 +196,8 @@ function ImageSourcePicker({
               style={styles.sourceBtn}
               onPress={() => { onSelect('camera'); onClose(); }}
             >
-              <View style={[styles.sourceIconWrap, { backgroundColor: '#EFF6FF' }]}>
-                <MaterialCommunityIcons name="camera" size={28} color="#3B82F6" />
+              <View style={[styles.sourceIconWrap, { backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
+                <MaterialCommunityIcons name="camera" size={28} color={theme === 'dark' ? '#60A5FA' : '#3B82F6'} />
               </View>
               <Text style={styles.sourceLabel}>Camera</Text>
             </Pressable>
@@ -205,8 +205,8 @@ function ImageSourcePicker({
               style={styles.sourceBtn}
               onPress={() => { onSelect('library'); onClose(); }}
             >
-              <View style={[styles.sourceIconWrap, { backgroundColor: '#F0FDF4' }]}>
-                <MaterialCommunityIcons name="image-multiple" size={28} color="#22C55E" />
+              <View style={[styles.sourceIconWrap, { backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.15)' : '#F0FDF4' }]}>
+                <MaterialCommunityIcons name="image-multiple" size={28} color={theme === 'dark' ? '#4ADE80' : '#22C55E'} />
               </View>
               <Text style={styles.sourceLabel}>Gallery</Text>
             </Pressable>
@@ -259,7 +259,7 @@ function SelectionDropdown({
             >
               <View style={styles.dropdownOptionContent}>
                 {selectedValue === option && (
-                  <MaterialCommunityIcons name="check" size={16} color="#FFF" style={{ marginRight: 8 }} />
+                  <MaterialCommunityIcons name="check" size={16} color={colors.textPrimary} style={{ marginRight: 8 }} />
                 )}
                 <Text style={styles.dropdownOptionText}>{option}</Text>
               </View>
@@ -369,7 +369,7 @@ function ContentFormModal({
       <View style={[styles.modalBg, { paddingTop: insets.top }]}>
         <View style={styles.modalHeader}>
           <Pressable onPress={onClose} style={styles.modalCloseBtn}>
-            <MaterialCommunityIcons name="close" size={20} color="#0B2341" />
+            <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
           </Pressable>
         </View>
 
@@ -392,13 +392,13 @@ function ContentFormModal({
                       style={styles.previewCloseBtn}
                       onPress={() => setSelectedImage(null)}
                     >
-                      <MaterialCommunityIcons name="close" size={14} color="#0B2341" />
+                      <MaterialCommunityIcons name="close" size={14} color={colors.textPrimary} />
                     </Pressable>
                   </>
                 ) : (
                   <View style={[styles.uploadPlaceholder, { height: 180, width: '100%' }]}>
                     <View style={styles.uploadIconCircle}>
-                      <MaterialCommunityIcons name="plus" size={32} color="#0B2341" />
+                      <MaterialCommunityIcons name="plus" size={32} color={colors.textPrimary} />
                     </View>
                     <Text style={styles.uploadTitle}>Upload Content Visual</Text>
                     <Text style={styles.uploadHint}>Recommended: 1080×1080px (PNG, JPG)</Text>
@@ -434,7 +434,7 @@ function ContentFormModal({
                     onPress={() => handleOpenDropdown('category', categoryRef)}
                   >
                     <Text style={styles.dropdownValue}>{category}</Text>
-                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2341" />
+                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                   </Pressable>
                 </View>
 
@@ -446,7 +446,7 @@ function ContentFormModal({
                     onPress={() => handleOpenDropdown('platform', platformRef)}
                   >
                     <Text style={styles.dropdownValue}>{platform}</Text>
-                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2341" />
+                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                   </Pressable>
                 </View>
               </View>
@@ -859,7 +859,7 @@ function getStyles(colors: any) {
     backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#0B2341',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 20,
     fontSize: 15,
     fontWeight: '600',
@@ -908,7 +908,7 @@ function getStyles(colors: any) {
   },
   dropdownMenu: {
     position: 'absolute',
-    backgroundColor: 'rgba(74, 69, 66, 0.95)', // Dark brown/gray translucent
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     paddingVertical: 8,
     shadowColor: colors.cardShadowColor,
@@ -917,7 +917,7 @@ function getStyles(colors: any) {
     shadowRadius: 20,
     elevation: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: colors.cardBorder,
   },
   dropdownOption: {
     paddingVertical: 12,
@@ -930,7 +930,7 @@ function getStyles(colors: any) {
   dropdownOptionText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 
   // Source Picker Styles

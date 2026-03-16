@@ -49,20 +49,20 @@ export default function AnalyticsScreen() {
 
   const chartConfig = useMemo(
     () => ({
-      backgroundGradientFrom: '#FFFFFF',
-      backgroundGradientTo: '#FFFFFF',
+      backgroundGradientFrom: colors.cardBackground,
+      backgroundGradientTo: colors.cardBackground,
       decimalPlaces: 0,
       color: (opacity = 1) => `rgba(11, 160, 178, ${opacity * 0.9})`,
-      labelColor: (opacity = 1) => `#94A3B8`,
+      labelColor: (opacity = 1) => colors.textSecondary,
       barPercentage: 0.6,
-      propsForBackgroundLines: { stroke: '#F1F5F9', strokeWidth: 1 },
+      propsForBackgroundLines: { stroke: colors.cardBorder, strokeWidth: 1 },
     }),
-    []
+    [colors]
   );
 
   return (
     <LinearGradient
-      colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+      colors={colors.backgroundGradient as any}
       style={[styles.background, { paddingTop: insets.top }]}>
 
       <PageHeader
@@ -82,10 +82,10 @@ export default function AnalyticsScreen() {
         <View style={styles.topActions}>
           <Pressable style={styles.topActionBtn}>
             <Text style={styles.topActionText}>{dateRange}</Text>
-            <MaterialCommunityIcons name="chevron-down" size={16} color="#0B2341" />
+            <MaterialCommunityIcons name="chevron-down" size={16} color={colors.textPrimary} />
           </Pressable>
           <Pressable style={styles.topActionBtn}>
-            <Text style={[styles.topActionText, { color: '#0B2341' }]}>Export Report</Text>
+            <Text style={[styles.topActionText, { color: colors.textPrimary }]}>Export Report</Text>
           </Pressable>
         </View>
 
@@ -215,7 +215,7 @@ function getStyles(colors: any) {
   kpiVal: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   kpiDiff: {
     fontSize: 11,
@@ -232,7 +232,7 @@ function getStyles(colors: any) {
   sectionTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   topActions: {
     flexDirection: 'row',
@@ -257,7 +257,7 @@ function getStyles(colors: any) {
   topActionText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   chartCard: {
     backgroundColor: colors.cardBackground,
@@ -305,7 +305,7 @@ function getStyles(colors: any) {
   platformLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   percentText: {
     fontSize: 12,

@@ -162,8 +162,8 @@ export default function SocialTemplatesScreen() {
                         <Text style={styles.metricValue}>{item.conv_rate}</Text>
                     </View>
                     <View style={styles.circlesVisual}>
-                        <View style={[styles.overlapCircle, { backgroundColor: '#0B2341' }]} />
-                        <View style={[styles.overlapCircle, { backgroundColor: '#0BA0B2', marginLeft: -8 }]} />
+                        <View style={[styles.overlapCircle, { backgroundColor: colors.accentDark }]} />
+                        <View style={[styles.overlapCircle, { backgroundColor: colors.accentTeal, marginLeft: -8 }]} />
                     </View>
                 </View>
 
@@ -193,7 +193,7 @@ export default function SocialTemplatesScreen() {
 
     return (
         <LinearGradient
-            colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+            colors={colors.backgroundGradient as any}
             style={[styles.background, { paddingTop: insets.top }]}>
 
             <PageHeader
@@ -241,7 +241,7 @@ export default function SocialTemplatesScreen() {
                 >
                     <View style={styles.infoModalContent}>
                         <View style={styles.infoIconBox}>
-                            <MaterialCommunityIcons name="monitor" size={32} color="#0B2341" />
+                            <MaterialCommunityIcons name="monitor" size={32} color={colors.textPrimary} />
                         </View>
                         <Text style={styles.infoModalTitle}>Web-Only Feature</Text>
                         <Text style={styles.infoModalDesc}>
@@ -368,7 +368,7 @@ function getStyles(colors: any) {
     metricValue: {
         fontSize: 13,
         fontWeight: '900',
-        color: '#0B2341',
+        color: colors.textPrimary,
     },
     circlesVisual: {
         flexDirection: 'row',
@@ -399,7 +399,7 @@ function getStyles(colors: any) {
     editBtnText: {
         fontSize: 13,
         fontWeight: '800',
-        color: '#0B2341',
+        color: colors.textPrimary,
     },
     iconActionBtn: {
         width: 44,
@@ -429,7 +429,7 @@ function getStyles(colors: any) {
         alignItems: 'center',
     },
     aiButton: {
-        backgroundColor: '#0B2341',
+        backgroundColor: colors.accentTeal,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
@@ -474,7 +474,7 @@ function getStyles(colors: any) {
     infoModalTitle: {
         fontSize: 20,
         fontWeight: '900',
-        color: '#0B2341',
+        color: colors.textPrimary,
         marginBottom: 12,
     },
     infoModalDesc: {
@@ -485,7 +485,7 @@ function getStyles(colors: any) {
         marginBottom: 24,
     },
     infoGotItBtn: {
-        backgroundColor: '#0B2341',
+        backgroundColor: colors.accentTeal,
         paddingHorizontal: 40,
         paddingVertical: 14,
         borderRadius: 16,

@@ -89,7 +89,7 @@ export default function AccountsScreen() {
           onBack={() => router.back()}
           rightIcon="content-save"
           onRightPress={handleSave}
-          rightIconColor="#0B2341"
+          rightIconColor={colors.textPrimary}
         />
       </View>
 
@@ -339,13 +339,13 @@ function getStyles(colors: any) {
 
   // Pro Card Styles
   proCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: colors.cardBackgroundSemi,
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    shadowColor: '#0A2F48',
+    borderColor: colors.cardBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
@@ -361,14 +361,14 @@ function getStyles(colors: any) {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
     letterSpacing: -0.4,
   },
   sectionSubtitle: {
@@ -406,7 +406,7 @@ function getStyles(colors: any) {
   accountRowName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   accountRowHandle: {
     fontSize: 12,
@@ -446,7 +446,7 @@ function getStyles(colors: any) {
   manageBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
 
   // Field Groups
@@ -472,7 +472,7 @@ function getStyles(colors: any) {
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#0B2341',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   inputIcon: {
@@ -523,7 +523,7 @@ function getStyles(colors: any) {
   toggleTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   toggleDesc: {
     fontSize: 11,

@@ -42,7 +42,6 @@ const EVENTS_BY_DATE: Record<string, ScheduledEvent[]> = {
       time: '10:00 AM',
       location: 'Malibu, CA',
       status: 'SCHEDULED',
-      color: '#E6E9F0',
       image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80",
     },
   ],
@@ -54,7 +53,6 @@ const EVENTS_BY_DATE: Record<string, ScheduledEvent[]> = {
       time: '2:00 PM',
       location: 'Beverly Hills',
       status: 'SCHEDULED',
-      color: '#E6E9F0',
       image: null
     },
     {
@@ -64,7 +62,6 @@ const EVENTS_BY_DATE: Record<string, ScheduledEvent[]> = {
       time: '9:00 AM',
       location: 'LinkedIn Article',
       status: 'PUBLISHED',
-      color: '#E6E9F0',
       image: null
     },
   ],
@@ -186,13 +183,13 @@ export default function SchedulerScreen() {
           {events.slice(0, 2).map(ev => (
             <Pressable
               key={ev.id}
-              style={[styles.miniPill, { backgroundColor: ev.color || '#F1F5F9' }]}
+              style={[styles.miniPill, { backgroundColor: ev.color || colors.badgeMutedBg }]}
               onPress={() => setSelectedEvent(ev)}
             >
               <MaterialCommunityIcons
                 name={PLATFORM_CONFIG[ev.platform].icon as any}
                 size={10}
-                color="#0B2341"
+                color={colors.textPrimary}
               />
               <Text style={styles.miniPillText} numberOfLines={1}>{ev.label}</Text>
             </Pressable>
@@ -207,7 +204,7 @@ export default function SchedulerScreen() {
 
   return (
     <LinearGradient
-      colors={['#F0F4F8', '#F1F5F9', '#F8FAFC']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -223,11 +220,11 @@ export default function SchedulerScreen() {
       <View style={styles.controlsSection}>
         <View style={styles.monthNav}>
           <Pressable onPress={handlePrevMonth} style={styles.navArrow} hitSlop={10}>
-            <MaterialCommunityIcons name="chevron-left" size={20} color="#0B2341" />
+            <MaterialCommunityIcons name="chevron-left" size={20} color={colors.textPrimary} />
           </Pressable>
           <Text style={styles.monthLabel}>{monthLabel}</Text>
           <Pressable onPress={handleNextMonth} style={styles.navArrow} hitSlop={10}>
-            <MaterialCommunityIcons name="chevron-right" size={20} color="#0B2341" />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textPrimary} />
           </Pressable>
         </View>
       </View>
@@ -387,7 +384,7 @@ function getStyles(colors: any) {
   monthLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
     minWidth: 120,
     textAlign: 'center',
   },
@@ -436,7 +433,7 @@ function getStyles(colors: any) {
   dayText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0B2341',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   todayText: {
@@ -444,7 +441,7 @@ function getStyles(colors: any) {
     fontWeight: '900',
   },
   disabledText: {
-    color: '#E2E8F0',
+    color: colors.textMuted,
   },
   eventStack: {
     gap: 4,
@@ -458,12 +455,12 @@ function getStyles(colors: any) {
     paddingVertical: 5,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.badgeMutedBorder,
   },
   miniPillText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
     flex: 1,
   },
   moreCount: {
