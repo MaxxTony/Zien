@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import {
   Dimensions,
   Platform,
@@ -46,6 +47,9 @@ const SOCIAL_TEMPLATES = [
 
 
 export default function SocialHubScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = Dimensions.get('window');
@@ -57,7 +61,7 @@ export default function SocialHubScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -90,7 +94,7 @@ export default function SocialHubScreen() {
 
         {/* Overview Section Heading */}
         <View style={styles.overviewHeader}>
-          <MaterialCommunityIcons name="view-grid-outline" size={20} color="#0B2D3E" />
+          <MaterialCommunityIcons name="view-grid-outline" size={20} color={colors.textPrimary} />
           <Text style={styles.overviewHeaderText}>Overview</Text>
         </View>
 
@@ -100,7 +104,7 @@ export default function SocialHubScreen() {
             <View key={card.title} style={[styles.statCardPremium, { width: statCardWidth }]}>
               <View style={styles.statTop}>
                 <View style={styles.statIconCircle}>
-                  <MaterialCommunityIcons name={card.icon} size={18} color="#0B2D3E" />
+                  <MaterialCommunityIcons name={card.icon} size={18} color={colors.textPrimary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.statLabel}>{card.title.toUpperCase()}</Text>
@@ -153,7 +157,7 @@ export default function SocialHubScreen() {
               {SOCIAL_TEMPLATES.map((tmp) => (
                 <View key={tmp.id} style={styles.templateCard}>
                   <View style={styles.templateIconSmall}>
-                    <MaterialCommunityIcons name={tmp.icon} size={16} color="#0B2D3E" />
+                    <MaterialCommunityIcons name={tmp.icon} size={16} color={colors.textPrimary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.templateTitleText}>{tmp.title}</Text>
@@ -181,7 +185,7 @@ export default function SocialHubScreen() {
         {/* AI Usage Card (Simplified) */}
         <View style={styles.usageCardPremium}>
           <View style={styles.usageInfo}>
-            <MaterialCommunityIcons name="lightning-bolt" size={18} color="#0D9488" />
+            <MaterialCommunityIcons name="lightning-bolt" size={18} color={colors.accentTeal} />
             <Text style={styles.usageLabel}>AI Generation Credits: <Text style={{ fontWeight: '800' }}>150/1000 left</Text></Text>
           </View>
           <View style={styles.usageBar}>
@@ -199,10 +203,10 @@ export default function SocialHubScreen() {
                 style={styles.restoreHubRow}
                 onPress={() => tab.route && router.push(tab.route as any)}>
                 <View style={styles.restoreHubIconWrap}>
-                  <MaterialCommunityIcons name={tab.icon} size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name={tab.icon} size={20} color={colors.textPrimary} />
                 </View>
                 <Text style={styles.restoreHubLabel}>{tab.label}</Text>
-                <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
               </Pressable>
             ))}
           </View>
@@ -218,7 +222,8 @@ export default function SocialHubScreen() {
 // Custom Image component to avoid errors if expo-image is missing, but it was in header
 import { Image } from 'expo-image';
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 18 },
@@ -236,7 +241,7 @@ const styles = StyleSheet.create({
   overviewHeaderText: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
 
@@ -247,15 +252,15 @@ const styles = StyleSheet.create({
   restoreHubTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   restoreHubList: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   restoreHubRow: {
     flexDirection: 'row',
@@ -269,7 +274,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -277,7 +282,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
 
   // Header Actions Mobile
@@ -288,22 +293,22 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   accountBtn: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     justifyContent: 'center',
   },
   accountBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   createBtn: {
     flex: 1,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 10,
@@ -326,11 +331,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   statCardPremium: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 14,
     ...Platform.select({
-      ios: { shadowColor: '#0B2D3E', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8 },
+      ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8 },
       android: { elevation: 2 }
     })
   },
@@ -343,14 +348,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   statLabel: {
     fontSize: 8,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
     letterSpacing: 0.5,
   },
   statValueRow: {
@@ -362,7 +367,7 @@ const styles = StyleSheet.create({
   statValueText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   statMetaText: {
     fontSize: 10,
@@ -372,12 +377,12 @@ const styles = StyleSheet.create({
 
   // Sections
   sectionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.03, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
+      ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.03, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
       android: { elevation: 1 }
     })
   },
@@ -390,13 +395,13 @@ const styles = StyleSheet.create({
   sectionTitleText: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   sectionLinkText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0D9488',
+    color: colors.accentTeal,
   },
 
   // Posts
@@ -404,43 +409,43 @@ const styles = StyleSheet.create({
   postCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     padding: 12,
     borderRadius: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   postImage: {
     width: 48,
     height: 48,
     borderRadius: 10,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.cardBorder,
   },
   postContent: { flex: 1 },
   postTitleText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   postSubText: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   editBtn: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   editBtnText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
 
   // Stacked Row
@@ -453,7 +458,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     padding: 10,
     borderRadius: 12,
   },
@@ -461,26 +466,26 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   templateTitleText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   templateSubText: {
     fontSize: 9,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: colors.textMuted,
   },
 
   // Power Up Fixed
   powerUpFixedCard: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 20,
     padding: 18,
     justifyContent: 'center',
@@ -506,18 +511,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   // Usage Premium
   usageCardPremium: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   usageInfo: {
     flexDirection: 'row',
@@ -528,11 +533,11 @@ const styles = StyleSheet.create({
   usageLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   usageBar: {
     height: 6,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.cardBorder,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -541,5 +546,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0D9488',
     borderRadius: 3,
   },
-});
+  });
+}
 

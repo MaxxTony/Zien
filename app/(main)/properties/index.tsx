@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
   Dimensions,
@@ -99,10 +100,13 @@ function StatCard({
   value: string;
   label: string;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.statCard}>
       <View style={styles.statIconBox}>
-        <MaterialCommunityIcons name={icon as any} size={22} color="#334155" />
+        <MaterialCommunityIcons name={icon as any} size={22} color={colors.textPrimary} />
       </View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -112,6 +116,9 @@ function StatCard({
 
 // ── Confidence Bar ────────────────────────────────────────────────────────────
 function ConfidenceBar({ value }: { value: number }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const barColor =
     value >= 85 ? '#0D9488' : value >= 60 ? '#EA580C' : '#DC2626';
   return (
@@ -131,6 +138,9 @@ function ConfidenceBar({ value }: { value: number }) {
 
 // ── Status Pill ───────────────────────────────────────────────────────────────
 function StatusPill({ status }: { status: PropertyStatus }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const isReady = status === 'Ready';
   const isReview = status === 'REVIEW NEEDED';
   const bg = isReady
@@ -160,6 +170,9 @@ function DeleteConfirmModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <Modal
       visible={!!property}
@@ -220,6 +233,9 @@ function PropertyRowCard({
   onEdit: (p: Property) => void;
   onDeletePress: (p: Property) => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.propertyCard}>
       {/* Row 1: Thumb + Address block + Status pill */}
@@ -260,7 +276,7 @@ function PropertyRowCard({
       {/* Row 3: Sync badge + action icons */}
       <View style={styles.row3}>
         <View style={styles.syncBadge}>
-          <MaterialCommunityIcons name="cloud-check" size={11} color="#64748B" />
+          <MaterialCommunityIcons name="cloud-check" size={11} color={colors.textSecondary} />
           <Text style={styles.syncText}>{property.syncStatus}</Text>
         </View>
         <View style={styles.actionIcons}>
@@ -269,14 +285,14 @@ function PropertyRowCard({
             style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
             hitSlop={6}
           >
-            <MaterialCommunityIcons name="eye-outline" size={20} color="#0EA5E9" />
+            <MaterialCommunityIcons name="eye-outline" size={20} color={colors.accentTeal} />
           </Pressable>
           <Pressable
             onPress={() => onEdit(property)}
             style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
             hitSlop={6}
           >
-            <MaterialCommunityIcons name="square-edit-outline" size={20} color="#334155" />
+            <MaterialCommunityIcons name="square-edit-outline" size={20} color={colors.textPrimary} />
           </Pressable>
           <Pressable
             onPress={() => onDeletePress(property)}
@@ -293,6 +309,8 @@ function PropertyRowCard({
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 export default function PropertyInventoryScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -335,7 +353,7 @@ export default function PropertyInventoryScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
-        colors={['#EEF2F7', '#E2E8F0', '#EEF2F7']}
+        colors={colors.backgroundGradient as any}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -399,10 +417,11 @@ export default function PropertyInventoryScreen() {
 const CARD_GAP = 12;
 const CARD_W = (SCREEN_WIDTH - H_PADDING * 2 - CARD_GAP) / 2;
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2F7',
+    backgroundColor: 'transparent',
   },
 
 
@@ -423,11 +442,11 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: CARD_W,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     alignItems: 'flex-start',
-    shadowColor: '#94A3B8',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -437,7 +456,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -445,12 +464,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     lineHeight: 14,
   },
@@ -467,7 +486,7 @@ const styles = StyleSheet.create({
   tableHeaderText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -480,12 +499,12 @@ const styles = StyleSheet.create({
 
   // ── Property Card ──
   propertyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 10,
-    shadowColor: '#94A3B8',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -502,7 +521,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 10,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
   },
   addressBlock: {
     flex: 1,
@@ -510,12 +529,12 @@ const styles = StyleSheet.create({
   addressText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0f172a',
+    color: colors.textPrimary,
     lineHeight: 18,
   },
   idText: {
     fontSize: 10,
-    color: '#0EA5E9',
+    color: colors.accentTeal,
     fontWeight: '600',
     marginTop: 2,
     letterSpacing: 0.2,
@@ -544,7 +563,7 @@ const styles = StyleSheet.create({
   // Divider
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     marginVertical: 12,
   },
 
@@ -561,13 +580,13 @@ const styles = StyleSheet.create({
   metaColCenter: {
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 8,
   },
   metaLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -575,12 +594,12 @@ const styles = StyleSheet.create({
   metaValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: colors.textPrimary,
   },
   metaValueBold: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.textPrimary,
   },
 
   // Confidence
@@ -593,7 +612,7 @@ const styles = StyleSheet.create({
   },
   confidenceTrack: {
     height: 5,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -615,7 +634,7 @@ const styles = StyleSheet.create({
   },
   syncText: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
     letterSpacing: 0.5,
   },
@@ -628,30 +647,30 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
 
   // ── Delete Modal ──
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.45)',
+    backgroundColor: 'rgba(11, 45, 62, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
   },
   modalCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     paddingHorizontal: 28,
     paddingTop: 32,
     paddingBottom: 28,
     alignItems: 'center',
-    shadowColor: '#0f172a',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.18,
     shadowRadius: 24,
@@ -669,20 +688,20 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.textPrimary,
     marginBottom: 10,
     textAlign: 'center',
   },
   modalBody: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 28,
   },
   modalBodyBold: {
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.textPrimary,
   },
   modalBtnRow: {
     flexDirection: 'row',
@@ -693,16 +712,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 13,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   modalCancelText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#334155',
+    color: colors.textPrimary,
   },
   modalDeleteBtn: {
     flex: 1,
@@ -717,4 +736,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+  });
+}

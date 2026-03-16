@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleProp, View, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type AuthCardProps = {
   children: ReactNode;
@@ -9,19 +9,20 @@ type AuthCardProps = {
 };
 
 export default function AuthCard({ children, style }: AuthCardProps) {
+  const { colors } = useAppTheme();
   return (
     <View
       style={[
         {
-          backgroundColor: Theme.cardBackground,
-          borderRadius: Theme.cardBorderRadius,
-          paddingHorizontal: Theme.cardPaddingH,
-          paddingVertical: Theme.cardPaddingV,
+          backgroundColor: colors.cardBackground,
+          borderRadius: colors.cardBorderRadius,
+          paddingHorizontal: colors.cardPaddingH,
+          paddingVertical: colors.cardPaddingV,
           alignItems: 'center',
-          shadowColor: Theme.cardShadowColor,
-          shadowOpacity: Theme.cardShadowOpacity,
-          shadowRadius: Theme.cardShadowRadius,
-          shadowOffset: Theme.cardShadowOffset,
+          shadowColor: colors.cardShadowColor,
+          shadowOpacity: colors.cardShadowOpacity,
+          shadowRadius: colors.cardShadowRadius,
+          shadowOffset: colors.cardShadowOffset,
           elevation: 6,
         },
         style,

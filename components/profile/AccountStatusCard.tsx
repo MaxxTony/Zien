@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export type StatusItem = {
   label: string;
@@ -17,6 +17,8 @@ function AccountStatusCardComponent({
   profileStrengthPercent = 92,
   items,
 }: AccountStatusCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.card}>
       <Text style={styles.title}>ACCOUNT STATUS</Text>
@@ -35,7 +37,7 @@ function AccountStatusCardComponent({
             <MaterialCommunityIcons
               name="check-circle"
               size={18}
-              color={Theme.accentTeal}
+              color={colors.accentTeal}
             />
             <Text style={styles.listLabel}>{item.label}</Text>
           </View>
@@ -47,14 +49,15 @@ function AccountStatusCardComponent({
 
 export const AccountStatusCard = memo(AccountStatusCardComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   card: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
-    shadowColor: Theme.cardShadowColor,
+    borderColor: colors.cardBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.06,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
@@ -63,7 +66,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: 0.8,
     marginBottom: 14,
   },
@@ -76,23 +79,23 @@ const styles = StyleSheet.create({
   strengthLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   strengthValue: {
     fontSize: 13,
     fontWeight: '800',
-    color: Theme.accentTeal,
+    color: colors.accentTeal,
   },
   progressTrack: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: Theme.surfaceIcon,
+    backgroundColor: colors.surfaceIcon,
     overflow: 'hidden',
     marginBottom: 14,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Theme.accentTeal,
+    backgroundColor: colors.accentTeal,
     borderRadius: 4,
   },
   list: {
@@ -106,6 +109,7 @@ const styles = StyleSheet.create({
   listLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
 });
+}

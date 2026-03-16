@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Calendar from 'expo-calendar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
@@ -76,6 +77,9 @@ const PLATFORM_CONFIG: Record<Platform, { icon: string, label: string, color: st
 };
 
 export default function SchedulerScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -254,7 +258,7 @@ export default function SchedulerScreen() {
                 style={styles.modalImage}
               />
               <Pressable style={styles.closeBtn} onPress={() => setSelectedEvent(null)}>
-                <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
               </Pressable>
               <View style={styles.modalPlatformBadge}>
                 <MaterialCommunityIcons
@@ -273,16 +277,16 @@ export default function SchedulerScreen() {
               <View style={styles.modalTitleRow}>
                 <Text style={styles.modalEventTitle}>{selectedEvent?.label}</Text>
                 <View style={styles.statusBadge}>
-                  <MaterialCommunityIcons name="clock-outline" size={12} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textPrimary} />
                   <Text style={styles.statusText}>{selectedEvent?.status}</Text>
                 </View>
               </View>
 
               <View style={styles.metaRow}>
-                <MaterialCommunityIcons name="clock-time-four-outline" size={16} color="#94A3B8" />
+                <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={colors.textMuted} />
                 <Text style={styles.metaText}>{selectedEvent?.time}</Text>
                 <View style={styles.metaDivider} />
-                <MaterialCommunityIcons name="map-marker-outline" size={16} color="#94A3B8" />
+                <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.textMuted} />
                 <Text style={styles.metaText}>{selectedEvent?.location}</Text>
               </View>
 
@@ -298,7 +302,7 @@ export default function SchedulerScreen() {
                     router.push('/(main)/social-hub/create-post'); // Simulate edit navigation
                   }}
                 >
-                  <MaterialCommunityIcons name="pencil-outline" size={18} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.textPrimary} />
                   <Text style={styles.modalActionTextOutline}>Edit Post</Text>
                 </Pressable>
                 <Pressable
@@ -317,7 +321,8 @@ export default function SchedulerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   header: {
     paddingHorizontal: 20,
@@ -331,7 +336,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -343,11 +348,11 @@ const styles = StyleSheet.create({
   screenTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   screenSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   controlsSection: {
     paddingHorizontal: 20,
@@ -359,14 +364,14 @@ const styles = StyleSheet.create({
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     gap: 16,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 10,
@@ -390,12 +395,12 @@ const styles = StyleSheet.create({
   // Calendar
   calendarContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     overflow: 'hidden',
     marginHorizontal: 20,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 30,
@@ -406,7 +411,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
     paddingBottom: 8,
   },
   weekHeaderText: {
@@ -414,7 +419,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
   },
   daysGrid: {
     flexDirection: 'row',
@@ -425,7 +430,7 @@ const styles = StyleSheet.create({
     height: 85,
     borderRightWidth: 0.5,
     borderBottomWidth: 0.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     padding: 4,
   },
   dayText: {
@@ -463,7 +468,7 @@ const styles = StyleSheet.create({
   },
   moreCount: {
     fontSize: 9,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '800',
     marginTop: 2,
     marginLeft: 4,
@@ -480,10 +485,10 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 30,
@@ -491,7 +496,7 @@ const styles = StyleSheet.create({
   },
   modalImageContainer: {
     height: 180,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.cardBorder,
     position: 'relative',
   },
   modalImage: {
@@ -506,10 +511,10 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
@@ -520,7 +525,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -545,7 +550,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     lineHeight: 24,
   },
   statusBadge: {
@@ -556,7 +561,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 0.5,
   },
   metaRow: {
@@ -567,7 +572,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '600',
     marginLeft: 6,
   },
@@ -580,7 +585,7 @@ const styles = StyleSheet.create({
   },
   modalDescription: {
     fontSize: 14,
-    color: '#475569',
+    color: colors.textSecondary,
     lineHeight: 22,
     marginBottom: 24,
   },
@@ -597,12 +602,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   modalActionTextOutline: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   modalActionBtnPrimary: {
     flex: 1,
@@ -610,11 +615,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
   },
   modalActionTextPrimary: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+  });
+}

@@ -1,6 +1,6 @@
 import { StyleProp, Text, TextStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type AuthSubtitleProps = {
   children: string;
@@ -9,12 +9,13 @@ type AuthSubtitleProps = {
 };
 
 export default function AuthSubtitle({ children, style, center }: AuthSubtitleProps) {
+  const { colors } = useAppTheme();
   return (
     <Text
       style={[
         {
           fontSize: 13.5,
-          color: Theme.textSecondary,
+          color: colors.textSecondary,
           marginTop: 6,
           marginBottom: 18,
         },

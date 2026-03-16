@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import React, { useMemo, useState } from 'react';
 import {
   Dimensions,
@@ -254,6 +255,9 @@ function getPropertyById(id: string | undefined): PropertyDetail | null {
 
 // ── Score Bar ──────────────────────────────────────────────────────────────────
 function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
+  const { colors } = useAppTheme();
+  const mapStyles = getMapStyles(colors);
+
   return (
     <View style={mapStyles.scoreRow}>
       <Text style={mapStyles.scoreLabel}>{label}</Text>
@@ -275,6 +279,9 @@ function NeighborhoodMapModal({
   onClose: () => void;
   property: PropertyDetail;
 }) {
+  const { colors } = useAppTheme();
+  const mapStyles = getMapStyles(colors);
+
   const MapComponent = Platform.OS === 'ios' ? AppleMaps.View : GoogleMaps.View;
   const { latitude, longitude } = property.coordinates;
 
@@ -303,7 +310,7 @@ function NeighborhoodMapModal({
             <Text style={mapStyles.subtitle}>Satellite visualization and spatial points of interest</Text>
           </View>
           <Pressable onPress={onClose} style={mapStyles.closeBtn} hitSlop={12}>
-            <MaterialCommunityIcons name="close" size={20} color="#64748B" />
+            <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
           </Pressable>
         </View>
 
@@ -331,15 +338,15 @@ function NeighborhoodMapModal({
             style={({ pressed }) => [mapStyles.openMapsBtn, pressed && { opacity: 0.8 }]}
             onPress={openInMaps}
           >
-            <MaterialCommunityIcons name="navigation" size={16} color="#FFF" />
+            <MaterialCommunityIcons name="navigation" size={16} color='#FFFFFF' />
             <Text style={mapStyles.openMapsBtnText}>Open in Maps</Text>
           </Pressable>
 
           <View style={mapStyles.body}>
             {/* Grade Scores */}
             <Text style={mapStyles.sectionLabel}>INSTITUTIONAL GRADE SCORES</Text>
-            <ScoreBar label="Walk Score" value={property.walkScore} color="#0D9488" />
-            <ScoreBar label="Transit Score" value={property.transitScore} color="#0EA5E9" />
+            <ScoreBar label="Walk Score" value={property.walkScore} color={colors.accentTeal} />
+            <ScoreBar label="Transit Score" value={property.transitScore} color={colors.accentTeal} />
             <ScoreBar label="Bike Score" value={property.bikeScore} color="#8B5CF6" />
 
             {/* Schools */}
@@ -360,8 +367,9 @@ function NeighborhoodMapModal({
   );
 }
 
-const mapStyles = StyleSheet.create({
-  modal: { flex: 1, backgroundColor: '#FFFFFF' },
+function getMapStyles(colors: any) {
+  return StyleSheet.create({
+  modal: { flex: 1, backgroundColor: colors.cardBackground },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -370,14 +378,14 @@ const mapStyles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.cardBorder,
   },
   headerText: { flex: 1, marginRight: 12 },
-  title: { fontSize: 20, fontWeight: '800', color: '#0f172a', letterSpacing: -0.3 },
-  subtitle: { fontSize: 12, color: '#64748B', marginTop: 3, lineHeight: 17 },
+  title: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.3 },
+  subtitle: { fontSize: 12, color: colors.textSecondary, marginTop: 3, lineHeight: 17 },
   closeBtn: {
     width: 34, height: 34, borderRadius: 17,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center', justifyContent: 'center',
   },
   mapWrap: {
@@ -386,7 +394,7 @@ const mapStyles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
   },
   map: { flex: 1 },
   openMapsBtn: {
@@ -399,10 +407,10 @@ const mapStyles = StyleSheet.create({
     marginBottom: 4,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.accentTeal,
   },
   openMapsBtnText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -410,7 +418,7 @@ const mapStyles = StyleSheet.create({
   sectionLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 12,
@@ -421,11 +429,11 @@ const mapStyles = StyleSheet.create({
     gap: 10,
     marginBottom: 12,
   },
-  scoreLabel: { fontSize: 13, fontWeight: '600', color: '#334155', width: 100 },
+  scoreLabel: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, width: 100 },
   scoreTrack: {
     flex: 1,
     height: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -436,18 +444,19 @@ const mapStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 8,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surfaceSoft,
   },
   schoolLeft: { flex: 1, marginRight: 12 },
-  schoolName: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
-  schoolInfo: { fontSize: 11, color: '#64748B', marginTop: 2 },
-  schoolRating: { fontSize: 14, fontWeight: '800', color: '#0D9488' },
-});
+  schoolName: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  schoolInfo: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  schoolRating: { fontSize: 14, fontWeight: '800', color: colors.accentTeal },
+  });
+}
 
 
 // ── Spec Cell ─────────────────────────────────────────────────────────────────
@@ -460,6 +469,9 @@ function SpecCell({
   value: string | number;
   dot?: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.specCell}>
       <Text style={styles.specCellLabel}>{label}</Text>
@@ -472,6 +484,9 @@ function SpecCell({
 }
 
 export default function PropertyDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -521,7 +536,7 @@ export default function PropertyDetailScreen() {
           style={styles.backBtn}
           onPress={() => router.back()}
         >
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
+          <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
         </Pressable>
       </View>
     );
@@ -537,7 +552,7 @@ export default function PropertyDetailScreen() {
 
   return (
     <LinearGradient
-      colors={['#EEF2F7', '#E2E8F0', '#EEF2F7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.container, { paddingTop: insets.top }]}
@@ -578,8 +593,8 @@ export default function PropertyDetailScreen() {
                 <View style={[styles.confBarFill, { width: `${property.confidence}%`, backgroundColor: confColor }]} />
               </View>
               <Text style={styles.confBadgeTextPremium}>
-                <Text style={{ fontWeight: '900', color: '#0B2D3E' }}>{property.confidence}% </Text>
-                <Text style={{ fontWeight: '500', color: '#0B2D3E' }}>Confidence</Text>
+                <Text style={{ fontWeight: '900', color: colors.textPrimary }}>{property.confidence}% </Text>
+                <Text style={{ fontWeight: '500', color: colors.textPrimary }}>Confidence</Text>
               </Text>
             </View>
           </View>
@@ -611,10 +626,10 @@ export default function PropertyDetailScreen() {
           {/* Left/Right arrows */}
           <View style={styles.carouselArrows} pointerEvents="box-none">
             <Pressable style={styles.arrowBtn} onPress={(e) => { e.stopPropagation(); handlePrev(); }}>
-              <MaterialCommunityIcons name="chevron-left" size={22} color="#FFF" />
+              <MaterialCommunityIcons name="chevron-left" size={22} color='#FFFFFF' />
             </Pressable>
             <Pressable style={styles.arrowBtn} onPress={(e) => { e.stopPropagation(); handleNext(); }}>
-              <MaterialCommunityIcons name="chevron-right" size={22} color="#FFF" />
+              <MaterialCommunityIcons name="chevron-right" size={22} color='#FFFFFF' />
             </Pressable>
           </View>
 
@@ -627,7 +642,7 @@ export default function PropertyDetailScreen() {
 
           {/* Tap-to-expand hint */}
           <View style={styles.expandHint}>
-            <MaterialCommunityIcons name="image-multiple-outline" size={14} color="#FFF" />
+            <MaterialCommunityIcons name="image-multiple-outline" size={14} color='#FFFFFF' />
             <Text style={styles.expandHintText}>Tap to view all</Text>
           </View>
         </Pressable>
@@ -723,7 +738,7 @@ export default function PropertyDetailScreen() {
 
           {/* Automated Insight */}
           <View style={styles.insightRow}>
-            <MaterialCommunityIcons name="information-outline" size={16} color="#0D9488" />
+            <MaterialCommunityIcons name="information-outline" size={16} color={colors.accentTeal} />
             <Text style={styles.insightHeading}>AUTOMATED INSIGHT</Text>
           </View>
           <Text style={styles.insightText}>{property.aiInsight}</Text>
@@ -735,7 +750,7 @@ export default function PropertyDetailScreen() {
 
           <View style={styles.walkScoreRow}>
             <View style={styles.walkScoreLeft}>
-              <MaterialCommunityIcons name="map-marker-outline" size={22} color="#0f172a" />
+              <MaterialCommunityIcons name="map-marker-outline" size={22} color={colors.textPrimary} />
               <View>
                 <Text style={styles.walkScoreNum}>{property.walkScore}</Text>
                 <Text style={styles.walkScoreSmall}>WALK SCORE</Text>
@@ -792,7 +807,7 @@ export default function PropertyDetailScreen() {
               style={styles.galleryCloseX}
               hitSlop={10}
             >
-              <MaterialCommunityIcons name="close" size={20} color="#64748B" />
+              <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
             </Pressable>
           </View>
 
@@ -846,15 +861,16 @@ export default function PropertyDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   container: { flex: 1 },
   centered: { justifyContent: 'center', alignItems: 'center' },
-  notFoundText: { fontSize: 16, color: '#5B6B7A', marginBottom: 16 },
+  notFoundText: { fontSize: 16, color: colors.textSecondary, marginBottom: 16 },
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
@@ -872,7 +888,7 @@ const styles = StyleSheet.create({
   headerAddress: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
     lineHeight: 30,
   },
@@ -890,7 +906,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
   },
   headerActionsRow: {
@@ -903,13 +919,13 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     gap: 12,
     ...Platform.select({
-      ios: { shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6 },
       android: { elevation: 2 },
     }),
   },
@@ -935,7 +951,7 @@ const styles = StyleSheet.create({
   confBarSmall: {
     width: 30,
     height: 4,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -948,9 +964,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 16,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
     ...Platform.select({
-      ios: { shadowColor: '#0B2D3E', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
       android: { elevation: 3 },
     }),
   },
@@ -983,20 +999,20 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
   },
-  phaseBadgeText: { color: '#FFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  phaseBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
   // ── Shared card ──
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
     ...Platform.select({
-      ios: { shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
       android: { elevation: 2 },
     }),
   },
-  cardDivider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 14 },
+  cardDivider: { height: 1, backgroundColor: colors.surfaceSoft, marginVertical: 14 },
 
   // ── Property Profile card ──
   profileHeaderRow: {
@@ -1007,8 +1023,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   profileTitleBlock: { flex: 1 },
-  profileTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
-  profileSubtitle: { fontSize: 11, color: '#94A3B8', marginTop: 3, lineHeight: 16 },
+  profileTitle: { fontSize: 17, fontWeight: '800', color: colors.textPrimary },
+  profileSubtitle: { fontSize: 11, color: colors.inputPlaceholder, marginTop: 3, lineHeight: 16 },
   autoScanBadge: {
     backgroundColor: 'rgba(13,148,136,0.10)',
     paddingHorizontal: 9,
@@ -1020,7 +1036,7 @@ const styles = StyleSheet.create({
   autoScanText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#0D9488',
+    color: colors.accentTeal,
     letterSpacing: 0.4,
     textAlign: 'center',
     lineHeight: 13,
@@ -1035,39 +1051,39 @@ const styles = StyleSheet.create({
   },
   specRowDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
   },
   specCell: { flex: 1, paddingHorizontal: 4 },
   specCellLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 5,
   },
   specCellValueRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  specCellValue: { fontSize: 14, fontWeight: '700', color: '#0f172a', flexShrink: 1 },
-  specDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#0D9488' },
+  specCellValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary, flexShrink: 1 },
+  specDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accentTeal },
 
   neighborhoodContextLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 6,
   },
   neighborhoodContextText: {
     fontSize: 13,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     lineHeight: 19,
   },
 
   // ── Gallery modal ──
   galleryModal: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   galleryHeader: {
     flexDirection: 'row',
@@ -1077,24 +1093,24 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.cardBorder,
   },
   galleryTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.textPrimary,
     letterSpacing: -0.3,
   },
   gallerySubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 3,
   },
   galleryCloseX: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -1110,12 +1126,12 @@ const styles = StyleSheet.create({
     aspectRatio: 4 / 3,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
     position: 'relative',
   },
   galleryThumbActive: {
     borderWidth: 2.5,
-    borderColor: '#0D9488',
+    borderColor: colors.accentTeal,
   },
   galleryThumb: {
     width: '100%',
@@ -1130,13 +1146,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   galleryBadgeCurrent: {
-    backgroundColor: '#0D9488',
+    backgroundColor: colors.accentTeal,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 5,
   },
   galleryBadgeMain: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.textPrimary,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 5,
@@ -1162,7 +1178,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   expandHintText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -1170,27 +1186,27 @@ const styles = StyleSheet.create({
   // ── AI Valuation card ──
   aiValuationBadge: {
     alignSelf: 'flex-end',
-    backgroundColor: '#0D9488',
+    backgroundColor: colors.accentTeal,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
     marginBottom: 10,
   },
-  aiValuationBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '800', letterSpacing: 0.6 },
+  aiValuationBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '800', letterSpacing: 0.6 },
   valuationPrice: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#0f172a',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  valuationLabel: { fontSize: 12, color: '#64748B', marginTop: 2, marginBottom: 4 },
+  valuationLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2, marginBottom: 4 },
   valuationRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 10,
     marginBottom: 8,
   },
@@ -1201,19 +1217,19 @@ const styles = StyleSheet.create({
     borderColor: '#EA580C',
     marginBottom: 0,
   },
-  valuationRowLabel: { fontSize: 13, color: '#5B6B7A', fontWeight: '500' },
-  valuationRowValue: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  valuationRowLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  valuationRowValue: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
   avmLabel: { fontSize: 13, color: '#C2410C', fontWeight: '700' },
   avmValue: { fontSize: 15, fontWeight: '800', color: '#C2410C' },
   insightRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  insightHeading: { fontSize: 11, fontWeight: '800', color: '#0D9488', letterSpacing: 0.5 },
-  insightText: { fontSize: 13, color: '#334155', lineHeight: 19 },
+  insightHeading: { fontSize: 11, fontWeight: '800', color: colors.accentTeal, letterSpacing: 0.5 },
+  insightText: { fontSize: 13, color: colors.textPrimary, lineHeight: 19 },
 
   // ── Location Analysis card ──
   sectionHeading: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 14,
@@ -1225,17 +1241,17 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   walkScoreLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  walkScoreNum: { fontSize: 28, fontWeight: '900', color: '#0f172a', lineHeight: 30 },
-  walkScoreSmall: { fontSize: 9, fontWeight: '700', color: '#94A3B8', letterSpacing: 0.5 },
-  walkLabel: { fontSize: 11, fontWeight: '800', color: '#0EA5E9', letterSpacing: 0.3 },
+  walkScoreNum: { fontSize: 28, fontWeight: '900', color: colors.textPrimary, lineHeight: 30 },
+  walkScoreSmall: { fontSize: 9, fontWeight: '700', color: colors.inputPlaceholder, letterSpacing: 0.5 },
+  walkLabel: { fontSize: 11, fontWeight: '800', color: colors.accentTeal, letterSpacing: 0.3 },
   mapBtn: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 10,
     paddingVertical: 11,
     alignItems: 'center',
   },
-  mapBtnText: { fontSize: 13, fontWeight: '700', color: '#0f172a' },
+  mapBtnText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
 
   // ── Data Integrity Score card ──
   integrityHeaderRow: {
@@ -1247,11 +1263,12 @@ const styles = StyleSheet.create({
   integrityPct: { fontSize: 15, fontWeight: '800' },
   integrityTrack: {
     height: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 4,
     overflow: 'hidden',
   },
   integrityFill: { height: '100%', borderRadius: 4 },
 
 
-});
+  });
+}

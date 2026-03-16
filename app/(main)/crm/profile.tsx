@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/ui';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -15,7 +16,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
-    const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const insets = useSafeAreaInsets();
     const router = useRouter();
 
     // Notes State
@@ -49,7 +52,7 @@ export default function ProfileScreen() {
 
     return (
         <LinearGradient
-            colors={['#F8FAFC', '#F1F5F9']}
+            colors={colors.backgroundGradient as any}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.background, { paddingTop: insets.top }]}>
@@ -245,7 +248,7 @@ export default function ProfileScreen() {
                                 <View style={styles.timelineBody}>
                                     <Text style={styles.timelineTitle}>CRM Sync: Instagram captured</Text>
                                     <View style={styles.timelineMeta}>
-                                        <Text style={[styles.statusText, { color: '#64748B' }]}>Logged</Text>
+                                        <Text style={[styles.statusText, { color: colors.textSecondary }]}>Logged</Text>
                                         <Text style={styles.metaDivider}>•</Text>
                                         <Text style={styles.timeText}>Yesterday</Text>
                                     </View>
@@ -260,14 +263,15 @@ export default function ProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
     background: { flex: 1 },
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 16 },
     contentGrid: { gap: 16 },
 
     premiumCard: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         padding: 24,
         shadowColor: '#0F172A',
@@ -276,7 +280,7 @@ const styles = StyleSheet.create({
         shadowRadius: 20,
         elevation: 4,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
     },
 
     // Header Content
@@ -325,7 +329,7 @@ const styles = StyleSheet.create({
     },
     profileContact: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '600',
         marginBottom: 16,
     },
@@ -345,7 +349,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     actionBtnLight: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 10,
@@ -388,7 +392,7 @@ const styles = StyleSheet.create({
     heatScoreMax: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#94A3B8',
+        color: colors.inputPlaceholder,
     },
     heatStatusText: {
         fontSize: 11,
@@ -428,7 +432,7 @@ const styles = StyleSheet.create({
     pipelineTitleSmall: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#94A3B8',
+        color: colors.inputPlaceholder,
         letterSpacing: 1,
         marginBottom: 8,
     },
@@ -493,7 +497,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 15,
         fontWeight: '600',
-        color: '#1E293B',
+        color: colors.textPrimary,
         textAlignVertical: 'top',
         lineHeight: 22,
     },
@@ -506,9 +510,9 @@ const styles = StyleSheet.create({
     },
     aiIconBadge: {
         flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         borderRadius: 12,
         padding: 6,
         gap: 6,
@@ -528,7 +532,7 @@ const styles = StyleSheet.create({
     cancelNoteText: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     saveInlineBtn: {
         backgroundColor: '#0B213E',
@@ -552,11 +556,11 @@ const styles = StyleSheet.create({
     },
     notesList: { gap: 12 },
     noteCard: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
     },
     noteHeader: {
         flexDirection: 'row',
@@ -567,18 +571,18 @@ const styles = StyleSheet.create({
     noteLabel: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#94A3B8',
+        color: colors.inputPlaceholder,
         letterSpacing: 0.5,
     },
     noteDate: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#94A3B8',
+        color: colors.inputPlaceholder,
     },
     noteContent: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#1E293B',
+        color: colors.textPrimary,
         lineHeight: 20,
     },
 
@@ -599,11 +603,11 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
     },
     timelineBody: {
         flex: 1,
@@ -631,6 +635,7 @@ const styles = StyleSheet.create({
     timeText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#94A3B8',
+        color: colors.inputPlaceholder,
     },
-});
+  });
+}

@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { memo } from 'react';
@@ -23,13 +23,15 @@ type BillingScreenHeaderProps = {
 };
 
 function BillingScreenHeaderComponent({ activeTab, onTabChange }: BillingScreenHeaderProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
 
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color={Theme.textPrimary} />
+          <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>Billing & Usage</Text>
@@ -55,7 +57,7 @@ function BillingScreenHeaderComponent({ activeTab, onTabChange }: BillingScreenH
               <MaterialCommunityIcons
                 name={t.icon as any}
                 size={16}
-                color={isActive ? Theme.textPrimary : Theme.textSecondary}
+                color={isActive ? colors.textPrimary : colors.textSecondary}
                 style={styles.tabIcon}
               />
               <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{t.label}</Text>
@@ -69,7 +71,8 @@ function BillingScreenHeaderComponent({ activeTab, onTabChange }: BillingScreenH
 
 export const BillingScreenHeader = memo(BillingScreenHeaderComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   wrap: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -151,3 +154,4 @@ const styles = StyleSheet.create({
     color: '#0B2D3E',
   },
 });
+}

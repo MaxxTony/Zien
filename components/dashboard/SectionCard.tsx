@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -18,12 +18,16 @@ function SectionCardComponent({
   onLinkPress,
   children,
   style,
-  accent = Theme.accentTeal,
+  accent,
 }: SectionCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const activeAccent = accent ?? colors.accentTeal;
+
   return (
     <View style={[styles.card, style]}>
       {/* Subtle top accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: accent }]} />
+      <View style={[styles.accentBar, { backgroundColor: activeAccent }]} />
 
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
@@ -32,8 +36,8 @@ function SectionCardComponent({
             style={({ pressed }) => [styles.linkBtn, pressed && { opacity: 0.7 }]}
             onPress={onLinkPress}
           >
-            <Text style={[styles.linkText, { color: accent }]}>{linkLabel}</Text>
-            <MaterialCommunityIcons name="chevron-right" size={14} color={accent} />
+            <Text style={[styles.linkText, { color: activeAccent }]}>{linkLabel}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={14} color={activeAccent} />
           </Pressable>
         )}
       </View>
@@ -44,16 +48,17 @@ function SectionCardComponent({
 
 export const SectionCard = memo(SectionCardComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     paddingTop: 0,
     paddingHorizontal: 18,
     paddingBottom: 18,
     borderWidth: 1,
-    borderColor: 'rgba(228,234,242,0.85)',
-    shadowColor: '#0A2F48',
+    borderColor: colors.cardBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.08,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
@@ -76,7 +81,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15.5,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: 0.1,
   },
   linkBtn: {
@@ -86,10 +91,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 999,
-    backgroundColor: `${Theme.accentTeal}12`,
+    backgroundColor: `${colors.accentTeal}12`,
   },
   linkText: {
     fontSize: 12.5,
     fontWeight: '800',
   },
 });
+}

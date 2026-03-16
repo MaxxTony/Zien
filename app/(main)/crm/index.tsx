@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
@@ -99,6 +100,8 @@ const ACTIVITY_LOG_DATA = [
 ];
 
 export default function CRMScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [overviewTab, setOverviewTab] = useState<(typeof OVERVIEW_TABS)[number]['id']>('overview');
@@ -120,20 +123,20 @@ export default function CRMScreen() {
 
   const chartConfig = useMemo(
     () => ({
-      backgroundGradientFrom: '#FFFFFF',
-      backgroundGradientTo: '#FFFFFF',
+      backgroundGradientFrom: colors.cardBackground,
+      backgroundGradientTo: colors.cardBackground,
       decimalPlaces: 0,
       color: (opacity = 1) => `rgba(11, 160, 178, ${opacity * 0.85})`,
-      labelColor: (opacity = 1) => `rgba(91, 107, 122, ${opacity})`,
+      labelColor: (opacity = 1) => colors.textSecondary,
       barPercentage: 0.65,
-      propsForBackgroundLines: { stroke: '#E8EEF6', strokeDasharray: '4 6' },
+      propsForBackgroundLines: { stroke: colors.cardBorder, strokeDasharray: '4 6' },
     }),
-    []
+    [colors]
   );
 
   return (
     <LinearGradient
-      colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -221,7 +224,7 @@ export default function CRMScreen() {
                 />
               </View>
               <LinearGradient
-                colors={['#F8FAFC', '#F1F5F9']}
+                colors={[colors.cardBackground, colors.surfaceSoft]}
                 style={styles.velocityFooter}>
                 <View>
                   <Text style={styles.velocityLabel}>TOP PERFORMING SOURCE</Text>
@@ -368,7 +371,7 @@ export default function CRMScreen() {
                 <MaterialCommunityIcons
                   name={section.icon}
                   size={22}
-                  color={!section.route ? '#FFFFFF' : '#0B2D3E'}
+                  color={!section.route ? '#FFFFFF' : colors.textPrimary}
                 />
               </View>
               <Text style={styles.sectionLabel}>{section.label}</Text>
@@ -396,7 +399,7 @@ export default function CRMScreen() {
           {/* Header */}
           <View style={[styles.activityLogHeader, { paddingTop: insets.top + 16 }]}>
             <View style={styles.activityLogTitleRow}>
-              <MaterialCommunityIcons name="pulse" size={24} color="#0B2D3E" />
+              <MaterialCommunityIcons name="pulse" size={24} color={colors.textPrimary} />
               <View style={styles.activityLogTitleText}>
                 <Text style={styles.activityLogTitle}>Continuous Activity Log</Text>
                 <Text style={styles.activityLogSubtitle}>Real-time feed of all CRM activities and interactions</Text>
@@ -418,13 +421,13 @@ export default function CRMScreen() {
                 style={[
                   styles.activityLogItem,
                   {
-                    backgroundColor: activity.bgColor,
-                    borderLeftColor: activity.leftBorder,
+                    backgroundColor: colors.cardBackground,
+                    borderLeftColor: activity.leftBorder === 'transparent' ? colors.cardBorder : activity.leftBorder,
                     borderLeftWidth: activity.leftBorder !== 'transparent' ? 4 : 0,
                   }
                 ]}>
                 <View style={styles.activityLogIcon}>
-                  <MaterialCommunityIcons name={activity.icon} size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name={activity.icon} size={20} color={colors.textPrimary} />
                 </View>
                 <View style={styles.activityLogDetails}>
                   <View style={styles.activityLogRow}>
@@ -464,7 +467,8 @@ export default function CRMScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16 },
@@ -479,17 +483,17 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     paddingHorizontal: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
   },
-  secondaryBtnText: { fontSize: 13, fontWeight: '700', color: '#1E293B' },
+  secondaryBtnText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
   primaryBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -497,7 +501,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -518,25 +522,25 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'center',
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: colors.surfaceSoft,
   },
   tabActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  tabLabel: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-  tabLabelActive: { color: '#0F172A', fontWeight: '800' },
+  tabLabel: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
+  tabLabelActive: { color: colors.textPrimary, fontWeight: '800' },
   tabUnderline: {
     display: 'none',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 16,
     letterSpacing: -0.3,
   },
@@ -547,7 +551,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   statCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 16,
     shadowColor: '#0F172A',
@@ -556,7 +560,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   statHeader: {
     flexDirection: 'row',
@@ -568,12 +572,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#F0F9FA',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   metaBadge: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -582,10 +586,10 @@ const styles = StyleSheet.create({
   statBody: {
     gap: 2,
   },
-  statValue: { fontSize: 24, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5 },
-  statTitle: { fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statValue: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
+  statTitle: { fontSize: 11, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     marginBottom: 20,
@@ -595,7 +599,7 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -603,7 +607,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  cardTitle: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
   viewAllText: { fontSize: 13, fontWeight: '700', color: '#0BA0B2' },
   chartWrap: { alignItems: 'center', marginVertical: 10 },
   chart: { borderRadius: 16 },
@@ -612,17 +616,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
-  velocityLabel: { fontSize: 10, fontWeight: '800', color: '#94A3B8', letterSpacing: 0.8 },
-  velocityValue: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginTop: 4 },
+  velocityLabel: { fontSize: 10, fontWeight: '800', color: colors.inputPlaceholder, letterSpacing: 0.8 },
+  velocityValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary, marginTop: 4 },
   velocityRight: { alignItems: 'flex-end' },
   leadRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
     gap: 14,
   },
   leadRowLast: { borderBottomWidth: 0 },
@@ -630,31 +634,31 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  avatarText: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
   leadInfo: { flex: 1, gap: 2 },
-  leadName: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
-  leadSource: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  leadName: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  leadSource: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
   leadRight: { alignItems: 'flex-end', gap: 4 },
   scoreBadge: {
-    backgroundColor: '#F0F9FA',
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   scoreText: { fontSize: 13, fontWeight: '800', color: '#0BA0B2' },
-  leadScore: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
-  leadTime: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  leadScore: { fontSize: 15, fontWeight: '800', color: colors.textPrimary },
+  leadTime: { fontSize: 12, color: colors.inputPlaceholder, fontWeight: '600' },
   cardLinkBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 16,
     paddingVertical: 12,
-    backgroundColor: '#F0F9FA',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     gap: 6,
   },
@@ -666,7 +670,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   leadSourceCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 16,
     shadowColor: '#000',
@@ -675,7 +679,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   leadSourceHeader: {
     flexDirection: 'row',
@@ -691,27 +695,27 @@ const styles = StyleSheet.create({
   leadSourceLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   leadSourceValue: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   leadSourceMeta: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   leadSourceFooter: {
     marginTop: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
     gap: 6,
   },
   leadSourceRow: {
@@ -722,22 +726,22 @@ const styles = StyleSheet.create({
   leadSourceLabelSmall: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
   },
   leadSourceConv: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   leadSourceConvTeal: { color: '#0BA0B2' },
   leadSourceRoi: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   leadSourceRoiGreen: { color: '#10B981' },
   funnelCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     marginBottom: 24,
@@ -747,12 +751,12 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   funnelTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   funnelBar: {
     flexDirection: 'row',
@@ -768,16 +772,16 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(11, 160, 178, 0.4)',
   },
-  funnelBarLabel: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  funnelBarLabel: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   funnelValueContainer: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  funnelBarValue: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  funnelBarValue: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
   heatCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
@@ -787,12 +791,12 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   heatCardTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   heatDistributionRow: {
     flexDirection: 'row',
@@ -802,14 +806,14 @@ const styles = StyleSheet.create({
   },
   heatDistributionItem: { flex: 1, alignItems: 'center', gap: 4 },
   heatDistributionPct: { fontSize: 24, fontWeight: '900', letterSpacing: -1 },
-  heatDistributionSub: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  heatDistributionSub: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
   heatTriggerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 14,
     marginBottom: 8,
     gap: 12,
@@ -819,14 +823,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heatTriggerLabel: { fontSize: 13, fontWeight: '600', color: '#1E293B', flex: 1 },
+  heatTriggerLabel: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, flex: 1 },
   heatTriggerPts: { fontSize: 13, fontWeight: '800', color: '#0BA0B2' },
   sectionsList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 8,
     shadowColor: '#000',
@@ -845,22 +849,22 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 4,
   },
-  sectionRowPressed: { backgroundColor: '#F8FAFC' },
+  sectionRowPressed: { backgroundColor: colors.surfaceSoft },
   sectionIconWrap: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionIconWrapActive: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
   },
-  sectionLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#1E293B' },
-  sectionBadge: { fontSize: 13, fontWeight: '700', color: '#64748B', marginRight: 4 },
+  sectionLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  sectionBadge: { fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginRight: 4 },
   currentBadge: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
@@ -869,14 +873,14 @@ const styles = StyleSheet.create({
   // Activity Log Modal Styles
   activityLogContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
   activityLogHeader: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8EEF4',
+    borderBottomColor: colors.cardBorder,
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
@@ -892,12 +896,12 @@ const styles = StyleSheet.create({
   activityLogTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   activityLogSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 2,
     fontWeight: '600',
   },
@@ -926,7 +930,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -946,16 +950,16 @@ const styles = StyleSheet.create({
   activityLogActor: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   activityLogAction: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   activityLogDetail: {
     fontSize: 13,
-    color: '#1E293B',
+    color: colors.textPrimary,
     fontWeight: '700',
   },
   activityLogScoreBadge: {
@@ -986,7 +990,7 @@ const styles = StyleSheet.create({
   },
   activityLogTime: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
     minWidth: 70,
     textAlign: 'right',
@@ -997,20 +1001,20 @@ const styles = StyleSheet.create({
   },
   activityLogFooterText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
   },
   activityLogFooter: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
+    borderTopColor: colors.cardBorder,
   },
   activityLogCloseButton: {
     paddingVertical: 16,
     borderRadius: 16,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -1022,4 +1026,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-});
+  });
+}

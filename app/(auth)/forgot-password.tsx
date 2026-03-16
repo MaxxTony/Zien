@@ -6,9 +6,11 @@ import GradientButton from '@/components/ui/GradientButton';
 import LabeledInput from '@/components/ui/labeled-input';
 import OutlineButton from '@/components/ui/OutlineButton';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function ForgotPasswordScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
 
   return (
@@ -41,11 +43,12 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     justifyContent: 'center',
   },
   form: {
@@ -61,3 +64,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+}

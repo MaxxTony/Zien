@@ -1,6 +1,6 @@
 import { Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type OutlineButtonProps = {
   title: string;
@@ -10,6 +10,9 @@ type OutlineButtonProps = {
 };
 
 export default function OutlineButton({ title, onPress, style, textStyle }: OutlineButtonProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <Pressable style={[styles.button, style]} onPress={onPress}>
       <Text style={[styles.text, textStyle]}>{title}</Text>
@@ -17,18 +20,18 @@ export default function OutlineButton({ title, onPress, style, textStyle }: Outl
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   button: {
-    borderRadius: Theme.buttonBorderRadius,
+    borderRadius: colors.buttonBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.outlineButtonBorder,
-    backgroundColor: Theme.outlineButtonBackground,
+    borderColor: colors.outlineButtonBorder,
+    backgroundColor: colors.outlineButtonBackground,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 11,
   },
   text: {
-    color: Theme.outlineButtonText,
+    color: colors.outlineButtonText,
     fontSize: 14.5,
     fontWeight: '600',
   },

@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -67,7 +68,9 @@ const TEMPLATES_DATA: Template[] = [
 ];
 
 export default function CRM_TemplatesScreen() {
-    const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const insets = useSafeAreaInsets();
     const router = useRouter();
     const [templates, setTemplates] = useState<Template[]>(TEMPLATES_DATA);
 
@@ -100,7 +103,7 @@ export default function CRM_TemplatesScreen() {
         <View key={template.id} style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={styles.iconWrap}>
-                    <MaterialCommunityIcons name="lightning-bolt-outline" size={20} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="lightning-bolt-outline" size={20} color={colors.textPrimary} />
                 </View>
                 <View style={styles.headerRight}>
                     <View style={[styles.statusToggle, template.isActive ? styles.activeToggleBg : styles.pausedToggleBg]}>
@@ -146,7 +149,7 @@ export default function CRM_TemplatesScreen() {
 
     return (
         <LinearGradient
-            colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+            colors={colors.backgroundGradient as any}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.9, y: 1 }}
             style={[styles.container, { paddingTop: insets.top }]}
@@ -236,7 +239,8 @@ export default function CRM_TemplatesScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -244,7 +248,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     card: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 20,
         padding: 20,
         marginBottom: 20,
@@ -254,7 +258,7 @@ const styles = StyleSheet.create({
         shadowRadius: 15,
         elevation: 3,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -266,11 +270,11 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
     },
     headerRight: {
         flexDirection: 'row',
@@ -286,11 +290,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     activeToggleBg: {
-        backgroundColor: '#F0FDFA',
+        backgroundColor: 'rgba(13, 148, 136, 0.1)',
         borderColor: '#0BA0B2',
     },
     pausedToggleBg: {
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         borderColor: '#CBD5E1',
     },
     statusLabel: {
@@ -302,22 +306,22 @@ const styles = StyleSheet.create({
         color: '#0D9488',
     },
     pausedText: {
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     templateName: {
         fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     templateType: {
         fontSize: 13,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '600',
         marginBottom: 16,
     },
     typeValue: {
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     detailsRow: {
         flexDirection: 'row',
@@ -326,38 +330,38 @@ const styles = StyleSheet.create({
     },
     detailBox: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         padding: 12,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
     },
     detailLabel: {
         fontSize: 9,
         fontWeight: '800',
-        color: '#94A3B8',
+        color: colors.inputPlaceholder,
         letterSpacing: 0.5,
         marginBottom: 4,
     },
     detailValue: {
         fontSize: 12,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     editBtn: {
         width: '100%',
         height: 44,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
     },
     editBtnText: {
         fontSize: 13,
         fontWeight: '800',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     // Custom Modal Styles
     modalOverlay: {
@@ -369,7 +373,7 @@ const styles = StyleSheet.create({
     },
     confirmModal: {
         width: '100%',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         padding: 24,
         alignItems: 'center',
@@ -383,7 +387,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: '#FEF2F2',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
@@ -391,13 +395,13 @@ const styles = StyleSheet.create({
     confirmTitle: {
         fontSize: 22,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 12,
         textAlign: 'center',
     },
     confirmSubtitle: {
         fontSize: 15,
-        color: '#64748B',
+        color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 22,
         marginBottom: 32,
@@ -413,15 +417,15 @@ const styles = StyleSheet.create({
         height: 48,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
     },
     cancelBtnText: {
         fontSize: 15,
         fontWeight: '800',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     deleteBtn: {
         flex: 1,
@@ -441,7 +445,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: '#F0F9FA',
+        backgroundColor: 'rgba(11, 160, 178, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
@@ -450,7 +454,7 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 48,
         borderRadius: 14,
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -459,4 +463,5 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#FFFFFF',
     },
-});
+  });
+}

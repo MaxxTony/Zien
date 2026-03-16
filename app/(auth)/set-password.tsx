@@ -8,9 +8,11 @@ import GradientButton from '@/components/ui/GradientButton';
 import LabeledInput from '@/components/ui/labeled-input';
 import PasswordInput from '@/components/ui/PasswordInput';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function SetPasswordScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -20,7 +22,7 @@ export default function SetPasswordScreen() {
         style={[styles.backButton, { top: insets.top + 8 }]}
         onPress={() => router.back()}
         hitSlop={12}>
-        <MaterialCommunityIcons name="arrow-left" size={24} color={Theme.textPrimary} />
+        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
       </Pressable>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -50,23 +52,24 @@ export default function SetPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   flex: { flex: 1 },
   backButton: {
     position: 'absolute',
-    left: Theme.screenPadding,
+    left: colors.screenPadding,
     zIndex: 10,
     padding: 8,
     borderRadius: 12,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     justifyContent: 'center',
   },
   cardSoft: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   form: {
     alignSelf: 'stretch',
@@ -77,3 +80,4 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 });
+}

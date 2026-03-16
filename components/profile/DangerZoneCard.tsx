@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type DangerZoneCardProps = {
   description?: string;
@@ -13,6 +13,8 @@ function DangerZoneCardComponent({
   buttonLabel = 'Request Account Deletion',
   onButtonPress,
 }: DangerZoneCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.card}>
       <Text style={styles.title}>DANGER ZONE</Text>
@@ -29,14 +31,15 @@ function DangerZoneCardComponent({
 
 export const DangerZoneCard = memo(DangerZoneCardComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   card: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: Theme.dangerBorder,
-    shadowColor: Theme.cardShadowColor,
+    borderColor: colors.dangerBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.06,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
@@ -45,14 +48,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontWeight: '800',
-    color: Theme.danger,
+    color: colors.danger,
     letterSpacing: 0.8,
     marginBottom: 8,
   },
   desc: {
     fontSize: 13,
     fontWeight: '500',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 14,
     lineHeight: 18,
   },
@@ -60,9 +63,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: Theme.dangerBg,
+    backgroundColor: colors.dangerBg,
     borderWidth: 1,
-    borderColor: Theme.dangerBorder,
+    borderColor: colors.dangerBorder,
     alignItems: 'center',
   },
   buttonPressed: {
@@ -71,6 +74,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: Theme.danger,
+    color: colors.danger,
   },
 });
+}

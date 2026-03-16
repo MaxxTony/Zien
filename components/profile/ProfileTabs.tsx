@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
@@ -20,6 +20,8 @@ type ProfileTabsProps = {
 };
 
 function ProfileTabsComponent({ activeTab, onTabChange }: ProfileTabsProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <ScrollView
       horizontal
@@ -45,7 +47,7 @@ function ProfileTabsComponent({ activeTab, onTabChange }: ProfileTabsProps) {
                 <MaterialCommunityIcons name={tab.icon as any} size={15} color="#fff" />
               </LinearGradient>
             ) : (
-              <MaterialCommunityIcons name={tab.icon as any} size={16} color={Theme.textSecondary} />
+              <MaterialCommunityIcons name={tab.icon as any} size={16} color={colors.textSecondary} />
             )}
             <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
               {tab.label}
@@ -59,7 +61,8 @@ function ProfileTabsComponent({ activeTab, onTabChange }: ProfileTabsProps) {
 
 export const ProfileTabs = memo(ProfileTabsComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   scroll: {
     marginBottom: 16,
   },
@@ -84,7 +87,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   tabActive: {
-    borderColor: `${Theme.accentTeal}50`,
+    borderColor: `${colors.accentTeal}50`,
     backgroundColor: '#FFFFFF',
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -99,10 +102,11 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 12.5,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   tabTextActive: {
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     fontWeight: '800',
   },
 });
+}

@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -41,9 +42,12 @@ type UserMenuSheetProps = {
   actions: MenuAction[];
 };
 
-function UserMenuSheet({
+export default function UserMenuSheet({
   visible, onClose, userInitials, userName, userEmail, actions,
 }: UserMenuSheetProps) {
+  const { colors, theme } = useAppTheme();
+  const styles = getStyles(colors);
+  const sheetStyles = getSheetStyles(colors);
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -79,11 +83,17 @@ function UserMenuSheet({
       <Animated.View
         style={[
           sheetStyles.sheet,
-          { paddingBottom: insets.bottom + 16, transform: [{ translateY: slideAnim }] },
+          {
+            backgroundColor: colors.cardBackground,
+            paddingBottom: insets.bottom + 16,
+            transform: [{ translateY: slideAnim }]
+          },
         ]}
       >
+
+
         {/* Drag handle */}
-        <View style={sheetStyles.handle} />
+        <View style={[sheetStyles.handle, { backgroundColor: colors.divider }]} />
 
         {/* User info header */}
         <View style={sheetStyles.userRow}>
@@ -96,8 +106,8 @@ function UserMenuSheet({
             <Text style={sheetStyles.userAvatarText}>{userInitials}</Text>
           </LinearGradient>
           <View style={sheetStyles.userInfo}>
-            <Text style={sheetStyles.userName}>{userName}</Text>
-            <Text style={sheetStyles.userEmail}>{userEmail}</Text>
+            <Text style={[sheetStyles.userName, { color: colors.textPrimary }]}>{userName}</Text>
+            <Text style={[sheetStyles.userEmail, { color: colors.textSecondary }]}>{userEmail}</Text>
           </View>
           {/* Online badge */}
           <View style={sheetStyles.onlineBadge}>
@@ -107,7 +117,7 @@ function UserMenuSheet({
         </View>
 
         {/* Divider */}
-        <View style={sheetStyles.divider} />
+        <View style={[sheetStyles.divider, { backgroundColor: colors.divider }]} />
 
         {/* Actions */}
         <View style={sheetStyles.actions}>
@@ -116,32 +126,49 @@ function UserMenuSheet({
             const isDestructive = action.color === '#EF4444';
             return (
               <View key={action.id}>
-                {isDestructive && <View style={sheetStyles.divider} />}
+                {isDestructive && <View style={[sheetStyles.divider, { backgroundColor: colors.divider }]} />}
                 <Pressable
                   style={({ pressed }) => [
                     sheetStyles.actionRow,
-                    pressed && sheetStyles.actionRowPressed,
+                    pressed && { backgroundColor: colors.surfaceSoft },
                   ]}
-                  onPress={() => { handleClose(); setTimeout(action.onPress, 260); }}
+                  onPress={() => {
+                    if (action.id === 'theme') {
+                      action.onPress();
+                    } else {
+                      handleClose();
+                      setTimeout(action.onPress, 260);
+                    }
+                  }}
                 >
                   <View style={[
                     sheetStyles.actionIcon,
+                    { backgroundColor: colors.surfaceIcon, borderColor: colors.cardBorder },
                     isDestructive && sheetStyles.actionIconDestructive,
                   ]}>
                     <MaterialCommunityIcons
                       name={action.icon as any}
                       size={20}
-                      color={action.color ?? Theme.textPrimary}
+                      color={action.color ?? colors.textPrimary}
                     />
                   </View>
                   <Text style={[
                     sheetStyles.actionLabel,
+                    { color: colors.textPrimary },
                     isDestructive && sheetStyles.actionLabelDestructive,
                   ]}>
                     {action.label}
                   </Text>
-                  {!isDestructive && (
-                    <MaterialCommunityIcons name="chevron-right" size={18} color={Theme.inputPlaceholder} />
+                  {!isDestructive && action.id !== 'theme' && (
+                    <MaterialCommunityIcons name="chevron-right" size={18} color={colors.inputPlaceholder} />
+                  )}
+                  {action.id === 'theme' && (
+                    <Switch
+                      value={theme === 'dark'}
+                      pointerEvents="none"
+                      trackColor={{ false: '#CBD5E1', true: colors.accentTeal }}
+                      thumbColor="#FFFFFF"
+                    />
                   )}
                 </Pressable>
               </View>
@@ -153,141 +180,148 @@ function UserMenuSheet({
   );
 }
 
-const sheetStyles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8,20,35,0.45)',
-  },
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: -10 },
-    elevation: 16,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D1D9E0',
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  userRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    gap: 14,
-    marginBottom: 18,
-  },
-  userAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0BA0B2',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
-  },
-  userAvatarText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 17,
-    letterSpacing: 0.5,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Theme.textPrimary,
-    letterSpacing: 0.1,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: Theme.textSecondary,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  onlineBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#ECFDF5',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  onlineDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#22C55E',
-  },
-  onlineText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#16A34A',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 6,
-  },
-  actions: {
-    gap: 2,
-    marginTop: 4,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-    borderRadius: 14,
-  },
-  actionRowPressed: {
-    backgroundColor: Theme.surfaceSoft,
-  },
-  actionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: Theme.surfaceIcon,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Theme.cardBorder,
-  },
-  actionIconDestructive: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-  },
-  actionLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
-    color: Theme.textPrimary,
-  },
-  actionLabelDestructive: {
-    color: '#EF4444',
-  },
-});
+function getSheetStyles(colors: any) {
+  return StyleSheet.create({
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(8,20,35,0.45)',
+    },
+    sheet: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      shadowColor: '#000',
+      shadowOpacity: 0.2,
+      shadowRadius: 30,
+      shadowOffset: { width: 0, height: -10 },
+      elevation: 16,
+    },
+    absoluteCloseBtn: {
+      position: 'absolute',
+      top: 20,
+      right: 20,
+      zIndex: 10,
+      padding: 4,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: 20,
+    },
+    userRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 4,
+      gap: 14,
+      marginBottom: 18,
+    },
+    userAvatar: {
+      width: 50,
+      height: 50,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#0BA0B2',
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 5,
+    },
+    userAvatarText: {
+      color: '#fff',
+      fontWeight: '800',
+      fontSize: 17,
+      letterSpacing: 0.5,
+    },
+    userInfo: {
+      flex: 1,
+    },
+    userName: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      letterSpacing: 0.1,
+    },
+    userEmail: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: '500',
+      marginTop: 2,
+    },
+    onlineBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: '#ECFDF5',
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: '#BBF7D0',
+    },
+    onlineDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: '#22C55E',
+    },
+    onlineText: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: '#16A34A',
+    },
+    divider: {
+      height: 1,
+      backgroundColor: '#F1F5F9',
+      marginVertical: 6,
+    },
+    actions: {
+      gap: 2,
+      marginTop: 4,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingVertical: 14,
+      paddingHorizontal: 6,
+      borderRadius: 14,
+    },
+    actionRowPressed: {
+      backgroundColor: colors.surfaceSoft,
+    },
+    actionIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: colors.surfaceIcon,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    actionIconDestructive: {
+      backgroundColor: '#FEF2F2',
+      borderColor: '#FECACA',
+    },
+    actionLabel: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    actionLabelDestructive: {
+      color: '#EF4444',
+    },
+  });
+}
 
 // ── Main Header ────────────────────────────────────────
 function MainHeaderComponent({
@@ -299,6 +333,8 @@ function MainHeaderComponent({
 }: MainHeaderProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { theme, toggleTheme, colors } = useAppTheme();
+  const styles = getStyles(colors);
 
   const handleSignOut = useCallback(() => {
     Alert.alert(
@@ -330,6 +366,12 @@ function MainHeaderComponent({
       onPress: () => router.push('/(main)/notifications'),
     },
     {
+      id: 'theme',
+      icon: theme === 'dark' ? 'weather-night' : 'weather-sunny',
+      label: theme === 'dark' ? 'Dark Mode' : 'Light Mode',
+      onPress: toggleTheme,
+    },
+    {
       id: 'signout',
       icon: 'logout-variant',
       label: 'Sign Out',
@@ -346,7 +388,7 @@ function MainHeaderComponent({
           style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
           onPress={onMenuPress}
         >
-          <MaterialCommunityIcons name="menu" size={22} color={Theme.textPrimary} />
+          <MaterialCommunityIcons name="menu" size={22} color={colors.textPrimary} />
         </Pressable>
 
         {/* Brand logo centered */}
@@ -390,71 +432,73 @@ function MainHeaderComponent({
 
 export const MainHeader = memo(MainHeaderComponent);
 
-const styles = StyleSheet.create({
-  header: {
-    height: 64,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1,
-    borderColor: 'rgba(225,232,242,0.8)',
-    shadowColor: '#0A2F48',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  iconBtnPressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.95 }],
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  logo: {
-    width: 110,
-    height: 46,
-  },
-  avatarWrap: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0BA0B2',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 13,
-    letterSpacing: 0.5,
-  },
-  onlineDot: {
-    position: 'absolute',
-    bottom: -1,
-    right: -1,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#22C55E',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-});
+function getStyles(colors: any) {
+  return StyleSheet.create({
+    header: {
+      height: 64,
+      paddingHorizontal: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    iconBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: colors.cardShadowColor,
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    iconBtnPressed: {
+      opacity: 0.7,
+      transform: [{ scale: 0.95 }],
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    logo: {
+      width: 110,
+      height: 46,
+    },
+    avatarWrap: {
+      position: 'relative',
+    },
+    avatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#0BA0B2',
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 5 },
+      elevation: 4,
+    },
+    avatarText: {
+      color: '#fff',
+      fontWeight: '800',
+      fontSize: 13,
+      letterSpacing: 0.5,
+    },
+    onlineDot: {
+      position: 'absolute',
+      bottom: -1,
+      right: -1,
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: '#22C55E',
+      borderWidth: 2,
+      borderColor: '#fff',
+    },
+  });
+}

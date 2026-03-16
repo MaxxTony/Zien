@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { ColorValue, Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type GradientButtonProps = {
   title: string;
@@ -14,22 +14,26 @@ type GradientButtonProps = {
 export default function GradientButton({
   title,
   onPress,
-  colors = [...Theme.brandGradient] as const,
+  colors,
   style,
   textStyle,
 }: GradientButtonProps) {
+  const { colors: appColors } = useAppTheme();
+  const styles = getStyles(appColors);
+  const activeColors = colors ?? (appColors.brandGradient as any);
+
   return (
     <Pressable style={[styles.button, style]} onPress={onPress}>
-      <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fill}>
+      <LinearGradient colors={activeColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fill}>
         <Text style={[styles.text, textStyle]}>{title}</Text>
       </LinearGradient>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   button: {
-    borderRadius: Theme.buttonBorderRadius,
+    borderRadius: colors.buttonBorderRadius,
     overflow: 'hidden',
   },
   fill: {
@@ -37,7 +41,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    color: Theme.gradientButtonText,
+    color: colors.gradientButtonText,
     fontSize: 14.5,
     fontWeight: '700',
   },

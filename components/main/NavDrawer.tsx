@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 import { useRouter, useSegments } from 'expo-router';
@@ -37,6 +38,8 @@ function NavDrawerComponent({
   onClose,
   onItemPress,
 }: NavDrawerProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const segments = useSegments();
   const currentRoute = segments.length > 0 ? '/' + segments.join('/') : '/dashboard';
@@ -71,7 +74,7 @@ function NavDrawerComponent({
             style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
             onPress={onClose}
           >
-            <MaterialCommunityIcons name="close" size={18} color="#5B6B7A" />
+            <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
           </Pressable>
         </View>
 
@@ -85,7 +88,6 @@ function NavDrawerComponent({
           showsVerticalScrollIndicator={false}
         >
           {menuItems.map((item) => {
-            // Updated active check: if route is /(main)/dashboard, match /dashboard too
             const itemRoute = (item.route as string) || '';
             const isActive = itemRoute === currentRoute ||
               (itemRoute.includes('(main)') && currentRoute === itemRoute.replace('/(main)', '')) ||
@@ -108,8 +110,7 @@ function NavDrawerComponent({
                   <MaterialCommunityIcons
                     name={item.icon as any}
                     size={20}
-                    color={isActive ? '#0BA0B2' : '#5B6B7A'}
-                    style={isActive ? styles.activeIcon : {}}
+                    color={isActive ? colors.accentTeal : colors.textSecondary}
                   />
                 </View>
 
@@ -126,9 +127,6 @@ function NavDrawerComponent({
             );
           })}
         </ScrollView>
-
-
-
       </Animated.View>
     </View>
   );
@@ -136,21 +134,22 @@ function NavDrawerComponent({
 
 export const NavDrawer = memo(NavDrawerComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    backgroundColor: 'rgba(8, 20, 35, 0.45)',
   },
   drawer: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#F8FAFC', // Slightly off-white background like web
+    backgroundColor: colors.cardBackground,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.1,
     shadowRadius: 20,
-    shadowOffset: { width: 5, height: 0 },
+    shadowOffset: { width: 4, height: 0 },
     elevation: 8,
   },
   drawerHeader: {
@@ -168,15 +167,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#EDF2F7',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   headerDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.divider,
     marginHorizontal: 20,
     marginBottom: 8,
     opacity: 0.6,
@@ -196,10 +195,10 @@ const styles = StyleSheet.create({
     height: 48,
   },
   itemActive: {
-    backgroundColor: '#E1F0F2', // Light teal background for active item
+    backgroundColor: `${colors.accentTeal}15`,
   },
   itemPressed: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
   },
   activeIndicator: {
     position: 'absolute',
@@ -207,7 +206,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 4,
-    backgroundColor: '#0BA0B2', // Teal vertical line on left
+    backgroundColor: colors.accentTeal,
   },
   iconWrap: {
     width: 24,
@@ -215,20 +214,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeIcon: {
-    // Optional: add some glow or specific styling for active icon
-  },
   itemText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#5B6B7A', // Grey text for inactive
+    color: colors.textSecondary,
   },
   itemTextActive: {
-    color: '#0D2F45', // Dark teal for active text
+    color: colors.textPrimary,
     fontWeight: '700',
   },
   itemTextDisabled: {
-    color: '#CBD5E1',
+    color: colors.inputPlaceholder,
   },
-
 });
+}

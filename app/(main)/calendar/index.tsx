@@ -1,7 +1,9 @@
 import { PageHeader } from '@/components/ui';
 import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
@@ -36,6 +38,8 @@ type BookingLink = {
 };
 
 export default function CalendarScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>('calendar');
@@ -155,7 +159,7 @@ export default function CalendarScreen() {
   const renderCalendarTab = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconCircle}>
-        <MaterialCommunityIcons name="calendar-clock-outline" size={56} color={Theme.accentTeal} />
+        <MaterialCommunityIcons name="calendar-clock-outline" size={56} color={colors.accentTeal} />
       </View>
       <Text style={styles.emptyTitle}>Your Workspace Schedule</Text>
       <Text style={styles.emptySubtitle}>Sync your personal and work calendars to see all events here in one place.</Text>
@@ -184,7 +188,7 @@ export default function CalendarScreen() {
         <View key={link.id} style={styles.bookingCard}>
           <View style={styles.bookingHeader}>
             <View style={styles.linkIconBox}>
-              <MaterialCommunityIcons name="link-variant" size={20} color={Theme.accentTeal} />
+              <MaterialCommunityIcons name="link-variant" size={20} color={colors.accentTeal} />
             </View>
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>{link.duration}</Text>
@@ -258,7 +262,9 @@ export default function CalendarScreen() {
   }, [activeTab, tasks, bookingLinks]);
 
   return (
-    <View style={[styles.background, { paddingTop: insets.top }]}>
+    <LinearGradient
+      colors={colors.backgroundGradient as any}
+      style={[styles.background, { paddingTop: insets.top }]}>
       <PageHeader
         title="Calendar"
         subtitle="Manage events, bookings, and tasks"
@@ -319,7 +325,7 @@ export default function CalendarScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{isEditing ? 'Edit Item' : 'Create New Event'}</Text>
             <Pressable onPress={() => setShowModal(false)} style={styles.closeCircle}>
-              <MaterialCommunityIcons name="close" size={18} color="#102A43" />
+              <MaterialCommunityIcons name="close" size={18} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -360,7 +366,7 @@ export default function CalendarScreen() {
               <TextInput
                 style={styles.fullInput}
                 placeholder="e.g. Property Listing with David"
-                placeholderTextColor={Theme.inputPlaceholder}
+                placeholderTextColor={colors.inputPlaceholder}
                 value={newItemTitle}
                 onChangeText={setNewItemTitle}
               />
@@ -377,7 +383,7 @@ export default function CalendarScreen() {
                     <TextInput
                       style={styles.rowInput}
                       placeholder="dd/mm/yyyy"
-                      placeholderTextColor={Theme.inputPlaceholder}
+                      placeholderTextColor={colors.inputPlaceholder}
                       value={newItemDate}
                       editable={false}
                       pointerEvents="none"
@@ -394,7 +400,7 @@ export default function CalendarScreen() {
                     <TextInput
                       style={styles.rowInput}
                       placeholder="--:-- --"
-                      placeholderTextColor={Theme.inputPlaceholder}
+                      placeholderTextColor={colors.inputPlaceholder}
                       value={newItemTime}
                       editable={false}
                       pointerEvents="none"
@@ -425,7 +431,7 @@ export default function CalendarScreen() {
                     mode="date"
                     display="spinner"
                     onChange={onDateChange}
-                    textColor="#102A43"
+                    textColor={colors.textPrimary}
                     style={styles.pickerInternal}
                   />
                 </View>
@@ -453,7 +459,7 @@ export default function CalendarScreen() {
                     display="spinner"
                     is24Hour={false}
                     onChange={onTimeChange}
-                    textColor="#102A43"
+                    textColor={colors.textPrimary}
                     style={styles.pickerInternal}
                   />
                 </View>
@@ -465,7 +471,7 @@ export default function CalendarScreen() {
               <TextInput
                 style={styles.notesInput}
                 placeholder="Add details..."
-                placeholderTextColor={Theme.inputPlaceholder}
+                placeholderTextColor={colors.inputPlaceholder}
                 value={newItemNotes}
                 onChangeText={setNewItemNotes}
                 multiline
@@ -491,14 +497,15 @@ export default function CalendarScreen() {
           </ScrollView>
         </View>
       </Modal>
-    </View>
+    </LinearGradient>
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: '#F4F7FB',
+    backgroundColor: colors.background,
   },
   container: {
     paddingHorizontal: 16,
@@ -514,7 +521,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(16, 42, 67, 0.04)',
+    backgroundColor: colors.surfaceSoft,
     padding: 4,
     borderRadius: 12,
     alignSelf: 'flex-start',
@@ -525,7 +532,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -534,38 +541,38 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
   },
   tabTextActive: {
-    color: '#102A43',
+    color: colors.textPrimary,
   },
   floatingAddBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#102A43',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#102A43',
+    shadowColor: colors.accentTeal,
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 4,
   },
   emptyState: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 400,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   emptyIconCircle: {
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: `${Theme.accentTeal}10`,
+    backgroundColor: `${colors.accentTeal}10`,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -573,13 +580,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#102A43',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 10,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#627D98',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -595,21 +602,21 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   syncPillText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   mainActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#102A43',
+    backgroundColor: colors.accentTeal,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 14,
@@ -623,11 +630,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   bookingCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOpacity: 0.02,
     shadowRadius: 8,
@@ -642,12 +649,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: `${Theme.accentTeal}10`,
+    backgroundColor: `${colors.accentTeal}10`,
     alignItems: 'center',
     justifyContent: 'center',
   },
   durationBadge: {
-    backgroundColor: `${Theme.accentTeal}10`,
+    backgroundColor: `${colors.accentTeal}10`,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -656,17 +663,17 @@ const styles = StyleSheet.create({
   durationText: {
     fontSize: 12,
     fontWeight: '900',
-    color: Theme.accentTeal,
+    color: colors.accentTeal,
   },
   bookingTitle: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#102A43',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   bookingType: {
     fontSize: 13,
-    color: '#627D98',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginBottom: 16,
   },
@@ -674,16 +681,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     marginBottom: 16,
   },
   urlText: {
     fontSize: 13,
-    color: Theme.accentTeal,
+    color: colors.accentTeal,
     fontWeight: '700',
     flex: 1,
   },
@@ -694,15 +701,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   editButtonText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#102A43',
+    color: colors.textPrimary,
   },
   createCard: {
     backgroundColor: 'rgba(16, 42, 67, 0.02)',
@@ -719,17 +726,17 @@ const styles = StyleSheet.create({
   createText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#627D98',
+    color: colors.textSecondary,
   },
   tasksArea: {
     gap: 12,
   },
   taskCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   taskCardHeader: {
     flexDirection: 'row',
@@ -740,7 +747,7 @@ const styles = StyleSheet.create({
   taskCardTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#102A43',
+    color: colors.textPrimary,
     flex: 1,
     marginRight: 10,
   },
@@ -748,7 +755,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#102A43',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -769,7 +776,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#627D98',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   taskCardFooter: {
@@ -784,7 +791,7 @@ const styles = StyleSheet.create({
   },
   priorityhigh: { backgroundColor: '#FEE2E2' },
   prioritymedium: { backgroundColor: '#FEF3C7' },
-  prioritylow: { backgroundColor: '#F1F5F9' },
+  prioritylow: { backgroundColor: colors.surfaceSoft },
   priorityText: {
     fontSize: 10,
     fontWeight: '900',
@@ -795,20 +802,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
   },
   statusCompleted: { backgroundColor: '#D1FAE5' },
   statusText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   statusTextCompleted: { color: '#047857' },
 
   // ── Modal Styles ──
   modalScreen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -822,14 +829,14 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#102A43',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   closeCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -844,7 +851,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#102A43',
+    color: colors.textPrimary,
     marginBottom: 10,
   },
   pillRow: {
@@ -858,20 +865,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     paddingVertical: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   pillActive: {
-    backgroundColor: '#102A43',
+    backgroundColor: colors.accentTeal,
     borderColor: '#102A43',
   },
   pillText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   pillTextActive: {
     color: '#FFFFFF',
@@ -879,10 +886,10 @@ const styles = StyleSheet.create({
   fullInput: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#102A43',
-    backgroundColor: '#FFFFFF',
+    color: colors.textPrimary,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -897,9 +904,9 @@ const styles = StyleSheet.create({
   inputIconBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -907,18 +914,18 @@ const styles = StyleSheet.create({
   rowInput: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#102A43',
+    color: colors.textPrimary,
     flex: 1,
   },
   notesInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
     fontSize: 15,
-    color: '#102A43',
+    color: colors.textPrimary,
     minHeight: 120,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   modalActions: {
     flexDirection: 'row',
@@ -931,21 +938,21 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   cancelBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#102A43',
+    color: colors.textPrimary,
   },
   saveBtnLarge: {
     flex: 1,
     height: 52,
     borderRadius: 12,
-    backgroundColor: '#102A43',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -965,7 +972,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   pickerSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 40,
@@ -988,12 +995,12 @@ const styles = StyleSheet.create({
   pickerTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#102A43',
+    color: colors.textPrimary,
   },
   doneBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#102A43',
+    backgroundColor: colors.accentTeal,
     borderRadius: 8,
   },
   doneBtnText: {
@@ -1001,4 +1008,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-});
+  });
+}

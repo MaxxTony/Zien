@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -12,6 +12,8 @@ type SearchBarProps = {
 function SearchBarComponent({
   placeholder = 'Ask anything about your pipeline…',
 }: SearchBarProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
 
   return (
@@ -51,19 +53,20 @@ function SearchBarComponent({
 
 export const SearchBar = memo(SearchBarComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(225,232,242,0.9)',
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 16,
-    shadowColor: '#0B5F7A',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -79,7 +82,7 @@ const styles = StyleSheet.create({
   placeholder: {
     flex: 1,
     fontSize: 14,
-    color: Theme.textMuted,
+    color: colors.textMuted,
     fontWeight: '500',
     letterSpacing: 0.1,
   },
@@ -95,3 +98,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+}

@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -30,6 +31,8 @@ const PRESET_COLORS = ['#00A3AD', '#EA580C', '#0B213E', '#6366F1', '#10B981', '#
 
 
 export default function ContactsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -145,7 +148,7 @@ export default function ContactsScreen() {
 
   return (
     <LinearGradient
-      colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -167,13 +170,13 @@ export default function ContactsScreen() {
             <Pressable
               style={styles.actionBtn}
               onPress={() => setAiImportModalVisible(true)}>
-              <MaterialCommunityIcons name="robot-outline" size={18} color="#0F172A" />
+              <MaterialCommunityIcons name="robot-outline" size={18} color={colors.textPrimary} />
               <Text style={styles.actionBtnText}>AI Import</Text>
             </Pressable>
             <Pressable
               style={styles.actionBtn}
               onPress={() => setAddGroupModalVisible(true)}>
-              <MaterialCommunityIcons name="account-group-outline" size={18} color="#0F172A" />
+              <MaterialCommunityIcons name="account-group-outline" size={18} color={colors.textPrimary} />
               <Text style={styles.actionBtnText}>Add Group</Text>
             </Pressable>
             <Pressable style={styles.primaryActionBtn} onPress={openAddModal}>
@@ -198,26 +201,26 @@ export default function ContactsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
             {/* Group Filter */}
             <Pressable style={[styles.filterBtn, selectedGroup !== 'All Groups' && styles.filterBtnActive]} onPress={() => toggleDropdown('group')}>
-              <MaterialCommunityIcons name="filter-outline" size={18} color={selectedGroup !== 'All Groups' ? '#0F172A' : '#64748B'} />
+              <MaterialCommunityIcons name="filter-outline" size={18} color={selectedGroup !== 'All Groups' ? colors.textPrimary : '#64748B'} />
               <Text style={[styles.filterBtnText, selectedGroup !== 'All Groups' && styles.filterBtnTextActive]}>{selectedGroup}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={16} color={selectedGroup !== 'All Groups' ? '#0F172A' : '#64748B'} />
+              <MaterialCommunityIcons name="chevron-down" size={16} color={selectedGroup !== 'All Groups' ? colors.textPrimary : '#64748B'} />
             </Pressable>
 
             {/* Status Filter */}
             <Pressable style={[styles.filterBtn, selectedStatus !== 'All Status' && styles.filterBtnActive]} onPress={() => toggleDropdown('status')}>
-              <MaterialCommunityIcons name="account-search-outline" size={18} color={selectedStatus !== 'All Status' ? '#0F172A' : '#64748B'} />
+              <MaterialCommunityIcons name="account-search-outline" size={18} color={selectedStatus !== 'All Status' ? colors.textPrimary : '#64748B'} />
               <Text style={[styles.filterBtnText, selectedStatus !== 'All Status' && styles.filterBtnTextActive]}>{selectedStatus}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={16} color={selectedStatus !== 'All Status' ? '#0F172A' : '#64748B'} />
+              <MaterialCommunityIcons name="chevron-down" size={16} color={selectedStatus !== 'All Status' ? colors.textPrimary : '#64748B'} />
             </Pressable>
 
             {/* Tag Filter */}
             <Pressable style={[styles.filterBtn, selectedTag !== 'All Tags' && styles.filterBtnActive]} onPress={() => toggleDropdown('tag')}>
-              <MaterialCommunityIcons name="tag-outline" size={18} color={selectedTag !== 'All Tags' ? '#0F172A' : '#64748B'} />
+              <MaterialCommunityIcons name="tag-outline" size={18} color={selectedTag !== 'All Tags' ? colors.textPrimary : '#64748B'} />
               <Text style={[styles.filterBtnText, selectedTag !== 'All Tags' && styles.filterBtnTextActive]}>{selectedTag}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={16} color={selectedTag !== 'All Tags' ? '#0F172A' : '#64748B'} />
+              <MaterialCommunityIcons name="chevron-down" size={16} color={selectedTag !== 'All Tags' ? colors.textPrimary : '#64748B'} />
             </Pressable>
           </ScrollView>
-          <Text style={styles.resultsCount}>Showing <Text style={{ fontWeight: '900', color: '#0F172A' }}>{contactsList.length}</Text> contacts</Text>
+          <Text style={styles.resultsCount}>Showing <Text style={{ fontWeight: '900', color: colors.textPrimary }}>{contactsList.length}</Text> contacts</Text>
         </View>
 
         <View style={styles.contactList}>
@@ -342,7 +345,7 @@ export default function ContactsScreen() {
                       setActiveDropdown(null);
                     }}>
                     <Text style={[styles.bottomSheetItemText, isSelected && styles.bottomSheetItemTextActive]}>{opt}</Text>
-                    {isSelected && <MaterialCommunityIcons name="check-circle" size={24} color="#0F172A" />}
+                    {isSelected && <MaterialCommunityIcons name="check-circle" size={24} color={colors.textPrimary} />}
                   </Pressable>
                 );
               })}
@@ -386,7 +389,7 @@ export default function ContactsScreen() {
               }}>
               <View style={styles.premiumReadContent}>
                 <View style={styles.readIconCircle}>
-                  <MaterialCommunityIcons name="text-box-search-outline" size={20} color="#0F172A" />
+                  <MaterialCommunityIcons name="text-box-search-outline" size={20} color={colors.textPrimary} />
                 </View>
                 <Text style={styles.premiumReadText}>View all activity log</Text>
               </View>
@@ -573,7 +576,7 @@ export default function ContactsScreen() {
           <View style={styles.alertCard} onStartShouldSetResponder={() => true}>
             <View style={styles.alertIconZone}>
               <View style={styles.alertIconCircle}>
-                <MaterialCommunityIcons name="alert-outline" size={32} color="#0F172A" />
+                <MaterialCommunityIcons name="alert-outline" size={32} color={colors.textPrimary} />
               </View>
             </View>
 
@@ -633,7 +636,7 @@ export default function ContactsScreen() {
 
               <View style={styles.importCard}>
                 <View style={styles.importLabelRow}>
-                  <MaterialCommunityIcons name="message-outline" size={18} color="#0F172A" />
+                  <MaterialCommunityIcons name="message-outline" size={18} color={colors.textPrimary} />
                   <Text style={styles.importSectionLabel}>Import Context & Instructions</Text>
                 </View>
 
@@ -770,7 +773,8 @@ export default function ContactsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16 },
@@ -784,24 +788,24 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1,
   },
-  actionBtnText: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  actionBtnText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
   primaryActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -816,31 +820,31 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 12,
   },
-  searchInput: { flex: 1, fontSize: 15, color: '#0F172A', fontWeight: '500', marginLeft: 10 },
+  searchInput: { flex: 1, fontSize: 15, color: colors.textPrimary, fontWeight: '500', marginLeft: 10 },
   filtersScroll: { gap: 10, paddingBottom: 4 },
   filterWrap: { position: 'relative', zIndex: 10 },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  filterBtnText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
-  filterBtnActive: { borderColor: '#0F172A', backgroundColor: '#F8FAFC' },
-  filterBtnTextActive: { color: '#0F172A' },
+  filterBtnText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+  filterBtnActive: { borderColor: colors.textPrimary, backgroundColor: colors.surfaceSoft },
+  filterBtnTextActive: { color: colors.textPrimary },
 
   // Bottom Sheet Modal
   bottomSheetOverlay: {
@@ -849,7 +853,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   bottomSheetContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
@@ -870,7 +874,7 @@ const styles = StyleSheet.create({
   bottomSheetTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 24,
     textAlign: 'center',
   },
@@ -881,43 +885,43 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   bottomSheetItemActive: {
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#0F172A',
+    borderColor: colors.textPrimary,
+    backgroundColor: colors.cardBackground,
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
   },
-  bottomSheetItemText: { fontSize: 16, fontWeight: '600', color: '#64748B' },
-  bottomSheetItemTextActive: { color: '#0F172A', fontWeight: '800' },
+  bottomSheetItemText: { fontSize: 16, fontWeight: '600', color: colors.textSecondary },
+  bottomSheetItemTextActive: { color: colors.textPrimary, fontWeight: '800' },
 
-  resultsCount: { fontSize: 12, color: '#64748B', marginTop: 12, fontWeight: '600' },
+  resultsCount: { fontSize: 12, color: colors.textSecondary, marginTop: 12, fontWeight: '600' },
 
   // Contact List & Cards
   contactList: { gap: 16 },
   contactCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 28,
     padding: 24,
-    shadowColor: '#0F172A',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     marginBottom: 4,
   },
   contactCardArchived: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     opacity: 0.7,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderStyle: 'dashed',
   },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
@@ -926,31 +930,31 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
-  avatarText: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
+  avatarText: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
   contactMain: { marginLeft: 16 },
-  contactName: { fontSize: 18, fontWeight: '800', color: '#0F172A', letterSpacing: -0.3 },
-  contactEmail: { fontSize: 14, color: '#64748B', fontWeight: '500', marginTop: 2 },
+  contactName: { fontSize: 18, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.3 },
+  contactEmail: { fontSize: 14, color: colors.textSecondary, fontWeight: '500', marginTop: 2 },
   labelRowWithIcon: { flexDirection: 'row', alignItems: 'center' },
-  cardLabel: { fontSize: 10, fontWeight: '800', color: '#94A3B8', letterSpacing: 1.2, marginBottom: 8, textTransform: 'uppercase' },
+  cardLabel: { fontSize: 10, fontWeight: '800', color: colors.inputPlaceholder, letterSpacing: 1.2, marginBottom: 8, textTransform: 'uppercase' },
 
   // Heat Bar
   heatRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  heatBarContainer: { flex: 1, height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden' },
+  heatBarContainer: { flex: 1, height: 6, backgroundColor: colors.surfaceSoft, borderRadius: 3, overflow: 'hidden' },
   heatBarFill: { height: '100%', borderRadius: 3 },
   heatValue: { fontSize: 16, fontWeight: '900', width: 30, textAlign: 'right' },
 
-  sourceTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
-  sourceSubtitle: { fontSize: 13, color: '#64748B', fontWeight: '500', marginTop: 4 },
+  sourceTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  sourceSubtitle: { fontSize: 13, color: colors.textSecondary, fontWeight: '500', marginTop: 4 },
 
   multiInfoRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
   infoCol: { flex: 1 },
-  infoValue: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  infoValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
 
   tagBadge: {
     alignSelf: 'flex-start',
@@ -963,12 +967,12 @@ const styles = StyleSheet.create({
 
   statusPill: {
     alignSelf: 'flex-start',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  statusPillText: { fontSize: 10, fontWeight: '800', color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statusPillText: { fontSize: 10, fontWeight: '800', color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   cardFooter: {
     flexDirection: 'row',
@@ -984,17 +988,17 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   footerTextBtn: {
     paddingHorizontal: 8,
   },
-  footerTextBtnLabel: { fontSize: 14, fontWeight: '700', color: '#64748B' },
-  footerTextBtnLabelActive: { color: '#0F172A' },
+  footerTextBtnLabel: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
+  footerTextBtnLabelActive: { color: colors.textPrimary },
 
   // AI Import Styles
   aiImportTitleRow: {
@@ -1021,7 +1025,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   importCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     marginTop: 12,
@@ -1035,12 +1039,12 @@ const styles = StyleSheet.create({
   importSectionLabel: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   instructionInputContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     padding: 16,
     minHeight: 120,
@@ -1049,7 +1053,7 @@ const styles = StyleSheet.create({
   instructionInput: {
     flex: 1,
     fontSize: 15,
-    color: '#0F172A',
+    color: colors.textPrimary,
     fontWeight: '500',
     textAlignVertical: 'top',
     lineHeight: 22,
@@ -1061,16 +1065,16 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   optionalCallout: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F9FA',
+    backgroundColor: 'rgba(11, 160, 178, 0.1)',
     borderRadius: 12,
     padding: 12,
     gap: 10,
@@ -1093,18 +1097,18 @@ const styles = StyleSheet.create({
   },
   dropzone: {
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderStyle: 'dashed',
     borderRadius: 24,
     paddingVertical: 40,
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
   dropzoneIconCircle: {
     width: 60,
     height: 60,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -1117,19 +1121,19 @@ const styles = StyleSheet.create({
   dropzoneTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   dropzoneSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '600',
     marginBottom: 12,
   },
   dropzoneFormats: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     letterSpacing: 0.5,
   },
   fileStatusArea: {
@@ -1138,9 +1142,9 @@ const styles = StyleSheet.create({
   fileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     padding: 16,
     gap: 16,
@@ -1153,7 +1157,7 @@ const styles = StyleSheet.create({
   fileIconBox: {
     width: 48,
     height: 56,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.textPrimary,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1164,7 +1168,7 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   fileMetaRow: {
@@ -1213,7 +1217,7 @@ const styles = StyleSheet.create({
 
   // Add Group Modal Styles
   addGroupSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
@@ -1233,7 +1237,7 @@ const styles = StyleSheet.create({
   addGroupTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   addGroupInputRow: {
@@ -1244,18 +1248,18 @@ const styles = StyleSheet.create({
   },
   addGroupInput: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#0F172A',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   addGroupSubBtn: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
@@ -1278,23 +1282,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   groupListItemText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
 
   profileBadgeBtn: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#F0F9FA',
+    backgroundColor: 'rgba(11, 160, 178, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#CCF1F3',
@@ -1305,7 +1309,7 @@ const styles = StyleSheet.create({
   // Full Page Modal
   fullPageModal: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalContent: {
     flex: 1,
@@ -1317,17 +1321,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 16,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   premiumModalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   premiumModalSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 4,
   },
@@ -1335,11 +1339,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   premiumModalBody: {
     paddingHorizontal: 28,
@@ -1367,14 +1371,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   premiumInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     borderRadius: 18,
     paddingHorizontal: 20,
     paddingVertical: 16,
     fontSize: 16,
-    color: '#0F172A',
+    color: colors.textPrimary,
     fontWeight: '600',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1385,9 +1389,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     borderRadius: 18,
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -1395,14 +1399,14 @@ const styles = StyleSheet.create({
   premiumSelectText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   premiumDropdown: {
     marginTop: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     position: 'absolute',
     top: '100%',
     left: 0,
@@ -1427,7 +1431,7 @@ const styles = StyleSheet.create({
   premiumDropdownText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   colorPresetRow: {
     flexDirection: 'row',
@@ -1457,7 +1461,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 28,
     paddingTop: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
@@ -1465,23 +1469,23 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 18,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
   },
   premiumCancelText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   premiumSaveBtn: {
     flex: 2,
     paddingVertical: 18,
     borderRadius: 20,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
-    shadowColor: '#0F172A',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -1504,7 +1508,7 @@ const styles = StyleSheet.create({
   alertCard: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 32,
     padding: 32,
     alignItems: 'center',
@@ -1528,13 +1532,13 @@ const styles = StyleSheet.create({
   alertTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
   },
   alertDescription: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.textSecondary,
     lineHeight: 22,
     textAlign: 'center',
     fontWeight: '500',
@@ -1550,13 +1554,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
   },
   alertCancelText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   alertDeleteBtn: {
     flex: 1.5,
@@ -1579,11 +1583,11 @@ const styles = StyleSheet.create({
 
   // Notes Modal (Premium Bottom Sheet)
   noteBottomSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     padding: 24,
-    shadowColor: '#0F172A',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: -20 },
     shadowOpacity: 0.12,
     shadowRadius: 40,
@@ -1610,23 +1614,23 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     letterSpacing: -0.6,
   },
   noteSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
     marginTop: 4,
   },
   noteQuoteContainer: {
     flexDirection: 'row',
     padding: 24,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 24,
     marginBottom: 32,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   noteVerticalAccent: {
     width: 4,
@@ -1638,7 +1642,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 17,
     lineHeight: 26,
-    color: '#1E293B',
+    color: colors.textPrimary,
     fontWeight: '600',
     fontStyle: 'italic',
   },
@@ -1647,7 +1651,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 20,
   },
   premiumReadContent: {
@@ -1659,7 +1663,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1670,6 +1674,7 @@ const styles = StyleSheet.create({
   premiumReadText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
-});
+  });
+}

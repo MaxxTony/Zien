@@ -8,6 +8,7 @@ import {
 } from '@/components/dashboard';
 import type { NavMenuItem } from '@/components/main';
 import { DashboardLayout } from '@/components/main';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -102,7 +103,8 @@ const LATEST_UPDATES = [
 const CONTENT_PADDING_H = 18;
 const CARD_GAP = 14;
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   content: {
     paddingHorizontal: CONTENT_PADDING_H,
     paddingTop: 8,
@@ -244,8 +246,8 @@ const styles = StyleSheet.create({
     padding: 3,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
-    backgroundColor: Theme.surfaceSoft,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.surfaceSoft,
     alignSelf: 'flex-end',
     gap: 4,
   },
@@ -255,8 +257,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   segmentItemActive: {
-    backgroundColor: Theme.accentTeal,
-    shadowColor: Theme.accentTeal,
+    backgroundColor: colors.accentTeal,
+    shadowColor: colors.accentTeal,
     shadowOpacity: 0.35,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
@@ -265,7 +267,7 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 12,
     fontWeight: '800',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   segmentTextActive: {
     color: '#fff',
@@ -292,25 +294,30 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: `${Theme.accentTeal}30`,
-    backgroundColor: `${Theme.accentTeal}08`,
+    borderColor: `${colors.accentTeal}30`,
+    backgroundColor: `${colors.accentTeal}08`,
   },
   viewAllButtonText: {
     fontSize: 13,
     fontWeight: '800',
-    color: Theme.accentTeal,
+    color: colors.accentTeal,
   },
-});
+  });
+}
 
 export default function DashboardScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const [velocityRange, setVelocityRange] = useState<'7d' | '30d'>('30d');
 
   const windowWidth = Dimensions.get('window').width;
   const isTablet = windowWidth >= 768;
-  const sectionColumnWidth = isTablet
-    ? Math.floor((windowWidth - CONTENT_PADDING_H * 2 - CARD_GAP) / 2)
-    : windowWidth - CONTENT_PADDING_H * 2;
+  const sectionColumnWidth = Math.floor(
+    isTablet
+      ? (windowWidth - CONTENT_PADDING_H * 2 - CARD_GAP) / 2
+      : windowWidth - CONTENT_PADDING_H * 2
+  );
   const chartWidth = Math.max(240, sectionColumnWidth - 36);
 
   const leadVelocityData = useMemo(() => {
@@ -325,21 +332,21 @@ export default function DashboardScreen() {
 
   const chartConfig = useMemo(
     () => ({
-      backgroundGradientFrom: '#FFFFFF',
-      backgroundGradientTo: '#FFFFFF',
+      backgroundGradientFrom: colors.cardBackground,
+      backgroundGradientTo: colors.cardBackground,
       decimalPlaces: 0,
       color: (opacity = 1) => `rgba(11, 160, 178, ${opacity})`,
-      labelColor: (opacity = 1) => `rgba(91, 107, 122, ${opacity})`,
-      fillShadowGradientFrom: Theme.accentTeal,
-      fillShadowGradientTo: '#1B5E9A',
+      labelColor: (opacity = 1) => colors.textSecondary,
+      fillShadowGradientFrom: colors.accentTeal,
+      fillShadowGradientTo: colors.accentDark ?? '#1B5E9A',
       fillShadowGradientOpacity: 1,
       barPercentage: 0.65,
       propsForBackgroundLines: {
-        stroke: '#EEF2F7',
+        stroke: colors.divider,
         strokeDasharray: '4 6',
       },
     }),
-    []
+    [colors]
   );
 
   // Format current date
@@ -477,7 +484,7 @@ export default function DashboardScreen() {
               >
                 <View style={styles.viewAllGradient}>
                   <Text style={styles.viewAllButtonText}>View All Leads</Text>
-                  <MaterialCommunityIcons name="arrow-right" size={15} color={Theme.accentTeal} />
+                  <MaterialCommunityIcons name="arrow-right" size={15} color={colors.accentTeal} />
                 </View>
               </Pressable>
             </View>
@@ -525,3 +532,4 @@ export default function DashboardScreen() {
     </DashboardLayout>
   );
 }
+

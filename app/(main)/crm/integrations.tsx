@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -30,13 +31,15 @@ const INTEGRATIONS = [
 ];
 
 export default function IntegrationsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [requestModalVisible, setRequestModalVisible] = useState(false);
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -65,7 +68,7 @@ export default function IntegrationsScreen() {
             <View key={int.id} style={styles.intCard}>
               <View style={styles.intCardTop}>
                 <View style={styles.intIconWrap}>
-                  <MaterialCommunityIcons name={int.icon} size={22} color="#0B2D3E" />
+                  <MaterialCommunityIcons name={int.icon} size={22} color={colors.textPrimary} />
                 </View>
                 <View style={[
                   styles.statusPill,
@@ -117,7 +120,7 @@ export default function IntegrationsScreen() {
         onRequestClose={() => setRequestModalVisible(false)}
       >
         <LinearGradient
-          colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+          colors={colors.backgroundGradient as any}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
           style={[styles.background, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
@@ -134,7 +137,7 @@ export default function IntegrationsScreen() {
                 style={styles.closeBtnSmall}
                 onPress={() => setRequestModalVisible(false)}
               >
-                <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
               </Pressable>
             </View>
 
@@ -203,7 +206,8 @@ export default function IntegrationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -221,7 +225,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(227, 236, 244, 0.8)',
-    shadowColor: '#0B2D3E',
+    shadowColor: colors.accentTeal,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
@@ -231,12 +235,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 14,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 6,
     lineHeight: 20,
@@ -252,7 +256,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -272,12 +276,12 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   intCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#E8EEF4',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
@@ -294,52 +298,52 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   statusPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
   },
   statusPillConnected: {
     backgroundColor: 'rgba(11, 160, 178, 0.1)',
   },
   statusPillComingSoon: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
   statusPillText: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#64748B',
+    color: colors.textSecondary,
     letterSpacing: 0.8,
   },
   statusPillTextConnected: { color: '#0BA0B2' },
-  statusPillTextComingSoon: { color: '#94A3B8' },
+  statusPillTextComingSoon: { color: colors.inputPlaceholder },
   labelGroup: {
     marginBottom: 8,
   },
   intName: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.4,
   },
   intCategory: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 2,
   },
   intDesc: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 24,
     fontWeight: '500',
@@ -347,7 +351,7 @@ const styles = StyleSheet.create({
   intActionBtn: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -361,7 +365,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0BA0B2',
   },
   intActionBtnDisabled: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     elevation: 0,
     shadowOpacity: 0,
   },
@@ -370,7 +374,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF'
   },
-  intActionBtnTextDisabled: { color: '#94A3B8' },
+  intActionBtnTextDisabled: { color: colors.inputPlaceholder },
   // Modal Styles
   modalContent: {
     flex: 1,
@@ -385,12 +389,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.6,
   },
   modalSubtitle: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 12,
     lineHeight: 22,
@@ -399,11 +403,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     marginLeft: 16,
   },
   fieldItem: {
@@ -412,16 +416,16 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 0.8,
     marginBottom: 10,
     textTransform: 'uppercase',
   },
   inputWrap: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     height: 54,
     justifyContent: 'center',
@@ -433,7 +437,7 @@ const styles = StyleSheet.create({
   textInput: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   textArea: {
     height: '100%',
@@ -447,24 +451,24 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelActionBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   submitActionBtn: {
     flex: 1.5,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0B2D3E',
+    shadowColor: colors.accentTeal,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -475,4 +479,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-});
+  });
+}

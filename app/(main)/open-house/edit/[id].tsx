@@ -3,6 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams, useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -53,6 +54,9 @@ const PROPERTIES: PropertyItem[] = [
 
 
 export default function OpenHouseEditScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -85,13 +89,13 @@ export default function OpenHouseEditScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Pressable style={styles.backBtnWrapper} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color="#0D9488" />
+          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.accentTeal} />
           <Text style={styles.backBtnText}>Back</Text>
         </Pressable>
         <Text style={styles.headerSubtitle}> / Edit Event (OH-001)</Text>
@@ -102,19 +106,19 @@ export default function OpenHouseEditScreen() {
           activeStep={activeStep}
           topOffset={0}
           marginBottom={16}
-          progressBarColor="#E5E7EB"
-          completedProgressBarColor="#0D9488"
-          activeStepIconColor="#0D9488"
-          activeStepIconBorderColor="#0D9488"
-          completedStepIconColor="#0D9488"
-          disabledStepIconColor="#E5E7EB"
-          labelColor="#9CA3AF"
-          activeLabelColor="#0D9488"
-          completedLabelColor="#0D9488"
-          activeStepNumColor="#FFFFFF"
-          completedStepNumColor="#FFFFFF"
-          disabledStepNumColor="#5B6B7A"
-          completedCheckColor="#FFFFFF"
+          progressBarColor={colors.cardBorder}
+          completedProgressBarColor={colors.accentTeal}
+          activeStepIconColor={colors.accentTeal}
+          activeStepIconBorderColor={colors.accentTeal}
+          completedStepIconColor={colors.accentTeal}
+          disabledStepIconColor={colors.cardBorder}
+          labelColor={colors.textMuted}
+          activeLabelColor={colors.accentTeal}
+          completedLabelColor={colors.accentTeal}
+          activeStepNumColor={colors.cardBackground}
+          completedStepNumColor={colors.cardBackground}
+          disabledStepNumColor={colors.textSecondary}
+          completedCheckColor={colors.cardBackground}
           labelFontSize={10}
           activeLabelFontSize={10}
 
@@ -170,6 +174,9 @@ function Step1SelectProperty({
   selectedPropertyId: string | null;
   onSelectProperty: (id: string) => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.stepContent}>
       <View style={styles.titleBlock}>
@@ -199,7 +206,7 @@ function Step1SelectProperty({
                 />
                 {isSelected && (
                   <View style={styles.selectedOverlay}>
-                    <MaterialCommunityIcons name="check-circle" size={32} color="#0D9488" />
+                    <MaterialCommunityIcons name="check-circle" size={32} color={colors.accentTeal} />
                   </View>
                 )}
               </View>
@@ -218,7 +225,7 @@ function Step1SelectProperty({
           );
         })}
         <Pressable style={styles.addPropertyCard} onPress={() => router.push('/(main)/properties/create')}>
-          <MaterialCommunityIcons name="plus" size={32} color="#0D9488" />
+          <MaterialCommunityIcons name="plus" size={32} color={colors.accentTeal} />
           <Text style={styles.addPropertyText}>ADD NEW PROPERTY</Text>
         </Pressable>      </ScrollView>
     </View>
@@ -270,6 +277,9 @@ function Step2Details({
   onBack: () => void;
   onContinue: () => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const [pickerOpen, setPickerOpen] = useState<PickerType>(null);
   const [tempValue, setTempValue] = useState<Date>(eventDate);
@@ -331,7 +341,7 @@ function Step2Details({
               <Text style={styles.inputText} numberOfLines={1}>
                 {formatDisplayDate(eventDate)}
               </Text>
-              <MaterialCommunityIcons name="calendar-outline" size={20} color="#0D9488" />
+              <MaterialCommunityIcons name="calendar-outline" size={20} color={colors.accentTeal} />
             </Pressable>
           </View>
           <View style={styles.fieldRow}>
@@ -345,7 +355,7 @@ function Step2Details({
                 <Text style={styles.inputText} numberOfLines={1}>
                   {formatDisplayTime(startTimeDate)}
                 </Text>
-                <MaterialCommunityIcons name="clock-outline" size={20} color="#0D9488" />
+                <MaterialCommunityIcons name="clock-outline" size={20} color={colors.accentTeal} />
               </Pressable>
             </View>
             <View style={styles.field}>
@@ -357,7 +367,7 @@ function Step2Details({
                 <Text style={styles.inputText} numberOfLines={1}>
                   {formatDisplayTime(endTimeDate)}
                 </Text>
-                <MaterialCommunityIcons name="clock-outline" size={20} color="#0D9488" />
+                <MaterialCommunityIcons name="clock-outline" size={20} color={colors.accentTeal} />
               </Pressable>
             </View>
           </View>
@@ -439,7 +449,7 @@ function Step2Details({
               <Text style={styles.uploadAreaSubtitle}>Shown on print materials and sign-in page</Text>
             </View>
             <Pressable style={styles.uploadBtn}>
-              <MaterialCommunityIcons name="plus" size={14} color="#0B2D3E" />
+              <MaterialCommunityIcons name="plus" size={14} color={colors.textPrimary} />
               <Text style={styles.uploadBtnText}>Upload</Text>
             </Pressable>
           </View>
@@ -456,7 +466,7 @@ function Step2Details({
           </View>
           <View style={styles.buttonRow}>
             <Pressable style={styles.backButton} onPress={onBack}>
-              <MaterialCommunityIcons name="arrow-left" size={16} color="#0B2D3E" />
+              <MaterialCommunityIcons name="arrow-left" size={16} color={colors.textPrimary} />
               <Text style={styles.backButtonText}>Back</Text>
             </Pressable>
             <Pressable style={styles.continueButton} onPress={onContinue}>
@@ -525,6 +535,9 @@ function Step4Customization({
   onBack: () => void;
   onFinalize: () => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const [accentIndex, setAccentIndex] = useState(0);
   const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
   const [descStyle, setDescStyle] = useState<DescStyleKey>('luxury');
@@ -598,7 +611,7 @@ function Step4Customization({
                 </View>
                 {enableVisitorReg && (
                   <View style={styles.paperQRCode}>
-                    <MaterialCommunityIcons name="qrcode" size={24} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="qrcode" size={24} color={colors.textPrimary} />
                   </View>
                 )}
               </View>
@@ -618,7 +631,7 @@ function Step4Customization({
               />
             ))}
             <Pressable style={styles.addColorBtn}>
-              <MaterialCommunityIcons name="plus" size={16} color="#475569" />
+              <MaterialCommunityIcons name="plus" size={16} color={colors.textSecondary} />
             </Pressable>
           </View>
           <Text style={styles.selectedColorText}>Selected accent color: <Text style={{ fontWeight: '700', color: EXTENDED_BRAND_COLORS[accentIndex] }}>{EXTENDED_BRAND_COLORS[accentIndex]}</Text></Text>
@@ -687,7 +700,7 @@ function Step4Customization({
               style={styles.galleryAddBox}
               onPress={() => setGalleryImages((prev) => [...prev, PLACEHOLDER_1])}
             >
-              <MaterialCommunityIcons name="plus" size={24} color="#0D9488" />
+              <MaterialCommunityIcons name="plus" size={24} color={colors.accentTeal} />
             </Pressable>
           </ScrollView>
           <Text style={styles.galleryHelperText}>
@@ -715,7 +728,7 @@ function Step4Customization({
         {/* Bottom Actions */}
         <View style={styles.bottomActions}>
           <Pressable style={styles.actionBackBtn} onPress={onBack}>
-            <MaterialCommunityIcons name="arrow-left" size={16} color="#0B2D3E" />
+            <MaterialCommunityIcons name="arrow-left" size={16} color={colors.textPrimary} />
             <Text style={styles.actionBackText}>Back</Text>
           </Pressable>
           <Pressable style={styles.actionFinalizeBtn} onPress={onFinalize}>
@@ -733,6 +746,9 @@ function Step5SheetReady({
 }: {
   onGoToDashboard: () => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.stepContent}>
       <ScrollView style={styles.readyScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.readyScrollContent}>
@@ -743,22 +759,22 @@ function Step5SheetReady({
 
         <View style={styles.readyActionsGrid}>
           <Pressable style={styles.readyActionCard}>
-            <MaterialCommunityIcons name="file-document-outline" size={24} color="#0B2D3E" />
+            <MaterialCommunityIcons name="file-document-outline" size={24} color={colors.textPrimary} />
             <Text style={styles.readyActionCardLabel}>Download PDF</Text>
             <Text style={styles.readyActionCardSub}>PROPERTY DOSSIER</Text>
           </Pressable>
           <Pressable style={styles.readyActionCard}>
-            <MaterialCommunityIcons name="link-variant" size={24} color="#0B2D3E" />
+            <MaterialCommunityIcons name="link-variant" size={24} color={colors.textPrimary} />
             <Text style={styles.readyActionCardLabel}>Digital Share Link</Text>
             <Text style={styles.readyActionCardSub}>VISITOR PORTAL</Text>
           </Pressable>
           <Pressable style={styles.readyActionCard}>
-            <MaterialCommunityIcons name="share-variant" size={24} color="#0B2D3E" />
+            <MaterialCommunityIcons name="share-variant" size={24} color={colors.textPrimary} />
             <Text style={styles.readyActionCardLabel}>Add to campaigns</Text>
             <Text style={styles.readyActionCardSub}>ADD TO CAMPAIGNS</Text>
           </Pressable>
           <Pressable style={styles.readyActionCard}>
-            <MaterialCommunityIcons name="plus" size={24} color="#0B2D3E" />
+            <MaterialCommunityIcons name="plus" size={24} color={colors.textPrimary} />
             <Text style={styles.readyActionCardLabel}>Email Automation</Text>
             <Text style={styles.readyActionCardSub}>CREATE AI AUTOMATION</Text>
           </Pressable>
@@ -774,7 +790,8 @@ function Step5SheetReady({
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: {
     flex: 1,
   },
@@ -793,25 +810,25 @@ const styles = StyleSheet.create({
   backBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0D9488',
+    color: colors.accentTeal,
   },
   headerSubtitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#9CA3AF',
+    color: colors.textMuted,
   },
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(227, 236, 244, 0.9)',
+    borderColor: colors.cardBorder,
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.06,
         shadowRadius: 3,
@@ -832,7 +849,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: 14,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   templateTitleRow: {
@@ -846,7 +863,7 @@ const styles = StyleSheet.create({
   },
   templateSubtitle: {
     fontSize: 14,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '500',
     lineHeight: 20,
     marginTop: 6,
@@ -865,12 +882,12 @@ const styles = StyleSheet.create({
     width: 160,
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 2,
     borderColor: 'transparent',
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.1,
         shadowRadius: 10,
@@ -885,7 +902,7 @@ const styles = StyleSheet.create({
   templateCardImageWrap: {
     width: '100%',
     height: 200,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     position: 'relative',
   },
   templateCardImage: {
@@ -915,7 +932,7 @@ const styles = StyleSheet.create({
   templateName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
     letterSpacing: -0.2,
   },
   templateButtonRow: {
@@ -932,13 +949,13 @@ const styles = StyleSheet.create({
   customizationTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.3,
     marginBottom: 6,
   },
   customizationSubtitle: {
     fontSize: 14,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '500',
     lineHeight: 20,
     marginBottom: 18,
@@ -947,12 +964,12 @@ const styles = StyleSheet.create({
     marginBottom: 22,
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E4EAF2',
+    borderColor: colors.cardBorder,
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
         shadowRadius: 8,
@@ -966,7 +983,7 @@ const styles = StyleSheet.create({
     left: 12,
     fontSize: 9,
     fontWeight: '800',
-    color: '#0D9488',
+    color: colors.accentTeal,
     letterSpacing: 0.5,
     zIndex: 1,
   },
@@ -983,20 +1000,20 @@ const styles = StyleSheet.create({
   previewBrand: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 0.3,
   },
   previewTag: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 0.3,
   },
   previewPropertyImage: {
     width: '100%',
     height: 140,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     marginBottom: 10,
   },
   previewAddress: {
@@ -1008,7 +1025,7 @@ const styles = StyleSheet.create({
   previewCity: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   previewStatsRow: {
@@ -1019,12 +1036,12 @@ const styles = StyleSheet.create({
   previewStat: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   previewDescSnippet: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     lineHeight: 16,
     marginBottom: 12,
   },
@@ -1037,7 +1054,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.cardBorder,
   },
   previewAgentInfo: {
     flex: 1,
@@ -1045,28 +1062,28 @@ const styles = StyleSheet.create({
   previewAgentName: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   previewAgentMeta: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     marginTop: 1,
   },
   previewQRBox: {
     width: 44,
     height: 44,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   customSectionLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#0D9488',
+    color: colors.accentTeal,
     letterSpacing: 0.5,
     marginBottom: 10,
   },
@@ -1091,13 +1108,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
   },
   outlineButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   styleTagsRow: {
     flexDirection: 'row',
@@ -1108,32 +1125,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   styleTagActive: {
-    backgroundColor: '#0B2D3E',
-    borderColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.surfaceIcon,
   },
   styleTagText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   styleTagTextActive: {
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   descriptionInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 13,
     fontWeight: '500',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     minHeight: 100,
     textAlignVertical: 'top',
     marginBottom: 12,
@@ -1145,13 +1162,13 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#0D9488',
+    backgroundColor: colors.accentTeal,
     marginBottom: 22,
   },
   regenerateButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   leadCaptureRow: {
     flexDirection: 'row',
@@ -1167,24 +1184,24 @@ const styles = StyleSheet.create({
   leadCaptureLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   leadCaptureSub: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     marginTop: 2,
   },
   finalizeButton: {
     flex: 2,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
         shadowRadius: 4,
@@ -1206,7 +1223,7 @@ const styles = StyleSheet.create({
   readyTitle: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.3,
     textAlign: 'center',
     marginBottom: 10,
@@ -1214,7 +1231,7 @@ const styles = StyleSheet.create({
   readySubtitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     lineHeight: 20,
     textAlign: 'center',
     marginBottom: 28,
@@ -1231,14 +1248,14 @@ const styles = StyleSheet.create({
   readyActionCard: {
     width: '48%',
     minWidth: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E4EAF2',
+    borderColor: colors.cardBorder,
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.06,
         shadowRadius: 6,
@@ -1248,24 +1265,24 @@ const styles = StyleSheet.create({
   },
   readyActionCardDisabled: {
     opacity: 0.9,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
   readyActionCardLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 12,
   },
   readyActionCardLabelMuted: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     marginTop: 12,
   },
   readyComingSoon: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#EA580C',
+    color: colors.danger,
     letterSpacing: 0.3,
     marginTop: 6,
   },
@@ -1277,12 +1294,12 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.12,
         shadowRadius: 4,
@@ -1293,22 +1310,22 @@ const styles = StyleSheet.create({
   readyPrimaryButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   readySecondaryButton: {
     width: '100%',
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 2,
-    borderColor: '#0B2D3E',
+    borderColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
   },
   readySecondaryButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
 
   formCardWrap: {
@@ -1317,7 +1334,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.1,
         shadowRadius: 12,
@@ -1330,24 +1347,24 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     padding: 20,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: '#E4EAF2',
+    borderColor: colors.cardBorder,
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
   },
   sectionLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#0D9488',
+    color: colors.accentTeal,
     letterSpacing: 0.5,
     marginBottom: 10,
   },
   sectionDivider: {
     height: 1,
-    backgroundColor: '#E8EEF4',
+    backgroundColor: colors.cardBorder,
     marginVertical: 18,
   },
   fieldRow: {
@@ -1364,17 +1381,17 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     letterSpacing: 0.4,
     marginBottom: 6,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 12,
     paddingVertical: 12,
     minHeight: 48,
@@ -1383,17 +1400,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     padding: 0,
   },
   uploadArea: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 18,
     marginVertical: 16,
@@ -1401,29 +1418,29 @@ const styles = StyleSheet.create({
   uploadAreaTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   uploadAreaSubtitle: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   uploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   uploadBtnText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -1436,7 +1453,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 11,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     letterSpacing: 0.2,
   },
   buttonRow: {
@@ -1451,12 +1468,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E4EAF2',
+    borderColor: colors.cardBorder,
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.04,
         shadowRadius: 3,
@@ -1467,18 +1484,18 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   continueButton: {
     flex: 2,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
         shadowRadius: 4,
@@ -1489,22 +1506,22 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   pickerBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(11, 45, 62, 0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   pickerSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 12,
     paddingHorizontal: 20,
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.12,
         shadowRadius: 12,
@@ -1523,7 +1540,7 @@ const styles = StyleSheet.create({
   pickerSheetTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -1531,7 +1548,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   pickerDoneButton: {
-    backgroundColor: '#0D9488',
+    backgroundColor: colors.accentTeal,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -1541,7 +1558,7 @@ const styles = StyleSheet.create({
   pickerDoneText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
 
   // Revised Property Step Styles
@@ -1551,12 +1568,12 @@ const styles = StyleSheet.create({
   screenTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   screenSubtitle: {
     fontSize: 14,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   propertiesScroll: {
@@ -1567,9 +1584,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   propertyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
-    shadowColor: '#0B2D3E',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
@@ -1584,7 +1601,7 @@ const styles = StyleSheet.create({
   },
   propertyCardImageWrap: {
     height: 180,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     position: 'relative',
   },
   propertyCardImage: {
@@ -1593,7 +1610,7 @@ const styles = StyleSheet.create({
   },
   selectedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1609,15 +1626,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   statusTextReady: {
-    color: '#0D9488',
+    color: colors.accentTeal,
   },
   statusTextReview: {
-    color: '#EA580C',
+    color: colors.danger,
   },
   propertyAddress: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     lineHeight: 22,
   },
 
@@ -1628,7 +1645,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#0D9488',
     borderStyle: 'dashed',
-    backgroundColor: '#daeef0',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
@@ -1636,7 +1653,7 @@ const styles = StyleSheet.create({
   addPropertyText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0D9488',
+    color: colors.accentTeal,
     letterSpacing: 0.5,
   },
 
@@ -1648,13 +1665,13 @@ const styles = StyleSheet.create({
   detailsTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.3,
     marginBottom: 6,
   },
   detailsSubtitle: {
     fontSize: 14,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '500',
     lineHeight: 20,
   },
@@ -1663,7 +1680,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
 
   // Step 3 Pro Styles
@@ -1679,7 +1696,7 @@ const styles = StyleSheet.create({
     aspectRatio: 0.8,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     position: 'relative',
   },
   templateCardProSelected: {
@@ -1706,13 +1723,13 @@ const styles = StyleSheet.create({
   templateNamePro: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   templateSelectedOverlay: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
   },
   // Step 4 Pro Styles
@@ -1725,20 +1742,20 @@ const styles = StyleSheet.create({
   sectionHeaderLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
     letterSpacing: 1,
     marginBottom: 16,
     textTransform: 'uppercase',
   },
   paperSheet: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     aspectRatio: 0.7, // Slightly taller
     borderRadius: 8,
     padding: 24,
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.15,
         shadowRadius: 24,
@@ -1752,27 +1769,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     borderBottomWidth: 2,
-    borderBottomColor: '#0B2D3E',
+    borderBottomColor: colors.surfaceIcon,
     paddingBottom: 12,
   },
   paperBrand: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     textTransform: 'uppercase',
     letterSpacing: -0.5,
   },
   paperTag: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#0D9488',
+    color: colors.accentTeal,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   paperImage: {
     width: '100%',
     height: 180,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     marginBottom: 20,
     borderRadius: 4,
   },
@@ -1783,14 +1800,14 @@ const styles = StyleSheet.create({
   paperTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 4,
     letterSpacing: -0.5,
   },
   paperSubtitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.textSecondary,
     marginBottom: 20,
   },
   paperStatsRow: {
@@ -1799,9 +1816,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
     paddingVertical: 12,
   },
   paperStatItem: {
@@ -1810,31 +1827,31 @@ const styles = StyleSheet.create({
   paperStatValue: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   paperStatLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.textMuted,
     marginTop: 2,
     letterSpacing: 0.5,
   },
   paperDividerVertical: {
     width: 1,
     height: 24,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.cardBorder,
   },
   paperDescription: {
     fontSize: 11,
     lineHeight: 18,
-    color: '#334155',
+    color: colors.textSecondary,
     textAlign: 'justify',
   },
   paperFooter: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 2,
-    borderTopColor: '#0B2D3E',
+    borderTopColor: colors.surfaceIcon,
   },
   paperDividerHorizontal: {
     display: 'none', // Removed in favor of borderTop on footer
@@ -1858,32 +1875,32 @@ const styles = StyleSheet.create({
   paperAgentName: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   paperAgentRole: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   paperQRCode: {
     padding: 6,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
 
   // Custom Card
   customCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 24,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
         shadowRadius: 16,
@@ -1894,13 +1911,13 @@ const styles = StyleSheet.create({
   customCardTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 6,
     letterSpacing: -0.5,
   },
   cardSub: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginBottom: 16,
   },
@@ -1918,7 +1935,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -1927,7 +1944,7 @@ const styles = StyleSheet.create({
     }),
   },
   colorSwatchActive: {
-    borderColor: '#0B2D3E', // Will rely on inline style for inner ring effect, or just border
+    borderColor: colors.surfaceIcon, // Will rely on inline style for inner ring effect, or just border
     transform: [{ scale: 1.1 }],
   },
   addColorBtn: {
@@ -1936,14 +1953,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
   selectedColorText: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginBottom: 24,
     fontWeight: '600',
   },
@@ -1953,9 +1970,9 @@ const styles = StyleSheet.create({
   },
   brandActionBtn: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -1963,7 +1980,7 @@ const styles = StyleSheet.create({
   brandActionBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -1983,35 +2000,35 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
   },
   stylePillActive: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     borderColor: '#0F172A',
   },
   stylePillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   stylePillTextActive: {
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   aiInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     padding: 18,
     fontSize: 14,
-    color: '#334155',
+    color: colors.textSecondary,
     height: 140,
     textAlignVertical: 'top',
     lineHeight: 22,
   },
   regenerateBtnFull: {
-    backgroundColor: '#0D9488',
+    backgroundColor: colors.accentTeal,
     borderRadius: 14,
     paddingVertical: 16,
     marginTop: 20,
@@ -2021,7 +2038,7 @@ const styles = StyleSheet.create({
     gap: 8,
     ...Platform.select({
       ios: {
-        shadowColor: '#0D9488',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
@@ -2032,12 +2049,12 @@ const styles = StyleSheet.create({
   regenerateBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   settingsLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#334155',
+    color: colors.textSecondary,
   },
   bottomActions: {
     flexDirection: 'row',
@@ -2054,24 +2071,24 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   actionBackText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   actionFinalizeBtn: {
     flex: 1,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 14,
     paddingVertical: 18,
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
@@ -2082,7 +2099,7 @@ const styles = StyleSheet.create({
   actionFinalizeText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   galleryScrollContent: {
     flexDirection: 'row',
@@ -2104,7 +2121,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: colors.surfaceIcon,
     width: 22,
     height: 22,
     borderRadius: 11,
@@ -2118,20 +2135,20 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#0D9488',
     borderStyle: 'dashed',
-    backgroundColor: '#daeef0',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   galleryHelperText: {
     marginTop: 8,
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.textMuted,
     fontWeight: '500',
   },
   readyTitleCentered: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
     marginBottom: 8,
     textAlign: 'center',
@@ -2139,7 +2156,7 @@ const styles = StyleSheet.create({
   },
   readySubtitleCentered: {
     fontSize: 15,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '500',
     lineHeight: 22,
     marginBottom: 40,
@@ -2149,7 +2166,7 @@ const styles = StyleSheet.create({
   readyActionCardSub: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     marginTop: 4,
     letterSpacing: 0.5,
   },
@@ -2159,7 +2176,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   readyPrimaryButtonMulti: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
@@ -2168,7 +2185,8 @@ const styles = StyleSheet.create({
   readyPrimaryButtonTextMulti: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
 });
 
+}

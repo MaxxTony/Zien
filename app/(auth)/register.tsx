@@ -1,10 +1,9 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AuthCard, AuthLogoBrand, AuthScreenBackground, AuthSubtitle, AuthTitle } from '@/components/auth';
-
-import { Theme } from '@/constants/theme';
 
 const ACCOUNT_TYPES = [
   {
@@ -34,6 +33,8 @@ const ACCOUNT_TYPES = [
 ];
 
 export default function RegisterScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
 
   return (
@@ -69,7 +70,7 @@ export default function RegisterScreen() {
                   Alert.alert('Coming soon');
                 }}>
                 <View style={styles.listIcon}>
-                  <MaterialCommunityIcons name={item.icon as any} size={20} color={Theme.iconMuted} />
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={colors.textSecondary} />
                 </View>
                 <View style={styles.listContent}>
                   <Text style={styles.listTitle}>{item.title}</Text>
@@ -91,14 +92,16 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: 18,
     justifyContent: 'center',
   },
   cardSoft: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.cardBorder,
   },
   list: {
     alignSelf: 'stretch',
@@ -107,19 +110,21 @@ const styles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.cardBorder,
     padding: 14,
   },
   listIcon: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   listContent: {
     flex: 1,
@@ -128,19 +133,20 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   listDescription: {
     fontSize: 12.5,
-    color: Theme.textMuted,
+    color: colors.textSecondary,
   },
   footerText: {
     marginTop: 18,
     fontSize: 12.5,
-    color: Theme.textMuted,
+    color: colors.textSecondary,
   },
   footerLink: {
-    color: Theme.link,
+    color: colors.accentTeal,
     fontWeight: '600',
   },
 });
+}

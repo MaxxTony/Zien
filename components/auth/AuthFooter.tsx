@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleProp, Text, View, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type AuthFooterLinkProps = {
   children: ReactNode;
@@ -9,8 +9,9 @@ type AuthFooterLinkProps = {
 };
 
 export function AuthFooterLink({ children, onPress }: AuthFooterLinkProps) {
+  const { colors } = useAppTheme();
   return (
-    <Text style={{ color: Theme.link, fontWeight: '600' }} onPress={onPress}>
+    <Text style={{ color: colors.link, fontWeight: '600' }} onPress={onPress}>
       {children}
     </Text>
   );
@@ -22,6 +23,7 @@ type AuthFooterProps = {
 };
 
 export default function AuthFooter({ children, style }: AuthFooterProps) {
+  const { colors } = useAppTheme();
   return (
     <View
       style={[
@@ -38,5 +40,6 @@ export default function AuthFooter({ children, style }: AuthFooterProps) {
 }
 
 export function AuthFooterText({ children }: { children: ReactNode }) {
-  return <Text style={{ fontSize: 12.5, color: Theme.textMuted }}>{children}</Text>;
+  const { colors } = useAppTheme();
+  return <Text style={{ fontSize: 12.5, color: colors.textMuted }}>{children}</Text>;
 }

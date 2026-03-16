@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import React, { useState } from 'react';
 import {
   Dimensions,
@@ -39,13 +40,16 @@ const SMART_HOME_OPTIONS = ['Thermostat', 'Security', 'Lighting', 'Audio', 'Lock
 // --- Helper Components ---
 
 function PremiumDropdown({ label, value, options, onSelect }: { label: string, value: string, options: string[], onSelect: (v: string) => void }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const [isOpen, setIsOpen] = useState(false);
   return (
     <View style={styles.inputGroup}>
       <Text style={styles.inputLabel}>{label}</Text>
       <Pressable style={styles.dropdownTrigger} onPress={() => setIsOpen(!isOpen)}>
         <Text style={styles.dropdownValue}>{value}</Text>
-        <MaterialCommunityIcons name={isOpen ? "chevron-up" : "chevron-down"} size={18} color={Theme.textPrimary} />
+        <MaterialCommunityIcons name={isOpen ? "chevron-up" : "chevron-down"} size={18} color={colors.textPrimary} />
       </Pressable>
       {isOpen && (
         <View style={styles.dropdownMenu}>
@@ -59,7 +63,7 @@ function PremiumDropdown({ label, value, options, onSelect }: { label: string, v
               }}
             >
               <Text style={[styles.dropdownItemText, value === opt && styles.dropdownItemTextActive]}>{opt}</Text>
-              {value === opt && <MaterialCommunityIcons name="check" size={16} color={Theme.accentTeal} />}
+              {value === opt && <MaterialCommunityIcons name="check" size={16} color={colors.accentTeal} />}
             </Pressable>
           ))}
         </View>
@@ -69,6 +73,9 @@ function PremiumDropdown({ label, value, options, onSelect }: { label: string, v
 }
 
 function MultiSelectChips({ label, options, selected, onToggle }: { label: string, options: string[], selected: string[], onToggle: (v: string) => void }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.chipSection}>
       <Text style={styles.inputLabel}>{label}</Text>
@@ -93,6 +100,9 @@ function MultiSelectChips({ label, options, selected, onToggle }: { label: strin
 // --- Step Components ---
 
 function StepAddress({ onNext }: { onNext: () => void }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.stepContainer}>
       <View style={styles.premiumCard}>
@@ -103,26 +113,26 @@ function StepAddress({ onNext }: { onNext: () => void }) {
           <TextInput
             style={styles.addressInputMobile}
             placeholder="Start typing address..."
-            placeholderTextColor={Theme.textMuted}
+            placeholderTextColor={colors.textMuted}
           />
         </View>
 
         <View style={styles.enrichmentSources}>
           <View style={styles.sourceItem}>
             <View style={styles.sourceIconBox}>
-              <MaterialCommunityIcons name="office-building" size={20} color={Theme.accentTeal} />
+              <MaterialCommunityIcons name="office-building" size={20} color={colors.accentTeal} />
             </View>
             <Text style={styles.sourceLabel}>County</Text>
           </View>
           <View style={styles.sourceItem}>
             <View style={styles.sourceIconBox}>
-              <MaterialCommunityIcons name="map" size={20} color={Theme.accentTeal} />
+              <MaterialCommunityIcons name="map" size={20} color={colors.accentTeal} />
             </View>
             <Text style={styles.sourceLabel}>Zoning</Text>
           </View>
           <View style={styles.sourceItem}>
             <View style={styles.sourceIconBox}>
-              <MaterialCommunityIcons name="file-document" size={20} color={Theme.accentTeal} />
+              <MaterialCommunityIcons name="file-document" size={20} color={colors.accentTeal} />
             </View>
             <Text style={styles.sourceLabel}>Tax</Text>
           </View>
@@ -133,6 +143,9 @@ function StepAddress({ onNext }: { onNext: () => void }) {
 }
 
 function StepDetails({ onNext, onBack }: { onNext: () => void, onBack: () => void }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const [formData, setFormData] = useState({
     type: 'Residential SFH',
     beds: '5',
@@ -158,7 +171,7 @@ function StepDetails({ onNext, onBack }: { onNext: () => void, onBack: () => voi
       <View style={styles.premiumCard}>
         <View style={styles.cardHeaderRow}>
           <View style={styles.headerIconBox}>
-            <MaterialCommunityIcons name="home-analytics" size={24} color={Theme.textPrimary} />
+            <MaterialCommunityIcons name="home-analytics" size={24} color={colors.textPrimary} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardHeaderTitle}>Property Details</Text>
@@ -209,6 +222,9 @@ function StepMedia({ onNext, onBack, uploadedImages, setUploadedImages }: {
   uploadedImages: string[],
   setUploadedImages: React.Dispatch<React.SetStateAction<string[]>>
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const [prompt, setPrompt] = useState('');
   const [showOptions, setShowOptions] = useState(false);
 
@@ -232,7 +248,7 @@ function StepMedia({ onNext, onBack, uploadedImages, setUploadedImages }: {
           {/* Upload Box */}
           <View style={styles.mediaUploadBox}>
             <View style={styles.uploadIconCircle}>
-              <MaterialCommunityIcons name="cloud-upload-outline" size={24} color={Theme.textSecondary} />
+              <MaterialCommunityIcons name="cloud-upload-outline" size={24} color={colors.textSecondary} />
             </View>
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.uploadTitle}>Upload Photos</Text>
@@ -244,19 +260,19 @@ function StepMedia({ onNext, onBack, uploadedImages, setUploadedImages }: {
                 style={styles.selectPhotosBtn}
                 onPress={() => setShowOptions(!showOptions)}
               >
-                <MaterialCommunityIcons name="plus" size={16} color={Theme.textPrimary} style={{ marginRight: 6 }} />
+                <MaterialCommunityIcons name="plus" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
                 <Text style={styles.selectPhotosBtnText}>Add Media</Text>
               </TouchableOpacity>
 
               {showOptions && (
                 <View style={styles.uploadOptions}>
                   <Pressable style={styles.uploadOptionItem} onPress={() => handleSelect('library')}>
-                    <MaterialCommunityIcons name="image-multiple-outline" size={18} color={Theme.textPrimary} />
+                    <MaterialCommunityIcons name="image-multiple-outline" size={18} color={colors.textPrimary} />
                     <Text style={styles.uploadOptionText}>Photo Library</Text>
                   </Pressable>
                   <View style={styles.optionDivider} />
                   <Pressable style={styles.uploadOptionItem} onPress={() => handleSelect('camera')}>
-                    <MaterialCommunityIcons name="camera-outline" size={18} color={Theme.textPrimary} />
+                    <MaterialCommunityIcons name="camera-outline" size={18} color={colors.textPrimary} />
                     <Text style={styles.uploadOptionText}>Take Photo</Text>
                   </Pressable>
                 </View>
@@ -283,7 +299,7 @@ function StepMedia({ onNext, onBack, uploadedImages, setUploadedImages }: {
                         <Text style={styles.sceneTitle}>Scene {idx + 1}</Text>
                       </View>
                       <TouchableOpacity style={styles.enhanceBtn}>
-                        <MaterialCommunityIcons name="creation" size={14} color={Theme.accentTeal} />
+                        <MaterialCommunityIcons name="creation" size={14} color={colors.accentTeal} />
                         <Text style={styles.enhanceBtnText}>Magic Enhance</Text>
                       </TouchableOpacity>
                     </View>
@@ -310,7 +326,7 @@ function StepMedia({ onNext, onBack, uploadedImages, setUploadedImages }: {
               <TextInput
                 style={styles.promptInputMobile}
                 placeholder="e.g. Modern living room, golden hour..."
-                placeholderTextColor={Theme.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
                 value={prompt}
                 onChangeText={setPrompt}
@@ -333,12 +349,15 @@ function StepReview({ onNext, onBack, uploadedImages }: {
   onBack: () => void,
   uploadedImages: string[]
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.stepContainer}>
       <View style={styles.premiumCard}>
         <View style={styles.cardHeaderRow}>
           <View style={styles.headerIconBox}>
-            <MaterialCommunityIcons name="file-certificate-outline" size={24} color={Theme.textPrimary} />
+            <MaterialCommunityIcons name="file-certificate-outline" size={24} color={colors.textPrimary} />
           </View>
           <View>
             <Text style={styles.cardHeaderTitle}>Final Review</Text>
@@ -381,6 +400,9 @@ function StepReview({ onNext, onBack, uploadedImages }: {
 }
 
 function StepSuccess() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const router = useRouter();
   const options = [
     { icon: 'bank', title: 'Inventory', route: '/(main)/properties' },
@@ -393,7 +415,7 @@ function StepSuccess() {
     <View style={styles.stepContainer}>
       <View style={styles.premiumCard}>
         <View style={styles.successIconOuter}>
-          <MaterialCommunityIcons name="check-decagram" size={40} color={Theme.accentTeal} />
+          <MaterialCommunityIcons name="check-decagram" size={40} color={colors.accentTeal} />
         </View>
         <Text style={styles.successTitle}>Listing Added</Text>
         <Text style={styles.successSubtitle}>Your property has been successfully optimized and broadcasted.</Text>
@@ -406,7 +428,7 @@ function StepSuccess() {
                 <MaterialCommunityIcons name={opt.icon as any} size={18} color="#FFF" />
               </View>
               <Text style={styles.nextStepBtnText}>{opt.title}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={Theme.textMuted} />
+              <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           ))}
         </View>
@@ -418,6 +440,9 @@ function StepSuccess() {
 // --- Main Screen ---
 
 export default function CreateListingScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
@@ -485,7 +510,7 @@ export default function CreateListingScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <LinearGradient
-        colors={['#D8E9F6', '#F1F6FB', '#F5E6DB']}
+        colors={colors.backgroundGradient as any}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -534,7 +559,8 @@ export default function CreateListingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -558,20 +584,20 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(11, 45, 62, 0.1)',
+    backgroundColor: colors.cardBorder,
   },
   progressDotActive: {
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentTeal,
     width: 12,
     height: 8,
   },
   progressLine: {
     width: 24,
     height: 2,
-    backgroundColor: 'rgba(11, 45, 62, 0.1)',
+    backgroundColor: colors.cardBorder,
   },
   progressLineActive: {
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentTeal,
   },
   activeStepLabelRow: {
     flexDirection: 'row',
@@ -582,11 +608,11 @@ const styles = StyleSheet.create({
   activeStepText: {
     fontSize: 15,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   stepCounterText: {
     fontSize: 12,
-    color: Theme.textMuted,
+    color: colors.textMuted,
     fontWeight: '600',
   },
 
@@ -594,12 +620,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   premiumCard: {
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
-    shadowColor: '#000',
+    borderColor: colors.cardBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.04,
     shadowRadius: 15,
@@ -610,7 +636,7 @@ const styles = StyleSheet.create({
   groupLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: Theme.textMuted,
+    color: colors.textMuted,
     letterSpacing: 1.2,
     marginTop: 20,
     marginBottom: 12,
@@ -628,36 +654,36 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   inputLabelSmall: {
     fontSize: 10,
     fontWeight: '900',
-    color: Theme.textMuted,
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   dropdownTrigger: {
     height: 44,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
   },
   dropdownValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   dropdownMenu: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     marginTop: 4,
     padding: 4,
   },
@@ -671,23 +697,23 @@ const styles = StyleSheet.create({
   },
   dropdownItemText: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   dropdownItemTextActive: {
-    color: Theme.accentTeal,
+    color: colors.accentTeal,
     fontWeight: '700',
   },
   textInput: {
     height: 44,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     paddingHorizontal: 12,
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
   },
 
   // Chip Grid
@@ -704,21 +730,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
   },
   chipActive: {
-    borderColor: Theme.accentDark,
-    backgroundColor: 'rgba(11, 45, 62, 0.04)',
+    borderColor: colors.accentTeal,
+    backgroundColor: colors.surfaceIcon,
   },
   chipText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   chipTextActive: {
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
 
   // Step 1: Mobile Address
@@ -728,17 +754,17 @@ const styles = StyleSheet.create({
   },
   addressInputMobile: {
     height: 48,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
   },
   enrichBtnFull: {
     height: 48,
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentTeal,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -763,7 +789,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(11, 160, 178, 0.06)',
+    backgroundColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -771,7 +797,7 @@ const styles = StyleSheet.create({
   sourceLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: Theme.textMuted,
+    color: colors.textMuted,
   },
 
   // Step 3: Mobile Media Stack
@@ -780,21 +806,21 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   mediaUploadBox: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
     borderStyle: 'dashed',
     borderWidth: 1.5,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     gap: 12,
   },
   uploadOptions: {
     width: '100%',
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     marginTop: 8,
     overflow: 'hidden',
   },
@@ -808,11 +834,11 @@ const styles = StyleSheet.create({
   uploadOptionText: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   optionDivider: {
     height: 1,
-    backgroundColor: Theme.borderLight,
+    backgroundColor: colors.borderLight,
     marginHorizontal: 12,
   },
   galleryContainer: {
@@ -822,16 +848,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   galleryCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
   },
   galleryImageWrap: {
     width: '100%',
     height: 160,
-    backgroundColor: Theme.surfaceIcon,
+    backgroundColor: colors.surfaceIcon,
   },
   galleryImg: {
     width: '100%',
@@ -857,14 +883,14 @@ const styles = StyleSheet.create({
   sceneLabel: {
     fontSize: 9,
     fontWeight: '900',
-    color: Theme.textMuted,
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   sceneTitle: {
     fontSize: 13,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   enhanceBtn: {
     flexDirection: 'row',
@@ -874,19 +900,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(11, 160, 178, 0.2)',
-    backgroundColor: 'rgba(11, 160, 178, 0.05)',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.surfaceIcon,
   },
   enhanceBtnText: {
     fontSize: 11,
     fontWeight: '800',
-    color: Theme.accentTeal,
+    color: colors.accentTeal,
   },
   uploadIconCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Theme.surfaceIcon,
+    backgroundColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -900,7 +926,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
   },
   reviewGalleryImg: {
     width: '100%',
@@ -909,17 +935,17 @@ const styles = StyleSheet.create({
   uploadTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   uploadSubtitle: {
     fontSize: 12,
-    color: Theme.textMuted,
+    color: colors.textMuted,
     fontWeight: '500',
   },
   selectPhotosBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
@@ -927,14 +953,14 @@ const styles = StyleSheet.create({
   selectPhotosBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   aiStudioBoxMobile: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(11, 160, 178, 0.1)',
+    borderColor: colors.cardBorder,
   },
   aiHeader: {
     flexDirection: 'row',
@@ -946,21 +972,21 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: Theme.accentTeal,
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
   aiTitle: {
     fontSize: 14,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   aiSubtitle: {
     fontSize: 11,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   promptWrapper: {
-    backgroundColor: Theme.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 14,
     padding: 12,
     marginBottom: 16,
@@ -968,11 +994,11 @@ const styles = StyleSheet.create({
   promptInputMobile: {
     height: 60,
     fontSize: 13,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     textAlignVertical: 'top',
   },
   generateBtn: {
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentTeal,
     height: 44,
     borderRadius: 12,
     alignItems: 'center',
@@ -994,17 +1020,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.borderLight,
+    borderBottomColor: colors.borderLight,
   },
   reviewLabel: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   reviewValue: {
     fontSize: 13,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
 
   // Success Mobile
@@ -1014,18 +1040,18 @@ const styles = StyleSheet.create({
   nextStepMobileBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     padding: 14,
     borderRadius: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
   },
   nextStepIconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1033,7 +1059,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
 
   // Common titles
@@ -1047,30 +1073,30 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(11, 45, 62, 0.05)',
+    backgroundColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardHeaderTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   cardHeaderSubtitle: {
     fontSize: 12,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   contentTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },
   contentSubtitle: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     fontWeight: '500',
@@ -1079,13 +1105,13 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
   },
   successSubtitle: {
     fontSize: 14,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
   },
@@ -1093,7 +1119,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(11, 160, 178, 0.08)',
+    backgroundColor: colors.surfaceIcon,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
@@ -1106,12 +1132,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
-    shadowColor: '#000',
+    borderTopColor: colors.cardBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -1125,9 +1151,9 @@ const styles = StyleSheet.create({
     flex: 0.8,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1135,7 +1161,7 @@ const styles = StyleSheet.create({
     flex: 1.2,
     height: 52,
     borderRadius: 16,
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1148,22 +1174,22 @@ const styles = StyleSheet.create({
     flex: 0.8,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   continueBtn: {
     flex: 1.2,
     height: 48,
     borderRadius: 14,
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1172,4 +1198,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFF',
   },
-});
+  });
+}

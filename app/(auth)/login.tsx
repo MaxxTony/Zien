@@ -19,9 +19,11 @@ import LabeledInput from '@/components/ui/labeled-input';
 import OutlineButton from '@/components/ui/OutlineButton';
 import PasswordInput from '@/components/ui/PasswordInput';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function LoginScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
 
   return (
@@ -86,11 +88,12 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     justifyContent: 'center',
   },
   form: {
@@ -116,3 +119,4 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
 });
+}

@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -92,6 +93,8 @@ const DEALS_DATA: Record<(typeof PIPELINE_TABS)[number], Record<string, Deal[]>>
 };
 
 export default function DealsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width: screenWidth } = Dimensions.get('window');
@@ -231,11 +234,11 @@ export default function DealsScreen() {
 
           <View style={styles.filterBtnsRow}>
             <Pressable style={styles.filterBtn} onPress={() => setIsStagesModalVisible(true)}>
-              <MaterialCommunityIcons name="tune-variant" size={18} color="#0B2D3E" />
+              <MaterialCommunityIcons name="tune-variant" size={18} color={colors.textPrimary} />
               <Text style={styles.filterBtnText}>Stages</Text>
             </Pressable>
             <Pressable style={styles.filterBtn} onPress={() => setIsAutoTriggerModalVisible(true)}>
-              <MaterialCommunityIcons name="lightning-bolt-outline" size={18} color="#0B2D3E" />
+              <MaterialCommunityIcons name="lightning-bolt-outline" size={18} color={colors.textPrimary} />
               <Text style={styles.filterBtnText}>Auto-Triggers</Text>
             </Pressable>
           </View>
@@ -272,7 +275,7 @@ export default function DealsScreen() {
               style={styles.closeBtn}
               onPress={() => setIsStagesModalVisible(false)}
             >
-              <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -334,7 +337,7 @@ export default function DealsScreen() {
               style={styles.closeBtn}
               onPress={() => setIsModalVisible(false)}
             >
-              <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -356,7 +359,7 @@ export default function DealsScreen() {
                 }}
               >
                 <Text style={styles.dropdownValue}>{selectedContact}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
               </Pressable>
               {isContactDropdownOpen && (
                 <View style={styles.formDropdownMenu}>
@@ -392,7 +395,7 @@ export default function DealsScreen() {
                 }}
               >
                 <Text style={styles.dropdownValue}>{selectedProperty}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
               </Pressable>
               {isPropertyDropdownOpen && (
                 <View style={styles.formDropdownMenu}>
@@ -445,7 +448,7 @@ export default function DealsScreen() {
                   }}
                 >
                   <Text style={styles.dropdownValue}>{targetPipeline}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {isPipelineDropdownOpen && (
                   <View style={styles.formDropdownMenu}>
@@ -482,7 +485,7 @@ export default function DealsScreen() {
                 }}
               >
                 <Text style={styles.dropdownValue}>{selectedStage}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
               </Pressable>
               {isStageDropdownOpen && (
                 <View style={styles.formDropdownMenu}>
@@ -552,7 +555,7 @@ export default function DealsScreen() {
               style={styles.closeBtn}
               onPress={() => setIsAutoTriggerModalVisible(false)}
             >
-              <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -609,10 +612,11 @@ export default function DealsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
   mainScroll: {
     paddingTop: 8,
@@ -632,9 +636,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -642,13 +646,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tabBtnActive: {
-    backgroundColor: '#0B2D3E',
-    borderColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
   },
   tabBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   tabBtnTextActive: {
     color: '#FFFFFF',
@@ -662,12 +666,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -677,7 +681,7 @@ const styles = StyleSheet.create({
   filterBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   topStagesScroll: {
     paddingHorizontal: 20,
@@ -685,12 +689,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   stageContainer: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 24,
     width: 280,
     padding: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   stageContainerFull: {
     width: '100%',
@@ -705,7 +709,7 @@ const styles = StyleSheet.create({
   stageTitle: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 1,
   },
   countIndicator: {
@@ -719,13 +723,13 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   stageCards: {
     gap: 12,
   },
   dealCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
@@ -746,12 +750,12 @@ const styles = StyleSheet.create({
   dealCardName: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   dealCardAddress: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 4,
   },
@@ -768,7 +772,7 @@ const styles = StyleSheet.create({
   },
   dealCardTime: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
   },
   expiresBadge: {
@@ -776,13 +780,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.cardBorder,
   },
   expiresText: {
     fontSize: 11,
@@ -800,20 +804,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
   emptyPlaceholderText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -826,19 +830,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -856,16 +860,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   dropdownTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -873,16 +877,16 @@ const styles = StyleSheet.create({
   },
   dropdownValue: {
     fontSize: 15,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   rowInputs: {
     flexDirection: 'row',
   },
   valueInputWrapper: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 54,
@@ -890,11 +894,11 @@ const styles = StyleSheet.create({
   },
   valueInput: {
     fontSize: 15,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   aiForecastBox: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: '#0BA0B2',
@@ -915,7 +919,7 @@ const styles = StyleSheet.create({
   },
   aiDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     lineHeight: 18,
     fontWeight: '500',
   },
@@ -924,7 +928,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
     gap: 12,
   },
   cancelBtn: {
@@ -932,19 +936,19 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   createBtn: {
     flex: 2,
     height: 54,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -982,9 +986,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   automationCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
@@ -1014,7 +1018,7 @@ const styles = StyleSheet.create({
   automationStageName: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   automationActionRow: {
     flexDirection: 'row',
@@ -1022,7 +1026,7 @@ const styles = StyleSheet.create({
   },
   thenText: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   actionSelector: {
@@ -1042,7 +1046,7 @@ const styles = StyleSheet.create({
   saveSettingsBtn: {
     flex: 1,
     height: 54,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1061,19 +1065,19 @@ const styles = StyleSheet.create({
   newStageTextInput: {
     flex: 1,
     height: 54,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   addStageSubmitBtn: {
     width: 80,
     height: 54,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1087,7 +1091,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     paddingHorizontal: 20,
     paddingVertical: 18,
@@ -1096,6 +1100,7 @@ const styles = StyleSheet.create({
   stageManagementName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
-});
+  });
+}

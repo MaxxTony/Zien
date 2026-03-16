@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
+import { useAppTheme } from '@/context/ThemeContext';
+
 type StepIndicatorProps = {
   currentStep: number;
   totalSteps?: number;
@@ -8,6 +10,8 @@ type StepIndicatorProps = {
 
 export default function StepIndicator({ currentStep, totalSteps = 5 }: StepIndicatorProps) {
   const activeAnim = useRef(new Animated.Value(0)).current;
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
 
   useEffect(() => {
     activeAnim.setValue(0);
@@ -63,7 +67,7 @@ export default function StepIndicator({ currentStep, totalSteps = 5 }: StepIndic
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -77,7 +81,7 @@ const styles = StyleSheet.create({
   line: {
     width: 24,
     height: 2,
-    backgroundColor: '#D7E2EE',
+    backgroundColor: colors.divider,
   },
   lineHidden: {
     opacity: 0,
@@ -87,28 +91,28 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#D7E2EE',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.divider,
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dotActive: {
-    borderColor: '#0BA0B2',
-    backgroundColor: '#0BA0B2',
+    borderColor: colors.accentTeal,
+    backgroundColor: colors.accentTeal,
   },
   dotDone: {
-    borderColor: '#0B2D3E',
-    backgroundColor: '#0B2D3E',
+    borderColor: colors.accentDark,
+    backgroundColor: colors.accentDark,
   },
   dotText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9AA7B6',
+    color: colors.textMuted,
   },
   dotTextActive: {
-    color: '#FFFFFF',
+    color: colors.textOnAccent,
   },
   dotTextDone: {
-    color: '#FFFFFF',
+    color: colors.textOnAccent,
   },
 });

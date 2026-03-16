@@ -17,7 +17,7 @@ import { AuthCard, AuthScreenBackground } from '@/components/auth';
 import LabeledInput from '@/components/ui/labeled-input';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FEATURES = [
@@ -38,6 +38,8 @@ const FEATURES = [
 const TEAM_SIZE_OPTIONS = ['10-19 Agents', '20-50 Agents', '51-100 Agents', '100+ Agents'];
 
 export default function EnterpriseContactScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const [teamSizeModalVisible, setTeamSizeModalVisible] = useState(false);
   const [teamSize, setTeamSize] = useState('20-50 Agents');
@@ -64,7 +66,7 @@ export default function EnterpriseContactScreen() {
           <AuthCard>
             <View style={styles.backButtonRow}>
               <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={12}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color={Theme.textPrimary} />
+                <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
               </Pressable>
             </View>
             <Text style={styles.formTitle}>Contact Sales</Text>
@@ -110,7 +112,7 @@ export default function EnterpriseContactScreen() {
                   <Text style={[styles.selectText, !teamSize && styles.selectPlaceholder]}>
                     {teamSize || 'Select team size'}
                   </Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color={Theme.iconMuted} />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.iconMuted} />
                 </Pressable>
               </View>
 
@@ -119,7 +121,7 @@ export default function EnterpriseContactScreen() {
                 <TextInput
                   style={styles.textArea}
                   placeholder="Tell us about your team's needs..."
-                  placeholderTextColor={Theme.inputPlaceholder}
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={message}
                   onChangeText={setMessage}
                   multiline
@@ -130,12 +132,12 @@ export default function EnterpriseContactScreen() {
 
               <Pressable style={styles.submitButton} onPress={handleRequestDemo}>
                 <LinearGradient
-                  colors={[...Theme.brandGradient]}
+                  colors={colors.brandGradient as any}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.submitButtonGradient}>
                   <Text style={styles.submitButtonText}>Request Demo</Text>
-                  <MaterialCommunityIcons name="arrow-right" size={20} color={Theme.gradientButtonText} />
+                  <MaterialCommunityIcons name="arrow-right" size={20} color={colors.gradientButtonText} />
                 </LinearGradient>
               </Pressable>
             </View>
@@ -155,7 +157,7 @@ export default function EnterpriseContactScreen() {
               {FEATURES.map((feature, i) => (
                 <View key={i} style={styles.featureItem}>
                   <View style={styles.checkCircle}>
-                    <MaterialCommunityIcons name="check" size={14} color={Theme.link} />
+                    <MaterialCommunityIcons name="check" size={14} color={colors.link} />
                   </View>
                   <View style={styles.featureContent}>
                     <Text style={styles.featureTitle}>{feature.title}</Text>
@@ -185,7 +187,7 @@ export default function EnterpriseContactScreen() {
                 }}>
                 <Text style={styles.modalOptionText}>{option}</Text>
                 {teamSize === option ? (
-                  <MaterialCommunityIcons name="check" size={20} color={Theme.link} />
+                  <MaterialCommunityIcons name="check" size={20} color={colors.link} />
                 ) : null}
               </Pressable>
             ))}
@@ -196,10 +198,11 @@ export default function EnterpriseContactScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: {
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     flexGrow: 1,
     paddingBottom: 40,
   },
@@ -213,25 +216,25 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: Theme.link,
+    borderColor: colors.link,
     marginBottom: 16,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   heroTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 28,
     marginBottom: 10,
   },
   heroSubtitle: {
     fontSize: 14,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 21,
     marginBottom: 18,
   },
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 1.5,
-    borderColor: Theme.link,
+    borderColor: colors.link,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -257,12 +260,12 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   featureDescription: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 19,
   },
   backButtonRow: {
@@ -272,10 +275,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    borderRadius: Theme.inputBorderRadius,
-    backgroundColor: Theme.surfaceMuted,
-    shadowColor: Theme.cardShadowColor,
-    shadowOffset: Theme.cardShadowOffset,
+    borderRadius: colors.inputBorderRadius,
+    backgroundColor: colors.surfaceMuted,
+    shadowColor: colors.cardShadowColor,
+    shadowOffset: colors.cardShadowOffset,
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
@@ -283,7 +286,7 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 18,
   },
   form: {
@@ -296,41 +299,41 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   selectTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Theme.inputBackground,
-    borderRadius: Theme.inputBorderRadius,
+    backgroundColor: colors.inputBackground,
+    borderRadius: colors.inputBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderInput,
+    borderColor: colors.borderInput,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   selectText: {
     fontSize: 15,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   selectPlaceholder: {
-    color: Theme.inputPlaceholder,
+    color: colors.inputPlaceholder,
   },
   textArea: {
-    backgroundColor: Theme.inputBackground,
-    borderRadius: Theme.inputBorderRadius,
+    backgroundColor: colors.inputBackground,
+    borderRadius: colors.inputBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderInput,
+    borderColor: colors.borderInput,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     minHeight: 100,
   },
   submitButton: {
     width: '100%',
     marginTop: 8,
-    borderRadius: Theme.buttonBorderRadius,
+    borderRadius: colors.buttonBorderRadius,
     overflow: 'hidden',
   },
   submitButtonGradient: {
@@ -343,7 +346,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: Theme.gradientButtonText,
+    color: colors.gradientButtonText,
   },
   modalOverlay: {
     flex: 1,
@@ -352,7 +355,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     maxHeight: 360,
@@ -360,7 +363,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   modalOption: {
@@ -372,10 +375,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   modalOptionSelected: {
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
   },
   modalOptionText: {
     fontSize: 15,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
 });
+}

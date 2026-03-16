@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -78,6 +79,8 @@ const FLOWS_DATA: IntelligentFlow[] = [
 ];
 
 export default function CRM_AutomationsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -181,7 +184,7 @@ export default function CRM_AutomationsScreen() {
   const renderRuleItem = (rule: AutomationRule) => (
     <View key={rule.id} style={styles.ruleRow}>
       <View style={styles.ruleIconBox}>
-        <MaterialCommunityIcons name={rule.icon} size={24} color="#0B2D3E" />
+        <MaterialCommunityIcons name={rule.icon} size={24} color={colors.textPrimary} />
       </View>
 
       <View style={styles.ruleContent}>
@@ -221,7 +224,7 @@ export default function CRM_AutomationsScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.container, { paddingTop: insets.top }]}
@@ -310,7 +313,7 @@ export default function CRM_AutomationsScreen() {
               key={flow.id}
               style={styles.flowRow}
               onPress={() => handleFlowPress(flow)}
-            >
+            >0
               <View style={styles.flowIconBox}>
                 <MaterialCommunityIcons name="dots-hexagon" size={20} color="#0BA0B2" />
               </View>
@@ -332,7 +335,7 @@ export default function CRM_AutomationsScreen() {
         onRequestClose={() => setAiAssistantVisible(false)}
       >
         <LinearGradient
-          colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+          colors={colors.backgroundGradient as any}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
           style={[styles.fullModalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
@@ -349,7 +352,7 @@ export default function CRM_AutomationsScreen() {
                   style={styles.closeBtnSmall}
                   onPress={() => setAiAssistantVisible(false)}
                 >
-                  <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
                 </Pressable>
               </View>
 
@@ -376,7 +379,7 @@ export default function CRM_AutomationsScreen() {
                   <MaterialCommunityIcons
                     name={segmentPickerVisible ? "chevron-up" : "chevron-down"}
                     size={20}
-                    color="#0B2D3E"
+                    color={colors.textPrimary}
                   />
                 </Pressable>
 
@@ -439,7 +442,7 @@ export default function CRM_AutomationsScreen() {
         onRequestClose={() => setCreateRuleVisible(false)}
       >
         <LinearGradient
-          colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+          colors={colors.backgroundGradient as any}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
           style={[styles.fullModalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
@@ -455,7 +458,7 @@ export default function CRM_AutomationsScreen() {
                   style={styles.closeBtnSmall}
                   onPress={() => setCreateRuleVisible(false)}
                 >
-                  <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
                 </Pressable>
               </View>
 
@@ -487,7 +490,7 @@ export default function CRM_AutomationsScreen() {
                     <MaterialCommunityIcons
                       name={activePicker === 'trigger' ? "chevron-up" : "chevron-down"}
                       size={18}
-                      color="#0B2D3E"
+                      color={colors.textPrimary}
                     />
                   </Pressable>
                   {activePicker === 'trigger' && (
@@ -521,7 +524,7 @@ export default function CRM_AutomationsScreen() {
                     <MaterialCommunityIcons
                       name={activePicker === 'execution' ? "chevron-up" : "chevron-down"}
                       size={18}
-                      color="#0B2D3E"
+                      color={colors.textPrimary}
                     />
                   </Pressable>
                   {activePicker === 'execution' && (
@@ -555,7 +558,7 @@ export default function CRM_AutomationsScreen() {
                     <MaterialCommunityIcons
                       name={activePicker === 'action' ? "chevron-up" : "chevron-down"}
                       size={20}
-                      color="#0B2D3E"
+                      color={colors.textPrimary}
                     />
                   </Pressable>
                   {activePicker === 'action' && (
@@ -589,7 +592,7 @@ export default function CRM_AutomationsScreen() {
                     <MaterialCommunityIcons
                       name={activePicker === 'segment' ? "chevron-up" : "chevron-down"}
                       size={20}
-                      color="#0B2D3E"
+                      color={colors.textPrimary}
                     />
                   </Pressable>
                   {activePicker === 'segment' && (
@@ -659,7 +662,7 @@ export default function CRM_AutomationsScreen() {
                 style={styles.closeBtnSmall}
                 onPress={() => setFlowModalVisible(false)}
               >
-                <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
               </Pressable>
             </View>
 
@@ -685,7 +688,7 @@ export default function CRM_AutomationsScreen() {
               </View>
 
               <View style={styles.logicDivider} />
-              <Text style={styles.logicLabel}>Logic: <Text style={{ fontStyle: 'italic', color: '#94A3B8' }}>""</Text></Text>
+              <Text style={styles.logicLabel}>Logic: <Text style={{ fontStyle: 'italic', color: colors.inputPlaceholder }}>""</Text></Text>
             </View>
 
             <View style={styles.proposalFooter}>
@@ -739,669 +742,671 @@ export default function CRM_AutomationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  impactCard: {
-    backgroundColor: '#0B2D3E',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  impactTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    marginBottom: 4,
-  },
-  impactScore: {
-    fontSize: 13,
-    color: '#94A3B8',
-    fontWeight: '600',
-    marginBottom: 24,
-  },
-  impactStatsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  impactStatBox: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  impactStatValue: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  impactStatLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#94A3B8',
-    letterSpacing: 0.5,
-  },
-  aiInsightBox: {
-    backgroundColor: 'rgba(11, 160, 178, 0.15)',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(11, 160, 178, 0.3)',
-  },
-  aiInsightText: {
-    fontSize: 12,
-    color: '#0BA0B2',
-    lineHeight: 18,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    height: 52,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    color: '#0B2D3E',
-    fontWeight: '600',
-  },
-  rulesList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    marginBottom: 24,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 2,
-  },
-  ruleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
-  },
-  ruleIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  ruleContent: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  ruleMainRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  ruleSubRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  ruleName: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    flex: 1,
-    marginRight: 12,
-    lineHeight: 22,
-  },
-  trashBtnSmall: {
-    marginTop: 2,
-  },
-  ruleTimingInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  timingTextInline: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  statusBtnCompact: {
-    backgroundColor: '#0B2D3E',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    minWidth: 55,
-    alignItems: 'center',
-  },
-  statusBtnPausedCompact: {
-    backgroundColor: '#F1F5F9',
-  },
-  statusBtnTextCompact: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  statusBtnTextPausedCompact: {
-    color: '#64748B',
-  },
-  tagRowPremium: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-  },
-  categoryTagSoft: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  categoryTagTextSoft: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.2,
-  },
-  sourceTagSoft: {
-    backgroundColor: '#F0FDFA',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  sourceTagTextSoft: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#0D9488',
-    letterSpacing: 0.2,
-  },
-  flowsSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    marginBottom: 20,
-  },
-  flowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  flowIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#F0F9FA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  flowInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  flowTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  flowSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  bottomOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  confirmModal: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  trashCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FEF2F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  confirmTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  confirmSubtitle: {
-    fontSize: 15,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-    fontWeight: '500',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  cancelBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  deleteBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#DC2626',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  actionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginBottom: 20,
-  },
-  aiRuleBtn: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#0BA0B2',
-    overflow: 'hidden',
-  },
-  aiRuleGradient: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiRuleText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#0BA0B2',
-  },
-  createRuleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0B2D3E',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  createRuleText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  fullModalContainer: {
-    flex: 1,
-  },
-  assistantModalContent: {
-    flex: 1,
-    padding: 24,
-  },
-  modalFooter: {
-    paddingTop: 12,
-  },
-  assistantHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  assistantTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#0B2D3E',
-    letterSpacing: -0.6,
-  },
-  assistantSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  closeBtnSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  assistantField: {
-    marginBottom: 28,
-    zIndex: 10,
-  },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#64748B',
-    letterSpacing: 1.2,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-  inputContainer: {
-    backgroundColor: '#FBFDFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#F1F5F9',
-    height: 60,
-    justifyContent: 'center',
-    paddingHorizontal: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-  },
-  fieldInput: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0B2D3E',
-  },
-  segmentPickerTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FBFDFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#F1F5F9',
-    height: 60,
-    paddingHorizontal: 22,
-  },
-  segmentValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0B2D3E',
-  },
-  segmentDropdown: {
-    backgroundColor: '#2D3E50',
-    borderRadius: 20,
-    marginTop: 6,
-    padding: 10,
-    position: 'absolute',
-    top: 90,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  segmentOption: {
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-  },
-  optionContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  optionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  optionTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  generateBtn: {
-    height: 64,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    shadowColor: '#0B2D3E',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  generateBtnGradient: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generateBtnText: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  createModalFooter: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingTop: 12,
-  },
-  flowProposalModal: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  sheetHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  proposalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  intelligenceBox: {
-    backgroundColor: '#F0F9FA',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(11, 160, 178, 0.2)',
-    marginBottom: 24,
-  },
-  proposedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 16,
-  },
-  proposedBadgeText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#0BA0B2',
-    letterSpacing: 0.5,
-  },
-  proposalDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  proposalLabel: {
-    width: 80,
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#94A3B8',
-    letterSpacing: 0.5,
-  },
-  proposalValue: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  logicDivider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 16,
-    borderStyle: 'dashed',
-    borderRadius: 1,
-  },
-  logicLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0BA0B2',
-  },
-  proposalFooter: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  refineBtn: {
-    flex: 1,
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  refineBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  deployBtn: {
-    flex: 1.5,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#0B2D3E',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deployBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  discardBtn: {
-    flex: 1,
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  discardBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0B2D3E',
-  },
-  saveRuleBtn: {
-    flex: 1,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#0B2D3E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  saveRuleBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  splitFieldsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 4,
-    zIndex: 100,
-  },
-});
+function getStyles(colors: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    content: {
+      flex: 1,
+    },
+    impactCard: {
+      backgroundColor: colors.accentTeal,
+      borderRadius: 24,
+      padding: 24,
+      marginBottom: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    impactTitle: {
+      fontSize: 20,
+      fontWeight: '900',
+      marginBottom: 4,
+    },
+    impactScore: {
+      fontSize: 13,
+      color: 'rgba(255, 255, 255, 0.7)',
+      fontWeight: '600',
+      marginBottom: 24,
+    },
+    impactStatsRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 20,
+    },
+    impactStatBox: {
+      flex: 1,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)',
+    },
+    impactStatValue: {
+      fontSize: 24,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      marginBottom: 4,
+    },
+    impactStatLabel: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: 'rgba(255, 255, 255, 0.7)',
+      letterSpacing: 0.5,
+    },
+    aiInsightBox: {
+      backgroundColor: 'rgba(11, 160, 178, 0.15)',
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(11, 160, 178, 0.3)',
+    },
+    aiInsightText: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      lineHeight: 18,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 14,
+      paddingHorizontal: 16,
+      height: 52,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      marginBottom: 20,
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    rulesList: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 32,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      marginBottom: 24,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.04,
+      shadowRadius: 16,
+      elevation: 2,
+    },
+    ruleRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingVertical: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    ruleIconBox: {
+      width: 48,
+      height: 48,
+      borderRadius: 16,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+    },
+    ruleContent: {
+      flex: 1,
+      marginLeft: 16,
+    },
+    ruleMainRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    ruleSubRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    ruleName: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      flex: 1,
+      marginRight: 12,
+      lineHeight: 22,
+    },
+    trashBtnSmall: {
+      marginTop: 2,
+    },
+    ruleTimingInline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    timingTextInline: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.inputPlaceholder,
+    },
+    statusBtnCompact: {
+      backgroundColor: colors.accentTeal,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 6,
+      minWidth: 55,
+      alignItems: 'center',
+    },
+    statusBtnPausedCompact: {
+      backgroundColor: colors.surfaceSoft,
+    },
+    statusBtnTextCompact: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      letterSpacing: 0.5,
+    },
+    statusBtnTextPausedCompact: {
+      color: colors.textSecondary,
+    },
+    tagRowPremium: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 10,
+    },
+    categoryTagSoft: {
+      backgroundColor: colors.surfaceSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    categoryTagTextSoft: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textSecondary,
+      letterSpacing: 0.2,
+    },
+    sourceTagSoft: {
+      backgroundColor: 'rgba(13, 148, 136, 0.1)',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    sourceTagTextSoft: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#0D9488',
+      letterSpacing: 0.2,
+    },
+    flowsSection: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 20,
+    },
+    flowRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    flowIconBox: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: 'rgba(11, 160, 178, 0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    flowInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    flowTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    flowSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '500',
+      marginTop: 2,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    bottomOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.4)',
+      justifyContent: 'flex-end',
+    },
+    confirmModal: {
+      width: '100%',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 24,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    trashCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+    },
+    confirmTitle: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    confirmSubtitle: {
+      fontSize: 15,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 32,
+      fontWeight: '500',
+    },
+    modalActions: {
+      flexDirection: 'row',
+      gap: 12,
+      width: '100%',
+    },
+    cancelBtn: {
+      flex: 1,
+      height: 48,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    deleteBtn: {
+      flex: 1,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: '#DC2626',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deleteBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    actionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+      marginBottom: 20,
+    },
+    aiRuleBtn: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#0BA0B2',
+      overflow: 'hidden',
+    },
+    aiRuleGradient: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    aiRuleText: {
+      fontSize: 14,
+      fontWeight: '900',
+      color: '#0BA0B2',
+    },
+    createRuleBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.accentTeal,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      gap: 6,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    createRuleText: {
+      fontSize: 14,
+      fontWeight: '900',
+      color: '#FFFFFF',
+    },
+    fullModalContainer: {
+      flex: 1,
+    },
+    assistantModalContent: {
+      flex: 1,
+      padding: 24,
+    },
+    modalFooter: {
+      paddingTop: 12,
+    },
+    assistantHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 32,
+    },
+    assistantTitle: {
+      fontSize: 26,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.6,
+    },
+    assistantSubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '500',
+      marginTop: 4,
+    },
+    closeBtnSmall: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    assistantField: {
+      marginBottom: 28,
+      zIndex: 10,
+    },
+    fieldLabel: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: colors.textSecondary,
+      letterSpacing: 1.2,
+      marginBottom: 12,
+      textTransform: 'uppercase',
+    },
+    inputContainer: {
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 18,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+      height: 60,
+      justifyContent: 'center',
+      paddingHorizontal: 22,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.02,
+      shadowRadius: 4,
+    },
+    fieldInput: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    segmentPickerTrigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 18,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+      height: 60,
+      paddingHorizontal: 22,
+    },
+    segmentValue: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    segmentDropdown: {
+      backgroundColor: '#2D3E50',
+      borderRadius: 20,
+      marginTop: 6,
+      padding: 10,
+      position: 'absolute',
+      top: 90,
+      left: 0,
+      right: 0,
+      zIndex: 1000,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 15 },
+      shadowOpacity: 0.25,
+      shadowRadius: 20,
+      elevation: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)',
+    },
+    segmentOption: {
+      paddingVertical: 14,
+      paddingHorizontal: 18,
+      borderRadius: 12,
+    },
+    optionContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    optionText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.inputPlaceholder,
+    },
+    optionTextSelected: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+    generateBtn: {
+      height: 64,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      shadowColor: '#0B2D3E',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    generateBtnGradient: {
+      flex: 1,
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    generateBtnText: {
+      fontSize: 17,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      letterSpacing: 0.5,
+    },
+    createModalFooter: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingTop: 12,
+    },
+    flowProposalModal: {
+      backgroundColor: colors.cardBackground,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      padding: 24,
+      width: '100%',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 20,
+    },
+    sheetHandle: {
+      width: 40,
+      height: 4,
+      backgroundColor: '#E2E8F0',
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: 20,
+    },
+    proposalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    intelligenceBox: {
+      backgroundColor: 'rgba(11, 160, 178, 0.1)',
+      borderRadius: 24,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: 'rgba(11, 160, 178, 0.2)',
+      marginBottom: 24,
+    },
+    proposedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 16,
+    },
+    proposedBadgeText: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: '#0BA0B2',
+      letterSpacing: 0.5,
+    },
+    proposalDetailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    proposalLabel: {
+      width: 80,
+      fontSize: 10,
+      fontWeight: '900',
+      color: colors.inputPlaceholder,
+      letterSpacing: 0.5,
+    },
+    proposalValue: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    logicDivider: {
+      height: 1,
+      backgroundColor: '#E2E8F0',
+      marginVertical: 16,
+      borderStyle: 'dashed',
+      borderRadius: 1,
+    },
+    logicLabel: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: '#0BA0B2',
+    },
+    proposalFooter: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    refineBtn: {
+      flex: 1,
+      height: 56,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    refineBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    deployBtn: {
+      flex: 1.5,
+      height: 56,
+      borderRadius: 16,
+      backgroundColor: colors.accentTeal,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deployBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    discardBtn: {
+      flex: 1,
+      height: 56,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.cardBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    discardBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    saveRuleBtn: {
+      flex: 1,
+      height: 56,
+      borderRadius: 16,
+      backgroundColor: colors.accentTeal,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    saveRuleBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    splitFieldsRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 4,
+      zIndex: 100,
+    },
+  });
+}

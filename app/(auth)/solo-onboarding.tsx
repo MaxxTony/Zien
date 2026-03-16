@@ -17,13 +17,16 @@ import {
   View,
 } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { formatCardNumber, formatExpiryInput } from '@/utils/card-formatters';
 
 type PlanId = 'starter' | 'professional' | 'team';
 
 export default function SoloOnboardingScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('starter');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -160,7 +163,7 @@ export default function SoloOnboardingScreen() {
               />
               <View style={styles.row}>
                 <View style={styles.flexItem}>
-                  <LabeledInput
+                   <LabeledInput
                     label="MM / YY"
                     placeholder="MM / YY"
                     value={cardExpiry}
@@ -199,12 +202,6 @@ export default function SoloOnboardingScreen() {
                 title="Complete Setup"
                 style={styles.primaryButtonFlex}
                 onPress={() => {
-                  // const expiryErr = validateExpiry(cardExpiry);
-                  // const cvcErr = validateCvc(cardCvc);
-                  // if (expiryErr || cvcErr) {
-                  //   setPaymentErrors({ expiry: expiryErr ?? undefined, cvc: cvcErr ?? undefined });
-                  //   return;
-                  // }
                   setPaymentErrors({});
                   setShowSuccess(true);
                 }}
@@ -221,7 +218,7 @@ export default function SoloOnboardingScreen() {
   const renderSuccess = () => (
     <>
       <View style={styles.badge}>
-        <MaterialCommunityIcons name="check-circle" size={28} color={Theme.link} />
+        <MaterialCommunityIcons name="check-circle" size={28} color={colors.link} />
       </View>
       <Text style={styles.title}>Success!</Text>
       <Text style={styles.subtitle}>Your solo agent workspace is ready.</Text>
@@ -243,7 +240,7 @@ export default function SoloOnboardingScreen() {
           <AuthCard>
             <View style={styles.backButtonRow}>
               <Pressable style={styles.backButton} onPress={goBack} hitSlop={12}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color={Theme.textPrimary} />
+                <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
               </Pressable>
             </View>
             <AuthLogoBrand brandLabel="ZIEN" />
@@ -258,7 +255,7 @@ export default function SoloOnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   flex: { flex: 1 },
   backButtonRow: {
     alignSelf: 'stretch',
@@ -267,34 +264,34 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    borderRadius: Theme.inputBorderRadius,
-    backgroundColor: Theme.cardBackground,
-    shadowColor: Theme.cardShadowColor,
-    shadowOffset: Theme.cardShadowOffset,
+    borderRadius: colors.inputBorderRadius,
+    backgroundColor: colors.cardBackground,
+    shadowColor: colors.cardShadowColor,
+    shadowOffset: colors.cardShadowOffset,
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     justifyContent: 'center',
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 13.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 6,
     marginBottom: 18,
     textAlign: 'center',
   },
   message: {
     fontSize: 12.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 12,
     marginBottom: 18,
     textAlign: 'center',
@@ -312,25 +309,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputError: {
-    borderColor: '#DC2626',
-    borderRadius: Theme.inputBorderRadius,
+    borderColor: colors.danger,
+    borderRadius: colors.inputBorderRadius,
     borderWidth: 1,
   },
   fieldError: {
     fontSize: 11,
-    color: '#DC2626',
+    color: colors.danger,
     marginTop: 4,
   },
   infoCard: {
     width: '100%',
-    borderRadius: Theme.buttonBorderRadius,
-    backgroundColor: Theme.surfaceMuted,
+    borderRadius: colors.buttonBorderRadius,
+    backgroundColor: colors.surfaceMuted,
     padding: 14,
     marginBottom: 14,
   },
   infoCardText: {
     fontSize: 12.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   planList: {
@@ -342,32 +339,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Theme.cardBackground,
-    borderRadius: Theme.buttonBorderRadius,
+    backgroundColor: colors.cardBackground,
+    borderRadius: colors.buttonBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     padding: 14,
   },
   planSelected: {
-    borderColor: Theme.link,
-    shadowColor: Theme.link,
+    borderColor: colors.link,
+    shadowColor: colors.link,
     shadowOpacity: 0.08,
     shadowRadius: 10,
   },
   planTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   planDescription: {
     fontSize: 12.5,
-    color: Theme.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   planPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.link,
+    color: colors.link,
   },
   actionRow: {
     flexDirection: 'row',
@@ -388,7 +385,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -396,10 +393,10 @@ const styles = StyleSheet.create({
   supportText: {
     marginTop: 14,
     fontSize: 12.5,
-    color: Theme.textMuted,
+    color: colors.textMuted,
   },
   supportLink: {
-    color: Theme.link,
+    color: colors.link,
     fontWeight: '600',
   },
 });

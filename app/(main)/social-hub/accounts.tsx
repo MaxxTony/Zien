@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
   Modal,
@@ -30,6 +31,9 @@ const AUTO_RULES = [
 ];
 
 export default function AccountsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [hashtags, setHashtags] = useState('#RealEstate #LuxuryLiving #ZienAI');
@@ -73,7 +77,7 @@ export default function AccountsScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -161,7 +165,7 @@ export default function AccountsScreen() {
                 placeholderTextColor="#94A3B8"
                 multiline
               />
-              <MaterialCommunityIcons name="pound" size={18} color="#94A3B8" style={styles.inputIcon} />
+              <MaterialCommunityIcons name="pound" size={18} color={colors.textMuted} style={styles.inputIcon} />
             </View>
           </View>
 
@@ -258,12 +262,12 @@ export default function AccountsScreen() {
           <View style={[styles.bottomSheetContent, { paddingBottom: insets.bottom + 20 }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <View style={[styles.platformIconContainer, { backgroundColor: '#F8FAFC', shadowOpacity: 0 }]}>
-                <MaterialCommunityIcons name={activeAccount?.icon as any} size={28} color="#0B2D3E" />
+              <View style={[styles.platformIconContainer, { backgroundColor: colors.surfaceSoft, shadowOpacity: 0 }]}>
+                <MaterialCommunityIcons name={activeAccount?.icon as any} size={28} color={colors.textPrimary} />
               </View>
               <Text style={styles.modalTitleSm}>Edit {activeAccount?.name}</Text>
               <Pressable onPress={closeAccountModal} style={styles.modalCloseBtn}>
-                <MaterialCommunityIcons name="close" size={20} color="#94A3B8" />
+                <MaterialCommunityIcons name="close" size={20} color={colors.textMuted} />
               </Pressable>
             </View>
 
@@ -282,7 +286,7 @@ export default function AccountsScreen() {
                   style={styles.dropdownTrigger}
                   onPress={() => setShowStatusPicker(!showStatusPicker)}>
                   <Text style={styles.dropdownText}>{selectedStatus}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
 
                   {showStatusPicker && (
                     <View style={styles.dropdownMenu}>
@@ -323,7 +327,8 @@ export default function AccountsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   headerRow: {
     position: 'relative',
@@ -368,7 +373,7 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 1,
   },
@@ -382,17 +387,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
   },
   accountIconBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   accountTextContent: {
     flex: 1,
@@ -405,7 +410,7 @@ const styles = StyleSheet.create({
   },
   accountRowHandle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 1,
   },
@@ -416,7 +421,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   statusBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -424,7 +429,7 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 8,
     fontWeight: '900',
-    color: '#64748B',
+    color: colors.textSecondary,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -433,8 +438,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     minWidth: 70,
     alignItems: 'center',
   },
@@ -451,7 +456,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#334155',
+    color: colors.textSecondary,
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -460,9 +465,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -491,12 +496,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   colorBoxInner: {
     flex: 1,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.surfaceIcon,
   },
   colorInput: {
     flex: 1,
@@ -505,11 +510,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   toggleTextContent: {
     flex: 1,
@@ -522,7 +527,7 @@ const styles = StyleSheet.create({
   },
   toggleDesc: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 1,
   },
@@ -535,11 +540,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   ruleInfo: {
     flex: 1,
@@ -548,7 +553,7 @@ const styles = StyleSheet.create({
   premiumRuleLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     lineHeight: 18,
   },
 
@@ -561,13 +566,13 @@ const styles = StyleSheet.create({
     padding: 24
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 32,
     padding: 32,
     width: '100%',
     maxWidth: 420,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 20 },
     shadowRadius: 40,
@@ -589,26 +594,26 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 14,
     letterSpacing: -0.5,
   },
   modalsubtitle: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
     fontWeight: '500',
   },
   modalBtn: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     width: '100%',
     paddingVertical: 18,
     borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#0B2D3E',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
@@ -627,13 +632,13 @@ const styles = StyleSheet.create({
   },
   flex1: { flex: 1 },
   bottomSheetContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
     padding: 32,
     paddingTop: 8,
     minHeight: '75%', // Increased height to prevent clipping
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: -10 },
     shadowRadius: 24,
@@ -642,7 +647,7 @@ const styles = StyleSheet.create({
   sheetHandle: {
     width: 44,
     height: 5,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.cardBorder,
     borderRadius: 3,
     alignSelf: 'center',
     marginVertical: 12,
@@ -656,14 +661,14 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalTitleSm: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
     marginLeft: 16,
   },
@@ -672,7 +677,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -683,23 +688,23 @@ const styles = StyleSheet.create({
   },
   premiumInputContainer: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 18,
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
   modalInput: {
     fontSize: 16,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   dropdownTrigger: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 18,
     paddingHorizontal: 18,
     paddingVertical: 18,
@@ -710,7 +715,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 16,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   dropdownMenu: {
@@ -721,7 +726,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#57534E',
     borderRadius: 16,
     padding: 10,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 12 },
     shadowRadius: 24,
@@ -752,13 +757,13 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: colors.cardBackground
   },
   modalCancelText: {
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '800',
     fontSize: 15
   },
@@ -770,11 +775,12 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 18,
     borderRadius: 18,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
   },
   modalSaveText: {
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 15
   }
-});
+  });
+}

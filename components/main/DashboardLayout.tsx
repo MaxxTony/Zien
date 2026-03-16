@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import type { NavMenuItem } from './NavDrawer';
 import { MainHeader } from './MainHeader';
 import { NavDrawer } from './NavDrawer';
@@ -22,6 +22,8 @@ export function DashboardLayout({
   userInitials,
   profileRoute,
 }: DashboardLayoutProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const drawerTranslateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
@@ -61,7 +63,7 @@ export function DashboardLayout({
   return (
     <View style={styles.wrapper}>
       <LinearGradient
-        colors={[...Theme.backgroundGradient]}
+        colors={colors.backgroundGradient as any}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={[styles.background, { paddingTop: insets.top }]}
@@ -86,7 +88,8 @@ export function DashboardLayout({
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   wrapper: {
     flex: 1,
   },
@@ -94,3 +97,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+}

@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useCallback, useMemo, useState } from 'react';
 import {
   Image,
@@ -55,6 +56,9 @@ const STRATEGIES: { id: StrategyId; title: string; desc: string; icon: string }[
 ];
 
 function ProgressStepper({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.stepper}>
       {Array.from({ length: totalSteps }).map((_, i) => {
@@ -87,6 +91,9 @@ function PostPreviewCard({
   selectedMedia?: string;
   onPreviewPlatformChange?: (p: PlatformId) => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const truncated = caption.length > 80 ? caption.slice(0, 80) + '...' : caption;
   return (
     <View style={styles.previewCard}>
@@ -115,7 +122,7 @@ function PostPreviewCard({
               <Text style={styles.previewProfileLoc}>Los Angeles, California</Text>
             </View>
           </View>
-          <MaterialCommunityIcons name="dots-horizontal" size={20} color="#64748B" />
+          <MaterialCommunityIcons name="dots-horizontal" size={20} color={colors.textSecondary} />
         </View>
 
         <View style={styles.previewMediaWrap}>
@@ -128,7 +135,7 @@ function PostPreviewCard({
             />
           ) : (
             <View style={styles.previewImagePlaceholder}>
-              <MaterialCommunityIcons name="image-outline" size={48} color="#94A3B8" />
+              <MaterialCommunityIcons name="image-outline" size={48} color={colors.textMuted} />
               <Text style={styles.previewImagePlaceholderText}>No Media Selected</Text>
             </View>
           )}
@@ -136,11 +143,11 @@ function PostPreviewCard({
 
         <View style={styles.previewFooterActions}>
           <View style={styles.previewActionsLeft}>
-            <MaterialCommunityIcons name="heart-outline" size={24} color="#0B2D3E" />
-            <MaterialCommunityIcons name="comment-outline" size={24} color="#0B2D3E" />
-            <MaterialCommunityIcons name="send-outline" size={24} color="#0B2D3E" />
+            <MaterialCommunityIcons name="heart-outline" size={24} color={colors.textPrimary} />
+            <MaterialCommunityIcons name="comment-outline" size={24} color={colors.textPrimary} />
+            <MaterialCommunityIcons name="send-outline" size={24} color={colors.textPrimary} />
           </View>
-          <MaterialCommunityIcons name="bookmark-outline" size={24} color="#0B2D3E" />
+          <MaterialCommunityIcons name="bookmark-outline" size={24} color={colors.textPrimary} />
         </View>
 
         <View style={styles.previewCaptionContainer}>
@@ -156,6 +163,9 @@ function PostPreviewCard({
 }
 
 export default function CreatePostScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -221,13 +231,13 @@ export default function CreatePostScreen() {
   if (step === 'success') {
     return (
       <LinearGradient
-        colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+        colors={colors.backgroundGradient as any}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={[styles.background, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-            <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
+            <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
           </Pressable>
           <View style={styles.headerCenter}>
             <Text style={styles.title}>Create New Post</Text>
@@ -256,13 +266,13 @@ export default function CreatePostScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
+          <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>Create New Post</Text>
@@ -284,7 +294,7 @@ export default function CreatePostScreen() {
               <Text style={styles.fieldLabel}>Target Content</Text>
               <Pressable style={styles.dropdown}>
                 <Text style={styles.dropdownText} numberOfLines={1}>{targetContent}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
+                <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textSecondary} />
               </Pressable>
             </View>
 
@@ -461,7 +471,8 @@ export default function CreatePostScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   header: {
     paddingHorizontal: 16,
@@ -474,27 +485,27 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 2,
   },
   headerCenter: { flex: 1 },
-  title: { fontSize: 22, fontWeight: '900', color: '#0B2341' },
-  stepLabel: { fontSize: 13, color: '#64748B', fontWeight: '600', marginTop: 4 },
+  title: { fontSize: 22, fontWeight: '900', color: colors.textPrimary },
+  stepLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600', marginTop: 4 },
   stepper: { flexDirection: 'row', gap: 6, marginTop: 12 },
-  stepperSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#FFF' },
-  stepperSegmentActive: { backgroundColor: '#0B2341' },
-  stepperSegmentComplete: { backgroundColor: '#0B2341' },
+  stepperSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.cardBackground },
+  stepperSegmentActive: { backgroundColor: colors.accentTeal },
+  stepperSegmentComplete: { backgroundColor: colors.accentTeal },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 18 },
   stepContainer: { gap: 16, marginBottom: 20 },
   sectionCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     shadowColor: '#0A2F48',
@@ -503,19 +514,19 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 4,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '900', color: '#0B2D3E', marginBottom: 16 },
-  fieldLabel: { fontSize: 13, fontWeight: '800', color: '#475569', marginBottom: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary, marginBottom: 16 },
+  fieldLabel: { fontSize: 13, fontWeight: '800', color: colors.textSecondary, marginBottom: 10 },
   dropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
-  dropdownText: { fontSize: 15, fontWeight: '600', color: '#0B2D3E', flex: 1 },
+  dropdownText: { fontSize: 15, fontWeight: '600', color: colors.textPrimary, flex: 1 },
   captionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -525,13 +536,13 @@ const styles = StyleSheet.create({
   aiRegenerateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   aiRegenerateText: { fontSize: 12, fontWeight: '700', color: '#0BA0B2' },
   captionInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     padding: 16,
     fontSize: 15,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     minHeight: 140,
     lineHeight: 22,
   },
@@ -542,9 +553,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#EEF2F6',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
-  hashtagChipText: { fontSize: 13, fontWeight: '600', color: '#475569' },
+  hashtagChipText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   platformGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   platformTile: {
     flex: 1,
@@ -555,30 +566,30 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
   },
-  platformTileSelected: { borderColor: '#0B2D3E', backgroundColor: '#F8FAFC' },
-  platformTileText: { fontSize: 14, fontWeight: '700', color: '#64748B' },
-  platformTileTextSelected: { color: '#0B2D3E' },
+  platformTileSelected: { borderColor: colors.surfaceIcon, backgroundColor: colors.surfaceSoft },
+  platformTileText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
+  platformTileTextSelected: { color: colors.textPrimary },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     padding: 4,
     marginBottom: 20,
   },
   tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  tabActive: { backgroundColor: '#FFF', shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4, elevation: 2 },
-  tabText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
-  tabTextActive: { color: '#0B2D3E' },
+  tabActive: { backgroundColor: colors.cardBackground, shadowColor: colors.cardShadowColor, shadowOpacity: 0.1, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4, elevation: 2 },
+  tabText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+  tabTextActive: { color: colors.textPrimary },
   uploadArea: { marginBottom: 20 },
   uploadBox: {
     height: 140,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -587,21 +598,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.accentTeal,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 14,
     marginBottom: 12,
   },
   uploadBtnText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
-  uploadHint: { fontSize: 12, color: '#94A3B8', textAlign: 'center' },
+  uploadHint: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
   mediaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   mediaCell: {
     width: '30%',
     aspectRatio: 1,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     position: 'relative',
   },
   mediaCellImage: { width: '100%', height: '100%' },
@@ -612,7 +623,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -625,29 +636,29 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
   },
-  strategyTileSelected: { borderColor: '#0B2D3E', backgroundColor: '#F8FAFC' },
+  strategyTileSelected: { borderColor: colors.surfaceIcon, backgroundColor: colors.surfaceSoft },
   strategyIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
-  strategyIconSelected: { backgroundColor: '#E0F2F1' },
+  strategyIconSelected: { backgroundColor: colors.surfaceIcon },
   strategyInfo: { flex: 1 },
-  strategyLabel: { fontSize: 15, fontWeight: '800', color: '#0B2D3E' },
+  strategyLabel: { fontSize: 15, fontWeight: '800', color: colors.textPrimary },
   strategyLabelSelected: { color: '#0BA0B2' },
-  strategyHint: { fontSize: 12, color: '#64748B', marginTop: 2, lineHeight: 18 },
+  strategyHint: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 18 },
   previewCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 28,
     marginTop: 10,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 16 },
     shadowRadius: 32,
@@ -659,7 +670,7 @@ const styles = StyleSheet.create({
   previewTabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
     justifyContent: 'space-around',
     paddingVertical: 10,
     paddingHorizontal: 8,
@@ -671,7 +682,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   previewIconTabActive: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
   },
   previewBody: { padding: 0 },
   previewHeader: {
@@ -681,42 +692,43 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   previewProfile: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  previewAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#0B2341', alignItems: 'center', justifyContent: 'center' },
-  previewProfileName: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
-  previewProfileLoc: { fontSize: 11, color: '#64748B', marginTop: 1 },
-  previewMediaWrap: { width: '100%', aspectRatio: 1, backgroundColor: '#F1F5F9' },
+  previewAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center' },
+  previewProfileName: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
+  previewProfileLoc: { fontSize: 11, color: colors.textSecondary, marginTop: 1 },
+  previewMediaWrap: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceSoft },
   previewImage: { width: '100%', height: '100%' },
   previewImagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  previewImagePlaceholderText: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
+  previewImagePlaceholderText: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
   previewFooterActions: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
   previewActionsLeft: { flexDirection: 'row', gap: 14 },
   previewCaptionContainer: { paddingHorizontal: 12, paddingBottom: 20 },
-  previewCaption: { fontSize: 13, color: '#0B2D3E', lineHeight: 18 },
+  previewCaption: { fontSize: 13, color: colors.textPrimary, lineHeight: 18 },
   previewCaptionName: { fontWeight: '800' },
-  previewCaptionMore: { color: '#64748B' },
+  previewCaptionMore: { color: colors.textSecondary },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     padding: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: colors.surfaceIcon,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
-  draftBtn: { alignSelf: 'center', marginBottom: 16, paddingHorizontal: 24, paddingVertical: 8, borderRadius: 12, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E2E8F0' },
+  draftBtn: { alignSelf: 'center', marginBottom: 16, paddingHorizontal: 24, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder },
   draftBtnText: { fontSize: 14, fontWeight: '700', color: '#0BA0B2' },
   actionRow: { flexDirection: 'row', gap: 12 },
-  backActionBtn: { flex: 1, height: 56, borderRadius: 16, backgroundColor: '#FFF', borderWidth: 2, borderColor: '#0B2341', alignItems: 'center', justifyContent: 'center' },
-  backActionBtnText: { fontSize: 16, fontWeight: '800', color: '#0B2341' },
-  primaryActionBtn: { flex: 2, height: 56, borderRadius: 16, backgroundColor: '#0B2341', alignItems: 'center', justifyContent: 'center' },
+  backActionBtn: { flex: 1, height: 56, borderRadius: 16, backgroundColor: colors.cardBackground, borderWidth: 2, borderColor: colors.surfaceIcon, alignItems: 'center', justifyContent: 'center' },
+  backActionBtnText: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
+  primaryActionBtn: { flex: 2, height: 56, borderRadius: 16, backgroundColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center' },
   primaryActionBtnText: { fontSize: 16, fontWeight: '900', color: '#FFF' },
   successContent: { flex: 1, padding: 32, alignItems: 'center', justifyContent: 'center' },
-  successTitle: { fontSize: 28, fontWeight: '900', color: '#0B2D3E', textAlign: 'center', marginBottom: 12 },
-  successDesc: { fontSize: 16, color: '#64748B', textAlign: 'center', lineHeight: 24 },
+  successTitle: { fontSize: 28, fontWeight: '900', color: colors.textPrimary, textAlign: 'center', marginBottom: 12 },
+  successDesc: { fontSize: 16, color: colors.textSecondary, textAlign: 'center', lineHeight: 24 },
   successActions: { flexDirection: 'row', gap: 12, marginTop: 40, width: '100%', justifyContent: 'center' },
-  successPrimaryBtn: { flex: 1, height: 56, borderRadius: 12, backgroundColor: '#0B2341', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 4 },
+  successPrimaryBtn: { flex: 1, height: 56, borderRadius: 12, backgroundColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center', shadowColor: colors.cardShadowColor, shadowOpacity: 0.1, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 4 },
   successPrimaryBtnText: { fontSize: 15, fontWeight: '800', color: '#FFF' },
-  successSecondaryBtn: { flex: 1, height: 56, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
-  successSecondaryBtnText: { fontSize: 15, fontWeight: '800', color: '#0B2D3E' },
-});
+  successSecondaryBtn: { flex: 1, height: 56, borderRadius: 12, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
+  successSecondaryBtnText: { fontSize: 15, fontWeight: '800', color: colors.textPrimary },
+  });
+}

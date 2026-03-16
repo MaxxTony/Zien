@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
   Alert,
@@ -117,6 +118,9 @@ const PLATFORM_ICONS: Record<string, any> = {
 };
 
 function StatusPill({ status }: { status: Status }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const isActive = status === 'ACTIVE';
   const isCompleted = status === 'COMPLETED';
 
@@ -144,6 +148,9 @@ function StatusPill({ status }: { status: Status }) {
 }
 
 export default function CampaignsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -316,7 +323,7 @@ export default function CampaignsScreen() {
         {/* Search */}
         <View style={styles.topControls}>
           <View style={styles.searchWrap}>
-            <MaterialCommunityIcons name="magnify" size={18} color="#94A3B8" />
+            <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
             <TextInput
               style={styles.searchInput}
               value={search}
@@ -359,7 +366,7 @@ export default function CampaignsScreen() {
                   <MaterialCommunityIcons
                     name={PLATFORM_ICONS[c.platform] || 'web'}
                     size={16}
-                    color="#64748B"
+                    color={colors.textSecondary}
                   />
                   <Text style={styles.platformName}>
                     {c.platform === 'linkedin' ? 'LinkedIn' :
@@ -404,7 +411,7 @@ export default function CampaignsScreen() {
                       setAnalyticsVisible(true);
                     }}
                   >
-                    <MaterialCommunityIcons name="chart-bar" size={20} color="#64748B" />
+                    <MaterialCommunityIcons name="chart-bar" size={20} color={colors.textSecondary} />
                   </Pressable>
                   {(c.status === 'ACTIVE' || c.status === 'PAUSED') && (
                     <Pressable
@@ -419,7 +426,7 @@ export default function CampaignsScreen() {
                     </Pressable>
                   )}
                   <Pressable style={styles.actionBtn} onPress={() => handleOpenEdit(c)}>
-                    <MaterialCommunityIcons name="pencil-outline" size={20} color="#64748B" />
+                    <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.textSecondary} />
                   </Pressable>
                   <Pressable style={styles.actionBtn} onPress={() => handleDelete(c.id)}>
                     <MaterialCommunityIcons name="trash-can-outline" size={20} color="#EF4444" />
@@ -562,7 +569,7 @@ export default function CampaignsScreen() {
                         style={styles.scheduleInputField}
                         onPress={() => setShowDatePicker(true)}
                       >
-                        <MaterialCommunityIcons name="calendar-outline" size={18} color="#94A3B8" />
+                        <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textMuted} />
                         <Text style={styles.scheduleInputText}>
                           {formScheduledDate.toLocaleDateString('en-GB')}
                         </Text>
@@ -573,7 +580,7 @@ export default function CampaignsScreen() {
                         style={styles.scheduleInputField}
                         onPress={() => setShowTimePicker(true)}
                       >
-                        <MaterialCommunityIcons name="clock-outline" size={18} color="#94A3B8" />
+                        <MaterialCommunityIcons name="clock-outline" size={18} color={colors.textMuted} />
                         <Text style={styles.scheduleInputText}>
                           {formScheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                         </Text>
@@ -948,7 +955,8 @@ export default function CampaignsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   topControls: {
     gap: 12,
@@ -961,20 +969,20 @@ const styles = StyleSheet.create({
   filterBtn: {
     width: 44,
     height: 44,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   platformSelector: {
     flex: 1,
     height: 44,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -993,13 +1001,13 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 12,
     gap: 10,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.03,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 10,
@@ -1016,12 +1024,12 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 16 },
   list: { gap: 16 },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
@@ -1037,7 +1045,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -1045,7 +1053,7 @@ const styles = StyleSheet.create({
   platformName: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   campaignName: {
@@ -1076,7 +1084,7 @@ const styles = StyleSheet.create({
   launchDate: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   statusPill: {
     paddingHorizontal: 10,
@@ -1094,7 +1102,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   statBox: {
     flex: 1,
@@ -1104,7 +1112,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
     marginBottom: 4,
     letterSpacing: 0.5,
   },
@@ -1122,7 +1130,7 @@ const styles = StyleSheet.create({
   cardActions: {
     marginTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
     paddingTop: 16,
   },
   actionGroup: {
@@ -1136,14 +1144,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
   },
   emptyState: {
     padding: 20,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontSize: 14,
     fontStyle: 'italic',
   },
@@ -1151,7 +1159,7 @@ const styles = StyleSheet.create({
   // Full Screen Modal Styles
   fullModalSub: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   fullModalContent: {
     flex: 1,
@@ -1170,13 +1178,13 @@ const styles = StyleSheet.create({
   },
   fullModalSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   closeBtn: {
     width: 44,
     height: 44,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1191,10 +1199,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   formSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
@@ -1219,9 +1227,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   advancedInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -1235,9 +1243,9 @@ const styles = StyleSheet.create({
   platformCard: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1250,7 +1258,7 @@ const styles = StyleSheet.create({
   platformCardText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   platformCardTextActive: {
     color: '#E11D48',
@@ -1267,9 +1275,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -1292,7 +1300,7 @@ const styles = StyleSheet.create({
   },
   schedulerRow: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     padding: 4,
     marginTop: 4,
@@ -1309,7 +1317,7 @@ const styles = StyleSheet.create({
   scheduleBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   scheduleBtnTextActive: {
     color: '#FFFFFF',
@@ -1347,7 +1355,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   aiInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: '#CCFBF1',
     borderRadius: 12,
@@ -1375,11 +1383,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   statCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   statCardTitle: {
     fontSize: 18,
@@ -1390,7 +1398,7 @@ const styles = StyleSheet.create({
   statCardLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
     marginTop: 12,
   },
   reachRow: {
@@ -1433,18 +1441,18 @@ const styles = StyleSheet.create({
   penetrationBox: {
     marginTop: 24,
     padding: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
   },
   penetrationLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
     marginBottom: 10,
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.cardBorder,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -1460,14 +1468,14 @@ const styles = StyleSheet.create({
   penetrationSubText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.textMuted,
   },
   complianceCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   complianceTitle: {
     fontSize: 18,
@@ -1499,7 +1507,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3F3F3F',
     borderRadius: 16,
     padding: 12,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.3,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
@@ -1513,7 +1521,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3F3F3F',
     borderRadius: 16,
     padding: 12,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.3,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
@@ -1546,9 +1554,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -1565,7 +1573,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   pickerModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -1586,7 +1594,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   pickerItem: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -1618,11 +1626,11 @@ const styles = StyleSheet.create({
   },
   intelligenceCard: {
     width: (width - 52) / 2,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   intelHeader: {
     flexDirection: 'row',
@@ -1633,7 +1641,7 @@ const styles = StyleSheet.create({
   intelIconBox: {
     width: 32,
     height: 32,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1652,7 +1660,7 @@ const styles = StyleSheet.create({
   intelLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
     marginBottom: 4,
   },
   intelValue: {
@@ -1664,11 +1672,11 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   analyticsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   analyticsSectionTitle: {
     fontSize: 13,
@@ -1685,7 +1693,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -1699,7 +1707,7 @@ const styles = StyleSheet.create({
   liveText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   streamList: {
     marginTop: 10,
@@ -1746,7 +1754,7 @@ const styles = StyleSheet.create({
   streamMetaLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.textMuted,
   },
   metaDot: {
     width: 3,
@@ -1759,7 +1767,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionPillMinimal: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1767,7 +1775,7 @@ const styles = StyleSheet.create({
   actionPillTextMinimal: {
     fontSize: 8,
     fontWeight: '800',
-    color: '#475569',
+    color: colors.textSecondary,
   },
   streamImpactHighlight: {
     fontSize: 13,
@@ -1785,7 +1793,7 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   metricVal: {
     fontSize: 12,
@@ -1794,7 +1802,7 @@ const styles = StyleSheet.create({
   },
   metricBarBg: {
     height: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -1811,7 +1819,7 @@ const styles = StyleSheet.create({
   republishLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
@@ -1823,11 +1831,11 @@ const styles = StyleSheet.create({
   republishSub: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   attributionWinner: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     padding: 16,
   },
@@ -1840,7 +1848,7 @@ const styles = StyleSheet.create({
   winnerLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   winnerBadge: {
     backgroundColor: '#F0FDF4',
@@ -1858,6 +1866,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0BA0B2',
   },
-});
+  });
+}
 
 

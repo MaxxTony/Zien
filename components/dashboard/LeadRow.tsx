@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -20,6 +20,8 @@ const INITIALS_COLORS: Record<LeadBadgeTone, { bg: string; border: string; text:
 };
 
 function getInitials(name: string) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return name
     .split(' ')
     .map((n) => n[0])
@@ -29,6 +31,8 @@ function getInitials(name: string) {
 }
 
 function LeadRowComponent({ name, note, badge, badgeTone, color, onPress }: LeadRowProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const bs = INITIALS_COLORS[badgeTone];
 
   return (
@@ -58,14 +62,15 @@ function LeadRowComponent({ name, note, badge, badgeTone, color, onPress }: Lead
 
 export const LeadRow = memo(LeadRowComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingVertical: 11,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(228,234,242,0.7)',
+    borderBottomColor: colors.divider,
   },
   rowPressed: {
     opacity: 0.7,
@@ -89,13 +94,13 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 13.5,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   note: {
     marginTop: 2,
     fontSize: 12,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   badge: {
     borderRadius: 8,
@@ -109,3 +114,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
 });
+}

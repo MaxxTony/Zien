@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useMemo, useState } from 'react';
 import {
   Dimensions,
@@ -28,6 +29,9 @@ const KPI_CARDS = [
 ];
 
 export default function AnalyticsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [dateRange] = useState('Last 30 Days');
@@ -168,7 +172,8 @@ export default function AnalyticsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20 },
@@ -181,13 +186,13 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
+      ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
@@ -203,7 +208,7 @@ const styles = StyleSheet.create({
   kpiLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 4,
   },
@@ -237,15 +242,15 @@ const styles = StyleSheet.create({
   topActionBtn: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8 },
+      ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8 },
       android: { elevation: 1 },
     }),
   },
@@ -255,11 +260,11 @@ const styles = StyleSheet.create({
     color: '#0B2341',
   },
   chartCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     marginBottom: 24,
     alignItems: 'center',
   },
@@ -268,11 +273,11 @@ const styles = StyleSheet.create({
     marginRight: 0, // Kit fix
   },
   platformCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     marginBottom: 24,
   },
   platformRow: {
@@ -305,11 +310,11 @@ const styles = StyleSheet.create({
   percentText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   progressContainer: {
     height: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -351,7 +356,7 @@ const styles = StyleSheet.create({
   },
   aiMessage: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: colors.textMuted,
     fontWeight: '600',
     lineHeight: 22,
     fontStyle: 'italic',
@@ -365,6 +370,7 @@ const styles = StyleSheet.create({
   aiConfidence: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
-});
+  });
+}

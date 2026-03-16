@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -68,6 +69,9 @@ const TOP_LEADS = [
 ];
 
 export default function EventDashboardScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
     const { id, mode } = useLocalSearchParams();
     const isLiveMode = mode !== 'view';
     const router = useRouter();
@@ -176,17 +180,17 @@ export default function EventDashboardScreen() {
 
                         <View style={styles.ovFeaturesGrid}>
                             <View style={styles.ovFeatureItem}>
-                                <MaterialCommunityIcons name="bed-outline" size={24} color="#0D9488" />
+                                <MaterialCommunityIcons name="bed-outline" size={24} color={colors.accentTeal} />
                                 <Text style={styles.ovFeatureVal}>{EVENT_DATA.beds}</Text>
                                 <Text style={styles.ovFeatureLabel}>Beds</Text>
                             </View>
                             <View style={styles.ovFeatureItem}>
-                                <MaterialCommunityIcons name="bathtub-outline" size={24} color="#0D9488" />
+                                <MaterialCommunityIcons name="bathtub-outline" size={24} color={colors.accentTeal} />
                                 <Text style={styles.ovFeatureVal}>{EVENT_DATA.baths}</Text>
                                 <Text style={styles.ovFeatureLabel}>Baths</Text>
                             </View>
                             <View style={styles.ovFeatureItem}>
-                                <MaterialCommunityIcons name="selection" size={24} color="#0D9488" />
+                                <MaterialCommunityIcons name="selection" size={24} color={colors.accentTeal} />
                                 <Text style={styles.ovFeatureVal}>{EVENT_DATA.sqft}</Text>
                                 <Text style={styles.ovFeatureLabel}>Sq Ft</Text>
                             </View>
@@ -194,12 +198,12 @@ export default function EventDashboardScreen() {
 
                         <View style={styles.ovScheduleStrip}>
                             <View style={styles.ovScheduleItem}>
-                                <MaterialCommunityIcons name="calendar-outline" size={20} color="#64748B" />
+                                <MaterialCommunityIcons name="calendar-outline" size={20} color={colors.textSecondary} />
                                 <Text style={styles.ovScheduleText}>{EVENT_DATA.scheduledDate}</Text>
                             </View>
                             <View style={styles.ovScheduleDivider} />
                             <View style={styles.ovScheduleItem}>
-                                <MaterialCommunityIcons name="clock-outline" size={20} color="#64748B" />
+                                <MaterialCommunityIcons name="clock-outline" size={20} color={colors.textSecondary} />
                                 <Text style={styles.ovScheduleText}>{EVENT_DATA.sessionTime}</Text>
                             </View>
                         </View>
@@ -259,11 +263,11 @@ export default function EventDashboardScreen() {
                     </View>
                     <View style={styles.ovAgentContact}>
                         <View style={styles.ovContactItem}>
-                            <MaterialCommunityIcons name="email-outline" size={14} color="#64748B" />
+                            <MaterialCommunityIcons name="email-outline" size={14} color={colors.textSecondary} />
                             <Text style={styles.ovContactText}>{EVENT_DATA.agent.email}</Text>
                         </View>
                         <View style={styles.ovContactItem}>
-                            <MaterialCommunityIcons name="phone-outline" size={14} color="#64748B" />
+                            <MaterialCommunityIcons name="phone-outline" size={14} color={colors.textSecondary} />
                             <Text style={styles.ovContactText}>{EVENT_DATA.agent.phone}</Text>
                         </View>
                     </View>
@@ -305,12 +309,12 @@ export default function EventDashboardScreen() {
                             </View>
 
                             <View style={styles.vStatBadge}>
-                                <MaterialCommunityIcons name="timeline-outline" size={14} color="#64748B" />
-                                <Text style={[styles.vStatBadgeText, { color: '#64748B', fontWeight: '600' }]}>{visitor.timeline}</Text>
+                                <MaterialCommunityIcons name="timeline-outline" size={14} color={colors.textSecondary} />
+                                <Text style={[styles.vStatBadgeText, { color: colors.textSecondary, fontWeight: '600' }]}>{visitor.timeline}</Text>
                             </View>
 
                             <View style={styles.vStatBadge}>
-                                <Text style={[styles.vStatBadgeText, { fontSize: 9, color: '#94A3B8' }]}>PRE-APP:</Text>
+                                <Text style={[styles.vStatBadgeText, { fontSize: 9, color: colors.textMuted }]}>PRE-APP:</Text>
                                 <Text style={[styles.vStatBadgeText, { color: visitor.preApproved === 'Yes' ? '#0D9488' : '#64748B' }]}>
                                     {visitor.preApproved.toUpperCase()}
                                 </Text>
@@ -321,7 +325,7 @@ export default function EventDashboardScreen() {
                                     <MaterialCommunityIcons
                                         name={visitor.sync.toLowerCase() === 'crm' ? 'pulse' : 'clock-outline'}
                                         size={12}
-                                        color="#0D9488"
+                                        color={colors.accentTeal}
                                     />
                                     <Text style={styles.vSyncBadgeText}>{visitor.sync}</Text>
                                 </View>
@@ -349,7 +353,7 @@ export default function EventDashboardScreen() {
                         <MaterialCommunityIcons
                             name={showSequenceDropdown ? "chevron-up" : "chevron-down"}
                             size={20}
-                            color="#0B2D3E"
+                            color={colors.textPrimary}
                         />
                     </Pressable>
 
@@ -398,10 +402,10 @@ export default function EventDashboardScreen() {
                     <View style={styles.templateFooter}>
                         <View style={styles.footerIconGroup}>
                             <View style={styles.templateIconBox}>
-                                <MaterialCommunityIcons name="file-document-outline" size={16} color="#64748B" />
+                                <MaterialCommunityIcons name="file-document-outline" size={16} color={colors.textSecondary} />
                             </View>
                             <View style={styles.templateIconBox}>
-                                <MaterialCommunityIcons name="lightning-bolt-outline" size={16} color="#64748B" />
+                                <MaterialCommunityIcons name="lightning-bolt-outline" size={16} color={colors.textSecondary} />
                             </View>
                             <Text style={styles.attachmentTextSmall}>+3 attachments</Text>
                         </View>
@@ -422,13 +426,13 @@ export default function EventDashboardScreen() {
                 ].map((rule) => (
                     <View key={rule.id} style={styles.premiumRuleItem}>
                         <View style={styles.ruleIconBox}>
-                            <MaterialCommunityIcons name={rule.icon as any} size={18} color="#475569" />
+                            <MaterialCommunityIcons name={rule.icon as any} size={18} color={colors.textSecondary} />
                         </View>
                         <Text style={styles.premiumRuleText}>{rule.title}</Text>
                         <Switch
-                            trackColor={{ false: "#E2E8F0", true: "#0B2D3E" }}
+                            trackColor={{ false: colors.cardBorder, true: colors.accentTeal }}
                             thumbColor={"#FFFFFF"}
-                            ios_backgroundColor="#E2E8F0"
+                            ios_backgroundColor={colors.cardBorder}
                             value={(automationRules as any)[rule.id]}
                             onValueChange={(val) => setAutomationRules(prev => ({ ...prev, [rule.id]: val }))}
                             style={Platform.OS === 'ios' ? {} : { transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
@@ -442,7 +446,7 @@ export default function EventDashboardScreen() {
                 <View style={styles.ghostHeader}>
                     <View style={styles.ghostTitleRow}>
                         <View style={styles.ghostIconBox}>
-                            <MaterialCommunityIcons name="lightning-bolt" size={18} color="#0D9488" />
+                            <MaterialCommunityIcons name="lightning-bolt" size={18} color={colors.accentTeal} />
                         </View>
                         <Text style={styles.ghostTitle}>Ghost Protocol Re-Engagement</Text>
                     </View>
@@ -483,7 +487,7 @@ export default function EventDashboardScreen() {
                         style={styles.addPhotoBox}
                         onPress={triggerImagePicker}
                     >
-                        <MaterialCommunityIcons name="plus" size={24} color="#0D9488" />
+                        <MaterialCommunityIcons name="plus" size={24} color={colors.accentTeal} />
                         <Text style={styles.addPhotoText}>ADD PHOTO</Text>
                     </Pressable>
                 </View>
@@ -531,7 +535,7 @@ export default function EventDashboardScreen() {
             {/* Event Configuration */}
             <View style={styles.card}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MaterialCommunityIcons name="cog-outline" size={20} color="#0F172A" />
+                    <MaterialCommunityIcons name="cog-outline" size={20} color={colors.textPrimary} />
                     <Text style={styles.cardTitle}>Event Configuration</Text>
                 </View>
 
@@ -548,14 +552,14 @@ export default function EventDashboardScreen() {
                     <View style={[styles.inputGroup, { flex: 1 }]}>
                         <Text style={styles.inputLabel}>Date</Text>
                         <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}>
-                            <MaterialCommunityIcons name="calendar" size={16} color="#64748B" style={{ marginRight: 8 }} />
+                            <MaterialCommunityIcons name="calendar" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
                             <Text style={styles.inputValue}>15/01/2026</Text>
                         </View>
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
                         <Text style={styles.inputLabel}>Time</Text>
                         <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}>
-                            <MaterialCommunityIcons name="clock-outline" size={16} color="#64748B" style={{ marginRight: 8 }} />
+                            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
                             <Text style={styles.inputValue}>1:00 PM - 4:00 PM</Text>
                         </View>
                     </View>
@@ -581,7 +585,7 @@ export default function EventDashboardScreen() {
             {/* Notification Settings */}
             <View style={styles.card}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MaterialCommunityIcons name="bell-outline" size={20} color="#0F172A" />
+                    <MaterialCommunityIcons name="bell-outline" size={20} color={colors.textPrimary} />
                     <Text style={styles.cardTitle}>Notification Settings</Text>
                 </View>
                 {[
@@ -604,7 +608,7 @@ export default function EventDashboardScreen() {
             {/* QR Code Settings */}
             <View style={styles.card}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MaterialCommunityIcons name="qrcode-scan" size={20} color="#0F172A" />
+                    <MaterialCommunityIcons name="qrcode-scan" size={20} color={colors.textPrimary} />
                     <Text style={styles.cardTitle}>QR Code Settings</Text>
                 </View>
                 {[
@@ -629,28 +633,28 @@ export default function EventDashboardScreen() {
             {/* Data & Privacy */}
             <View style={styles.card}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MaterialCommunityIcons name="file-document-outline" size={20} color="#0F172A" />
+                    <MaterialCommunityIcons name="file-document-outline" size={20} color={colors.textPrimary} />
                     <Text style={styles.cardTitle}>Data & Privacy</Text>
                 </View>
 
                 {/* Action Cards Grid */}
                 <View style={styles.dataActionGrid}>
                     <View style={styles.dataActionCard}>
-                        <MaterialCommunityIcons name="account-group-outline" size={24} color="#0F172A" />
+                        <MaterialCommunityIcons name="account-group-outline" size={24} color={colors.textPrimary} />
                         <Text style={styles.dataActionTitle}>Export Visitors</Text>
                         <Pressable style={styles.dataActionBtn}>
                             <Text style={styles.dataActionBtnText}>Download CSV</Text>
                         </Pressable>
                     </View>
                     <View style={styles.dataActionCard}>
-                        <MaterialCommunityIcons name="email-outline" size={24} color="#0F172A" />
+                        <MaterialCommunityIcons name="email-outline" size={24} color={colors.textPrimary} />
                         <Text style={styles.dataActionTitle}>Email Templates</Text>
                         <Pressable style={styles.dataActionBtn}>
                             <Text style={styles.dataActionBtnText}>Customize</Text>
                         </Pressable>
                     </View>
                     <View style={styles.dataActionCard}>
-                        <MaterialCommunityIcons name="chart-timeline-variant" size={24} color="#0F172A" />
+                        <MaterialCommunityIcons name="chart-timeline-variant" size={24} color={colors.textPrimary} />
                         <Text style={styles.dataActionTitle}>Analytics</Text>
                         <Pressable style={styles.dataActionBtn}>
                             <Text style={styles.dataActionBtnText}>View Report</Text>
@@ -762,7 +766,7 @@ export default function EventDashboardScreen() {
 
     return (
         <LinearGradient
-            colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+            colors={colors.backgroundGradient as any}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.9, y: 1 }}
             style={[styles.background, { paddingTop: insets.top }]}>
@@ -770,11 +774,11 @@ export default function EventDashboardScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <MaterialCommunityIcons name="arrow-left" size={22} color="#0D9488" />
+                    <MaterialCommunityIcons name="arrow-left" size={22} color={colors.accentTeal} />
                 </Pressable>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.headerMainTitle} numberOfLines={1}>
-                        <Text style={{ fontWeight: '500', color: '#64748B' }}>Back / </Text>
+                        <Text style={{ fontWeight: '500', color: colors.textSecondary }}>Back / </Text>
                         {EVENT_DATA.address} ({EVENT_DATA.id})
                     </Text>
                 </View>
@@ -784,7 +788,7 @@ export default function EventDashboardScreen() {
             <View style={styles.actionRow}>
                 <ExternalLink href="https://zien.codesmile.in/check-in/OH-001/" asChild>
                     <Pressable style={styles.actionBtnOutline}>
-                        <MaterialCommunityIcons name="open-in-new" size={16} color="#0B2D3E" style={{ marginRight: 6 }} />
+                        <MaterialCommunityIcons name="open-in-new" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
                         <Text style={styles.actionBtnOutlineText}>Open Public Check-In</Text>
                     </Pressable>
                 </ExternalLink>
@@ -833,7 +837,7 @@ export default function EventDashboardScreen() {
                 <Pressable style={styles.visitorModalBackdrop} onPress={() => setSelectedVisitor(null)}>
                     <Pressable style={styles.visitorModalCard} onPress={(e) => e.stopPropagation()}>
                         <Pressable style={styles.visitorModalClose} onPress={() => setSelectedVisitor(null)} hitSlop={12}>
-                            <MaterialCommunityIcons name="close" size={24} color="#5B6B7A" />
+                            <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
                         </Pressable>
                         {selectedVisitor && (
                             <>
@@ -904,24 +908,24 @@ export default function EventDashboardScreen() {
                         <View style={styles.pickerOptionsContainer}>
                             <Pressable style={styles.pickerOption} onPress={() => handleAddPhoto('camera')}>
                                 <View style={styles.pickerIconWrap}>
-                                    <MaterialCommunityIcons name="camera" size={24} color="#0B2D3E" />
+                                    <MaterialCommunityIcons name="camera" size={24} color={colors.textPrimary} />
                                 </View>
                                 <View style={styles.pickerOptionTextContainer}>
                                     <Text style={styles.pickerOptionText}>Take Photo</Text>
                                     <Text style={styles.pickerOptionSub}>Use camera to capture new photos</Text>
                                 </View>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
                             </Pressable>
 
                             <Pressable style={styles.pickerOption} onPress={() => handleAddPhoto('library')}>
                                 <View style={styles.pickerIconWrap}>
-                                    <MaterialCommunityIcons name="image-multiple" size={24} color="#0B2D3E" />
+                                    <MaterialCommunityIcons name="image-multiple" size={24} color={colors.textPrimary} />
                                 </View>
                                 <View style={styles.pickerOptionTextContainer}>
                                     <Text style={styles.pickerOptionText}>Choose from Gallery</Text>
                                     <Text style={styles.pickerOptionSub}>Select existing photos from library</Text>
                                 </View>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
                             </Pressable>
                         </View>
 
@@ -936,7 +940,8 @@ export default function EventDashboardScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
     background: {
         flex: 1,
     },
@@ -951,24 +956,24 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         alignItems: 'center',
         justifyContent: 'center',
     },
     headerMainTitle: {
         fontSize: 15,
         fontWeight: '800',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         letterSpacing: -0.2,
     },
     headerTitle: {
         fontSize: 16,
         fontWeight: '800',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     headerSubtitle: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '600',
     },
     iconBtn: {
@@ -976,11 +981,11 @@ const styles = StyleSheet.create({
         height: 40,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.6)',
+        backgroundColor: colors.surfaceIcon,
         borderRadius: 20,
     },
     liveBanner: {
-        backgroundColor: '#EF4444',
+        backgroundColor: colors.danger,
         paddingHorizontal: 20,
         paddingVertical: 12,
         flexDirection: 'row',
@@ -1004,7 +1009,7 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
     },
     bannerBoldText: {
         color: '#FFF',
@@ -1030,22 +1035,22 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         paddingVertical: 14,
         borderRadius: 12,
     },
     actionBtnOutlineText: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     actionBtnSolid: {
         flex: .45,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#0F172A',
+        backgroundColor: colors.accentTeal,
         paddingVertical: 14,
         borderRadius: 12,
     },
@@ -1055,7 +1060,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     endEventBtn: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: colors.surfaceIcon,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 6,
@@ -1080,11 +1085,11 @@ const styles = StyleSheet.create({
     },
     tabText: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '600',
     },
     activeTabText: {
-        color: '#0F172A',
+        color: colors.textPrimary,
         fontWeight: '800',
     },
     activeTabIndicator: {
@@ -1093,7 +1098,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: 3,
-        backgroundColor: '#0F172A',
+        backgroundColor: colors.accentTeal,
         borderRadius: 2,
     },
     tabContent: {
@@ -1102,10 +1107,10 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     card: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         padding: 16,
-        shadowColor: '#000',
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.05,
         shadowOffset: { width: 0, height: 2 },
         shadowRadius: 8,
@@ -1114,7 +1119,7 @@ const styles = StyleSheet.create({
     qrContainer: {
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         width: 60,
         height: 60,
         borderRadius: 12,
@@ -1123,7 +1128,7 @@ const styles = StyleSheet.create({
     qrText: {
         fontSize: 8,
         marginTop: 4,
-        color: '#64748B',
+        color: colors.textSecondary,
         textAlign: 'center',
     },
     summaryContent: {
@@ -1132,11 +1137,11 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontSize: 16,
         fontWeight: '800',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     cardDescription: {
         fontSize: 13,
-        color: '#64748B',
+        color: colors.textSecondary,
         lineHeight: 20,
     },
     timeRow: {
@@ -1147,11 +1152,11 @@ const styles = StyleSheet.create({
     timeValue: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     timeLabel: {
         fontSize: 10,
-        color: '#94A3B8',
+        color: colors.textMuted,
         fontWeight: '700',
         marginTop: 2,
     },
@@ -1164,19 +1169,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
         padding: 12,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         borderRadius: 12,
         marginHorizontal: 4,
     },
     statValue: {
         fontSize: 20,
         fontWeight: '900',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     statLabel: {
         fontSize: 9,
         fontWeight: '700',
-        color: '#64748B',
+        color: colors.textSecondary,
         marginTop: 4,
     },
     timelineList: {
@@ -1192,15 +1197,15 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#38BDF8',
+        backgroundColor: colors.accentTeal,
     },
     timelineText: {
-        color: '#E2E8F0',
+        color: colors.textPrimary,
         fontSize: 13,
         fontWeight: '500',
     },
     timelineTime: {
-        color: '#94A3B8',
+        color: colors.textMuted,
         fontSize: 11,
     },
     visitorCard: {
@@ -1215,25 +1220,25 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.cardBorder,
         paddingBottom: 12,
     },
     visitorName: {
         fontSize: 16,
         fontWeight: '800',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     actionBtn: {
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         borderRadius: 6,
     },
     actionBtnText: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     visitorDetailsGrid: {
         flexDirection: 'row',
@@ -1245,13 +1250,13 @@ const styles = StyleSheet.create({
     },
     detailLabel: {
         fontSize: 10,
-        color: '#94A3B8',
+        color: colors.textMuted,
         fontWeight: '700',
         marginBottom: 4,
     },
     detailValue: {
         fontSize: 13,
-        color: '#0F172A',
+        color: colors.textPrimary,
         fontWeight: '600',
     },
     signalBadge: {
@@ -1261,29 +1266,29 @@ const styles = StyleSheet.create({
 
     // Automation Styles
     automationPreview: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         padding: 16,
         borderRadius: 12,
         marginTop: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
     },
     previewLabel: {
         fontSize: 9,
         fontWeight: '800',
-        color: '#64748B',
+        color: colors.textSecondary,
         marginBottom: 8,
         letterSpacing: 0.5,
     },
     previewTitle: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#0F172A',
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     previewBody: {
         fontSize: 12,
-        color: '#475569',
+        color: colors.textSecondary,
         lineHeight: 18,
         marginBottom: 12,
     },
@@ -1295,12 +1300,12 @@ const styles = StyleSheet.create({
     attachmentBox: {
         width: 24,
         height: 24,
-        backgroundColor: '#CBD5E1',
+        backgroundColor: colors.cardBorder,
         borderRadius: 4,
     },
     attachmentText: {
         fontSize: 11,
-        color: '#94A3B8',
+        color: colors.textMuted,
         fontStyle: 'italic',
     },
     ruleItem: {
@@ -1309,11 +1314,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.cardBorder,
     },
     ruleText: {
         fontSize: 13,
-        color: '#0F172A',
+        color: colors.textPrimary,
         fontWeight: '500',
         flex: 1,
         marginRight: 12,
@@ -1326,19 +1331,19 @@ const styles = StyleSheet.create({
     inputLabel: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#64748B',
+        color: colors.textSecondary,
         marginBottom: 6,
     },
     inputBox: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         padding: 12,
         borderRadius: 8,
     },
     inputValue: {
         fontSize: 13,
-        color: '#0F172A',
+        color: colors.textPrimary,
         fontWeight: '600',
     },
     rowInputs: {
@@ -1348,11 +1353,11 @@ const styles = StyleSheet.create({
     settingTitle: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     settingDesc: {
         fontSize: 11,
-        color: '#94A3B8',
+        color: colors.textMuted,
     },
 
     // Seller Report
@@ -1361,29 +1366,29 @@ const styles = StyleSheet.create({
     },
     sentimentLabel: {
         fontSize: 12,
-        color: '#0F172A',
+        color: colors.textPrimary,
         fontWeight: '700',
     },
     sentimentValue: {
         fontSize: 12,
-        color: '#0F172A',
+        color: colors.textPrimary,
         fontWeight: '800',
     },
     progressBarBg: {
         height: 6,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: colors.cardBorder,
         borderRadius: 3,
         marginTop: 6,
     },
     progressBarFill: {
         height: '100%',
-        backgroundColor: '#0F172A',
+        backgroundColor: colors.accentTeal,
         borderRadius: 3,
     },
     // Modal Styles
     visitorModalBackdrop: {
         flex: 1,
-        backgroundColor: 'rgba(11, 45, 62, 0.4)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
@@ -1391,11 +1396,11 @@ const styles = StyleSheet.create({
     visitorModalCard: {
         width: '100%',
         maxWidth: 360,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         padding: 20,
         paddingTop: 44,
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.15,
         shadowRadius: 24,
@@ -1408,7 +1413,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -1422,7 +1427,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -1445,7 +1450,7 @@ const styles = StyleSheet.create({
     visitorModalName: {
         fontSize: 20,
         fontWeight: '800',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     visitorModalHotBadge: {
         flexDirection: 'row',
@@ -1454,7 +1459,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8,
-        backgroundColor: '#EF4444',
+        backgroundColor: colors.danger,
     },
     visitorModalHotBadgeText: {
         fontSize: 11,
@@ -1465,13 +1470,13 @@ const styles = StyleSheet.create({
     visitorModalContact: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#5B6B7A',
+        color: colors.textSecondary,
         lineHeight: 18,
     },
     visitorModalSectionLabel: {
         fontSize: 10,
         fontWeight: '800',
-        color: '#9CA3AF',
+        color: colors.textMuted,
         letterSpacing: 0.5,
         marginBottom: 10,
     },
@@ -1485,22 +1490,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 10,
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        borderTopColor: colors.cardBorder,
     },
     visitorModalContextLabel: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#5B6B7A',
+        color: colors.textSecondary,
     },
     visitorModalContextValue: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     visitorModalContextScore: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#0D9488',
+        color: colors.accentTeal,
     },
     visitorModalBtnPrimary: {
         flexDirection: 'row',
@@ -1509,7 +1514,7 @@ const styles = StyleSheet.create({
         gap: 8,
         paddingVertical: 14,
         borderRadius: 12,
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         marginBottom: 10,
     },
     visitorModalBtnPrimaryText: {
@@ -1520,21 +1525,21 @@ const styles = StyleSheet.create({
     visitorModalBtnSecondary: {
         paddingVertical: 14,
         borderRadius: 12,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderWidth: 1.5,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         alignItems: 'center',
         marginBottom: 10,
     },
     visitorModalBtnSecondaryText: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     visitorModalBtnSecondaryBlue: {
         paddingVertical: 14,
         borderRadius: 12,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderWidth: 1.5,
         borderColor: '#0D9488',
         alignItems: 'center',
@@ -1542,7 +1547,7 @@ const styles = StyleSheet.create({
     visitorModalBtnSecondaryBlueText: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#0D9488',
+        color: colors.accentTeal,
     },
     // Seller Visibility Styles
     visibilityRow: {
@@ -1551,19 +1556,19 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: colors.cardBorder,
     },
     visibilityLabel: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     checkbox: {
         width: 20,
         height: 20,
         borderRadius: 4,
         borderWidth: 2,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -1572,7 +1577,7 @@ const styles = StyleSheet.create({
         borderColor: '#3B82F6',
     },
     pushReportBtn: {
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         marginTop: 20,
         paddingVertical: 14,
         borderRadius: 8,
@@ -1587,7 +1592,7 @@ const styles = StyleSheet.create({
 
     // New Styles for Settings
     downloadQrBtn: {
-        backgroundColor: '#0F172A',
+        backgroundColor: colors.accentTeal,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1609,30 +1614,30 @@ const styles = StyleSheet.create({
     dataActionCard: {
         flex: 1, // Distribute space evenly
         minWidth: '28%', // Ensure they don't get too squished
-        backgroundColor: '#FFFFFF', // Changed to white as per card standard or maybe slight grey
+        backgroundColor: colors.cardBackground, // Changed to white as per card standard or maybe slight grey
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
         gap: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        shadowColor: '#000',
+        borderColor: colors.cardBorder,
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.02,
         shadowOffset: { width: 0, height: 2 },
     },
     dataActionTitle: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.textPrimary,
         textAlign: 'center',
     },
     dataActionBtn: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 6,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         marginTop: 4,
         width: '100%',
         alignItems: 'center',
@@ -1640,12 +1645,12 @@ const styles = StyleSheet.create({
     dataActionBtnText: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     dangerZone: {
-        backgroundColor: '#FEF2F2',
+        backgroundColor: colors.dangerBg,
         borderWidth: 1,
-        borderColor: '#FECACA',
+        borderColor: colors.dangerBorder,
         borderRadius: 12,
         padding: 16,
         gap: 16,
@@ -1653,24 +1658,24 @@ const styles = StyleSheet.create({
     dangerTitle: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#DC2626',
+        color: colors.danger,
         marginBottom: 4,
     },
     dangerDesc: {
         fontSize: 11,
-        color: '#B91C1C',
+        color: colors.danger,
         lineHeight: 16,
     },
     deleteBtn: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         paddingVertical: 12,
         alignItems: 'center',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#FECACA',
+        borderColor: colors.dangerBorder,
     },
     deleteBtnText: {
-        color: '#DC2626',
+        color: colors.danger,
         fontSize: 12,
         fontWeight: '700',
     },
@@ -1684,20 +1689,20 @@ const styles = StyleSheet.create({
     cancelBtn: {
         paddingVertical: 12,
         paddingHorizontal: 20,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
     },
     cancelBtnText: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#0F172A',
+        color: colors.textPrimary,
     },
     saveBtn: {
         paddingVertical: 12,
         paddingHorizontal: 24,
-        backgroundColor: '#0F172A',
+        backgroundColor: colors.accentTeal,
         borderRadius: 8,
     },
     saveBtnText: {
@@ -1707,7 +1712,7 @@ const styles = StyleSheet.create({
     },
     // Premium Dashboard Styles
     contentLiveBanner: {
-        backgroundColor: '#EF4444',
+        backgroundColor: colors.danger,
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderRadius: 16,
@@ -1722,7 +1727,7 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     bannerBtn: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: colors.surfaceIcon,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
@@ -1733,7 +1738,7 @@ const styles = StyleSheet.create({
         fontWeight: '800',
     },
     qrHeroCard: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 20,
         padding: 20,
         flexDirection: 'row',
@@ -1754,12 +1759,12 @@ const styles = StyleSheet.create({
     qrHeroTitle: {
         fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     qrHeroSub: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         lineHeight: 18,
         fontWeight: '500',
     },
@@ -1770,7 +1775,7 @@ const styles = StyleSheet.create({
     },
     dashStatCard: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         padding: 16,
         alignItems: 'center',
@@ -1778,12 +1783,12 @@ const styles = StyleSheet.create({
     dashStatValue: {
         fontSize: 22,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     dashStatLabel: {
         fontSize: 9,
         fontWeight: '800',
-        color: '#94A3B8',
+        color: colors.textMuted,
         marginTop: 4,
         letterSpacing: 0.5,
     },
@@ -1791,7 +1796,7 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     timelineCardDark: {
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         borderRadius: 20,
         padding: 20,
     },
@@ -1817,12 +1822,12 @@ const styles = StyleSheet.create({
     overviewTimelineText: {
         flex: 1,
         fontSize: 13,
-        color: '#E2E8F0',
+        color: colors.textPrimary,
         fontWeight: '500',
     },
     overviewTimelineTime: {
         fontSize: 11,
-        color: '#94A3B8',
+        color: colors.textMuted,
     },
     quickActionsRow: {
         flexDirection: 'row',
@@ -1834,22 +1839,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         paddingVertical: 14,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
     },
     quickActionText: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     // Visitors Premium Styles
     sectionTitle: {
         fontSize: 15,
         fontWeight: '800',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 12,
     },
     topLeadsSection: {
@@ -1860,7 +1865,7 @@ const styles = StyleSheet.create({
     },
     topLeadCard: {
         width: 100,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         padding: 12,
         alignItems: 'center',
@@ -1869,7 +1874,7 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,
@@ -1899,34 +1904,34 @@ const styles = StyleSheet.create({
     topLeadName: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     topLeadStatus: {
         fontSize: 9,
         fontWeight: '600',
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     searchBarBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 14,
         paddingHorizontal: 16,
         paddingVertical: 12,
         gap: 10,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
     },
     searchBarInput: {
         flex: 1,
         fontSize: 14,
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         fontWeight: '500',
     },
     visitorCardPremium: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -1946,30 +1951,30 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
     },
     initialsText: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     // --- Premium Visitor List Styles (Mobile Card) ---
     visitorListContainer: {
         gap: 16,
     },
     visitorCardNew: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         padding: 20,
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.08,
         shadowOffset: { width: 0, height: 6 },
         shadowRadius: 16,
         elevation: 4,
         borderWidth: 1,
-        borderColor: 'rgba(226, 232, 240, 0.5)',
+        borderColor: colors.cardBorder,
     },
     vCardTop: {
         flexDirection: 'row',
@@ -1980,32 +1985,32 @@ const styles = StyleSheet.create({
     visitorNameText: {
         fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     visitorEmailText: {
         fontSize: 13,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '500',
     },
     vDetailsBtn: {
         paddingVertical: 10,
         paddingHorizontal: 16,
         borderRadius: 12,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         borderWidth: 1.5,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         alignItems: 'center',
         justifyContent: 'center',
     },
     vDetailsBtnText: {
         fontSize: 13,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     vCardDivider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         marginBottom: 16,
     },
     vCardStatsRow: {
@@ -2018,7 +2023,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 10,
@@ -2026,13 +2031,13 @@ const styles = StyleSheet.create({
     vStatBadgeText: {
         fontSize: 12,
         fontWeight: '800',
-        color: '#1E293B',
+        color: colors.textPrimary,
     },
     vSyncBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: '#E0F2F1',
+        backgroundColor: colors.surfaceIcon,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8,
@@ -2040,7 +2045,7 @@ const styles = StyleSheet.create({
     vSyncBadgeText: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#0D9488',
+        color: colors.accentTeal,
         letterSpacing: 0.3,
     },
     // Premium Overview Styles
@@ -2056,12 +2061,12 @@ const styles = StyleSheet.create({
     },
     ovPropertyCard: {
         width: '100%',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(226, 232, 240, 0.5)',
-        shadowColor: '#0B2D3E',
+        borderColor: colors.cardBorder,
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 10 },
         shadowRadius: 20,
@@ -2099,7 +2104,7 @@ const styles = StyleSheet.create({
     ovAddress: {
         fontSize: 20,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         lineHeight: 34,
         marginBottom: 10,
     },
@@ -2112,16 +2117,16 @@ const styles = StyleSheet.create({
     ovPrice: {
         fontSize: 18,
         fontWeight: '800',
-        color: '#5B6B7A',
+        color: colors.textSecondary,
     },
     ovStatusBadge: {
-        backgroundColor: '#E0F2F1',
+        backgroundColor: colors.surfaceIcon,
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 10,
     },
     ovStatusText: {
-        color: '#0D9488',
+        color: colors.accentTeal,
         fontSize: 11,
         fontWeight: '900',
         letterSpacing: 0.3,
@@ -2129,7 +2134,7 @@ const styles = StyleSheet.create({
     ovFeaturesGrid: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: '#F7F9FC',
+        backgroundColor: colors.surfaceSoft,
         borderRadius: 24,
         padding: 24,
         marginBottom: 24,
@@ -2141,13 +2146,13 @@ const styles = StyleSheet.create({
     ovFeatureVal: {
         fontSize: 16,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginTop: 10,
     },
     ovFeatureLabel: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#94A3B8',
+        color: colors.textMuted,
         marginTop: 4,
     },
     ovScheduleStrip: {
@@ -2164,17 +2169,17 @@ const styles = StyleSheet.create({
     ovScheduleText: {
         fontSize: 15,
         fontWeight: '700',
-        color: '#5B6B7A',
+        color: colors.textSecondary,
     },
     ovScheduleDivider: {
         width: 1.5,
         height: 20,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: colors.cardBorder,
     },
     ovTimelineCard: {
         flex: 1,
         minWidth: SCREEN_WIDTH > 600 ? 300 : '100%',
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         borderRadius: 20,
         padding: 20,
     },
@@ -2207,7 +2212,7 @@ const styles = StyleSheet.create({
     ovTimelineTime: {
         fontSize: 11,
         fontWeight: '600',
-        color: '#94A3B8',
+        color: colors.textMuted,
     },
     overviewBottomRow: {
         flexDirection: 'column',
@@ -2215,7 +2220,7 @@ const styles = StyleSheet.create({
     },
     ovQrCard: {
         width: '100%',
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         borderRadius: 24,
         padding: 20,
         flexDirection: 'row',
@@ -2237,18 +2242,18 @@ const styles = StyleSheet.create({
     ovQrSub: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#94A3B8',
+        color: colors.textMuted,
         marginTop: 4,
         letterSpacing: 0.3,
     },
     ovAgentCard: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 20,
         padding: 20,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        shadowColor: '#000',
+        borderColor: colors.cardBorder,
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.04,
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 12,
@@ -2256,7 +2261,7 @@ const styles = StyleSheet.create({
     ovAgentSectionTitle: {
         fontSize: 16,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 16,
     },
     ovAgentMain: {
@@ -2279,25 +2284,25 @@ const styles = StyleSheet.create({
     ovAgentName: {
         fontSize: 15,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     verifiedBadge: {
-        backgroundColor: '#E0F2FE',
+        backgroundColor: colors.surfaceSoft,
         paddingHorizontal: 6,
         paddingVertical: 3,
         borderRadius: 4,
         borderWidth: 1,
-        borderColor: '#7DD3FC',
+        borderColor: colors.cardBorder,
     },
     verifiedBadgeText: {
         fontSize: 8,
         fontWeight: '900',
-        color: '#0D9488',
+        color: colors.accentTeal,
     },
     ovAgentTitle: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#0D9488',
+        color: colors.accentTeal,
     },
     ovAgentContact: {
         gap: 6,
@@ -2310,16 +2315,16 @@ const styles = StyleSheet.create({
     ovContactText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     // --- Premium Automation Styles ---
     premiumCard: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         padding: 15,
         borderWidth: 1,
-        borderColor: 'rgba(226, 232, 240, 0.5)',
-        shadowColor: '#0B2D3E',
+        borderColor: colors.cardBorder,
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.08,
         shadowOffset: { width: 0, height: 8 },
         shadowRadius: 16,
@@ -2329,7 +2334,7 @@ const styles = StyleSheet.create({
     premiumCardHeader: {
         fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 20,
     },
     automationSelector: {
@@ -2338,7 +2343,7 @@ const styles = StyleSheet.create({
     selectorLabel: {
         fontSize: 10,
         fontWeight: '800',
-        color: '#94A3B8',
+        color: colors.textMuted,
         letterSpacing: 0.5,
         marginBottom: 10,
     },
@@ -2346,9 +2351,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         borderWidth: 1.5,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         borderRadius: 14,
         padding: 16,
         marginBottom: 10,
@@ -2356,18 +2361,18 @@ const styles = StyleSheet.create({
     selectorValue: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     selectorHint: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '500',
         lineHeight: 18,
     },
     templatePreviewBox: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderWidth: 1.5,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
         borderRadius: 20,
         padding: 20,
     },
@@ -2380,24 +2385,24 @@ const styles = StyleSheet.create({
     templateHeaderText: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         letterSpacing: 0.8,
     },
     editLink: {
         fontSize: 11,
         fontWeight: '900',
-        color: '#0D9488',
+        color: colors.accentTeal,
         letterSpacing: 0.5,
     },
     templateTitle: {
         fontSize: 16,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     templateBody: {
         fontSize: 14,
-        color: '#5B6B7A',
+        color: colors.textSecondary,
         lineHeight: 22,
         fontWeight: '500',
         marginBottom: 16,
@@ -2416,35 +2421,35 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 8,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
     },
     attachmentTextSmall: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '600',
         marginLeft: 4,
     },
     premiumRuleItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         borderRadius: 16,
         padding: 14,
         marginBottom: 10,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
     },
     ruleIconBox: {
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 14,
-        shadowColor: '#000',
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.03,
         shadowOffset: { width: 0, height: 2 },
         shadowRadius: 4,
@@ -2453,12 +2458,12 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 14,
         fontWeight: '700',
-        color: '#1E293B',
+        color: colors.textPrimary,
     },
     ghostProtocolCard: {
         borderLeftWidth: 4,
         borderLeftColor: '#0D9488',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
     },
     ghostHeader: {
         flexDirection: 'row',
@@ -2475,7 +2480,7 @@ const styles = StyleSheet.create({
         width: 28,
         height: 28,
         borderRadius: 8,
-        backgroundColor: '#E0F2F1',
+        backgroundColor: colors.surfaceIcon,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 10,
@@ -2483,12 +2488,12 @@ const styles = StyleSheet.create({
     ghostTitle: {
         fontSize: 16,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         flex: 1,
     },
     ghostDesc: {
         fontSize: 13,
-        color: '#64748B',
+        color: colors.textSecondary,
         lineHeight: 20,
         fontWeight: '500',
     },
@@ -2501,7 +2506,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#4B5563',
         borderRadius: 12,
         padding: 8,
-        shadowColor: '#000',
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.3,
         shadowOffset: { width: 0, height: 8 },
         shadowRadius: 16,
@@ -2537,9 +2542,9 @@ const styles = StyleSheet.create({
         height: 160,
         borderRadius: 20,
         overflow: 'hidden',
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
     },
     galleryImage: {
         width: '100%',
@@ -2559,7 +2564,7 @@ const styles = StyleSheet.create({
     addPhotoText: {
         fontSize: 11,
         fontWeight: '900',
-        color: '#0D9488',
+        color: colors.accentTeal,
         marginTop: 8,
         letterSpacing: 0.5,
     },
@@ -2570,24 +2575,24 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: 'rgba(11, 45, 62, 0.6)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     // Picker Modal (Bottom Sheet) Styles
     modalBackdrop: {
         flex: 1,
-        backgroundColor: 'rgba(11, 45, 62, 0.4)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     pickerModalContent: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         paddingHorizontal: 24,
         paddingTop: 12,
         paddingBottom: Platform.OS === 'ios' ? 44 : 32,
-        shadowColor: '#0B2D3E',
+        shadowColor: colors.cardShadowColor,
         shadowOffset: { width: 0, height: -10 },
         shadowOpacity: 0.1,
         shadowRadius: 20,
@@ -2601,13 +2606,13 @@ const styles = StyleSheet.create({
         width: 36,
         height: 5,
         borderRadius: 2.5,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: colors.cardBorder,
         marginBottom: 16,
     },
     pickerModalTitle: {
         fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         letterSpacing: -0.5,
     },
     pickerOptionsContainer: {
@@ -2617,17 +2622,17 @@ const styles = StyleSheet.create({
     pickerOption: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         padding: 16,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
     },
     pickerIconWrap: {
         width: 48,
         height: 48,
         borderRadius: 14,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
@@ -2642,16 +2647,16 @@ const styles = StyleSheet.create({
     pickerOptionText: {
         fontSize: 16,
         fontWeight: '800',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     pickerOptionSub: {
         fontSize: 12,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '500',
     },
     pickerCancelBtn: {
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         paddingVertical: 18,
         borderRadius: 16,
         alignItems: 'center',
@@ -2678,16 +2683,16 @@ const styles = StyleSheet.create({
     },
     specLabel: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
         fontWeight: '500',
     },
     specValue: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     aiDescriptionBox: {
-        backgroundColor: '#F0F9FA',
+        backgroundColor: colors.surfaceSoft,
         padding: 20,
         borderRadius: 16,
         marginBottom: 20,
@@ -2695,19 +2700,19 @@ const styles = StyleSheet.create({
     aiDescriptionTitle: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#0D9488',
+        color: colors.accentTeal,
         letterSpacing: 0.8,
         marginBottom: 8,
     },
     aiDescriptionText: {
         fontSize: 13,
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         lineHeight: 20,
         fontWeight: '500',
         fontStyle: 'italic',
     },
     exportPdfBtn: {
-        backgroundColor: '#0B2D3E',
+        backgroundColor: colors.accentTeal,
         paddingVertical: 16,
         borderRadius: 12,
         alignItems: 'center',
@@ -2719,4 +2724,5 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         letterSpacing: 0.5,
     },
-});
+  });
+}

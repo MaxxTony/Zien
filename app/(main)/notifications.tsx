@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/ui';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -121,57 +122,62 @@ type NotificationCardProps = NotificationItem & {
 };
 
 const NotificationCard = memo(({
-  icon, iconColor, iconBg, title, body, time, actionLabel, unread,
+  id, icon, iconColor, iconBg, title, body, time, actionLabel, unread,
   onPress, onActionPress,
-}: NotificationCardProps) => (
-  <Pressable
-    style={({ pressed }) => [
-      cardStyles.card,
-      unread && cardStyles.cardUnread,
-      pressed && cardStyles.cardPressed,
-    ]}
-    onPress={onPress}
-  >
-    {/* Icon */}
-    <View style={[cardStyles.iconWrap, { backgroundColor: iconBg }]}>
-      <MaterialCommunityIcons name={icon as any} size={20} color={iconColor} />
-    </View>
+}: NotificationCardProps) => {
+  const { colors } = useAppTheme();
+  const styles = getCardStyles(colors);
 
-    {/* Content */}
-    <View style={cardStyles.content}>
-      <View style={cardStyles.topRow}>
-        <Text style={[cardStyles.title, unread && cardStyles.titleUnread]} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={cardStyles.time}>{time}</Text>
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        unread && styles.cardUnread,
+        pressed && styles.cardPressed,
+      ]}
+      onPress={onPress}
+    >
+      {/* Icon */}
+      <View style={[styles.iconWrap, { backgroundColor: unread ? `${iconColor}22` : colors.surfaceIcon }]}>
+        <MaterialCommunityIcons name={icon as any} size={20} color={iconColor} />
       </View>
-      <Text style={cardStyles.body}>{body}</Text>
 
-      {actionLabel && (
-        <Pressable
-          style={({ pressed }) => [cardStyles.actionBtn, pressed && { opacity: 0.7 }]}
-          onPress={(e) => { e.stopPropagation(); onActionPress(); }}
-        >
-          <Text style={[cardStyles.actionText, { color: iconColor }]}>{actionLabel}</Text>
-          <MaterialCommunityIcons name="arrow-right" size={13} color={iconColor} />
-        </Pressable>
-      )}
-    </View>
+      {/* Content */}
+      <View style={styles.content}>
+        <View style={styles.topRow}>
+          <Text style={[styles.title, unread && styles.titleUnread]} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.time}>{time}</Text>
+        </View>
+        <Text style={styles.body}>{body}</Text>
 
-  </Pressable>
-));
+        {actionLabel && (
+          <Pressable
+            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]}
+            onPress={(e) => { e.stopPropagation(); onActionPress(); }}
+          >
+            <Text style={[styles.actionText, { color: iconColor }]}>{actionLabel}</Text>
+            <MaterialCommunityIcons name="arrow-right" size={13} color={iconColor} />
+          </Pressable>
+        )}
+      </View>
+    </Pressable>
+  );
+});
 
-const cardStyles = StyleSheet.create({
+function getCardStyles(colors: any) {
+  return StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(225,232,242,0.85)',
-    shadowColor: '#0A2F48',
+    borderColor: colors.cardBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.06,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
@@ -181,9 +187,9 @@ const cardStyles = StyleSheet.create({
     gap: 12,
   },
   cardUnread: {
-    backgroundColor: 'rgba(255,255,255,0.98)',
-    borderColor: 'rgba(200,220,238,0.9)',
-    shadowOpacity: 0.09,
+    backgroundColor: colors.surfaceSoft,
+    borderColor: colors.accentTeal,
+    borderWidth: 1,
   },
   cardPressed: {
     opacity: 0.85,
@@ -221,7 +227,7 @@ const cardStyles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 19,
   },
   titleUnread: {
@@ -230,13 +236,13 @@ const cardStyles = StyleSheet.create({
   time: {
     fontSize: 11,
     fontWeight: '600',
-    color: Theme.textMuted,
+    color: colors.inputPlaceholder,
     flexShrink: 0,
     marginTop: 1,
   },
   body: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 19,
     fontWeight: '400',
   },
@@ -249,7 +255,7 @@ const cardStyles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: 'rgba(11,160,178,0.08)',
+    backgroundColor: `${colors.accentTeal}12`,
   },
   actionText: {
     fontSize: 12.5,
@@ -265,18 +271,21 @@ const cardStyles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#fff',
   },
-});
+  });
+}
 
 // ─────────────────────────────────────────────────────
 // Screen
 // ─────────────────────────────────────────────────────
 export default function NotificationsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   return (
     <LinearGradient
-      colors={['#D8E9F6', '#F1F6FB', '#F5E6DB']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}
@@ -323,7 +332,8 @@ export default function NotificationsScreen() {
 // ─────────────────────────────────────────────────────
 // Screen-level styles
 // ─────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: {
     flex: 1,
   },
@@ -346,12 +356,13 @@ const styles = StyleSheet.create({
   sectionLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(180,200,220,0.5)',
+    backgroundColor: colors.divider,
   },
   sectionTitle: {
     fontSize: 10.5,
     fontWeight: '800',
     letterSpacing: 1.4,
-    color: Theme.textMuted,
+    color: colors.inputPlaceholder,
   },
-});
+  });
+}

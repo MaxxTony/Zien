@@ -19,11 +19,13 @@ import OutlineButton from '@/components/ui/OutlineButton';
 import PasswordInput from '@/components/ui/PasswordInput';
 import StepIndicator from '@/components/ui/StepIndicator';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type PlanId = 'pro' | 'unlimited';
 
 export default function TeamOnboardingScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('unlimited');
@@ -75,7 +77,7 @@ export default function TeamOnboardingScreen() {
                   <TextInput
                     placeholder="elite-group"
                     style={styles.urlInput}
-                    placeholderTextColor={Theme.inputPlaceholder}
+                    placeholderTextColor={colors.inputPlaceholder}
                     autoCapitalize="none"
                   />
                 </View>
@@ -83,7 +85,7 @@ export default function TeamOnboardingScreen() {
               <View style={styles.field}>
                 <Text style={styles.label}>Team Logo (Optional)</Text>
                 <Pressable style={styles.uploadBox}>
-                  <MaterialCommunityIcons name="image-outline" size={20} color={Theme.iconMuted} />
+                  <MaterialCommunityIcons name="image-outline" size={20} color={colors.iconMuted} />
                   <Text style={styles.uploadText}>Drag and drop or click to upload</Text>
                 </Pressable>
               </View>
@@ -101,7 +103,7 @@ export default function TeamOnboardingScreen() {
             <Text style={styles.subtitle}>You are creating this team</Text>
             <View style={styles.roleCard}>
               <View style={styles.roleIcon}>
-                <MaterialCommunityIcons name="shield-account-outline" size={20} color={Theme.iconPrimary} />
+                <MaterialCommunityIcons name="shield-account-outline" size={20} color={colors.iconPrimary} />
               </View>
               <View style={styles.roleContent}>
                 <Text style={styles.roleTitle}>Role: Team Owner</Text>
@@ -163,7 +165,7 @@ export default function TeamOnboardingScreen() {
                   <TextInput
                     placeholder="colleague@company.com"
                     style={styles.inviteInput}
-                    placeholderTextColor={Theme.inputPlaceholder}
+                    placeholderTextColor={colors.inputPlaceholder}
                     autoCapitalize="none"
                     keyboardType="email-address"
                   />
@@ -184,7 +186,7 @@ export default function TeamOnboardingScreen() {
         return (
           <>
             <View style={styles.badge}>
-              <MaterialCommunityIcons name="rocket-launch" size={26} color={Theme.link} />
+              <MaterialCommunityIcons name="rocket-launch" size={26} color={colors.link} />
             </View>
             <Text style={styles.title}>Team Created!</Text>
             <Text style={styles.subtitle}>Welcome, Team Leader.</Text>
@@ -208,7 +210,7 @@ export default function TeamOnboardingScreen() {
           <AuthCard style={styles.cardSoft}>
             <View style={styles.backButtonRow}>
               <Pressable style={styles.backButton} onPress={goBack} hitSlop={12}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color={Theme.textPrimary} />
+                <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
               </Pressable>
             </View>
             <AuthLogoBrand brandLabel="ZIEN" />
@@ -223,13 +225,14 @@ export default function TeamOnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   flex: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     justifyContent: 'center',
   },
   backButtonRow: {
@@ -239,32 +242,32 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    borderRadius: Theme.inputBorderRadius,
-    backgroundColor: Theme.cardBackground,
-    shadowColor: Theme.cardShadowColor,
-    shadowOffset: Theme.cardShadowOffset,
+    borderRadius: colors.inputBorderRadius,
+    backgroundColor: colors.cardBackground,
+    shadowColor: colors.cardShadowColor,
+    shadowOffset: colors.cardShadowOffset,
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
   },
   cardSoft: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 13.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 6,
     marginBottom: 18,
     textAlign: 'center',
   },
   message: {
     fontSize: 12.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 12,
     marginBottom: 18,
     textAlign: 'center',
@@ -287,47 +290,47 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   urlRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.cardBackground,
-    borderRadius: Theme.inputBorderRadius,
+    backgroundColor: colors.cardBackground,
+    borderRadius: colors.inputBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   urlPrefix: {
     fontSize: 13.5,
-    color: Theme.textMuted,
+    color: colors.textMuted,
     marginRight: 6,
   },
   urlInput: {
     flex: 1,
     fontSize: 13.5,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   uploadBox: {
-    borderRadius: Theme.buttonBorderRadius,
+    borderRadius: colors.buttonBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     borderStyle: 'dashed',
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
     paddingVertical: 18,
     alignItems: 'center',
     gap: 8,
   },
   uploadText: {
     fontSize: 12.5,
-    color: Theme.textMuted,
+    color: colors.textMuted,
   },
   roleCard: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: Theme.surfaceMuted,
-    borderRadius: Theme.buttonBorderRadius,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: colors.buttonBorderRadius,
     padding: 14,
     width: '100%',
     marginBottom: 14,
@@ -336,7 +339,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: Theme.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -347,20 +350,20 @@ const styles = StyleSheet.create({
   roleTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   roleDescription: {
     fontSize: 12.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   infoText: {
     fontSize: 12.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 18,
   },
   infoStrong: {
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   planList: {
@@ -372,32 +375,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Theme.cardBackground,
-    borderRadius: Theme.buttonBorderRadius,
+    backgroundColor: colors.cardBackground,
+    borderRadius: colors.buttonBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     padding: 14,
   },
   planSelected: {
-    borderColor: Theme.link,
-    shadowColor: Theme.link,
+    borderColor: colors.link,
+    shadowColor: colors.link,
     shadowOpacity: 0.08,
     shadowRadius: 10,
   },
   planTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   planDescription: {
     fontSize: 12.5,
-    color: Theme.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   planPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.link,
+    color: colors.link,
   },
   inviteRow: {
     flexDirection: 'row',
@@ -405,27 +408,27 @@ const styles = StyleSheet.create({
   },
   inviteInput: {
     flex: 1,
-    backgroundColor: Theme.cardBackground,
-    borderRadius: Theme.inputBorderRadius,
+    backgroundColor: colors.cardBackground,
+    borderRadius: colors.inputBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13.5,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   addButton: {
-    borderRadius: Theme.inputBorderRadius,
+    borderRadius: colors.inputBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
-    backgroundColor: Theme.cardBackground,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
   addButtonText: {
     fontSize: 13.5,
     fontWeight: '600',
-    color: Theme.outlineButtonText,
+    color: colors.outlineButtonText,
   },
   actionRow: {
     flexDirection: 'row',
@@ -446,9 +449,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
 });
+}

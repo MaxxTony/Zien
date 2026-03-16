@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
   Alert,
@@ -69,6 +70,9 @@ const COMPLETED_EVENTS = [
 ];
 
 function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' | 'upcoming' | 'completed'; onDelete: () => void }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const isLive = variant === 'live';
   const router = useRouter();
 
@@ -85,18 +89,18 @@ function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' |
         <Text style={styles.cardTitle} numberOfLines={1}>{event.address}</Text>
 
         <View style={styles.metaRow}>
-          <MaterialCommunityIcons name="calendar-blank" size={14} color="#64748B" />
+          <MaterialCommunityIcons name="calendar-blank" size={14} color={colors.textSecondary} />
           <Text style={styles.metaText}>{event.date} • {event.time}</Text>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="account-group" size={16} color="#475569" />
+            <MaterialCommunityIcons name="account-group" size={16} color={colors.textSecondary} />
             <Text style={styles.statValue}>{event.visitors}</Text>
             <Text style={styles.statLabel}>VISITORS</Text>
           </View>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="fire" size={16} color="#475569" />
+            <MaterialCommunityIcons name="fire" size={16} color={colors.textSecondary} />
             <Text style={styles.statValue}>{event.hotLeads}</Text>
             <Text style={styles.statLabel}>HOT LEADS</Text>
           </View>
@@ -121,11 +125,11 @@ function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' |
           </Pressable>
 
           <Pressable style={styles.iconBtn} onPress={() => router.push(`/(main)/open-house/edit/${event.id}` as any)}>
-            <MaterialCommunityIcons name="pencil-outline" size={16} color="#0D9488" />
+            <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.accentTeal} />
           </Pressable>
 
           <Pressable style={styles.iconBtnDanger} onPress={onDelete}>
-            <MaterialCommunityIcons name="trash-can-outline" size={16} color="#ef4444" />
+            <MaterialCommunityIcons name="trash-can-outline" size={16} color={colors.danger} />
           </Pressable>
         </View>
       </View>
@@ -134,6 +138,9 @@ function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' |
 }
 
 export default function OpenHouseScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -165,7 +172,7 @@ export default function OpenHouseScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -188,8 +195,8 @@ export default function OpenHouseScreen() {
             </View>
             <View style={styles.kpiDivider} />
             <View style={styles.kpiItem}>
-              <Text style={[styles.kpiValue, { color: '#0D9488' }]}>84%</Text>
-              <Text style={[styles.kpiLabel, { color: '#94A3B8' }]}>HOT SCORE</Text>
+              <Text style={[styles.kpiValue, { color: colors.accentTeal }]}>84%</Text>
+              <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>HOT SCORE</Text>
             </View>
           </View>
 
@@ -204,7 +211,7 @@ export default function OpenHouseScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Live Today</Text>
             <View style={styles.liveBadge}>
-              <MaterialCommunityIcons name="play" size={10} color="#DC2626" />
+              <MaterialCommunityIcons name="play" size={10} color={colors.danger} />
               <Text style={styles.liveBadgeText}>LIVE NOW</Text>
             </View>
           </View>
@@ -238,7 +245,8 @@ export default function OpenHouseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: {
     flex: 1,
   },
@@ -256,12 +264,12 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
@@ -274,23 +282,23 @@ const styles = StyleSheet.create({
   kpiValue: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   kpiLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.textMuted,
     marginTop: 2,
     letterSpacing: 0.5,
   },
   kpiDivider: {
     width: 1,
     height: 24,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.cardBorder,
     marginHorizontal: 12,
   },
   createBtn: {
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
@@ -317,12 +325,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.dangerBg,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -331,17 +339,17 @@ const styles = StyleSheet.create({
   liveBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#DC2626',
+    color: colors.danger,
     letterSpacing: 0.5,
   },
 
   // Card
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 8,
-    shadowColor: '#64748B',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
@@ -349,7 +357,7 @@ const styles = StyleSheet.create({
   },
   cardImageContainer: {
     height: 180,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     position: 'relative',
   },
   cardImage: {
@@ -360,7 +368,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     left: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.surfaceIcon,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -377,7 +385,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   metaRow: {
@@ -388,7 +396,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
 
@@ -398,7 +406,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
   },
   statItem: {
     flexDirection: 'row', // icon next to number then label below? No, design shows: Icon Number \n Label
@@ -408,12 +416,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.textMuted,
     marginTop: 2,
     marginLeft: 2, // fine tune
   },
@@ -427,7 +435,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.accentTeal,
     paddingVertical: 10,
     borderRadius: 8,
   },
@@ -440,18 +448,19 @@ const styles = StyleSheet.create({
     width: 64,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 8,
   },
   iconBtnDanger: {
     width: 64,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#fecdd3', // Soft red pinkish border
+    borderColor: colors.dangerBorder, // Soft red pinkish border
     borderRadius: 8,
   },
-});
+  });
+}

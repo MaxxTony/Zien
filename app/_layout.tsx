@@ -4,19 +4,28 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemeProvider as AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
 
 export const unstable_settings = {
   anchor: '(main)',
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
+      <AppThemeProvider>
+        <InnerLayout />
+      </AppThemeProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+function InnerLayout() {
+  const { theme } = useAppTheme();
+
+  return (
+    <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)/login" />
         <Stack.Screen name="(auth)/forgot-password" />
         <Stack.Screen name="(auth)/otp" />
@@ -29,9 +38,8 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/solo-onboarding" />
         <Stack.Screen name="(main)" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </GestureHandlerRootView>
+      </Stack>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+    </ThemeProvider>
   );
 }

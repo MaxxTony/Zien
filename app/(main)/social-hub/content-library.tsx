@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -86,6 +87,9 @@ function DeleteConfirmationModal({
   onClose: () => void;
   onConfirm: () => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.deleteOverlay}>
@@ -126,6 +130,9 @@ function ContentCardItem({
   onDelete: (id: string) => void;
   onEdit: (item: ContentCard) => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={[styles.card, { width }]}>
       <View style={styles.cardImageWrap}>
@@ -147,13 +154,13 @@ function ContentCardItem({
 
           <View style={styles.cardActions}>
             <Pressable style={styles.actionIconButton} onPress={() => onEdit(item)}>
-              <MaterialCommunityIcons name="pencil-outline" size={18} color="#94A3B8" />
+              <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.textMuted} />
             </Pressable>
             <Pressable style={styles.actionIconButton}>
-              <MaterialCommunityIcons name="content-copy" size={18} color="#94A3B8" />
+              <MaterialCommunityIcons name="content-copy" size={18} color={colors.textMuted} />
             </Pressable>
             <Pressable style={styles.actionIconButton}>
-              <MaterialCommunityIcons name="share-variant-outline" size={18} color="#94A3B8" />
+              <MaterialCommunityIcons name="share-variant-outline" size={18} color={colors.textMuted} />
             </Pressable>
             <Pressable style={styles.actionIconButton} onPress={() => onDelete(item.id)}>
               <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
@@ -174,6 +181,9 @@ function ImageSourcePicker({
   onClose: () => void;
   onSelect: (source: 'camera' | 'library') => void
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   if (!visible) return null;
 
   return (
@@ -229,6 +239,9 @@ function SelectionDropdown({
   left: number;
   width: number;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   if (!visible) return null;
 
   return (
@@ -269,6 +282,9 @@ function ContentFormModal({
   onSave: (data: Partial<ContentCard>) => void;
   editingItem?: ContentCard | null;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const [assetName, setAssetName] = useState('');
   const [category, setCategory] = useState('Property');
@@ -442,9 +458,9 @@ function ContentFormModal({
             paddingBottom: Math.max(insets.bottom, 24),
             paddingHorizontal: 24,
             paddingTop: 16,
-            backgroundColor: '#FFF',
+            backgroundColor: colors.cardBackground,
             borderTopWidth: 1,
-            borderTopColor: '#F1F5F9'
+            borderTopColor: colors.cardBorder
           }]}>
             <Pressable style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -484,6 +500,9 @@ function ContentFormModal({
 }
 
 export default function ContentLibraryScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('all');
@@ -547,7 +566,7 @@ export default function ContentLibraryScreen() {
 
   return (
     <LinearGradient
-      colors={['#F0F4F8', '#F1F5F9', '#F8FAFC']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -617,7 +636,7 @@ export default function ContentLibraryScreen() {
         </View>
         {filteredCards.length === 0 && (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="image-search-outline" size={48} color="#CBD5E1" />
+            <MaterialCommunityIcons name="image-search-outline" size={48} color={colors.textMuted} />
             <Text style={styles.emptyText}>No assets found in this category.</Text>
           </View>
         )}
@@ -626,13 +645,14 @@ export default function ContentLibraryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   tabsSection: {
     paddingHorizontal: 20,
     marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
   },
   tabsLayout: {
     paddingRight: 20,
@@ -644,15 +664,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabItemActive: {
-    borderBottomColor: '#0B2341',
+    borderBottomColor: colors.surfaceIcon,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: colors.textMuted,
   },
   tabTextActive: {
-    color: '#0B2341',
+    color: colors.textPrimary,
     fontWeight: '700',
   },
 
@@ -666,10 +686,10 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 0, // Cards in image look flat or very slightly rounded
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
@@ -678,7 +698,7 @@ const styles = StyleSheet.create({
   },
   cardImageWrap: {
     height: 200,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     position: 'relative',
   },
   cardImage: {
@@ -692,7 +712,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.accentTeal,
   },
   cardTagText: {
     fontSize: 10,
@@ -707,12 +727,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2341',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   metaText: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '600',
     marginBottom: 16,
   },
@@ -723,12 +743,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F8FAFC',
+    borderTopColor: colors.cardBorder,
   },
   usageLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   cardActions: {
     flexDirection: 'row',
@@ -746,13 +766,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    color: '#94A3B8',
+    color: colors.textMuted,
     fontSize: 14,
     fontWeight: '500',
   },
 
   // Modal Styles
-  modalBg: { flex: 1, backgroundColor: '#FFF' },
+  modalBg: { flex: 1, backgroundColor: colors.cardBackground },
   modalHeader: {
     paddingTop: 8,
     paddingHorizontal: 20,
@@ -764,11 +784,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   modalScroll: { flex: 1 },
   modalContent: { paddingBottom: 20 },
@@ -779,9 +799,9 @@ const styles = StyleSheet.create({
   uploadPlaceholder: {
     height: 240,
     borderRadius: 20,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
@@ -791,18 +811,18 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 4,
   },
-  uploadTitle: { fontSize: 17, fontWeight: '900', color: '#0B2341', marginBottom: 4 },
-  uploadHint: { fontSize: 13, color: '#94A3B8', fontWeight: '500' },
+  uploadTitle: { fontSize: 17, fontWeight: '900', color: colors.textPrimary, marginBottom: 4 },
+  uploadHint: { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
 
   imagePreviewWrap: {
     height: 280,
@@ -818,10 +838,10 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
@@ -829,35 +849,35 @@ const styles = StyleSheet.create({
   },
 
   formBody: { paddingHorizontal: 24 },
-  modalMainTitle: { fontSize: 26, fontWeight: '900', color: '#0B2341', marginBottom: 8 },
-  modalSubTitle: { fontSize: 15, color: '#64748B', fontWeight: '600', marginBottom: 32, lineHeight: 22 },
+  modalMainTitle: { fontSize: 26, fontWeight: '900', color: colors.textPrimary, marginBottom: 8 },
+  modalSubTitle: { fontSize: 15, color: colors.textSecondary, fontWeight: '600', marginBottom: 32, lineHeight: 22 },
 
   inputGroup: { marginBottom: 24 },
-  inputLabel: { fontSize: 14, fontWeight: '800', color: '#0B2341', marginBottom: 10 },
+  inputLabel: { fontSize: 14, fontWeight: '800', color: colors.textPrimary, marginBottom: 10 },
   textInput: {
     height: 58,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: '#0B2341',
     paddingHorizontal: 20,
     fontSize: 15,
     fontWeight: '600',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   row: { flexDirection: 'row', gap: 16 },
   dropdownWrap: {
     height: 58,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
-  dropdownValue: { fontSize: 15, fontWeight: '600', color: '#0B2341' },
+  dropdownValue: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
 
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
   cancelBtn: {
@@ -865,17 +885,17 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelBtnText: { fontSize: 16, fontWeight: '800', color: '#0B2341' },
+  cancelBtnText: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
   saveBtn: {
     flex: 1,
     height: 56,
     borderRadius: 14,
-    backgroundColor: '#0B2341',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -891,7 +911,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 69, 66, 0.95)', // Dark brown/gray translucent
     borderRadius: 12,
     paddingVertical: 8,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
@@ -920,7 +940,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sourceContainer: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -929,7 +949,7 @@ const styles = StyleSheet.create({
   sourceTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -953,19 +973,19 @@ const styles = StyleSheet.create({
   sourceLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#475569',
+    color: colors.textSecondary,
   },
   sourceCancel: {
     height: 56,
     borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sourceCancelText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
 
   // Delete Modal Styles
@@ -977,7 +997,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   deleteContainer: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.cardBackground,
     width: '100%',
     maxWidth: 340,
     borderRadius: 24,
@@ -991,19 +1011,19 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.dangerBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   deleteSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 28,
@@ -1018,14 +1038,14 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteCancelBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2341',
+    color: colors.textPrimary,
   },
   deleteConfirmBtn: {
     flex: 1,
@@ -1040,4 +1060,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFF',
   },
-});
+  });
+}

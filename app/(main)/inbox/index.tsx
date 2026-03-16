@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/ui';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -41,6 +42,8 @@ const getChannelColor = (channel: ChannelType) => {
 };
 
 export default function InboxScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'All' | ChannelType>('All');
@@ -139,7 +142,7 @@ export default function InboxScreen() {
 
   return (
     <LinearGradient
-      colors={['#F4F7FB', '#FFFFFF']}
+      colors={colors.backgroundGradient as any}
       style={[styles.container, { paddingTop: insets.top }]}>
 
       <PageHeader
@@ -194,10 +197,10 @@ export default function InboxScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F7FB',
   },
   actionSection: {
     paddingHorizontal: 20,
@@ -207,13 +210,13 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     paddingHorizontal: 12,
     height: 48,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.cardBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.02,
     shadowRadius: 10,
     elevation: 2,
@@ -221,7 +224,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginLeft: 10,
     fontWeight: '500',
   },
@@ -233,18 +236,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   filterPillActive: {
-    backgroundColor: '#102A43',
-    borderColor: '#102A43',
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
   },
   filterText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   filterTextActive: {
     color: '#FFFFFF',
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.divider,
   },
   cardPressed: {
     backgroundColor: 'rgba(0,0,0,0.02)',
@@ -271,6 +274,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    backgroundColor: colors.surfaceSoft,
   },
   unreadDot: {
     position: 'absolute',
@@ -281,7 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#10B981',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.cardBackground,
   },
   cardInfo: {
     flex: 1,
@@ -295,14 +299,14 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#102A43',
+    color: colors.textPrimary,
   },
   cardNameUnread: {
     fontWeight: '900',
   },
   cardTime: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
   },
   previewRow: {
@@ -311,11 +315,11 @@ const styles = StyleSheet.create({
   },
   cardPreview: {
     fontSize: 13,
-    color: '#627D98',
+    color: colors.textSecondary,
     lineHeight: 18,
   },
   cardPreviewUnread: {
-    color: '#334E68',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   emptyState: {
@@ -326,7 +330,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
   },
 });
+}

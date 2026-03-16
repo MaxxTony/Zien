@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
@@ -26,9 +27,14 @@ function DarkSectionCardComponent({
   onButtonPress,
   style,
 }: DarkSectionCardProps) {
+  const { colors, theme } = useAppTheme();
+  const styles = getStyles(colors);
+
+  const isDark = theme === 'dark';
+
   return (
     <LinearGradient
-      colors={['#0D2F45', '#0B2D3E', '#0A2233']}
+      colors={isDark ? ['#0A1B29', '#081520', '#061018'] : ['#0D2F45', '#0B2D3E', '#0A2233']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.card, style]}
@@ -69,7 +75,7 @@ function DarkSectionCardComponent({
         onPress={onButtonPress}
       >
         <Text style={styles.buttonText}>{buttonLabel}</Text>
-        <MaterialCommunityIcons name="arrow-right" size={16} color="#0BA0B2" />
+        <MaterialCommunityIcons name="arrow-right" size={16} color={colors.accentTeal} />
       </Pressable>
     </LinearGradient>
   );
@@ -77,7 +83,8 @@ function DarkSectionCardComponent({
 
 export const DarkSectionCard = memo(DarkSectionCardComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   card: {
     borderRadius: 24,
     padding: 18,
@@ -112,7 +119,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#0BA0B2',
+    backgroundColor: colors.accentTeal,
   },
   title: {
     fontSize: 15.5,
@@ -135,7 +142,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#0BA0B2',
+    backgroundColor: colors.accentTeal,
   },
   liveText: {
     fontSize: 10,
@@ -193,3 +200,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 });
+}

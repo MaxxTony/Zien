@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/ui';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,6 +44,8 @@ const conversationSeed = {
 };
 
 export default function InboxChatScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -90,7 +93,7 @@ export default function InboxChatScreen() {
 
   return (
     <LinearGradient
-      colors={['#F8FAFC', '#FFFFFF']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -184,10 +187,10 @@ export default function InboxChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: '#F4F7FB',
   },
   flex: {
     flex: 1,
@@ -205,28 +208,28 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   bubbleIncoming: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignSelf: 'flex-start',
     borderTopLeftRadius: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.cardBorder,
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.02,
     shadowRadius: 5,
     elevation: 1,
   },
   bubbleOutgoing: {
-    backgroundColor: '#102A43',
+    backgroundColor: colors.accentTeal,
     alignSelf: 'flex-end',
     borderTopRightRadius: 4,
-    shadowColor: '#102A43',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 2,
   },
   bubbleText: {
     fontSize: 14.5,
-    color: '#334E68',
+    color: colors.textPrimary,
     lineHeight: 20,
   },
   bubbleTextOutgoing: {
@@ -235,7 +238,7 @@ const styles = StyleSheet.create({
   bubbleTime: {
     marginTop: 4,
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     textAlign: 'right',
     fontWeight: '500',
   },
@@ -244,9 +247,9 @@ const styles = StyleSheet.create({
   },
   // ── Input Section ──
   inputBar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.divider,
     paddingTop: 12,
     paddingBottom: 8,
   },
@@ -267,17 +270,17 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 22,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   input: {
     flex: 1,
     fontSize: 14,
-    color: '#102A43',
+    color: colors.textPrimary,
     maxHeight: 100,
     paddingVertical: 6,
   },
@@ -312,16 +315,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   actionChipText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: colors.textSecondary,
   },
 });
+}

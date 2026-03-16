@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthCard, AuthLogoBrand, AuthScreenBackground, AuthTitle } from '@/components/auth';
 import GradientButton from '@/components/ui/GradientButton';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function JoinTeamInviteScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -18,14 +20,14 @@ export default function JoinTeamInviteScreen() {
         style={[styles.backButton, { top: insets.top + 8 }]}
         onPress={() => router.back()}
         hitSlop={12}>
-        <MaterialCommunityIcons name="arrow-left" size={24} color={Theme.textPrimary} />
+        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
       </Pressable>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <AuthCard style={styles.cardSoft}>
           <AuthLogoBrand brandLabel="ZIEN.AI" />
 
           <View style={styles.badge}>
-            <MaterialCommunityIcons name="handshake-outline" size={22} color={Theme.iconPrimary} />
+            <MaterialCommunityIcons name="handshake-outline" size={22} color={colors.iconPrimary} />
           </View>
 
           <AuthTitle>Invitation Found</AuthTitle>
@@ -35,7 +37,7 @@ export default function JoinTeamInviteScreen() {
 
           <View style={styles.inviteCard}>
             <View style={styles.inviteIcon}>
-              <MaterialCommunityIcons name="account-outline" size={20} color={Theme.iconPrimary} />
+              <MaterialCommunityIcons name="account-outline" size={20} color={colors.iconPrimary} />
             </View>
             <View style={styles.inviteContent}>
               <Text style={styles.inviteTitle}>Invited as: Agent</Text>
@@ -50,47 +52,48 @@ export default function JoinTeamInviteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     justifyContent: 'center',
   },
   cardSoft: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   backButton: {
     position: 'absolute',
-    left: Theme.screenPadding,
+    left: colors.screenPadding,
     zIndex: 10,
     padding: 8,
     borderRadius: 12,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   badge: {
     width: 40,
     height: 40,
-    borderRadius: Theme.inputBorderRadius,
-    backgroundColor: Theme.surfaceMuted,
+    borderRadius: colors.inputBorderRadius,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 13.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 6,
     marginBottom: 18,
     textAlign: 'center',
   },
   subtitleStrong: {
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   inviteCard: {
     width: '100%',
     borderRadius: 16,
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
     padding: 14,
     flexDirection: 'row',
     gap: 12,
@@ -101,7 +104,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Theme.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -112,13 +115,14 @@ const styles = StyleSheet.create({
   inviteTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   inviteDescription: {
     fontSize: 12.5,
-    color: Theme.textMuted,
+    color: colors.textMuted,
   },
   primaryButton: {
     width: '100%',
   },
 });
+}

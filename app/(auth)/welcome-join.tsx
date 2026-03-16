@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthCard, AuthLogoBrand, AuthScreenBackground, AuthTitle } from '@/components/auth';
 import GradientButton from '@/components/ui/GradientButton';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function WelcomeJoinScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -18,14 +20,14 @@ export default function WelcomeJoinScreen() {
         style={[styles.backButton, { top: insets.top + 8 }]}
         onPress={() => router.back()}
         hitSlop={12}>
-        <MaterialCommunityIcons name="arrow-left" size={24} color={Theme.textPrimary} />
+        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
       </Pressable>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <AuthCard style={styles.cardSoft}>
           <AuthLogoBrand brandLabel="ZIEN" />
 
           <View style={styles.badge}>
-            <MaterialCommunityIcons name="office-building-outline" size={26} color={Theme.iconPrimary} />
+            <MaterialCommunityIcons name="office-building-outline" size={26} color={colors.iconPrimary} />
           </View>
 
           <AuthTitle>Welcome Jane!</AuthTitle>
@@ -53,56 +55,57 @@ export default function WelcomeJoinScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   backButton: {
     position: 'absolute',
-    left: Theme.screenPadding,
+    left: colors.screenPadding,
     zIndex: 10,
     padding: 8,
     borderRadius: 12,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     justifyContent: 'center',
   },
   cardSoft: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   badge: {
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 13.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 6,
     marginBottom: 18,
     textAlign: 'center',
   },
   subtitleStrong: {
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   roleCard: {
     width: '100%',
     borderRadius: 16,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.borderLight,
+    borderColor: colors.borderLight,
     padding: 14,
     marginBottom: 18,
   },
   roleTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 6,
     textAlign: 'center',
   },
@@ -111,9 +114,10 @@ const styles = StyleSheet.create({
   },
   roleItem: {
     fontSize: 12.5,
-    color: Theme.textMuted,
+    color: colors.textMuted,
   },
   primaryButton: {
     width: '100%',
   },
 });
+}

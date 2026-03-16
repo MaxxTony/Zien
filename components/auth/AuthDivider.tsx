@@ -1,6 +1,6 @@
 import { StyleProp, Text, View, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type AuthDividerProps = {
   label?: string;
@@ -8,6 +8,7 @@ type AuthDividerProps = {
 };
 
 export default function AuthDivider({ label = 'OR CONTINUE WITH', style }: AuthDividerProps) {
+  const { colors } = useAppTheme();
   return (
     <View
       style={[
@@ -19,17 +20,17 @@ export default function AuthDivider({ label = 'OR CONTINUE WITH', style }: AuthD
         },
         style,
       ]}>
-      <View style={{ flex: 1, height: 1, backgroundColor: Theme.divider }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
       <Text
         style={{
           fontSize: 11,
-          color: Theme.textDivider,
+          color: colors.textDivider,
           letterSpacing: 1,
           fontWeight: '600',
         }}>
         {label}
       </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: Theme.divider }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
     </View>
   );
 }

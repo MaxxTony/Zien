@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 import { useRouter } from 'expo-router';
@@ -16,6 +16,8 @@ type ActionPillsRowProps = {
 };
 
 function ActionPillsRowComponent({ items }: ActionPillsRowProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
 
   return (
@@ -34,7 +36,7 @@ function ActionPillsRowComponent({ items }: ActionPillsRowProps) {
           <MaterialCommunityIcons
             name={action.icon as any}
             size={16}
-            color={Theme.textPrimary}
+            color={colors.textPrimary}
           />
           <Text style={styles.pillText}>{action.label}</Text>
         </Pressable>
@@ -45,7 +47,8 @@ function ActionPillsRowComponent({ items }: ActionPillsRowProps) {
 
 export const ActionPillsRow = memo(ActionPillsRowComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   scroll: {
     marginBottom: 20,
     marginHorizontal: -18,
@@ -58,13 +61,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(225,232,242,0.9)',
+    borderColor: colors.cardBorder,
     borderRadius: 999,
     paddingVertical: 10,
     paddingHorizontal: 15,
-    shadowColor: '#0A2F48',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -77,7 +80,8 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 13,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: 0.1,
   },
 });
+}

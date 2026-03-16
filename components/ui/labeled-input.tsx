@@ -1,6 +1,6 @@
 import { Pressable, StyleProp, StyleSheet, Text, TextInput, TextInputProps, TextStyle, View, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type LabeledInputProps = TextInputProps & {
   label: string;
@@ -22,6 +22,9 @@ export default function LabeledInput({
   rightInputElement,
   ...inputProps
 }: LabeledInputProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  
   return (
     <View style={[styles.container, containerStyle]}>
       <View style={styles.labelRow}>
@@ -40,7 +43,7 @@ export default function LabeledInput({
         <TextInput
           {...inputProps}
           style={[styles.input, inputStyle]}
-          placeholderTextColor={inputProps.placeholderTextColor ?? Theme.inputPlaceholder}
+          placeholderTextColor={inputProps.placeholderTextColor ?? colors.inputPlaceholder}
         />
         {rightInputElement ? <View style={styles.inputRight}>{rightInputElement}</View> : null}
       </View>
@@ -48,7 +51,7 @@ export default function LabeledInput({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     gap: 8,
   },
@@ -60,27 +63,27 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   rightLabel: {
     fontSize: 12.5,
-    color: Theme.link,
+    color: colors.link,
     fontWeight: '600',
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.inputBackground,
-    borderRadius: Theme.inputBorderRadius,
+    backgroundColor: colors.inputBackground,
+    borderRadius: colors.inputBorderRadius,
     borderWidth: 1,
-    borderColor: Theme.borderInput,
+    borderColor: colors.borderInput,
     paddingHorizontal: 14,
   },
   input: {
     flex: 1,
     paddingVertical: 10,
     fontSize: 15,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   inputRight: {
     paddingLeft: 6,

@@ -1,6 +1,6 @@
 import { Image, ImageSourcePropType, Pressable, StyleProp, Text, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type SocialButtonProps = {
   label: string;
@@ -10,6 +10,7 @@ type SocialButtonProps = {
 };
 
 export default function SocialButton({ label, icon, onPress, style }: SocialButtonProps) {
+  const { colors } = useAppTheme();
   return (
     <Pressable
       style={[
@@ -19,11 +20,11 @@ export default function SocialButton({ label, icon, onPress, style }: SocialButt
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
-          backgroundColor: Theme.socialButtonBackground,
+          backgroundColor: colors.socialButtonBackground,
           borderWidth: 1,
-          borderColor: Theme.socialButtonBorder,
+          borderColor: colors.socialButtonBorder,
           paddingVertical: 10,
-          borderRadius: Theme.inputBorderRadius,
+          borderRadius: colors.inputBorderRadius,
         },
         style,
       ]}
@@ -32,7 +33,7 @@ export default function SocialButton({ label, icon, onPress, style }: SocialButt
       <Text
         style={{
           fontSize: 13.5,
-          color: Theme.socialButtonText,
+          color: colors.socialButtonText,
           fontWeight: '600',
         }}>
         {label}

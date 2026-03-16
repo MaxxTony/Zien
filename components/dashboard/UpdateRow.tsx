@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -11,15 +11,19 @@ type UpdateRowProps = {
   accentColor?: string;
 };
 
-function UpdateRowComponent({ icon, title, description, time, accentColor = Theme.accentTeal }: UpdateRowProps) {
+function UpdateRowComponent({ icon, title, description, time, accentColor }: UpdateRowProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const activeAccentColor = accentColor ?? colors.accentTeal;
+
   return (
     <View style={styles.row}>
       {/* Left timeline connector */}
       <View style={styles.timelineCol}>
-        <View style={[styles.iconWrap, { backgroundColor: `${accentColor}15`, borderColor: `${accentColor}30` }]}>
-          <MaterialCommunityIcons name={icon as any} size={16} color={accentColor} />
+        <View style={[styles.iconWrap, { backgroundColor: `${activeAccentColor}15`, borderColor: `${activeAccentColor}30` }]}>
+          <MaterialCommunityIcons name={icon as any} size={16} color={activeAccentColor} />
         </View>
-        <View style={[styles.connector, { backgroundColor: `${accentColor}20` }]} />
+        <View style={[styles.connector, { backgroundColor: `${activeAccentColor}20` }]} />
       </View>
 
       {/* Content */}
@@ -36,7 +40,8 @@ function UpdateRowComponent({ icon, title, description, time, accentColor = Them
 
 export const UpdateRow = memo(UpdateRowComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 12,
@@ -65,7 +70,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(228,234,242,0.6)',
+    borderBottomColor: colors.divider,
   },
   topRow: {
     flexDirection: 'row',
@@ -77,19 +82,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13.5,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: 0.05,
   },
   time: {
     fontSize: 11,
     fontWeight: '700',
-    color: Theme.inputPlaceholder,
+    color: colors.inputPlaceholder,
     marginLeft: 8,
   },
   desc: {
     fontSize: 12.5,
     fontWeight: '500',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 18,
   },
 });
+}

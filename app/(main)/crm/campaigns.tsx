@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -86,6 +87,8 @@ const CAMPAIGNS_DATA: Campaign[] = [
 ];
 
 export default function CRMCampaignsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -308,7 +311,7 @@ export default function CRMCampaignsScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.container, { paddingTop: insets.top }]}
@@ -352,7 +355,7 @@ export default function CRMCampaignsScreen() {
             onPress={() => setChannelDropdownOpen(!isChannelDropdownOpen)}
           >
             <Text style={styles.channelSelectorText}>{selectedChannel}</Text>
-            <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+            <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
           </Pressable>
 
           {isChannelDropdownOpen && (
@@ -410,7 +413,7 @@ export default function CRMCampaignsScreen() {
         }}
       >
         <LinearGradient
-          colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+          colors={colors.backgroundGradient as any}
           style={{ flex: 1, paddingTop: insets.top }}
         >
           <View style={styles.modalHeader}>
@@ -427,7 +430,7 @@ export default function CRMCampaignsScreen() {
               hitSlop={12}
               style={{ marginLeft: 16 }}
             >
-              <MaterialCommunityIcons name="close" size={28} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={28} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -489,7 +492,7 @@ export default function CRMCampaignsScreen() {
                     onPress={() => setSegmentDropdown(!segmentDropdown)}
                   >
                     <Text style={styles.formSelectorText}>{targetSegment}</Text>
-                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                   </Pressable>
                   {segmentDropdown && (
                     <View style={styles.formDropdown}>
@@ -512,7 +515,7 @@ export default function CRMCampaignsScreen() {
                     onPress={() => setTemplateDropdown(!templateDropdown)}
                   >
                     <Text style={styles.formSelectorText}>{emailTemplate}</Text>
-                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                   </Pressable>
                   {templateDropdown && (
                     <View style={styles.formDropdown}>
@@ -532,7 +535,7 @@ export default function CRMCampaignsScreen() {
                     onPress={() => setAccountDropdown(!accountDropdown)}
                   >
                     <Text style={styles.formSelectorText}>{sendingAccount}</Text>
-                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                   </Pressable>
                   {accountDropdown && (
                     <View style={styles.formDropdown}>
@@ -655,7 +658,7 @@ export default function CRMCampaignsScreen() {
         onRequestClose={() => setIntelligenceVisible(false)}
       >
         <LinearGradient
-          colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
+          colors={colors.backgroundGradient as any}
           style={{ flex: 1, paddingTop: insets.top }}
         >
           {/* Intelligence Header */}
@@ -668,7 +671,7 @@ export default function CRMCampaignsScreen() {
               onPress={() => setIntelligenceVisible(false)}
               hitSlop={12}
             >
-              <MaterialCommunityIcons name="close" size={28} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={28} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -693,7 +696,7 @@ export default function CRMCampaignsScreen() {
               <View style={styles.intelStatCard}>
                 <View style={styles.intelStatHeader}>
                   <MaterialCommunityIcons name="near-me" size={16} color="#64748B" />
-                  <View style={[styles.intelBadge, { backgroundColor: '#F0FDFA' }]}>
+                  <View style={[styles.intelBadge, { backgroundColor: colors.surfaceSoft }]}>
                     <Text style={[styles.intelBadgeText, { color: '#0D9488' }]}>+14%</Text>
                   </View>
                 </View>
@@ -755,7 +758,7 @@ export default function CRMCampaignsScreen() {
                       <Text style={styles.rowSub}>2 mins ago • WhatsApp</Text>
                     </View>
                     <View style={{ flex: 1.5, alignItems: 'flex-start' }}>
-                      <View style={[styles.actionBadge, { backgroundColor: '#F1F5F9' }]}>
+                      <View style={[styles.actionBadge, { backgroundColor: colors.surfaceSoft }]}>
                         <Text style={styles.actionBadgeText}>{row.action}</Text>
                       </View>
                     </View>
@@ -775,7 +778,7 @@ export default function CRMCampaignsScreen() {
                   <Text style={styles.progressValue}>12.8%</Text>
                 </View>
                 <View style={styles.progressBarBg}>
-                  <View style={[styles.progressBarFill, { width: '12.8%', backgroundColor: '#0B2D3E' }]} />
+                  <View style={[styles.progressBarFill, { width: '12.8%', backgroundColor: colors.accentTeal }]} />
                 </View>
               </View>
 
@@ -842,7 +845,7 @@ export default function CRMCampaignsScreen() {
         onRequestClose={() => setAiCampaignVisible(false)}
       >
         <LinearGradient
-          colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+          colors={colors.backgroundGradient as any}
           style={{ flex: 1, paddingTop: insets.top }}
         >
           <View style={styles.modalHeader}>
@@ -854,7 +857,7 @@ export default function CRMCampaignsScreen() {
               onPress={() => setAiCampaignVisible(false)}
               hitSlop={12}
             >
-              <MaterialCommunityIcons name="close" size={28} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={28} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -879,7 +882,7 @@ export default function CRMCampaignsScreen() {
                       }}
                     >
                       <Text style={styles.aiSelectorText} numberOfLines={1}>{aiSegment}</Text>
-                      <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                      <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                     </Pressable>
                     {aiSegmentDropdown && (
                       <View style={[styles.aiDropdown, { top: 68 }]}>
@@ -902,7 +905,7 @@ export default function CRMCampaignsScreen() {
                       }}
                     >
                       <Text style={styles.aiSelectorText} numberOfLines={1}>{aiTemplate}</Text>
-                      <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                      <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                     </Pressable>
                     {aiTemplateDropdown && (
                       <View style={[styles.aiDropdown, { top: 68 }]}>
@@ -954,7 +957,8 @@ export default function CRMCampaignsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -977,13 +981,13 @@ const styles = StyleSheet.create({
   aiCampaignBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   launchBtn: {
     flex: 1.5,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1001,9 +1005,9 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 48,
@@ -1013,7 +1017,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 14,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   channelFilterWrapper: {
     flexDirection: 'row',
@@ -1026,9 +1030,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 44,
@@ -1036,7 +1040,7 @@ const styles = StyleSheet.create({
   channelSelectorText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   dropdownMenu: {
     position: 'absolute',
@@ -1070,10 +1074,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   campaignCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
@@ -1091,7 +1095,7 @@ const styles = StyleSheet.create({
   campaignName: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     flex: 1,
     marginRight: 10,
   },
@@ -1117,11 +1121,11 @@ const styles = StyleSheet.create({
   },
   channelText: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   audienceBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -1133,11 +1137,11 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
   },
   statsGrid: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -1148,7 +1152,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     marginBottom: 6,
     letterSpacing: 0.5,
   },
@@ -1159,18 +1163,18 @@ const styles = StyleSheet.create({
   },
   statSubLabel: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     width: 35,
   },
   statValue: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   mainStatValue: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   cardActions: {
     flexDirection: 'row',
@@ -1178,7 +1182,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
   },
   actionLeftIcons: {
     flexDirection: 'row',
@@ -1194,7 +1198,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#3B82F6',
     borderRadius: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   emptyState: {
     paddingTop: 60,
@@ -1204,7 +1208,7 @@ const styles = StyleSheet.create({
   emptyStateText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -1221,18 +1225,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   modalSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   modalScroll: {
     flex: 1,
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -1245,7 +1249,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 20,
   },
   inputGroup: {
@@ -1254,18 +1258,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   formInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
     fontSize: 14,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   labelRow: {
     flexDirection: 'row',
@@ -1287,22 +1291,22 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   channelTabActive: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderColor: '#0B2D3E',
   },
   channelTabText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   channelTextActive: {
     color: '#FFFFFF',
@@ -1311,21 +1315,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
   },
   formSelectorText: {
     fontSize: 14,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   scheduleTabs: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 10,
     padding: 4,
     width: 220,
@@ -1338,12 +1342,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scheduleTabActive: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
   },
   scheduleTabText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   scheduleTextActive: {
     color: '#FFFFFF',
@@ -1352,9 +1356,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#FDEDEC',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
-    backgroundColor: '#FFFAFA',
+    backgroundColor: colors.surfaceSoft,
     padding: 16,
   },
   abHeader: {
@@ -1378,14 +1382,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   abInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 44,
     fontSize: 14,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   complianceItem: {
     flexDirection: 'row',
@@ -1396,11 +1400,11 @@ const styles = StyleSheet.create({
   complianceTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   complianceDesc: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   activePill: {
@@ -1409,9 +1413,9 @@ const styles = StyleSheet.create({
     color: '#10B981',
   },
   audienceBox: {
-    backgroundColor: '#FAFBFF',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
@@ -1419,7 +1423,7 @@ const styles = StyleSheet.create({
   audienceLabel: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#64748B',
+    color: colors.textSecondary,
     letterSpacing: 1,
   },
   audienceCount: {
@@ -1430,7 +1434,7 @@ const styles = StyleSheet.create({
   },
   audienceSubText: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   modalFooter: {
@@ -1438,18 +1442,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
   },
   finalLaunchBtn: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     height: 54,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0B2D3E',
+    shadowColor: colors.accentTeal,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1489,7 +1493,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   aiModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     width: '100%',
     maxWidth: 500,
     borderRadius: 24,
@@ -1509,7 +1513,7 @@ const styles = StyleSheet.create({
   aiModalTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   aiRow: {
     flexDirection: 'row',
@@ -1523,7 +1527,7 @@ const styles = StyleSheet.create({
   aiLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
@@ -1531,16 +1535,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 44,
   },
   aiSelectorText: {
     fontSize: 13,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
     flex: 1,
   },
@@ -1572,14 +1576,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   aiTextArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     padding: 16,
     height: 120,
     fontSize: 14,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     lineHeight: 20,
   },
   aiModalActions: {
@@ -1591,14 +1595,14 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   aiCancelBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   aiGenerateBtn: {
     flex: 1.5,
@@ -1614,7 +1618,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   headerUpdateBtn: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1635,11 +1639,11 @@ const styles = StyleSheet.create({
   intelStatCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1664,21 +1668,21 @@ const styles = StyleSheet.create({
   intelStatLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   intelStatLargeValue: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   streamCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   streamHeader: {
     flexDirection: 'row',
@@ -1689,7 +1693,7 @@ const styles = StyleSheet.create({
   streamTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   liveIndicator: {
     flexDirection: 'row',
@@ -1713,29 +1717,29 @@ const styles = StyleSheet.create({
   streamTableHead: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
     paddingBottom: 8,
   },
   streamHeadText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
   },
   streamRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    borderBottomColor: colors.cardBorder,
   },
   rowName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   rowSub: {
     fontSize: 10,
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   actionBadge: {
     paddingHorizontal: 8,
@@ -1753,17 +1757,17 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   engagementCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   progressItem: {
@@ -1782,11 +1786,11 @@ const styles = StyleSheet.create({
   progressValue: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -1795,7 +1799,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   optimizedWindowBox: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 12,
     padding: 16,
     marginTop: 8,
@@ -1803,7 +1807,7 @@ const styles = StyleSheet.create({
   windowLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     marginBottom: 8,
   },
   windowTimeRow: {
@@ -1819,19 +1823,19 @@ const styles = StyleSheet.create({
   },
   windowSub: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
   },
   abOutcomeCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
   winnerBox: {
     borderWidth: 1,
     borderColor: '#10B981',
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     padding: 16,
   },
@@ -1860,4 +1864,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0D9488',
   },
-});
+  });
+}

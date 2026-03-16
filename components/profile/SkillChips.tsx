@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type SkillChipsProps = {
   items: string[];
@@ -16,6 +16,8 @@ function SkillChipsComponent({
   onAdd,
   addLabel = '+ Add Skill',
 }: SkillChipsProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.wrap}>
       <ScrollView
@@ -37,7 +39,7 @@ function SkillChipsComponent({
                 <MaterialCommunityIcons
                   name="close"
                   size={14}
-                  color={Theme.textSecondary}
+                  color={colors.textSecondary}
                 />
               </Pressable>
             ) : null}
@@ -55,7 +57,8 @@ function SkillChipsComponent({
 
 export const SkillChips = memo(SkillChipsComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   wrap: {
     marginTop: 4,
   },
@@ -69,18 +72,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Theme.surfaceIcon,
+    backgroundColor: colors.surfaceIcon,
     borderRadius: 999,
     paddingVertical: 8,
     paddingLeft: 14,
     paddingRight: 10,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
   },
   chipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     maxWidth: 140,
   },
   remove: {
@@ -91,12 +94,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     borderStyle: 'dashed',
   },
   addText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
 });
+}

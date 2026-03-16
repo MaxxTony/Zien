@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAppTheme } from '@/context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -6,13 +7,15 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PropertyIntelligenceScreen() {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#DDE8F0', '#EBF1F6', '#F5EBEA']}
+                colors={colors.backgroundGradient as any}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -48,7 +51,8 @@ export default function PropertyIntelligenceScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+    return StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -72,10 +76,10 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(235, 241, 246, 0.7)', // subtle circle background
+        backgroundColor: colors.surfaceSoft, // subtle circle background
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#0A2F48',
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.04,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
@@ -94,7 +98,7 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: '#EAF0F6',
+        borderColor: colors.cardBorder,
         shadowColor: '#F97316',
         shadowOpacity: 0.3,
         shadowRadius: 4,
@@ -109,13 +113,14 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         letterSpacing: -0.6,
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#5B6B7A',
+        color: colors.textSecondary,
     },
-});
+    });
+}

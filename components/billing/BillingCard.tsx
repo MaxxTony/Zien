@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type BillingCardProps = {
   children: React.ReactNode;
@@ -8,18 +8,22 @@ type BillingCardProps = {
 };
 
 function BillingCardComponent({ children, style }: BillingCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export const BillingCard = memo(BillingCardComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   card: {
-    backgroundColor: Theme.cardBackgroundSoft,
+    backgroundColor: colors.cardBackgroundSoft,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     gap: 14,
   },
 });
+}

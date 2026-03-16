@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -26,9 +26,13 @@ export const PageHeader = memo(function PageHeader({
     onBack,
     rightIcon,
     onRightPress,
-    rightIconColor = Theme.accentTeal,
+    rightIconColor,
     children,
 }: PageHeaderProps & { children?: React.ReactNode }) {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+    const activeIconColor = rightIconColor ?? colors.accentTeal;
+
     return (
         <View style={styles.wrap}>
             {/* ── Back button ── */}
@@ -37,14 +41,13 @@ export const PageHeader = memo(function PageHeader({
                 onPress={onBack}
                 hitSlop={12}
             >
-                <MaterialCommunityIcons name="arrow-left" size={20} color={Theme.textPrimary} />
+                <MaterialCommunityIcons name="arrow-left" size={20} color={colors.textPrimary} />
             </Pressable>
 
             {/* ── Title + subtitle ── */}
             <View style={styles.center}>
                 <View style={styles.titleRow}>
                     <Text style={styles.title} numberOfLines={1}>{title}</Text>
-
                 </View>
                 {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
@@ -56,13 +59,13 @@ export const PageHeader = memo(function PageHeader({
                 <Pressable
                     style={({ pressed }) => [
                         styles.rightBtn,
-                        { backgroundColor: `${rightIconColor}12`, borderColor: `${rightIconColor}25` },
+                        { backgroundColor: `${activeIconColor}12`, borderColor: `${activeIconColor}25` },
                         pressed && { opacity: 0.7 },
                     ]}
                     onPress={onRightPress}
                     hitSlop={12}
                 >
-                    <MaterialCommunityIcons name={rightIcon as any} size={20} color={rightIconColor} />
+                    <MaterialCommunityIcons name={rightIcon as any} size={20} color={activeIconColor} />
                 </Pressable>
             ) : (
                 <View style={styles.rightPlaceholder} />
@@ -71,7 +74,7 @@ export const PageHeader = memo(function PageHeader({
     );
 });
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     wrap: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -84,12 +87,12 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 13,
-        backgroundColor: 'rgba(255,255,255,0.85)',
+        backgroundColor: colors.cardBackgroundSemi,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(225,232,242,0.9)',
-        shadowColor: '#0A2F48',
+        borderColor: colors.cardBorder,
+        shadowColor: colors.cardShadowColor,
         shadowOpacity: 0.06,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 3 },
@@ -106,7 +109,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 22,
         fontWeight: '900',
-        color: Theme.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: -0.3,
         flexShrink: 1,
     },
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontSize: 13,
-        color: Theme.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '500',
         marginTop: 3,
         lineHeight: 18,

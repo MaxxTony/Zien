@@ -1,4 +1,4 @@
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useRef, useState } from 'react';
@@ -58,6 +58,9 @@ function InnerModal({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { colors } = useAppTheme();
+  const innerStyles = getInnerStyles(colors);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={innerStyles.overlay}>
@@ -68,27 +71,29 @@ function InnerModal({
   );
 }
 
-const innerStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(11, 45, 62, 0.5)',
-  },
-  card: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: Theme.cardBackground,
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: Theme.cardBorder,
-  },
-});
+function getInnerStyles(colors: any) {
+  return StyleSheet.create({
+    overlay: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(11, 45, 62, 0.5)',
+    },
+    card: {
+      width: '100%',
+      maxWidth: 400,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+  });
+}
 
 type PlanModalProps = {
   visible: boolean;
@@ -96,6 +101,8 @@ type PlanModalProps = {
 };
 
 export function PlanModal({ visible, onClose }: PlanModalProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const [isDowngradeModalOpen, setIsDowngradeModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -144,7 +151,7 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <LinearGradient
-        colors={[...Theme.backgroundGradient]}
+        colors={colors.backgroundGradient as any}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={[styles.background, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
@@ -157,7 +164,7 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
             </Text>
           </View>
           <Pressable style={styles.closeButton} onPress={onClose}>
-            <MaterialCommunityIcons name="close" size={22} color={Theme.textPrimary} />
+            <MaterialCommunityIcons name="close" size={22} color={colors.textPrimary} />
           </Pressable>
         </View>
 
@@ -264,7 +271,7 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
         </Animated.ScrollView>
 
         <View style={styles.noteCard}>
-          <MaterialCommunityIcons name="information-outline" size={20} color={Theme.accentTeal} />
+          <MaterialCommunityIcons name="information-outline" size={20} color={colors.accentTeal} />
           <View style={styles.noteContent}>
             <Text style={styles.noteTitle}>Plan changes</Text>
             <Text style={styles.noteText}>
@@ -302,7 +309,7 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
       <InnerModal visible={isSuccessModalOpen} onClose={backToBilling}>
         <View style={styles.modalBody}>
           <View style={styles.sparkleIcon}>
-            <MaterialCommunityIcons name="check-circle" size={36} color={Theme.accentTeal} />
+            <MaterialCommunityIcons name="check-circle" size={36} color={colors.accentTeal} />
           </View>
           <Text style={styles.successTitle}>Plan updated</Text>
           <Text style={styles.successBody}>
@@ -317,7 +324,8 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -332,12 +340,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 6,
     lineHeight: 20,
     fontWeight: '500',
@@ -346,9 +354,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -362,31 +370,31 @@ const styles = StyleSheet.create({
   planCard: {
     borderRadius: 22,
     padding: 20,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 2,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     gap: 16,
     overflow: 'hidden',
-    shadowColor: Theme.cardShadowColor,
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.08,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
     elevation: 3,
   },
   planCardCurrent: {
-    borderColor: Theme.accentDark,
+    borderColor: colors.accentDark,
     shadowOpacity: 0.12,
     shadowRadius: 24,
   },
   currentPill: {
     alignSelf: 'flex-start',
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentDark,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   currentPillText: {
-    color: Theme.textOnAccent,
+    color: colors.textOnAccent,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.6,
@@ -394,21 +402,21 @@ const styles = StyleSheet.create({
   planTier: {
     fontSize: 12,
     fontWeight: '900',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 1,
   },
-  planTierCurrent: { color: Theme.textPrimary },
+  planTierCurrent: { color: colors.textPrimary },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   planPrice: {
     fontSize: 32,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   planUnit: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   featureList: { gap: 14 },
@@ -417,9 +425,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: Theme.cardBackgroundSoft,
+    backgroundColor: colors.cardBackgroundSoft,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -427,10 +435,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 18,
   },
-  featureHighlight: { fontWeight: '800', color: Theme.textPrimary },
+  featureHighlight: { fontWeight: '800', color: colors.textPrimary },
   planCta: {
     marginTop: 4,
     borderRadius: 14,
@@ -455,16 +463,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
     padding: 18,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
   },
   noteContent: { flex: 1 },
-  noteTitle: { fontSize: 14, fontWeight: '800', color: Theme.textPrimary, marginBottom: 4 },
-  noteText: { fontSize: 13, fontWeight: '600', color: Theme.textSecondary, lineHeight: 19 },
+  noteTitle: { fontSize: 14, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
+  noteText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, lineHeight: 19 },
   primaryButton: {
-    backgroundColor: Theme.accentDark,
+    backgroundColor: colors.accentDark,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 14,
@@ -472,7 +480,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignSelf: 'stretch',
   },
-  primaryButtonText: { color: Theme.textOnAccent, fontWeight: '800', fontSize: 14 },
+  primaryButtonText: { color: colors.textOnAccent, fontWeight: '800', fontSize: 14 },
   modalBody: { alignItems: 'center', gap: 12 },
   warningIcon: {
     width: 52,
@@ -484,38 +492,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  confirmTitle: { fontSize: 20, fontWeight: '900', color: Theme.textPrimary, textAlign: 'center' },
+  confirmTitle: { fontSize: 20, fontWeight: '900', color: colors.textPrimary, textAlign: 'center' },
   confirmBody: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 21,
   },
-  confirmBodyBold: { fontWeight: '900', color: Theme.textPrimary },
+  confirmBodyBold: { fontWeight: '900', color: colors.textPrimary },
   confirmActions: { flexDirection: 'row', gap: 12, marginTop: 20, width: '100%' },
   confirmOutline: {
     flex: 1,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
   },
-  confirmOutlineText: { fontSize: 14, fontWeight: '800', color: Theme.textPrimary },
+  confirmOutlineText: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
   confirmPrimary: { flex: 1, backgroundColor: '#F97316', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   confirmPrimaryText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
   sparkleIcon: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: Theme.cardBackgroundSoft,
+    backgroundColor: colors.cardBackgroundSoft,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  successTitle: { fontSize: 22, fontWeight: '900', color: Theme.textPrimary, textAlign: 'center' },
-  successBody: { fontSize: 14, fontWeight: '600', color: Theme.textSecondary, textAlign: 'center', lineHeight: 20 },
+  successTitle: { fontSize: 22, fontWeight: '900', color: colors.textPrimary, textAlign: 'center' },
+  successBody: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 });
+}

@@ -1,6 +1,6 @@
 import { StyleProp, Text, TextStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type AuthTitleProps = {
   children: string;
@@ -8,10 +8,11 @@ type AuthTitleProps = {
 };
 
 export default function AuthTitle({ children, style }: AuthTitleProps) {
+  const { colors } = useAppTheme();
   return (
     <Text
       style={[
-        { fontSize: 22, fontWeight: '700', color: Theme.textPrimary },
+        { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
         style,
       ]}>
       {children}

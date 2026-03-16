@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -94,6 +95,8 @@ function TaskCard({
   onReschedule: () => void,
   onDone: () => void
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const isHigh = task.priority === 'High';
   const isMedium = task.priority === 'Medium';
   const isLow = task.priority === 'Low';
@@ -161,11 +164,11 @@ function TaskCard({
               <MaterialCommunityIcons
                 name="check-circle-outline"
                 size={20}
-                color="#0B2D3E"
+                color={colors.textPrimary}
               />
             </Pressable>
             <Pressable style={styles.actionIconBtn} onPress={onEdit}>
-              <MaterialCommunityIcons name="pencil-outline" size={20} color="#0B2D3E" />
+              <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.textPrimary} />
             </Pressable>
             <Pressable style={styles.actionIconBtn} onPress={onDelete}>
               <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" />
@@ -180,7 +183,7 @@ function TaskCard({
           </View>
         ) : (
           <Pressable style={styles.rescheduleBtn} onPress={onReschedule}>
-            <MaterialCommunityIcons name="calendar-sync-outline" size={16} color="#0B2D3E" />
+            <MaterialCommunityIcons name="calendar-sync-outline" size={16} color={colors.textPrimary} />
             <Text style={styles.rescheduleText}>Reschedule</Text>
           </Pressable>
         )}
@@ -190,6 +193,8 @@ function TaskCard({
 }
 
 export default function FollowUpsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('All');
@@ -414,7 +419,7 @@ export default function FollowUpsScreen() {
               </Text>
             </View>
             <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => setAddTaskModalVisible(false)}>
-              <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -448,7 +453,7 @@ export default function FollowUpsScreen() {
                   <Text style={styles.modalDateText}>
                     {modalDate.toLocaleDateString('en-GB')} {modalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
-                  <MaterialCommunityIcons name="calendar-outline" size={18} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textPrimary} />
                 </Pressable>
               </View>
 
@@ -459,7 +464,7 @@ export default function FollowUpsScreen() {
                   onPress={() => { setModalGroupDropdownOpen(!isModalGroupDropdownOpen); setModalTagDropdownOpen(false); }}
                 >
                   <Text style={styles.modalDropdownText}>{modalGroup}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {isModalGroupDropdownOpen && (
                   <View style={styles.modalFormDropdownMenu}>
@@ -486,7 +491,7 @@ export default function FollowUpsScreen() {
                   onPress={() => { setModalTagDropdownOpen(!isModalTagDropdownOpen); setModalGroupDropdownOpen(false); }}
                 >
                   <Text style={styles.modalDropdownText}>{modalTag}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {isModalTagDropdownOpen && (
                   <View style={styles.modalFormDropdownMenu}>
@@ -560,7 +565,7 @@ export default function FollowUpsScreen() {
                     if (Platform.OS === 'android') setShowDatePicker(false);
                     if (selectedDate) setModalDate(selectedDate);
                   }}
-                  textColor="#0B2D3E"
+                  textColor={colors.textPrimary}
                 />
               </View>
             </Pressable>
@@ -592,7 +597,7 @@ export default function FollowUpsScreen() {
                 <Text style={styles.modalSubtitle}>Choose a new date and time for this follow-up.</Text>
               </View>
               <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => setRescheduleTask(null)}>
-                <MaterialCommunityIcons name="close" size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
               </Pressable>
             </View>
 
@@ -603,7 +608,7 @@ export default function FollowUpsScreen() {
                   <Text style={styles.modalDateText}>
                     {rescheduleDate.toLocaleDateString('en-GB')} {rescheduleDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
-                  <MaterialCommunityIcons name="calendar-outline" size={18} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textPrimary} />
                 </Pressable>
               </View>
 
@@ -641,7 +646,7 @@ export default function FollowUpsScreen() {
                   if (Platform.OS === 'android') setShowReschedulePicker(false);
                   if (selectedDate) setRescheduleDate(selectedDate);
                 }}
-                textColor="#0B2D3E"
+                textColor={colors.textPrimary}
               />
             </View>
           </Pressable>
@@ -681,42 +686,43 @@ export default function FollowUpsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+function getStyles(colors: any) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.cardBackground },
   topTabsContainer: { marginBottom: 16 },
   tabsScroll: { paddingHorizontal: 20, gap: 10 },
   tabItem: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
     borderColor: 'transparent'
   },
   tabItemActive: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderColor: '#0B2D3E'
   },
-  tabText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
+  tabText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   tabTextActive: { color: '#FFFFFF' },
 
   searchAndFilterBar: { paddingHorizontal: 20, marginBottom: 12 },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     height: 52,
     borderRadius: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 8,
     elevation: 2,
   },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: '#0B2D3E', fontWeight: '500' },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: colors.textPrimary, fontWeight: '500' },
 
   refineByRow: {
     flexDirection: 'row',
@@ -731,19 +737,19 @@ const styles = StyleSheet.create({
     gap: 12,
     zIndex: 2000,
   },
-  refineLabel: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
+  refineLabel: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
   filterDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     gap: 6
   },
-  filterDropdownText: { fontSize: 13, fontWeight: '700', color: '#0B2D3E' },
+  filterDropdownText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
   dropdownMenu: {
     position: 'absolute',
     top: '100%',
@@ -778,11 +784,11 @@ const styles = StyleSheet.create({
   listContainer: { paddingHorizontal: 20, gap: 16, paddingTop: 4 },
 
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.04,
@@ -790,8 +796,8 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   cardCompleted: {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#EAEFF3',
+    backgroundColor: colors.surfaceSoft,
+    borderColor: colors.cardBorder,
     opacity: 0.8,
   },
   cardMain: { flexDirection: 'row', gap: 16 },
@@ -799,12 +805,12 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center'
   },
-  cardIconOverdue: { backgroundColor: '#FEF2F2' },
-  cardIconCompleted: { backgroundColor: '#ECFDF5' },
+  cardIconOverdue: { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
+  cardIconCompleted: { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
   cardContent: { flex: 1 },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -812,29 +818,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6
   },
-  cardTitle: { fontSize: 17, fontWeight: '900', color: '#0B2D3E', flex: 1, marginRight: 8 },
+  cardTitle: { fontSize: 17, fontWeight: '900', color: colors.textPrimary, flex: 1, marginRight: 8 },
   cardTitleCompleted: { color: '#8DA4B5', textDecorationLine: 'line-through' },
 
   priorityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   priorityText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
 
-  cardContact: { fontSize: 14, color: '#64748B', fontWeight: '500' },
-  cardContactName: { fontWeight: '800', color: '#0B2D3E' },
+  cardContact: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
+  cardContactName: { fontWeight: '800', color: colors.textPrimary },
 
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  tagPill: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  tagText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  tagPill: { backgroundColor: colors.surfaceSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  tagText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
 
   infoGrid: {
     flexDirection: 'row',
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
     gap: 16
   },
   infoItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  infoText: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
+  infoText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
 
   cardActions: {
     flexDirection: 'row',
@@ -848,30 +854,30 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9'
+    borderColor: colors.cardBorder
   },
   rescheduleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     height: 40,
     borderRadius: 12,
   },
-  rescheduleText: { color: '#0B2D3E', fontSize: 13, fontWeight: '800' },
+  rescheduleText: { color: colors.textPrimary, fontSize: 13, fontWeight: '800' },
 
   completedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
     paddingHorizontal: 12,
     height: 36,
     borderRadius: 10,
@@ -884,7 +890,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   rescheduleModalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     width: '100%',
     paddingTop: 24,
@@ -896,7 +902,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     width: '100%',
     maxHeight: '90%',
@@ -918,7 +924,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   modalSubtitle: {
@@ -931,7 +937,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F6F8',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -953,12 +959,12 @@ const styles = StyleSheet.create({
   modalInput: {
     height: 52,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#0B2D3E',
-    backgroundColor: '#FFFFFF',
+    color: colors.textPrimary,
+    backgroundColor: colors.cardBackground,
     fontWeight: '600',
   },
   modalRow: {
@@ -968,17 +974,17 @@ const styles = StyleSheet.create({
   modalInputWithIcon: {
     height: 52,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalDateText: {
     fontSize: 15,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   priorityRow: {
@@ -989,19 +995,19 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 52,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   priorityPillBtnActive: {
     borderColor: '#0B2D3E',
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
   },
   priorityPillText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   priorityPillTextActive: {
     color: '#FFFFFF',
@@ -1016,17 +1022,17 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
-  modalCancelBtnText: { color: '#0B2D3E', fontSize: 14, fontWeight: '800' },
+  modalCancelBtnText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800' },
   modalCreateBtn: {
     flex: 1.5,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1035,7 +1041,7 @@ const styles = StyleSheet.create({
   // --- New Modal Styles ---
   fullPageModal: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   premiumModalHeader: {
     flexDirection: 'row',
@@ -1048,14 +1054,14 @@ const styles = StyleSheet.create({
   fullScreenModalTitle: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   fullScreenModalCloseIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3F6F8',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1069,17 +1075,17 @@ const styles = StyleSheet.create({
   modalDropdownTrigger: {
     height: 52,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalDropdownText: {
     fontSize: 15,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   modalFormDropdownMenu: {
@@ -1142,15 +1148,15 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
-    borderTopColor: '#F0F4F7',
+    borderTopColor: colors.cardBorder,
   },
   modalSaveBtn: {
     flex: 1.5,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#000000',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1170,7 +1176,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 40,
@@ -1184,12 +1190,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.cardBorder,
   },
   pickerTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   pickerDoneBtn: {
     fontSize: 16,
@@ -1197,7 +1203,7 @@ const styles = StyleSheet.create({
     color: '#0BA0B2',
   },
   bottomFixModal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     width: '100%',
@@ -1216,7 +1222,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   alertContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 32,
     width: '100%',
     maxWidth: 340,
@@ -1232,7 +1238,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
@@ -1240,7 +1246,7 @@ const styles = StyleSheet.create({
   alertTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -1261,16 +1267,16 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   alertCancelBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   alertDeleteBtn: {
     flex: 1,
@@ -1290,5 +1296,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-});
-
+  });
+}

@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -42,6 +43,8 @@ const SENDER_IDENTITY_OPTIONS = [
 ] as const;
 
 export default function CRMSettingsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('General');
@@ -97,7 +100,7 @@ export default function CRMSettingsScreen() {
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -142,7 +145,7 @@ export default function CRMSettingsScreen() {
                   style={styles.select}
                   onPress={() => setLeadDistOpen((v) => !v)}>
                   <Text style={styles.selectText}>{leadDistribution}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#5B6B7A" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textSecondary} />
                 </Pressable>
                 {leadDistOpen && (
                   <View style={styles.dropdown}>
@@ -165,7 +168,7 @@ export default function CRMSettingsScreen() {
                 <Switch
                   value={autoMergeDuplicates}
                   onValueChange={setAutoMergeDuplicates}
-                  trackColor={{ false: '#E2E8F0', true: '#0BA0B2' }}
+                  trackColor={{ false: colors.cardBorder, true: colors.accentTeal }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -211,7 +214,7 @@ export default function CRMSettingsScreen() {
                       style={styles.premiumSelect}
                       onPress={() => setInactivityOpen(!inactivityOpen)}>
                       <Text style={styles.premiumSelectText}>{inactivityDays}</Text>
-                      <MaterialCommunityIcons name="chevron-down" size={18} color="#0B2D3E" />
+                      <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textPrimary} />
                     </Pressable>
                     {inactivityOpen && (
                       <View style={styles.premiumDropdown}>
@@ -240,7 +243,7 @@ export default function CRMSettingsScreen() {
                       style={styles.premiumSelect}
                       onPress={() => setSafetyLimitOpen(!safetyLimitOpen)}>
                       <Text style={styles.premiumSelectText}>{safetyLimit}</Text>
-                      <MaterialCommunityIcons name="chevron-down" size={18} color="#0B2D3E" />
+                      <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textPrimary} />
                     </Pressable>
                     {safetyLimitOpen && (
                       <View style={styles.premiumDropdown}>
@@ -334,21 +337,21 @@ export default function CRMSettingsScreen() {
                       style={[styles.segmentBtn, reEngagementChannel === 'EMAIL' && styles.segmentBtnActive]}
                       onPress={() => setReEngagementChannel('EMAIL')}
                     >
-                      <MaterialCommunityIcons name="email-outline" size={16} color={reEngagementChannel === 'EMAIL' ? '#FFFFFF' : '#0B2D3E'} />
+                      <MaterialCommunityIcons name="email-outline" size={16} color={reEngagementChannel === 'EMAIL' ? '#FFFFFF' : colors.textPrimary} />
                       <Text style={[styles.segmentBtnText, reEngagementChannel === 'EMAIL' && styles.segmentBtnTextActive]}>EMAIL</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.segmentBtn, reEngagementChannel === 'SMS' && styles.segmentBtnActive]}
                       onPress={() => setReEngagementChannel('SMS')}
                     >
-                      <MaterialCommunityIcons name="cellphone-text" size={16} color={reEngagementChannel === 'SMS' ? '#FFFFFF' : '#0B2D3E'} />
+                      <MaterialCommunityIcons name="cellphone-text" size={16} color={reEngagementChannel === 'SMS' ? '#FFFFFF' : colors.textPrimary} />
                       <Text style={[styles.segmentBtnText, reEngagementChannel === 'SMS' && styles.segmentBtnTextActive]}>SMS</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.segmentBtn, reEngagementChannel === 'WHATSAPP' && styles.segmentBtnActive]}
                       onPress={() => setReEngagementChannel('WHATSAPP')}
                     >
-                      <MaterialCommunityIcons name="whatsapp" size={16} color={reEngagementChannel === 'WHATSAPP' ? '#FFFFFF' : '#0B2D3E'} />
+                      <MaterialCommunityIcons name="whatsapp" size={16} color={reEngagementChannel === 'WHATSAPP' ? '#FFFFFF' : colors.textPrimary} />
                       <Text style={[styles.segmentBtnText, reEngagementChannel === 'WHATSAPP' && styles.segmentBtnTextActive]}>WHATSAPP</Text>
                     </Pressable>
                   </View>
@@ -381,7 +384,7 @@ export default function CRMSettingsScreen() {
                   <Switch
                     value={ghostProtocolEnabled}
                     onValueChange={setGhostProtocolEnabled}
-                    trackColor={{ false: '#E2E8F0', true: '#0BA0B2' }}
+                    trackColor={{ false: colors.cardBorder, true: colors.accentTeal }}
                     thumbColor="#FFFFFF"
                   />
                 </View>
@@ -398,13 +401,13 @@ export default function CRMSettingsScreen() {
                   {ANNIVERSARY_RULES.map((rule) => (
                     <View key={rule.id} style={styles.anniversaryItemPremium}>
                       <View style={styles.anniversaryIconBoxPremium}>
-                        <MaterialCommunityIcons name={rule.icon} size={22} color="#0B2D3E" />
+                        <MaterialCommunityIcons name={rule.icon} size={22} color={colors.textPrimary} />
                       </View>
                       <Text style={styles.anniversaryLabelPremiumText}>{rule.label}</Text>
                       <Switch
                         value={anniversaryToggles[rule.id] ?? false}
                         onValueChange={(v) => setAnniversaryToggle(rule.id, v)}
-                        trackColor={{ false: '#E2E8F0', true: '#0BA0B2' }}
+                        trackColor={{ false: colors.cardBorder, true: colors.accentTeal }}
                         thumbColor="#FFFFFF"
                       />
                     </View>
@@ -412,7 +415,7 @@ export default function CRMSettingsScreen() {
                   {customRules.map((rule) => (
                     <View key={rule.id} style={styles.anniversaryItemPremium}>
                       <View style={styles.anniversaryIconBoxPremium}>
-                        <MaterialCommunityIcons name={rule.icon} size={22} color="#0B2D3E" />
+                        <MaterialCommunityIcons name={rule.icon} size={22} color={colors.textPrimary} />
                       </View>
                       <Text style={styles.anniversaryLabelPremiumText}>{rule.label}</Text>
                       <Switch
@@ -422,7 +425,7 @@ export default function CRMSettingsScreen() {
                             prev.map((r) => (r.id === rule.id ? { ...r, enabled: v } : r))
                           )
                         }
-                        trackColor={{ false: '#E2E8F0', true: '#0BA0B2' }}
+                        trackColor={{ false: colors.cardBorder, true: colors.accentTeal }}
                         thumbColor="#FFFFFF"
                       />
                     </View>
@@ -446,7 +449,7 @@ export default function CRMSettingsScreen() {
               <Text style={styles.sectionCardTitle}>ZIEN AI Chrome Extension</Text>
               <View style={styles.extensionBlock}>
                 <View style={styles.extensionIconWrap}>
-                  <MaterialCommunityIcons name="link-variant" size={32} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="link-variant" size={32} color={colors.textPrimary} />
                 </View>
                 <View style={styles.extensionTextWrap}>
                   <Text style={styles.extensionPhase}>The Extension (Phase 3 Completed)</Text>
@@ -526,7 +529,8 @@ export default function CRMSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -546,8 +550,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(227, 236, 244, 0.8)',
   },
   headerCenter: { flex: 1, minWidth: 0 },
-  title: { fontSize: 22, fontWeight: '900', color: '#0B2D3E', letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, color: '#5B6B7A', fontWeight: '500', marginTop: 6, lineHeight: 20 },
+  title: { fontSize: 22, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.3 },
+  subtitle: { fontSize: 14, color: colors.textSecondary, fontWeight: '500', marginTop: 6, lineHeight: 20 },
   tabsScroll: { maxHeight: 55, marginBottom: 4 },
   tabsContent: {
     paddingHorizontal: 16,
@@ -561,74 +565,74 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   tabActive: { backgroundColor: 'rgba(11, 45, 62, 0.08)' },
-  tabText: { fontSize: 14, fontWeight: '700', color: '#5B6B7A' },
-  tabTextActive: { color: '#0B2D3E', fontWeight: '800' },
+  tabText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
+  tabTextActive: { color: colors.textPrimary, fontWeight: '800' },
   tabIndicator: {
     position: 'absolute',
     bottom: 0,
     left: 12,
     right: 12,
     height: 3,
-    backgroundColor: '#0BA0B2',
+    backgroundColor: colors.accentTeal,
     borderRadius: 2,
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 12 },
   tabPanel: { marginBottom: 24 },
-  cardTitle: { fontSize: 17, fontWeight: '800', color: '#0B2D3E', marginBottom: 8 },
-  cardDesc: { fontSize: 14, color: '#5B6B7A', marginBottom: 12, lineHeight: 21 },
+  cardTitle: { fontSize: 17, fontWeight: '800', color: colors.textPrimary, marginBottom: 8 },
+  cardDesc: { fontSize: 14, color: colors.textSecondary, marginBottom: 12, lineHeight: 21 },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E8EEF4',
-    shadowColor: '#0B2D3E',
+    borderColor: colors.cardBorder,
+    shadowColor: colors.accentTeal,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
   },
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '700', color: '#0B2D3E', marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   textArea: { minHeight: 100, textAlignVertical: 'top' },
   select: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
-  selectText: { fontSize: 15, fontWeight: '600', color: '#0B2D3E', flex: 1 },
+  selectText: { fontSize: 15, fontWeight: '600', color: colors.textPrimary, flex: 1 },
   dropdown: {
     marginTop: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
     elevation: 4,
-    shadowColor: '#0B2D3E',
+    shadowColor: colors.accentTeal,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
   },
   dropdownItem: { paddingVertical: 14, paddingHorizontal: 14 },
-  dropdownItemText: { fontSize: 15, fontWeight: '600', color: '#0B2D3E' },
+  dropdownItemText: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -636,41 +640,41 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   toggleLabelWrap: { flex: 1, marginRight: 12 },
-  toggleDesc: { fontSize: 13, color: '#5B6B7A', marginTop: 4 },
+  toggleDesc: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
   providerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F4F8',
+    borderBottomColor: colors.cardBorder,
   },
   providerRowLast: { borderBottomWidth: 0 },
-  providerName: { fontSize: 16, fontWeight: '700', color: '#0B2D3E' },
+  providerName: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
   connectApiBtn: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
   },
-  connectApiBtnText: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
+  connectApiBtnText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   sectionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E8EEF4',
-    shadowColor: '#0B2D3E',
+    borderColor: colors.cardBorder,
+    shadowColor: colors.accentTeal,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
   },
-  sectionCardTitle: { fontSize: 17, fontWeight: '800', color: '#0B2D3E', marginBottom: 6 },
-  sectionCardDesc: { fontSize: 14, color: '#5B6B7A', marginBottom: 16, lineHeight: 21 },
+  sectionCardTitle: { fontSize: 17, fontWeight: '800', color: colors.textPrimary, marginBottom: 6 },
+  sectionCardDesc: { fontSize: 14, color: colors.textSecondary, marginBottom: 16, lineHeight: 21 },
   anniversaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -680,7 +684,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   anniversaryRowFirst: { borderTopWidth: 0 },
-  anniversaryLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: '#0B2D3E' },
+  anniversaryLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.textPrimary },
   extensionBlock: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -696,27 +700,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   extensionTextWrap: { flex: 1, minWidth: 0 },
-  extensionPhase: { fontSize: 16, fontWeight: '800', color: '#0B2D3E', marginBottom: 6 },
-  extensionDesc: { fontSize: 14, color: '#5B6B7A', lineHeight: 21, marginBottom: 14 },
+  extensionPhase: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, marginBottom: 6 },
+  extensionDesc: { fontSize: 14, color: colors.textSecondary, lineHeight: 21, marginBottom: 14 },
   downloadBtn: {
     alignSelf: 'flex-start',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
   },
   downloadBtnText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
   howItWorksTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0BA0B2',
+    color: colors.accentTeal,
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   bulletList: { gap: 8 },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  bullet: { fontSize: 16, color: '#0BA0B2', fontWeight: '700' },
-  bulletText: { flex: 1, fontSize: 14, color: '#5B6B7A', lineHeight: 21 },
+  bullet: { fontSize: 16, color: colors.accentTeal, fontWeight: '700' },
+  bulletText: { flex: 1, fontSize: 14, color: colors.textSecondary, lineHeight: 21 },
   saveBar: {
     position: 'absolute',
     left: 0,
@@ -724,17 +728,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: 'rgba(202, 216, 228, 0.95)',
+    backgroundColor: colors.cardBackground,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(11, 45, 62, 0.08)',
+    borderTopColor: colors.cardBorder,
   },
   saveBtn: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0B2D3E',
+    shadowColor: colors.accentTeal,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -746,11 +750,11 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   sectionCardPremium: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
@@ -758,11 +762,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   sectionCardPremiumSmall: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
@@ -772,12 +776,12 @@ const styles = StyleSheet.create({
   premiumSectionTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.4,
   },
   premiumSectionSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 8,
     marginBottom: 24,
@@ -794,7 +798,7 @@ const styles = StyleSheet.create({
   premiumLabel: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 0.8,
     marginBottom: 10,
     textTransform: 'uppercase',
@@ -803,15 +807,15 @@ const styles = StyleSheet.create({
   premiumLabelLarge: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   premiumSelect: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 52,
@@ -819,13 +823,13 @@ const styles = StyleSheet.create({
   premiumSelectText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     flex: 1,
     lineHeight: 18,
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 14,
     padding: 4,
     gap: 4,
@@ -840,7 +844,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   segmentBtnActive: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -850,28 +854,28 @@ const styles = StyleSheet.create({
   segmentBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   segmentBtnTextActive: {
     color: '#FFFFFF',
   },
   draftingWrap: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
   },
   draftingHeader: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.cardBorder,
   },
   draftingBadge: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 0.5,
     backgroundColor: 'rgba(11, 45, 62, 0.05)',
     paddingHorizontal: 8,
@@ -882,7 +886,7 @@ const styles = StyleSheet.create({
   premiumTextArea: {
     padding: 16,
     fontSize: 14,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '500',
     fontStyle: 'italic',
     lineHeight: 22,
@@ -893,7 +897,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.cardBorder,
   },
   tokenBadge: {
     backgroundColor: '#E0F2F1',
@@ -908,7 +912,7 @@ const styles = StyleSheet.create({
   },
   fieldHint: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.inputPlaceholder,
     marginTop: 8,
     lineHeight: 16,
   },
@@ -919,7 +923,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
   },
   anniversaryList: {
     gap: 12,
@@ -928,7 +932,7 @@ const styles = StyleSheet.create({
   anniversaryItemPremium: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F9FB',
+    backgroundColor: colors.surfaceSoft,
     padding: 16,
     borderRadius: 16,
     gap: 12,
@@ -943,14 +947,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   addCustomBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderStyle: 'dashed',
     borderRadius: 16,
     height: 52,
@@ -959,7 +963,7 @@ const styles = StyleSheet.create({
   addCustomBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   // Modal Styles
@@ -973,7 +977,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(11, 45, 62, 0.4)',
   },
   bottomSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 24,
@@ -986,12 +990,12 @@ const styles = StyleSheet.create({
   modalTitleText: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   modalSubTitleText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     lineHeight: 20,
     fontWeight: '500',
   },
@@ -1001,19 +1005,19 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 0.8,
     marginBottom: 10,
   },
   modalInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1.5,
-    borderColor: '#0B2D3E',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 56,
     fontSize: 16,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   modalActions: {
@@ -1022,7 +1026,7 @@ const styles = StyleSheet.create({
   },
   modalCancelBtn: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     height: 56,
     borderRadius: 14,
     alignItems: 'center',
@@ -1031,11 +1035,11 @@ const styles = StyleSheet.create({
   modalCancelBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   modalCreateBtn: {
     flex: 1,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     height: 56,
     borderRadius: 14,
     alignItems: 'center',
@@ -1080,4 +1084,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-});
+  });
+}

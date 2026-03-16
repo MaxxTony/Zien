@@ -14,9 +14,11 @@ import GradientButton from '@/components/ui/GradientButton';
 import LabeledInput from '@/components/ui/labeled-input';
 import OutlineButton from '@/components/ui/OutlineButton';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function OtpScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
 
   return (
@@ -26,7 +28,7 @@ export default function OtpScreen() {
           <AuthCard style={styles.cardSoft}>
             <View style={styles.backButtonRow}>
               <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={12}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color={Theme.textPrimary} />
+                <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
               </Pressable>
             </View>
             <AuthLogoBrand brandLabel="ZIEN" />
@@ -55,15 +57,16 @@ export default function OtpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.screenPadding,
+    padding: colors.screenPadding,
     justifyContent: 'center',
   },
   cardSoft: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
   },
   backButtonRow: {
     alignSelf: 'stretch',
@@ -72,10 +75,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    borderRadius: Theme.inputBorderRadius,
-    backgroundColor: Theme.cardBackground,
-    shadowColor: Theme.cardShadowColor,
-    shadowOffset: Theme.cardShadowOffset,
+    borderRadius: colors.inputBorderRadius,
+    backgroundColor: colors.cardBackground,
+    shadowColor: colors.cardShadowColor,
+    shadowOffset: colors.cardShadowOffset,
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
@@ -98,3 +101,4 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
 });
+}

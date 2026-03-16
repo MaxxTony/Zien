@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
   Alert,
@@ -99,6 +100,9 @@ type Rule = {
 };
 
 export default function AutomationRulesScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -267,7 +271,7 @@ export default function AutomationRulesScreen() {
         {/* Search */}
         <View style={styles.searchContainer}>
           <View style={styles.searchIconBox}>
-            <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
+            <MaterialCommunityIcons name="magnify" size={20} color={colors.textMuted} />
           </View>
           <TextInput
             style={styles.searchInput}
@@ -322,12 +326,12 @@ export default function AutomationRulesScreen() {
 
               <View style={styles.ruleFooter}>
                 <View style={styles.footerInfo}>
-                  <MaterialCommunityIcons name="history" size={14} color="#94A3B8" />
+                  <MaterialCommunityIcons name="history" size={14} color={colors.textMuted} />
                   <Text style={styles.footerText}>Last run 2h ago</Text>
                 </View>
                 <View style={styles.footerActions}>
                   <Pressable style={styles.footerBtn} onPress={() => openEditModal(rule)}>
-                    <MaterialCommunityIcons name="pencil-outline" size={16} color="#64748B" />
+                    <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.textSecondary} />
                   </Pressable>
                   <Pressable style={styles.footerBtn} onPress={() => deleteRule(rule.id)}>
                     <MaterialCommunityIcons name="trash-can-outline" size={16} color="#F87171" />
@@ -380,7 +384,7 @@ export default function AutomationRulesScreen() {
                 <MaterialCommunityIcons name="auto-fix" size={20} color="#0BA0B2" />
               </View>
               <Text style={styles.suggestedText}>{flow.label}</Text>
-              <MaterialCommunityIcons name="plus" size={20} color="#94A3B8" />
+              <MaterialCommunityIcons name="plus" size={20} color={colors.textMuted} />
             </Pressable>
           ))}
         </View>
@@ -412,7 +416,7 @@ export default function AutomationRulesScreen() {
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>{editingRuleId ? 'Edit Automation Rule' : 'Create Automation Rule'}</Text>
               <Pressable onPress={closeModal} style={styles.closeBtn}>
-                <MaterialCommunityIcons name="close" size={24} color="#94A3B8" />
+                <MaterialCommunityIcons name="close" size={24} color={colors.textMuted} />
               </Pressable>
             </View>
 
@@ -435,14 +439,14 @@ export default function AutomationRulesScreen() {
                   <Text style={styles.fieldLabel}>Trigger (IF)</Text>
                   <Pressable style={styles.dropdownStub} onPress={() => setActiveDropdown('trigger')}>
                     <Text style={styles.dropdownText} numberOfLines={1}>{selectedTrigger || 'Select Trigger'}</Text>
-                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                   </Pressable>
                 </View>
                 <View style={styles.formCol}>
                   <Text style={styles.fieldLabel}>Action (THEN)</Text>
                   <Pressable style={styles.dropdownStub} onPress={() => setActiveDropdown('action')}>
                     <Text style={styles.dropdownText} numberOfLines={1}>{selectedAction || 'Select Action'}</Text>
-                    <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                   </Pressable>
                 </View>
               </View>
@@ -455,7 +459,7 @@ export default function AutomationRulesScreen() {
                     style={styles.dropdownStub}
                     onPress={() => Alert.alert('Select Date', 'Date picker would open here.')}>
                     <Text style={styles.dropdownValue}>{scheduleDate}</Text>
-                    <MaterialCommunityIcons name="calendar-outline" size={18} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textPrimary} />
                   </Pressable>
                 </View>
                 <View style={styles.formCol}>
@@ -464,7 +468,7 @@ export default function AutomationRulesScreen() {
                     style={styles.dropdownStub}
                     onPress={() => Alert.alert('Select Time', 'Time picker would open here.')}>
                     <Text style={styles.dropdownValue}>{triggerTime}</Text>
-                    <MaterialCommunityIcons name="clock-outline" size={18} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="clock-outline" size={18} color={colors.textPrimary} />
                   </Pressable>
                 </View>
               </View>
@@ -474,7 +478,7 @@ export default function AutomationRulesScreen() {
                 <Text style={styles.fieldLabel}>Target Scope</Text>
                 <Pressable style={styles.dropdownStub} onPress={() => setActiveDropdown('scope')}>
                   <Text style={styles.dropdownText}>{targetScope}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
               </View>
 
@@ -553,21 +557,22 @@ export default function AutomationRulesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   background: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20 },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     marginBottom: 24,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12 },
+      ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12 },
       android: { elevation: 2 },
     }),
   },
@@ -593,23 +598,23 @@ const styles = StyleSheet.create({
   sectionCount: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: colors.textMuted,
   },
   ruleList: { gap: 16, marginBottom: 24 },
   ruleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.03, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
+      ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.03, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   ruleCardPaused: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
+    backgroundColor: colors.surfaceSoft,
+    borderColor: colors.cardBorder,
   },
   ruleRowMain: {
     flexDirection: 'row',
@@ -631,14 +636,14 @@ const styles = StyleSheet.create({
     color: '#0B2341',
     marginBottom: 4,
   },
-  textPaused: { color: '#94A3B8' },
+  textPaused: { color: colors.textMuted },
   logicFlow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   logicText: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   logicBold: {
@@ -651,7 +656,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
   },
   footerInfo: {
     flexDirection: 'row',
@@ -661,7 +666,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: colors.textMuted,
   },
   footerActions: {
     flexDirection: 'row',
@@ -671,11 +676,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
   },
   impactWidget: {
     borderRadius: 24,
@@ -734,17 +739,17 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.surfaceIcon,
   },
   suggestionsContainer: { gap: 12 },
   suggestedCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     gap: 12,
   },
   suggestedIconWrap: {
@@ -793,10 +798,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     height: '100%',
     width: '100%',
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: -10 },
     shadowRadius: 20,
@@ -814,7 +819,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: '100%',
     paddingVertical: 10,
-    shadowColor: '#000',
+    shadowColor: colors.cardShadowColor,
     shadowOpacity: 0.4,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 12,
@@ -835,7 +840,7 @@ const styles = StyleSheet.create({
   },
   dropdownValue: {
     fontSize: 16,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   customCheckbox: {
@@ -843,7 +848,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -870,7 +875,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -896,29 +901,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   dropdownStub: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
   dropdownText: {
     fontSize: 16,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   platformGrid: {
@@ -929,9 +934,9 @@ const styles = StyleSheet.create({
   platformToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 14,
@@ -953,20 +958,20 @@ const styles = StyleSheet.create({
     padding: 24,
     borderTopWidth: 1,
     borderTopColor: '#F8FAFC',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalCancelBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: colors.cardBackground
   },
   modalCancelText: {
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '700',
     fontSize: 15
   },
@@ -985,4 +990,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 15
   }
-});
+  });
+}

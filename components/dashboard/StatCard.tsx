@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type StatCardProps = {
   title: string;
@@ -14,6 +14,8 @@ type StatCardProps = {
 };
 
 function StatCardComponent({ title, value, meta, metaTone, icon, accentColor }: StatCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.card}>
       <LinearGradient
@@ -45,15 +47,16 @@ function StatCardComponent({ title, value, meta, metaTone, icon, accentColor }: 
 
 export const StatCard = memo(StatCardComponent);
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   card: {
     width: '100%',
-    backgroundColor: Theme.cardBackgroundSemi,
+    backgroundColor: colors.cardBackgroundSemi,
     borderRadius: 22,
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(228, 234, 242, 0.95)',
-    shadowColor: Theme.textPrimary,
+    shadowColor: colors.textPrimary,
     shadowOpacity: 0.06,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 14 },
@@ -77,13 +80,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   value: {
     marginTop: 12,
     fontSize: 20,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: -0.2,
   },
   metaPill: {
@@ -102,3 +105,4 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 });
+}

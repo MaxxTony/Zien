@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -64,6 +65,9 @@ const TEMPLATES_DATA = [
 ];
 
 export default function SocialTemplatesScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const [templates, setTemplates] = useState(TEMPLATES_DATA);
@@ -133,7 +137,7 @@ export default function SocialTemplatesScreen() {
                     style={styles.imageGradient}
                 />
                 <View style={styles.platformBadge}>
-                    <MaterialCommunityIcons name={item.platform_icon as any} size={14} color="#0B2D3E" />
+                    <MaterialCommunityIcons name={item.platform_icon as any} size={14} color={colors.textPrimary} />
                 </View>
                 <Text style={styles.overlayTitle}>{item.title}</Text>
             </View>
@@ -174,7 +178,7 @@ export default function SocialTemplatesScreen() {
                         style={styles.iconActionBtn}
                         onPress={() => handleDuplicate(item.id)}
                     >
-                        <MaterialCommunityIcons name="plus" size={18} color="#94A3B8" />
+                        <MaterialCommunityIcons name="plus" size={18} color={colors.textMuted} />
                     </Pressable>
                     <Pressable
                         style={styles.iconActionBtn}
@@ -208,7 +212,7 @@ export default function SocialTemplatesScreen() {
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <MaterialCommunityIcons name="image-off-outline" size={48} color="#CBD5E1" />
+                        <MaterialCommunityIcons name="image-off-outline" size={48} color={colors.textMuted} />
                         <Text style={styles.emptyText}>No templates found.</Text>
                     </View>
                 }
@@ -256,21 +260,22 @@ export default function SocialTemplatesScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
     background: { flex: 1 },
     listContent: {
         paddingHorizontal: 20,
         paddingBottom: 120,
     },
     templateCard: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         marginBottom: 20,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 10 }, shadowRadius: 20 },
+            ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.06, shadowOffset: { width: 0, height: 10 }, shadowRadius: 20 },
             android: { elevation: 4 },
         }),
     },
@@ -293,7 +298,7 @@ const styles = StyleSheet.create({
         width: 28,
         height: 28,
         borderRadius: 8,
-        backgroundColor: 'rgba(255,255,255,0.9)',
+        backgroundColor: colors.surfaceIcon,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -318,7 +323,7 @@ const styles = StyleSheet.create({
     latestText: {
         fontSize: 10,
         fontWeight: '800',
-        color: '#94A3B8',
+        color: colors.textMuted,
         letterSpacing: 0.5,
     },
     statusBadge: {
@@ -330,7 +335,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#ECFDF5',
     },
     statusOther: {
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
     },
     statusText: {
         fontSize: 10,
@@ -340,12 +345,12 @@ const styles = StyleSheet.create({
         color: '#10B981',
     },
     statusTextOther: {
-        color: '#64748B',
+        color: colors.textSecondary,
     },
     metricsGrid: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         padding: 12,
         borderRadius: 16,
         marginBottom: 16,
@@ -357,7 +362,7 @@ const styles = StyleSheet.create({
     metricLabel: {
         fontSize: 9,
         fontWeight: '800',
-        color: '#94A3B8',
+        color: colors.textMuted,
         marginBottom: 4,
     },
     metricValue: {
@@ -374,7 +379,7 @@ const styles = StyleSheet.create({
         height: 22,
         borderRadius: 11,
         borderWidth: 2,
-        borderColor: '#F8FAFC',
+        borderColor: colors.cardBorder,
     },
     actionRow: {
         flexDirection: 'row',
@@ -384,10 +389,10 @@ const styles = StyleSheet.create({
     editBtn: {
         flex: 1,
         height: 44,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -399,10 +404,10 @@ const styles = StyleSheet.create({
     iconActionBtn: {
         width: 44,
         height: 44,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.cardBorder,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -415,7 +420,7 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#94A3B8',
+        color: colors.textMuted,
     },
     floatingHint: {
         position: 'absolute',
@@ -451,7 +456,7 @@ const styles = StyleSheet.create({
         padding: 40,
     },
     infoModalContent: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 32,
         padding: 30,
         width: '100%',
@@ -460,7 +465,7 @@ const styles = StyleSheet.create({
     infoIconBox: {
         width: 64,
         height: 64,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         borderRadius: 32,
         alignItems: 'center',
         justifyContent: 'center',
@@ -474,7 +479,7 @@ const styles = StyleSheet.create({
     },
     infoModalDesc: {
         fontSize: 14,
-        color: '#64748B',
+        color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 20,
         marginBottom: 24,
@@ -491,4 +496,5 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         letterSpacing: 1,
     },
-});
+  });
+}

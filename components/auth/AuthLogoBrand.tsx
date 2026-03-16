@@ -1,12 +1,12 @@
 import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
+import { Image, ImageStyle, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type AuthLogoBrandProps = {
   brandLabel?: string;
-  logoStyle?: StyleProp<ViewStyle>;
+  logoStyle?: StyleProp<ImageStyle>;
   brandStyle?: StyleProp<TextStyle>;
   gradientStyle?: StyleProp<ViewStyle>;
 };
@@ -20,6 +20,7 @@ export default function AuthLogoBrand({
   brandStyle,
   gradientStyle,
 }: AuthLogoBrandProps) {
+  const { colors } = useAppTheme();
   return (
     <>
       <Image
@@ -36,7 +37,7 @@ export default function AuthLogoBrand({
                   fontSize: 20,
                   letterSpacing: 2.2,
                   fontWeight: '700',
-                  color: Theme.textPrimary,
+                  color: colors.textPrimary,
                   textAlign: 'center',
                 },
                 brandStyle,
@@ -45,7 +46,7 @@ export default function AuthLogoBrand({
             </Text>
           }>
           <LinearGradient
-            colors={[...Theme.brandGradient]}
+            colors={[...colors.brandGradient] as any}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[

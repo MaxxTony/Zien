@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import LabeledInput from './labeled-input';
 
 type PasswordInputProps = {
@@ -19,6 +19,7 @@ export default function PasswordInput({
   onRightLabelPress,
 }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
+  const { colors } = useAppTheme();
 
   return (
     <LabeledInput
@@ -30,8 +31,8 @@ export default function PasswordInput({
       onRightLabelPress={onRightLabelPress}
       rightInputElement={
         <Pressable onPress={() => setVisible((prev) => !prev)} hitSlop={8}>
-          <MaterialCommunityIcons name={!visible ? 'eye-off-outline' : 'eye-outline'} size={18} color={Theme.iconMuted} />
-        </Pressable>
+          <MaterialCommunityIcons name={!visible ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.iconMuted} />
+         </Pressable>
       }
     />
   );

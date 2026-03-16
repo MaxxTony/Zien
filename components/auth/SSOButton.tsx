@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleProp, Text, ViewStyle } from 'react-native';
 
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type SSOButtonProps = {
   label?: string;
@@ -14,16 +14,17 @@ export default function SSOButton({
   onPress,
   style,
 }: SSOButtonProps) {
+  const { colors } = useAppTheme();
   return (
     <Pressable
       style={[
         {
           marginTop: 12,
-          backgroundColor: Theme.socialButtonBackground,
+          backgroundColor: colors.socialButtonBackground,
           borderWidth: 1,
-          borderColor: Theme.socialButtonBorder,
+          borderColor: colors.socialButtonBorder,
           paddingVertical: 12,
-          borderRadius: Theme.inputBorderRadius,
+          borderRadius: colors.inputBorderRadius,
           width: '100%',
           alignItems: 'center',
           flexDirection: 'row',
@@ -33,11 +34,11 @@ export default function SSOButton({
         style,
       ]}
       onPress={onPress}>
-      <MaterialCommunityIcons name="layers-outline" size={18} color={Theme.iconPrimary} />
+      <MaterialCommunityIcons name="layers-outline" size={18} color={colors.iconPrimary} />
       <Text
         style={{
           fontSize: 13.5,
-          color: Theme.socialButtonText,
+          color: colors.socialButtonText,
           fontWeight: '600',
         }}>
         {label}

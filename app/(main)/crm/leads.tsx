@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -40,6 +41,8 @@ const getStatusStyle = (status: string) => {
 };
 
 function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEditPress }: { lead: (typeof INITIAL_LEADS)[number], onDeletePress: () => void, onConvertPress: () => void, onToggleArchive: () => void, onEditPress: () => void }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const isHigh = lead.score >= 80;
   const isLow = lead.score < 50;
   const statusColors = getStatusStyle(lead.status);
@@ -49,11 +52,11 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
       <View style={styles.leadCard}>
         <View style={styles.leadCardTop}>
           <View style={[styles.leadCardIconWrap, styles.leadCardIconWrapNormal]}>
-            <MaterialCommunityIcons name="account-outline" size={24} color="#0B2D3E" />
+            <MaterialCommunityIcons name="account-outline" size={24} color={colors.textPrimary} />
           </View>
           <View style={styles.tagsContainer}>
-            <View style={[styles.tag, { backgroundColor: '#F3F6F8' }]}>
-              <Text style={[styles.tagText, { color: '#0B2D3E' }]}>CONVERTED</Text>
+            <View style={[styles.tag, { backgroundColor: colors.surfaceSoft }]}>
+              <Text style={[styles.tagText, { color: colors.textPrimary }]}>CONVERTED</Text>
             </View>
           </View>
         </View>
@@ -65,7 +68,7 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
           <Text style={styles.leadCardScoreLabel}>AI Lead Score</Text>
           <Text style={[
             styles.leadCardScoreValue,
-            isHigh ? { color: '#0BA0B2' } : isLow ? { color: '#E11D48' } : { color: '#0B2D3E' }
+            isHigh ? { color: '#0BA0B2' } : isLow ? { color: '#E11D48' } : { color: colors.textPrimary }
           ]}>
             {lead.score}/100
           </Text>
@@ -109,7 +112,7 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
         <Text style={styles.leadCardScoreLabel}>AI Lead Score</Text>
         <Text style={[
           styles.leadCardScoreValue,
-          isHigh ? { color: '#0BA0B2' } : isLow ? { color: '#E11D48' } : { color: '#0B2D3E' }
+          isHigh ? { color: '#0BA0B2' } : isLow ? { color: '#E11D48' } : { color: colors.textPrimary }
         ]}>
           {lead.score}/100
         </Text>
@@ -121,7 +124,7 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
             <Text style={styles.leadCardConvertText}>Unarchive</Text>
           </Pressable>
           <Pressable style={styles.leadCardDeleteBtnArchived} onPress={onDeletePress}>
-            <MaterialCommunityIcons name="trash-can-outline" size={18} color="#0B2D3E" />
+            <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.textPrimary} />
           </Pressable>
         </View>
       ) : (
@@ -145,6 +148,8 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
 }
 
 export default function LeadsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [leadsList, setLeadsList] = useState(INITIAL_LEADS);
@@ -206,7 +211,7 @@ export default function LeadsScreen() {
 
   return (
     <LinearGradient
-      colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
+      colors={colors.backgroundGradient as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.container, { paddingTop: insets.top }]}>
@@ -225,9 +230,9 @@ export default function LeadsScreen() {
         <View style={[styles.topButtonsRow, { zIndex: 20 }]}>
           <View style={{ flex: 1, zIndex: 20 }}>
             <Pressable style={styles.topFilterDropdown} onPress={() => setStatusDropdownOpen(!isStatusDropdownOpen)}>
-              <MaterialCommunityIcons name="filter-variant" size={16} color="#0B2D3E" style={{ marginRight: 4 }} />
+              <MaterialCommunityIcons name="filter-variant" size={16} color={colors.textPrimary} style={{ marginRight: 4 }} />
               <Text style={styles.topFilterText} numberOfLines={1} ellipsizeMode="tail">{selectedStatus === 'All Status' ? 'All' : selectedStatus}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={16} color="#0B2D3E" />
+              <MaterialCommunityIcons name="chevron-down" size={16} color={colors.textPrimary} />
             </Pressable>
 
             {isStatusDropdownOpen && (
@@ -252,7 +257,7 @@ export default function LeadsScreen() {
           </View>
 
           <Pressable style={[styles.aiImportBtn, { flex: 1 }]} onPress={() => setImportModalVisible(true)}>
-            <MaterialCommunityIcons name="folder-upload-outline" size={18} color="#0B2D3E" />
+            <MaterialCommunityIcons name="folder-upload-outline" size={18} color={colors.textPrimary} />
             <Text style={styles.aiImportBtnText} numberOfLines={1}>AI Import</Text>
           </Pressable>
           <Pressable style={[styles.addLeadBtn, { flex: 1 }]} onPress={() => {
@@ -387,7 +392,7 @@ export default function LeadsScreen() {
             >
               <View style={styles.importCard}>
                 <View style={styles.importLabelRow}>
-                  <MaterialCommunityIcons name="message-outline" size={18} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="message-outline" size={18} color={colors.textPrimary} />
                   <Text style={styles.importSectionLabel}>Lead Context & Campaign Info</Text>
                 </View>
 
@@ -413,7 +418,7 @@ export default function LeadsScreen() {
                       size: '107.00 KB'
                     })}>
                     <View style={styles.dropzoneIconCircle}>
-                      <MaterialCommunityIcons name="tray-arrow-up" size={24} color="#0B2D3E" />
+                      <MaterialCommunityIcons name="tray-arrow-up" size={24} color={colors.textPrimary} />
                     </View>
                     <Text style={styles.dropzoneTitle}>Upload your lead list</Text>
                     <Text style={styles.dropzoneSubtitle}>Drag and drop CSV or Excel files here</Text>
@@ -494,7 +499,7 @@ export default function LeadsScreen() {
           <View style={styles.fullScreenModalHeader}>
             <Text style={styles.fullScreenModalTitle}>Convert Lead to Contact</Text>
             <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => setLeadToConvert(null)}>
-              <MaterialCommunityIcons name="close" size={16} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={16} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -532,7 +537,7 @@ export default function LeadsScreen() {
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{convertGroup}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {convertGroupDropdownOpen && (
                   <View style={styles.formDropdownMenu}>
@@ -567,7 +572,7 @@ export default function LeadsScreen() {
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{convertTag}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {convertTagDropdownOpen && (
                   <View style={styles.formDropdownMenu}>
@@ -642,7 +647,7 @@ export default function LeadsScreen() {
           <View style={styles.fullScreenModalHeader}>
             <Text style={styles.fullScreenModalTitle}>{leadToEdit ? 'Edit Lead' : 'Add New Lead'}</Text>
             <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => { setIsEditModalVisible(false); setLeadToEdit(null); }}>
-              <MaterialCommunityIcons name="close" size={16} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={16} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -682,7 +687,7 @@ export default function LeadsScreen() {
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{editSource}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {editSourceDropdownOpen && (
                   <View style={styles.formDropdownMenu}>
@@ -714,7 +719,7 @@ export default function LeadsScreen() {
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{editStatus}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {editStatusDropdownOpen && (
                   <View style={styles.formDropdownMenu}>
@@ -749,7 +754,7 @@ export default function LeadsScreen() {
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{editGroup}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {editGroupDropdownOpen && (
                   <View style={styles.formDropdownMenu}>
@@ -784,7 +789,7 @@ export default function LeadsScreen() {
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{editTag}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {editTagDropdownOpen && (
                   <View style={styles.formDropdownMenu}>
@@ -840,7 +845,8 @@ export default function LeadsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) {
+  return StyleSheet.create({
   container: { flex: 1 },
 
   scroll: { flex: 1 },
@@ -857,10 +863,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 48,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -869,7 +875,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   aiImportBtnText: {
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontSize: 13,
     fontWeight: '700',
     marginLeft: 4,
@@ -879,7 +885,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 48,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 14,
     paddingHorizontal: 8,
     shadowColor: '#000',
@@ -903,12 +909,12 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     height: 48,
     borderRadius: 14,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
@@ -920,42 +926,42 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 13,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   topFilterDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     height: 48,
     paddingHorizontal: 6,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
   },
   topFilterText: {
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginHorizontal: 2,
   },
   filterDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     height: 48,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   dropdownMenu: {
     position: 'absolute',
@@ -987,11 +993,11 @@ const styles = StyleSheet.create({
   hotFilterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     height: 48,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
   },
   hotFilterText: {
@@ -1006,7 +1012,7 @@ const styles = StyleSheet.create({
   clearFilterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F6F8',
+    backgroundColor: colors.surfaceSoft,
     height: 48,
     paddingHorizontal: 14,
     borderRadius: 14,
@@ -1023,13 +1029,13 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     width: 140,
     paddingVertical: 18,
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
@@ -1038,7 +1044,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryLabel: { fontSize: 11, fontWeight: '700', color: '#8DA4B5', letterSpacing: 0.8, marginBottom: 8 },
-  summaryCount: { fontSize: 32, fontWeight: '800', color: '#0B2D3E' },
+  summaryCount: { fontSize: 32, fontWeight: '800', color: colors.textPrimary },
 
   listHeaderRow: {
     paddingHorizontal: 20,
@@ -1054,9 +1060,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   leadCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     padding: 16,
     shadowColor: '#000',
@@ -1083,7 +1089,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   leadCardIconWrapNormal: {
-    backgroundColor: '#F3F6F8',
+    backgroundColor: colors.surfaceSoft,
   },
   leadCardIconWrapHot: {
     backgroundColor: '#FFF0E6',
@@ -1103,7 +1109,7 @@ const styles = StyleSheet.create({
   tagText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
   tagTextHot: { color: '#FFFFFF' },
 
-  leadCardName: { fontSize: 18, fontWeight: '800', color: '#0B2D3E', marginBottom: 4 },
+  leadCardName: { fontSize: 18, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
   leadCardSource: { fontSize: 13, color: '#6A7D8C', fontWeight: '500' },
 
   leadCardScoreRow: {
@@ -1113,7 +1119,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F0F4F7',
+    borderTopColor: colors.cardBorder,
   },
   leadCardScoreLabel: { fontSize: 13, fontWeight: '600', color: '#6A7D8C' },
   leadCardScoreValue: { fontSize: 16, fontWeight: '800' },
@@ -1127,7 +1133,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1136,20 +1142,20 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  leadCardArchiveText: { fontSize: 13, fontWeight: '700', color: '#0B2D3E' },
+  leadCardArchiveText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
   leadCardEditBtn: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#FAFCFD',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1165,7 +1171,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#FAFCFD',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1178,7 +1184,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     shadowColor: '#000',
@@ -1193,14 +1199,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 24,
   },
-  modalTitle: { fontSize: 24, fontWeight: '900', color: '#0B2D3E', letterSpacing: -0.5 },
+  modalTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
   modalSubtitle: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginTop: 6, maxWidth: '90%' },
   modalDashedArea: {
     borderWidth: 1.5,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderStyle: 'dashed',
     borderRadius: 20,
-    backgroundColor: '#FAFCFD',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     paddingVertical: 40,
     paddingHorizontal: 20,
@@ -1209,20 +1215,20 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#F3F6F8',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
-  modalDragText: { fontSize: 16, fontWeight: '800', color: '#0B2D3E', marginBottom: 4 },
+  modalDragText: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
   modalBrowseText: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginBottom: 24 },
   modalSelectBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
@@ -1230,7 +1236,7 @@ const styles = StyleSheet.create({
     elevation: 1,
     marginBottom: 24,
   },
-  modalSelectBtnText: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
+  modalSelectBtnText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   modalSupportText: { fontSize: 12, color: '#8DA4B5', fontWeight: '500' },
   modalDeleteIconCircle: {
     width: 64,
@@ -1245,7 +1251,7 @@ const styles = StyleSheet.create({
   modalDeleteTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
     letterSpacing: -0.4,
@@ -1267,15 +1273,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalCancelBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   modalDeleteConfirmBtn: {
     flex: 1,
@@ -1295,7 +1301,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    backgroundColor: '#F3F6F8',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 12,
     marginTop: 16,
   },
@@ -1306,7 +1312,7 @@ const styles = StyleSheet.create({
   },
   fullScreenModalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   fullScreenModalHeader: {
     flexDirection: 'row',
@@ -1316,14 +1322,14 @@ const styles = StyleSheet.create({
     paddingTop: 60, // approximate top inset for modal
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F4F7',
+    borderBottomColor: colors.cardBorder,
   },
-  fullScreenModalTitle: { fontSize: 24, fontWeight: '900', color: '#0B2D3E', letterSpacing: -0.5 },
+  fullScreenModalTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
   fullScreenModalCloseIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3F6F8',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1343,43 +1349,43 @@ const styles = StyleSheet.create({
   convertLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   convertInput: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 14,
     fontWeight: '500',
-    color: '#0B2D3E',
-    backgroundColor: '#FFFFFF',
+    color: colors.textPrimary,
+    backgroundColor: colors.cardBackground,
   },
   convertInputDisabled: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     justifyContent: 'center',
-    backgroundColor: '#FAFCFD',
+    backgroundColor: colors.surfaceSoft,
   },
   convertDropdown: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   convertDropdownText: {
     fontSize: 14,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   formDropdownMenu: {
     position: 'absolute',
@@ -1432,30 +1438,30 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
-    borderTopColor: '#F0F4F7',
+    borderTopColor: colors.cardBorder,
   },
   convertCancelBtn: {
     flex: 1,
     height: 54,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   convertCancelBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   convertConfirmBtn: {
     flex: 1.5,
     height: 54,
     borderRadius: 14,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1468,7 +1474,7 @@ const styles = StyleSheet.create({
   // --- AI Lead Import Styles ---
   fullPageModal: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalContent: {
     flex: 1,
@@ -1480,12 +1486,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 16,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   premiumModalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   premiumModalSubtitle: {
@@ -1498,11 +1504,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
   },
   premiumModalBody: {
     paddingHorizontal: 28,
@@ -1531,7 +1537,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   importCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     paddingTop: 0,
@@ -1545,12 +1551,12 @@ const styles = StyleSheet.create({
   importSectionLabel: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   instructionInputContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     padding: 16,
     minHeight: 120,
@@ -1559,7 +1565,7 @@ const styles = StyleSheet.create({
   instructionInput: {
     flex: 1,
     fontSize: 14,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '500',
     textAlignVertical: 'top',
     lineHeight: 22,
@@ -1571,26 +1577,26 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
   },
   dropzone: {
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderStyle: 'dashed',
     borderRadius: 20,
     paddingVertical: 40,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   dropzoneIconCircle: {
     width: 60,
     height: 60,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -1605,7 +1611,7 @@ const styles = StyleSheet.create({
   dropzoneTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   dropzoneSubtitle: {
@@ -1618,15 +1624,15 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     backgroundColor: '#f6f9fc',
   },
   fileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#EAEFF3',
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     padding: 16,
     gap: 14,
@@ -1639,7 +1645,7 @@ const styles = StyleSheet.create({
   fileIconBox: {
     width: 48,
     height: 56,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.accentTeal,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1650,7 +1656,7 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   fileMetaRow: {
@@ -1689,4 +1695,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
-});
+  });
+}
