@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/context/ThemeContext';
 import {
   DEFAULT_PROFILE_CARD,
   ProfileCard,
@@ -63,6 +64,10 @@ const INITIAL_FORM: FormState = {
 };
 
 export default function ZienCardBasicInformationScreen() {
+  const { colors, theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<FormTab>('personal');
   const [isWork, setIsWork] = useState(true);
@@ -230,7 +235,7 @@ export default function ZienCardBasicInformationScreen() {
                     <Image source={{ uri: form.profilePhotoUri }} style={styles.previewImage} />
                     <View style={styles.previewActions}>
                       <Pressable style={styles.previewActionBtn} onPress={pickProfilePhoto}>
-                        <MaterialCommunityIcons name="image-edit-outline" size={20} color="#0B2D3E" />
+                        <MaterialCommunityIcons name="image-edit-outline" size={20} color={colors.textPrimary} />
                         <Text style={styles.previewActionText}>Replace</Text>
                       </Pressable>
                       <Pressable
@@ -258,7 +263,7 @@ export default function ZienCardBasicInformationScreen() {
                     <Image source={{ uri: form.companyLogoUri }} style={styles.previewImageLogo}  />
                     <View style={styles.previewActions}>
                       <Pressable style={styles.previewActionBtn} onPress={pickCompanyLogo}>
-                        <MaterialCommunityIcons name="image-edit-outline" size={20} color="#0B2D3E" />
+                        <MaterialCommunityIcons name="image-edit-outline" size={20} color={colors.textPrimary} />
                         <Text style={styles.previewActionText}>Replace</Text>
                       </Pressable>
                       <Pressable
@@ -391,23 +396,23 @@ export default function ZienCardBasicInformationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   main: { flex: 1 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 8 },
   saveBar: {
     paddingHorizontal: 18,
     paddingTop: 12,
-    backgroundColor: 'rgba(247, 251, 255, 0.98)',
+    backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
-    borderTopColor: '#E3ECF4',
+    borderTopColor: colors.cardBorder,
   },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: '#0BA0B2',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 14,
@@ -431,18 +436,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   togglePillActive: {
-    backgroundColor: '#0B2D3E',
-    borderColor: '#0B2D3E',
+    backgroundColor: '#0BA0B2',
+    borderColor: '#0BA0B2',
   },
   toggleText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   toggleTextActive: {
     color: '#FFFFFF',
@@ -467,40 +472,40 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 14,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   tabActive: {
-    backgroundColor: '#0B2D3E',
-    borderColor: '#0B2D3E',
+    backgroundColor: '#0BA0B2',
+    borderColor: '#0BA0B2',
   },
   tabLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     maxWidth: 72,
   },
   tabLabelActive: {
     color: '#FFFFFF',
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 18,
   },
   subSectionTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 20,
     marginBottom: 12,
   },
@@ -510,26 +515,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   bioInput: {
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     minHeight: 100,
     textAlignVertical: 'top',
   },
   charCount: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9AA7B6',
+    color: colors.textSecondary,
     marginTop: 6,
     textAlign: 'right',
   },
@@ -539,54 +544,53 @@ const styles = StyleSheet.create({
   uploadLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   uploadHint: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   uploadBox: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#D7DEE7',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     paddingVertical: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'transparent',
   },
   uploadBoxText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 10,
   },
   imagePreviewWrap: {
     width: '100%',
-    // alignSelf: 'stretch',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   previewImage: {
     width: '100%',
     height: 250,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: 'transparent',
   },
   previewImageLogo: {
     width: '100%',
     height: 250,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: 'transparent',
   },
   previewActions: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: '#E3ECF4',
+    borderTopColor: colors.cardBorder,
     paddingVertical: 12,
     paddingHorizontal: 16,
     gap: 12,
@@ -599,9 +603,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   previewActionBtnDanger: {
     borderColor: 'rgba(220, 38, 38, 0.3)',
@@ -610,7 +614,7 @@ const styles = StyleSheet.create({
   previewActionText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   previewActionTextDanger: {
     color: '#DC2626',

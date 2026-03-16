@@ -23,8 +23,9 @@ type BillingScreenHeaderProps = {
 };
 
 function BillingScreenHeaderComponent({ activeTab, onTabChange }: BillingScreenHeaderProps) {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
+  const { colors, theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors, isDark);
   const router = useRouter();
 
   return (
@@ -71,7 +72,7 @@ function BillingScreenHeaderComponent({ activeTab, onTabChange }: BillingScreenH
 
 export const BillingScreenHeader = memo(BillingScreenHeaderComponent);
 
-function getStyles(colors: any) {
+function getStyles(colors: any, isDark: boolean) {
   return StyleSheet.create({
   wrap: {
     paddingHorizontal: 20,
@@ -89,9 +90,9 @@ function getStyles(colors: any) {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#0B2D3E',
@@ -106,12 +107,12 @@ function getStyles(colors: any) {
   title: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 13,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 4,
     lineHeight: 18,
     fontWeight: '600',
@@ -121,7 +122,7 @@ function getStyles(colors: any) {
   },
   tabsContent: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: isDark ? 'rgba(16, 27, 40, 0.85)' : '#F1F5F9',
     padding: 4,
     borderRadius: 14,
     gap: 4,
@@ -139,11 +140,11 @@ function getStyles(colors: any) {
   },
   tabText: {
     fontSize: 13,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '800',
   },
   tabPillActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     shadowColor: '#0B2D3E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -151,7 +152,7 @@ function getStyles(colors: any) {
     elevation: 3,
   },
   tabTextActive: {
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
 });
 }

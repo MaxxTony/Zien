@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/context/ThemeContext';
 
 const STAT_CARDS = [
   {
@@ -73,6 +74,8 @@ const GOVERNANCE_AUDIT_ITEMS = [
 ];
 
 export function AdminView() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const [showProvisionModal, setShowProvisionModal] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
@@ -87,7 +90,7 @@ export function AdminView() {
         {/* Action buttons */}
         <View style={styles.actionRow}>
           <Pressable style={styles.auditBtn} onPress={() => setShowAuditModal(true)}>
-            <MaterialCommunityIcons name="refresh" size={20} color="#0B2D3E" />
+            <MaterialCommunityIcons name="refresh" size={20} color={colors.textPrimary} />
             <Text style={styles.auditBtnText}>Run Security Audit</Text>
           </Pressable>
           <Pressable style={styles.provisionBtn} onPress={() => setShowProvisionModal(true)}>
@@ -101,7 +104,7 @@ export function AdminView() {
           {STAT_CARDS.map((s) => (
             <View key={s.id} style={styles.statCard}>
               <View style={styles.statCardIconWrap}>
-                <MaterialCommunityIcons name={s.icon} size={22} color="#0B2D3E" />
+                <MaterialCommunityIcons name={s.icon} size={22} color={colors.textPrimary} />
               </View>
               <Text style={styles.statCardLabel}>{s.label}</Text>
               <Text style={styles.statCardValue}>{s.value}</Text>
@@ -133,7 +136,7 @@ export function AdminView() {
                 Secure endpoints for third-party monitoring integration and hardware relay.
               </Text>
               <View style={styles.apiKeyRow}>
-                <MaterialCommunityIcons name="key-variant" size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name="key-variant" size={20} color={colors.textPrimary} />
                 <Text style={styles.apiKeyLabel}>Guardian API Key</Text>
               </View>
               <View style={styles.apiKeyStatusRow}>
@@ -179,7 +182,7 @@ export function AdminView() {
               <Text style={styles.modalSubtitleFull}>Authorize new personnel with safety-level clearances.</Text>
             </View>
             <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowProvisionModal(false)}>
-              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -260,7 +263,7 @@ export function AdminView() {
               <Text style={styles.modalSubtitleFull}>Technical verification of roles, permissions, and system integrity.</Text>
             </View>
             <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowAuditModal(false)}>
-              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -269,7 +272,7 @@ export function AdminView() {
               {GOVERNANCE_AUDIT_ITEMS.map((item) => (
                 <View key={item.id} style={styles.auditItemRowPremium}>
                   <View style={styles.auditIconCirclePremium}>
-                    <MaterialCommunityIcons name={item.icon} size={22} color="#0B2D3E" />
+                    <MaterialCommunityIcons name={item.icon} size={22} color={colors.textPrimary} />
                   </View>
                   <View style={styles.auditItemMain}>
                     <Text style={styles.auditItemLabelPremium}>{item.label}</Text>
@@ -293,7 +296,7 @@ export function AdminView() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 },
   actionRow: {
@@ -310,11 +313,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 14,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
-  auditBtnText: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
+  auditBtnText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
   provisionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -335,11 +338,11 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: 140,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   statCardIconWrap: {
     width: 40,
@@ -350,8 +353,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  statCardLabel: { fontSize: 10, fontWeight: '800', color: '#5B6B7A', letterSpacing: 0.5 },
-  statCardValue: { fontSize: 14, fontWeight: '900', color: '#0B2D3E', marginTop: 4 },
+  statCardLabel: { fontSize: 10, fontWeight: '800', color: colors.textSecondary, letterSpacing: 0.5 },
+  statCardValue: { fontSize: 14, fontWeight: '900', color: colors.textPrimary, marginTop: 4 },
 
   twoCol: {
     flexDirection: 'row',
@@ -361,46 +364,46 @@ const styles = StyleSheet.create({
   accessMatrixCard: {
     flex: 1,
     minWidth: 280,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '900', color: '#0B2D3E', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: colors.textPrimary, marginBottom: 12 },
   roleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E3ECF4',
+    borderTopColor: colors.cardBorder,
   },
   roleRowFirst: { borderTopWidth: 0 },
   roleContent: { flex: 1 },
-  roleTitle: { fontSize: 14, fontWeight: '800', color: '#0B2D3E' },
-  roleDesc: { fontSize: 12, fontWeight: '600', color: '#5B6B7A', marginTop: 4 },
+  roleTitle: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
+  roleDesc: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginTop: 4 },
   roleTag: {
-    backgroundColor: '#E8EDF2',
+    backgroundColor: 'rgba(11, 160, 178, 0.1)',
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 20,
     marginLeft: 12,
   },
-  roleTagText: { fontSize: 11, fontWeight: '800', color: '#0B2D3E' },
+  roleTagText: { fontSize: 11, fontWeight: '800', color: '#0BA0B2' },
 
   rightCol: { flex: 1, minWidth: 280, gap: 16 },
   apiCard: {
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   apiSubtitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginBottom: 14,
     lineHeight: 18,
   },
@@ -410,40 +413,39 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
-  apiKeyLabel: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
+  apiKeyLabel: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
   apiKeyStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     marginBottom: 12,
   },
-  activeBadge: {
-    backgroundColor: '#0D9488',
+  activeBadge: { backgroundColor: 'rgba(13, 148, 136, 0.15)',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
   },
-  activeBadgeText: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
+  activeBadgeText: { fontSize: 11, fontWeight: '800', color: '#14B8A6' },
   apiKeyInput: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     fontSize: 13,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   rotateBtn: {
     alignSelf: 'flex-start',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: '#E8EDF2',
+    backgroundColor: 'rgba(11, 160, 178, 0.1)',
   },
-  rotateBtnText: { fontSize: 12, fontWeight: '800', color: '#0B2D3E' },
+  rotateBtnText: { fontSize: 12, fontWeight: '800', color: '#0BA0B2' },
 
   governanceCard: {
     backgroundColor: '#0B2D3E',
@@ -475,14 +477,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
-  auditLogsBtnText: { fontSize: 12, fontWeight: '800', color: '#0B2D3E' },
+  auditLogsBtnText: { fontSize: 12, fontWeight: '800', color: colors.textPrimary },
 
   // Full-Page Modal Styles
   modalFullContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalHeaderFull: {
     flexDirection: 'row',
@@ -497,13 +499,13 @@ const styles = StyleSheet.create({
   modalTitleFull: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   modalSubtitleFull: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 6,
     lineHeight: 20,
   },
@@ -511,7 +513,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(11, 45, 62, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -525,7 +527,7 @@ const styles = StyleSheet.create({
   formFieldLabel: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 10,
     marginTop: 20,
     letterSpacing: 0.3,
@@ -534,10 +536,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
@@ -545,23 +547,23 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   provisionDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
   provisionDropdownText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   clearanceToggleRow: {
     flexDirection: 'row',
@@ -571,23 +573,23 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
   },
   clearanceBtnActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderColor: '#0B2D3E',
     borderWidth: 2,
   },
   clearanceBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   clearanceBtnTextActive: {
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '900',
   },
   secureProvisionBlock: {
@@ -626,7 +628,7 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
   },
   footerBtnGroup: {
     flexDirection: 'row',
@@ -647,9 +649,9 @@ const styles = StyleSheet.create({
   },
   cancelActionBtn: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
@@ -658,7 +660,7 @@ const styles = StyleSheet.create({
   cancelActionBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
 
   // Governance Audit Specific
@@ -669,9 +671,9 @@ const styles = StyleSheet.create({
   auditItemRowPremium: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     padding: 18,
     shadowColor: '#0B2D3E',
@@ -684,7 +686,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -695,7 +697,7 @@ const styles = StyleSheet.create({
   auditItemLabelPremium: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   auditItemStatusBadge: {
     backgroundColor: 'rgba(22, 163, 74, 0.1)',
@@ -706,7 +708,7 @@ const styles = StyleSheet.create({
   auditItemStatusText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#16A34A',
+    color: '#10B981',
   },
   closeAuditFullBtn: {
     backgroundColor: '#0B2D3E',

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/context/ThemeContext';
 
 const AUDIT_ITEMS = [
   { id: '1', label: 'ENCRYPTION LAYER', value: 'AES-256 GCM', status: 'Optimal', icon: 'lock-outline' as const },
@@ -45,6 +46,8 @@ const ACTIVE_ALERTS = [
 ];
 
 export function MonitoringView() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showDeployModal, setShowDeployModal] = useState(false);
@@ -80,7 +83,7 @@ export function MonitoringView() {
         <View style={styles.statusGrid}>
           {STATUS_CARDS.map((s) => (
             <View key={s.id} style={styles.statusCard}>
-              <MaterialCommunityIcons name={s.icon} size={22} color="#0B2D3E" />
+              <MaterialCommunityIcons name={s.icon} size={22} color={colors.textPrimary} />
               <Text style={styles.statusCardValue}>{s.value}</Text>
               <Text style={styles.statusCardSub}>{s.sub}</Text>
               <Text style={styles.statusCardLabel}>{s.label}</Text>
@@ -107,7 +110,7 @@ export function MonitoringView() {
           {sessionDeployed ? (
             <View style={styles.feedLive}>
               <View style={styles.feedLiveIconWrap}>
-                <MaterialCommunityIcons name="map-marker" size={48} color="#0B2D3E" />
+                <MaterialCommunityIcons name="map-marker" size={48} color={colors.textPrimary} />
               </View>
               <Text style={styles.feedLiveAsset}>Asset: S-142 (John O.)</Text>
               <Text style={styles.feedLiveCoords}>40.7128° N, 74.0060° W</Text>
@@ -218,7 +221,7 @@ export function MonitoringView() {
               </Text>
             </View>
             <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowAuditModal(false)}>
-              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -227,7 +230,7 @@ export function MonitoringView() {
               {AUDIT_ITEMS.map((item) => (
                 <View key={item.id} style={styles.auditItemRowFull}>
                   <View style={styles.auditIconWrapFull}>
-                    <MaterialCommunityIcons name={item.icon} size={22} color="#0B2D3E" />
+                    <MaterialCommunityIcons name={item.icon} size={22} color={colors.textPrimary} />
                   </View>
                   <View style={styles.auditItemCenter}>
                     <Text style={styles.auditItemLabelFull}>{item.label}</Text>
@@ -272,7 +275,7 @@ export function MonitoringView() {
               <Text style={styles.modalSubtitleFull}>Initialize a new secure monitoring session.</Text>
             </View>
             <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowDeployModal(false)}>
-              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -333,7 +336,7 @@ export function MonitoringView() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 },
   actionRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
@@ -342,11 +345,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
   },
-  systemAuditBtnText: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
+  systemAuditBtnText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
   startSessionBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -367,48 +370,48 @@ const styles = StyleSheet.create({
   statusCard: {
     width: '47%',
     minWidth: 140,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     gap: 4,
   },
-  statusCardValue: { fontSize: 16, fontWeight: '900', color: '#0B2D3E' },
+  statusCardValue: { fontSize: 16, fontWeight: '900', color: colors.textPrimary },
   statusCardSub: { fontSize: 12, fontWeight: '700', color: '#0BA0B2' },
-  statusCardLabel: { fontSize: 10, fontWeight: '800', color: '#7B8794', letterSpacing: 0.3 },
+  statusCardLabel: { fontSize: 10, fontWeight: '800', color: colors.textSecondary, letterSpacing: 0.3 },
   card: {
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     marginBottom: 16,
   },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: '900', color: '#0B2D3E' },
-  cardSubtitle: { fontSize: 12, fontWeight: '700', color: '#5B6B7A', marginTop: 4, lineHeight: 18 },
-  standbyBadge: { fontSize: 10, fontWeight: '800', color: '#7B8794', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: colors.textPrimary },
+  cardSubtitle: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginTop: 4, lineHeight: 18 },
+  standbyBadge: { fontSize: 10, fontWeight: '800', color: colors.textSecondary, letterSpacing: 0.5 },
   liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveBadgeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16A34A' },
-  liveBadgeText: { fontSize: 10, fontWeight: '800', color: '#0B2D3E', letterSpacing: 0.5 },
+  liveBadgeText: { fontSize: 10, fontWeight: '800', color: colors.textPrimary, letterSpacing: 0.5 },
   feedPlaceholder: {
     height: 160,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
   },
-  feedPlaceholderText: { fontSize: 12, fontWeight: '800', color: '#9AA7B6' },
+  feedPlaceholderText: { fontSize: 12, fontWeight: '800', color: colors.textSecondary },
   feedLive: {
     height: 160,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
@@ -422,8 +425,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  feedLiveAsset: { fontSize: 14, fontWeight: '900', color: '#0B2D3E' },
-  feedLiveCoords: { fontSize: 12, fontWeight: '700', color: '#7B8794' },
+  feedLiveAsset: { fontSize: 14, fontWeight: '900', color: colors.textPrimary },
+  feedLiveCoords: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
   telemetryCard: { marginBottom: 16, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#0B2D3E' },
   telemetryHeader: {
     flexDirection: 'row',
@@ -445,14 +448,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   telemetryLine: { fontSize: 11, fontFamily: 'monospace', color: '#E8EEF4', fontWeight: '600' },
-  telemetryLineHighlight: { color: '#16A34A', fontWeight: '800' },
+  telemetryLineHighlight: { color: '#10B981', fontWeight: '800' },
   responderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
+    borderTopColor: colors.cardBorder,
   },
   responderRowFirst: { borderTopWidth: 0 },
   responderAvatar: {
@@ -465,26 +468,26 @@ const styles = StyleSheet.create({
   },
   responderInitials: { fontSize: 12, fontWeight: '900', color: '#FFFFFF' },
   responderInfo: { flex: 1 },
-  responderName: { fontSize: 14, fontWeight: '900', color: '#0B2D3E' },
-  responderRole: { fontSize: 12, fontWeight: '700', color: '#5B6B7A', marginTop: 2 },
+  responderName: { fontSize: 14, fontWeight: '900', color: colors.textPrimary },
+  responderRole: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginTop: 2 },
   onlinePill: { backgroundColor: 'rgba(22, 163, 74, 0.14)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-  onlinePillText: { fontSize: 11, fontWeight: '800', color: '#16A34A' },
+  onlinePillText: { fontSize: 11, fontWeight: '800', color: '#10B981' },
   deployAgentBtn: {
     marginTop: 12,
     paddingVertical: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
   },
-  deployAgentBtnText: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
-  alertRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#E8EEF4' },
+  deployAgentBtnText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
+  alertRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.cardBorder },
   alertRowFirst: { borderTopWidth: 0 },
   alertIconWrap: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   alertText: { flex: 1 },
-  alertTitle: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
-  alertTime: { fontSize: 12, fontWeight: '700', color: '#7B8794', marginTop: 2 },
+  alertTitle: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
+  alertTime: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginTop: 2 },
   forceCard: {
     backgroundColor: '#FEF2F2',
     borderRadius: 22,
@@ -494,8 +497,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   forceTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  forceTitle: { fontSize: 16, fontWeight: '900', color: '#0B2D3E' },
-  forceDesc: { fontSize: 12, fontWeight: '700', color: '#5B6B7A', lineHeight: 18, marginBottom: 14 },
+  forceTitle: { fontSize: 16, fontWeight: '900', color: colors.textPrimary },
+  forceDesc: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, lineHeight: 18, marginBottom: 14 },
   forceBtn: { backgroundColor: '#DC2626', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
   forceBtnText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF', letterSpacing: 0.4 },
   bottomSpacer: { height: 8 },
@@ -510,11 +513,11 @@ const styles = StyleSheet.create({
   auditModalCard: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   auditModalHeader: {
     flexDirection: 'row',
@@ -522,13 +525,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 20,
   },
-  auditModalTitle: { fontSize: 20, fontWeight: '900', color: '#0B2D3E' },
-  auditModalSubtitle: { fontSize: 12.5, fontWeight: '700', color: '#5B6B7A', marginTop: 4, lineHeight: 18 },
+  auditModalTitle: { fontSize: 20, fontWeight: '900', color: colors.textPrimary },
+  auditModalSubtitle: { fontSize: 12.5, fontWeight: '700', color: colors.textSecondary, marginTop: 4, lineHeight: 18 },
   auditModalClose: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -540,20 +543,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     marginBottom: 10,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
   },
   auditItemCenter: { flex: 1 },
-  auditItemLabel: { fontSize: 10, fontWeight: '900', color: '#7B8794', letterSpacing: 0.4 },
-  auditItemValue: { fontSize: 14, fontWeight: '900', color: '#0B2D3E', marginTop: 2 },
+  auditItemLabel: { fontSize: 10, fontWeight: '900', color: colors.textSecondary, letterSpacing: 0.4 },
+  auditItemValue: { fontSize: 14, fontWeight: '900', color: colors.textPrimary, marginTop: 2 },
   auditStatusPill: {
     backgroundColor: 'rgba(22, 163, 74, 0.14)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
   },
-  auditStatusPillText: { fontSize: 12, fontWeight: '800', color: '#16A34A' },
+  auditStatusPillText: { fontSize: 12, fontWeight: '800', color: '#10B981' },
   auditIntegrityBlock: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -586,38 +589,38 @@ const styles = StyleSheet.create({
   deployModalCard: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
-  deployLabel: { fontSize: 12, fontWeight: '800', color: '#0B2D3E', marginBottom: 8, marginTop: 14 },
+  deployLabel: { fontSize: 12, fontWeight: '800', color: colors.textPrimary, marginBottom: 8, marginTop: 14 },
   deployInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  deployInput: { flex: 1, fontSize: 14, fontWeight: '700', color: '#0B2D3E', padding: 0 },
+  deployInput: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.textPrimary, padding: 0 },
   deployDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 14,
     paddingVertical: 14,
     marginTop: 0,
   },
-  deployDropdownText: { fontSize: 14, fontWeight: '700', color: '#0B2D3E' },
+  deployDropdownText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   authenticateDeployBtn: {
     backgroundColor: '#0B2D3E',
     paddingVertical: 16,
@@ -630,7 +633,7 @@ const styles = StyleSheet.create({
   // Full-Page Modal Styles
   modalFullContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalHeaderFull: {
     flexDirection: 'row',
@@ -645,13 +648,13 @@ const styles = StyleSheet.create({
   modalTitleFull: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   modalSubtitleFull: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 6,
     lineHeight: 20,
   },
@@ -659,7 +662,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(11, 45, 62, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -673,9 +676,9 @@ const styles = StyleSheet.create({
   auditItemRowFull: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     padding: 16,
     elevation: 2,
@@ -688,7 +691,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -696,13 +699,13 @@ const styles = StyleSheet.create({
   auditItemLabelFull: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#7B8794',
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   auditItemValueFull: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   auditStatusPillFull: {
@@ -714,7 +717,7 @@ const styles = StyleSheet.create({
   auditStatusPillTextFull: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#16A34A',
+    color: '#10B981',
   },
   auditIntegrityBlockPremium: {
     flexDirection: 'row',
@@ -750,7 +753,7 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
   },
   initAuditBtnPremium: {
     backgroundColor: '#0B2D3E',
@@ -773,7 +776,7 @@ const styles = StyleSheet.create({
   deployFieldLabel: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 10,
     marginTop: 20,
     letterSpacing: 0.3,
@@ -782,10 +785,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
@@ -793,17 +796,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     padding: 0,
   },
   deployDropdownFull: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
@@ -815,6 +818,6 @@ const styles = StyleSheet.create({
   deployDropdownTextFull: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
 });

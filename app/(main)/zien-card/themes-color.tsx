@@ -4,6 +4,8 @@ import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { Roboto_700Bold } from '@expo-google-fonts/roboto';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
   Alert,
@@ -69,10 +71,17 @@ const FONT_OPTIONS: {
 ];
 
 export default function ZienCardThemesColorScreen() {
+  const { colors, theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors);
+
   const router = useRouter();
   const [template, setTemplate] = useState<TemplateId>('modern');
   const [accentColor, setAccentColor] = useState<string>(ACCENT_COLORS[0]);
   const [selectedFontLabel, setSelectedFontLabel] = useState<SelectedFontLabel>('Inter');
+
+  const DEFAULT_SHADOWS = ['#0B2D3E', '#0B2341', '#0F172A'];
+  const activeLabelColor = isDark && (DEFAULT_SHADOWS.includes(accentColor)) ? '#FFFFFF' : accentColor;
 
   const [fontsLoaded] = useFonts({
     Inter_800ExtraBold,
@@ -101,7 +110,7 @@ export default function ZienCardThemesColorScreen() {
           onPress={onSave}
           accessibilityRole="button"
           accessibilityLabel="Save changes">
-          <MaterialCommunityIcons name="content-save" size={22} color="#0B2D3E" />
+          <MaterialCommunityIcons name="content-save" size={22} color={colors.textPrimary} />
         </Pressable>
       }>
       <ScrollView
@@ -135,7 +144,7 @@ export default function ZienCardThemesColorScreen() {
                 styles.templateChip,
                 template === t.id && [
                   styles.templateChipActive,
-                  { borderColor: accentColor },
+                  { borderColor: activeLabelColor },
                 ],
               ]}
               onPress={() => setTemplate(t.id)}
@@ -145,13 +154,13 @@ export default function ZienCardThemesColorScreen() {
                 <MaterialCommunityIcons
                   name={t.icon}
                   size={22}
-                  color={template === t.id ? accentColor : '#5B6B7A'}
+                  color={template === t.id ? activeLabelColor : '#5B6B7A'}
                 />
               </View>
               <Text
                 style={[
                   styles.templateLabel,
-                  template === t.id && { color: accentColor },
+                  template === t.id && { color: activeLabelColor },
                 ]}
                 numberOfLines={1}>
                 {t.label}
@@ -160,7 +169,7 @@ export default function ZienCardThemesColorScreen() {
                 {t.description}
               </Text>
               {template === t.id && (
-                <View style={[styles.templateCheck, { backgroundColor: accentColor }]}>
+                <View style={[styles.templateCheck, { backgroundColor: activeLabelColor }]}>
                   <MaterialCommunityIcons name="check" size={12} color="#FFFFFF" />
                 </View>
               )}
@@ -179,7 +188,7 @@ export default function ZienCardThemesColorScreen() {
                 { backgroundColor: hex },
                 accentColor === hex && [
                   styles.colorSwatchSelected,
-                  { borderColor: accentColor },
+                  { borderColor: isDark && hex === '#0B2341' ? '#FFFFFF' : hex },
                 ],
               ]}
               onPress={() => setAccentColor(hex)}
@@ -247,18 +256,18 @@ export default function ZienCardThemesColorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 },
   headerSaveBtn: {
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   previewWrap: {
     alignItems: 'center',
@@ -272,7 +281,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 14,
   },
   templateScroll: { marginHorizontal: -18, marginBottom: 24 },
@@ -284,21 +293,21 @@ const styles = StyleSheet.create({
   },
   templateChip: {
     width: 100,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'transparent',
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     padding: 14,
     alignItems: 'center',
   },
   templateChipActive: {
-    backgroundColor: '#EEF3F8',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   templateIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E8EEF4',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -306,12 +315,12 @@ const styles = StyleSheet.create({
   templateLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   templateDesc: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   templateCheck: {
@@ -344,11 +353,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E8EEF4',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#E3ECF4',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   hexRow: {
     flexDirection: 'row',
@@ -359,26 +368,27 @@ const styles = StyleSheet.create({
   hexLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   hexValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontFamily: 'monospace',
   },
   fontRowSingle: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'transparent',
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#E3ECF4',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     padding: 16,
     marginBottom: 10,
   },
   fontRowActive: {
-    backgroundColor: '#EEF3F8',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 2,
   },
   fontColSingle: {
     flex: 1,
@@ -386,12 +396,12 @@ const styles = StyleSheet.create({
   fontLabelSingle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   fontTag: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   fontCheck: {

@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { useAppTheme } from '@/context/ThemeContext';
 
 const CARD_PROFILE_URL = 'https://zien.codesmile.in/card/card-default-01/';
 
@@ -82,6 +83,13 @@ export function ProfileCard({
   headingFontFamily,
   bodyFontFamily,
 }: ProfileCardProps) {
+  const { colors, theme } = useAppTheme();
+  const styles = getStyles(colors);
+  const isDark = theme === 'dark';
+
+  const DEFAULT_SHADOWS = ['#0B2D3E', '#0B2341', '#0F172A'];
+  const activeAccent = (accentColor === DEFAULT_ACCENT || DEFAULT_SHADOWS.includes(accentColor)) && isDark ? '#FFFFFF' : accentColor;
+
   const flipAnim = useRef(new Animated.Value(0)).current;
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -234,9 +242,9 @@ export function ProfileCard({
                   contentFit="cover"
                 />
               </View>
-              <View style={styles.minimalNameBlock}>
-                <Text style={[styles.minimalFirstName, { color: accentColor }, headingFont ? { fontFamily: headingFont } : undefined]}>{firstName}</Text>
-                <Text style={[styles.minimalLastName, { color: accentColor }, headingFont ? { fontFamily: headingFont } : undefined]}>{lastName}</Text>
+              <View style={[styles.minimalNameBlock, { borderColor: activeAccent }]}>
+                <Text style={[styles.minimalFirstName, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>{firstName}</Text>
+                <Text style={[styles.minimalLastName, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>{lastName}</Text>
               </View>
               <Text style={[styles.minimalTitle, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.title.toUpperCase()}</Text>
               <View style={styles.minimalLine} />
@@ -301,16 +309,16 @@ export function ProfileCard({
               <View style={styles.avatarWrap}>
                 <Image source={{ uri: avatarUri ?? DEFAULT_AVATAR_URI }} style={styles.avatar} contentFit="cover" />
               </View>
-              <Text style={[styles.name, { color: accentColor }, headingFont ? { fontFamily: headingFont } : undefined]} numberOfLines={1}>{card.fullName}</Text>
-              <Text style={[styles.role, { color: accentColor }, headingFont ? { fontFamily: headingFont } : undefined]}>{card.title}</Text>
+              <Text style={[styles.name, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]} numberOfLines={1}>{card.fullName}</Text>
+              <Text style={[styles.role, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>{card.title}</Text>
               <Text style={[styles.license, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.legalRole} • {card.license}</Text>
               <Pressable style={styles.contactField} onPress={openPhone}>
                 <MaterialCommunityIcons name="phone-outline" size={18} color="#7B8794" />
-                <Text style={[styles.contactFieldText, { color: accentColor }, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.phone}</Text>
+                <Text style={[styles.contactFieldText, { color: activeAccent }, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.phone}</Text>
               </Pressable>
               <Pressable style={styles.contactField} onPress={openEmail}>
                 <MaterialCommunityIcons name="email-outline" size={18} color="#7B8794" />
-                <Text style={[styles.contactFieldText, { color: accentColor }, bodyFont ? { fontFamily: bodyFont } : undefined]} numberOfLines={1}>{card.email}</Text>
+                <Text style={[styles.contactFieldText, { color: activeAccent }, bodyFont ? { fontFamily: bodyFont } : undefined]} numberOfLines={1}>{card.email}</Text>
               </Pressable>
               <View style={styles.socialRow}>
                 <ExternalLink href={card.website as any} style={styles.socialLink}>
@@ -355,9 +363,9 @@ export function ProfileCard({
         <View style={[styles.backInner, (isClassic || isLuxury) && styles.backInnerClassic]}>
           {!isClassic && !isLuxury && !isMinimal && !isBold && <View style={[styles.backTopLine, { backgroundColor: accentColor }]} />}
           <Pressable style={[styles.backBtn, (isClassic || isLuxury) && styles.backBtnClassic]} onPress={flipToFront} hitSlop={12}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={(isClassic || isLuxury) ? '#FFFFFF' : accentColor} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={(isClassic || isLuxury) ? '#FFFFFF' : activeAccent} />
           </Pressable>
-          <Text style={[styles.backTitle, { color: (isClassic || isLuxury) ? '#FFFFFF' : accentColor }, headingFont ? { fontFamily: headingFont } : undefined]}>Scan to Connect</Text>
+          <Text style={[styles.backTitle, { color: (isClassic || isLuxury) ? '#FFFFFF' : activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>Scan to Connect</Text>
           <Text style={[styles.backSub, (isClassic || isLuxury) && styles.backSubClassic, bodyFont ? { fontFamily: bodyFont } : undefined]}>Instant access to your profile.</Text>
           <View style={[styles.backQr, (isClassic || isLuxury) && styles.backQrClassic]}>
             <QRCode value={cardUrl} size={200} color={accentColor} backgroundColor="#FFFFFF" />
@@ -368,7 +376,7 @@ export function ProfileCard({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     width: '100%',
     alignSelf: 'center',
@@ -386,12 +394,12 @@ const styles = StyleSheet.create({
   front: {
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
-    shadowColor: '#0B2D3E',
+    borderColor: colors.cardBorder,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
   },
@@ -401,7 +409,7 @@ const styles = StyleSheet.create({
   },
   frontTop: {
     height: 100,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: '#0B2D3E', // Keep accent or theme card static overlay if defined
     paddingHorizontal: 16,
     paddingTop: 12,
     alignItems: 'center',
@@ -429,7 +437,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 22,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -438,7 +446,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 8,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   avatarWrap: {
     width: 80,
@@ -446,8 +454,9 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     marginTop: -30,
+    backgroundColor: colors.cardBackground,
   },
   avatar: {
     width: '100%',
@@ -456,13 +465,13 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     textAlign: 'left',
   },
   role: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     textAlign: 'left',
     marginTop: 6,
     letterSpacing: 1.2,
@@ -470,7 +479,7 @@ const styles = StyleSheet.create({
   license: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#7B8794',
+    color: colors.textSecondary,
     textAlign: 'left',
     marginTop: 4,
     marginBottom: 14,
@@ -479,7 +488,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -488,7 +499,7 @@ const styles = StyleSheet.create({
   contactFieldText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     flex: 1,
   },
   socialRow: {
@@ -510,7 +521,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   frontBottom: {
     flexDirection: 'row',
@@ -519,25 +530,25 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
+    borderTopColor: colors.cardBorder,
   },
   metaCol: { flex: 1 },
   smallQrBox: {
     width: 52,
     height: 52,
     borderRadius: 10,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   back: {
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   backInner: {
     flex: 1,
@@ -545,6 +556,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     alignItems: 'center',
+    backgroundColor: colors.cardBackground,
   },
   backTopLine: {
     position: 'absolute',
@@ -552,7 +564,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     height: 4,
-    backgroundColor: '#0B2D3E',
   },
   backBtn: {
     position: 'absolute',
@@ -561,30 +572,32 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   backTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 56,
     marginBottom: 6,
   },
   backSub: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginBottom: 24,
   },
   backQr: {
     width: 250,
     height: 250,
     borderRadius: 16,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -788,6 +801,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 20,
+    backgroundColor: colors.cardBackground,
   },
   minimalFlipBtn: {
     position: 'absolute',
@@ -800,6 +814,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1,
     borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   minimalBody: {
     flex: 1,
@@ -840,7 +856,7 @@ const styles = StyleSheet.create({
   minimalLine: {
     width: 48,
     height: 1,
-    backgroundColor: '#E3ECF4',
+    backgroundColor: colors.cardBorder,
     marginVertical: 18,
   },
   minimalIconRow: {
@@ -878,6 +894,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   boldNameBlock: {
     flex: 1,
@@ -916,7 +933,7 @@ const styles = StyleSheet.create({
   },
   boldBottom: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 18,
     paddingTop: 56,
     paddingBottom: 20,
@@ -924,19 +941,19 @@ const styles = StyleSheet.create({
   boldTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 1.2,
   },
   boldLine: {
     width: '100%',
     height: 1,
-    backgroundColor: '#E3ECF4',
+    backgroundColor: colors.cardBorder,
     marginVertical: 14,
   },
   boldContactText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 10,
   },
 });

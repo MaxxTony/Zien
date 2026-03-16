@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -35,6 +36,9 @@ const MOCK_BASE_IMAGE = 'https://images.unsplash.com/photo-1600585154340-be6161a
 const MOCK_ENHANCED_IMAGE = 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80';
 
 export default function VisualAssetLabScreen() {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -99,7 +103,7 @@ export default function VisualAssetLabScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+                colors={colors.backgroundGradient as any}
                 style={[styles.background, { paddingTop: insets.top }]}
             >
                 <PageHeader
@@ -161,7 +165,7 @@ export default function VisualAssetLabScreen() {
                                 style={styles.uploadBtn}
                                 onPress={() => setIsUploadModalVisible(true)}
                             >
-                                <MaterialCommunityIcons name="upload" size={18} color="#0B2341" />
+                                <MaterialCommunityIcons name="upload" size={18} color={colors.textPrimary} />
                                 <Text style={styles.uploadBtnText}>Upload Base</Text>
                             </Pressable>
 
@@ -251,11 +255,11 @@ export default function VisualAssetLabScreen() {
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Choose Image Source</Text>
                         <Pressable style={styles.modalOption} onPress={() => handlePickImage(true)}>
-                            <MaterialCommunityIcons name="camera" size={24} color="#0B2341" />
+                            <MaterialCommunityIcons name="camera" size={24} color={colors.textPrimary} />
                             <Text style={styles.modalOptionText}>Take Picture</Text>
                         </Pressable>
                         <Pressable style={styles.modalOption} onPress={() => handlePickImage(false)}>
-                            <MaterialCommunityIcons name="image" size={24} color="#0B2341" />
+                            <MaterialCommunityIcons name="image" size={24} color={colors.textPrimary} />
                             <Text style={styles.modalOptionText}>Upload from Gallery</Text>
                         </Pressable>
                     </View>
@@ -265,285 +269,294 @@ export default function VisualAssetLabScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    background: { flex: 1 },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 20 },
+function getStyles(colors: any) {
+    return StyleSheet.create({
+        container: { flex: 1 },
+        background: { flex: 1 },
+        scroll: { flex: 1 },
+        scrollContent: { paddingHorizontal: 20 },
 
-    // Tabs
-    typeTabs: {
-        paddingVertical: 10,
-        gap: 8,
-        marginBottom: 20,
-    },
-    typeTab: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        marginRight: 8,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    typeTabActive: {
-        backgroundColor: '#0B2341',
-        borderColor: '#0B2341',
-    },
-    typeTabText: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0B2341',
-    },
-    typeTabTextActive: {
-        color: '#FFFFFF',
-    },
+        // Tabs
+        typeTabs: {
+            paddingVertical: 10,
+            gap: 8,
+            marginBottom: 20,
+        },
+        typeTab: {
+            backgroundColor: colors.cardBackground,
+            borderRadius: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            marginRight: 8,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        typeTabActive: {
+            backgroundColor: '#0B2341',
+            borderColor: '#0B2341',
+        },
+        typeTabText: {
+            fontSize: 13,
+            fontWeight: '800',
+            color: colors.textPrimary,
+        },
+        typeTabTextActive: {
+            color: '#FFFFFF',
+        },
 
-    // Card
-    inputCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 20,
-        elevation: 4,
-    },
-    cardHeading: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#0B2341',
-        marginBottom: 8,
-    },
-    cardSubtitle: {
-        fontSize: 13,
-        color: '#64748B',
-        lineHeight: 18,
-        marginBottom: 20,
-    },
-    textArea: {
-        backgroundColor: '#F8FAFC',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 16,
-        padding: 16,
-        height: 150,
-        fontSize: 15,
-        color: '#0F172A',
-        fontWeight: '600',
-        marginBottom: 20,
-    },
-    inputFooter: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 20,
-    },
-    uploadBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 12,
-        paddingVertical: 14,
-    },
-    uploadBtnText: {
-        color: '#0B2341',
-        fontSize: 14,
-        fontWeight: '800',
-    },
-    generateBtn: {
-        backgroundColor: '#0B2341',
-        borderRadius: 12,
-        paddingHorizontal: 24,
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    generateBtnDisabled: { opacity: 0.6 },
-    generateBtnText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '800',
-    },
-    styleList: { marginTop: 10 },
-    stylePill: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 10,
-        backgroundColor: '#F1F5F9',
-        marginRight: 8,
-        justifyContent: 'center',
-    },
-    stylePillActive: {
-        backgroundColor: '#E2E8F0',
-    },
-    stylePillText: {
-        fontSize: 11,
-        color: '#64748B',
-        fontWeight: '700',
-    },
-    stylePillTextActive: {
-        color: '#0B2341',
-    },
+        // Card
+        inputCard: {
+            backgroundColor: colors.cardBackground,
+            borderRadius: 24,
+            padding: 24,
+            marginBottom: 24,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.04,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 20,
+            elevation: 4,
+        },
+        cardHeading: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            marginBottom: 8,
+        },
+        cardSubtitle: {
+            fontSize: 13,
+            color: colors.textSecondary,
+            lineHeight: 18,
+            marginBottom: 20,
+        },
+        textArea: {
+            backgroundColor: colors.surfaceSoft,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            borderRadius: 16,
+            padding: 16,
+            height: 150,
+            fontSize: 15,
+            color: colors.textPrimary,
+            fontWeight: '600',
+            marginBottom: 20,
+        },
+        inputFooter: {
+            flexDirection: 'row',
+            gap: 12,
+            marginBottom: 20,
+        },
+        uploadBtn: {
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            borderRadius: 12,
+            paddingVertical: 14,
+            backgroundColor: colors.cardBackground,
+        },
+        uploadBtnText: {
+            color: colors.textPrimary,
+            fontSize: 14,
+            fontWeight: '800',
+        },
+        generateBtn: {
+            backgroundColor: colors.accentTeal,
+            borderRadius: 12,
+            paddingHorizontal: 24,
+            paddingVertical: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        generateBtnDisabled: { opacity: 0.6 },
+        generateBtnText: {
+            color: '#FFFFFF',
+            fontSize: 14,
+            fontWeight: '800',
+        },
+        styleList: { marginTop: 10 },
+        stylePill: {
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 10,
+            backgroundColor: colors.surfaceSoft,
+            marginRight: 8,
+            justifyContent: 'center',
+        },
+        stylePillActive: {
+            backgroundColor: colors.surfaceMuted,
+        },
+        stylePillText: {
+            fontSize: 11,
+            color: colors.textSecondary,
+            fontWeight: '700',
+        },
+        stylePillTextActive: {
+            color: colors.textPrimary,
+        },
 
-    // Output Card
-    outputCard: {
-        backgroundColor: '#0B2341',
-        borderRadius: 24,
-        padding: 16,
-        minHeight: 450,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 30,
-        elevation: 8,
-    },
-    outputHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    outputStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexShrink: 1,
-    },
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: '#0BA0B2',
-        marginRight: 6,
-    },
-    outputTitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 0.5,
-    },
-    outputActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    iconAction: {
-        width: 36,
-        height: 36,
-        borderRadius: 8,
-        backgroundColor: '#1E293B',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    saveBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#0BA0B2',
-        paddingHorizontal: 12,
-        paddingVertical: 7,
-        borderRadius: 8,
-        gap: 6,
-    },
-    saveBtnText: {
-        color: '#FFFFFF',
-        fontSize: 11,
-        fontWeight: '900',
-    },
-    outputContent: { flex: 1 },
-    imageWrapper: {
-        width: '100%',
-        aspectRatio: 1.2,
-        borderRadius: 20,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    mainImage: {
-        width: '100%',
-        height: '100%',
-        resizeMode: 'cover',
-    },
-    enhancedBadge: {
-        position: 'absolute',
-        bottom: 12,
-        right: 12,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-    },
-    enhancedBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '800',
-    },
-    loaderArea: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 60,
-    },
-    progressCircle: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.05)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-    },
-    loaderTitle: {
-        color: '#FFFFFF',
-        fontSize: 20,
-        fontWeight: '900',
-        marginBottom: 8,
-    },
-    loaderSubtitle: {
-        color: '#94A3B8',
-        fontSize: 13,
-        textAlign: 'center',
-        paddingHorizontal: 40,
-        lineHeight: 18,
-    },
+        // Output Card
+        outputCard: {
+            backgroundColor: colors.cardBackgroundSemi,
+            borderRadius: 24,
+            padding: 16,
+            minHeight: 450,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.2,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 30,
+            elevation: 8,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        outputHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+        },
+        outputStatus: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexShrink: 1,
+        },
+        statusDot: {
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: '#0BA0B2',
+            marginRight: 6,
+        },
+        outputTitle: {
+            fontSize: 10,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            letterSpacing: 0.5,
+        },
+        outputActions: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+        },
+        iconAction: {
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            backgroundColor: colors.surfaceSoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        saveBtn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#0BA0B2',
+            paddingHorizontal: 12,
+            paddingVertical: 7,
+            borderRadius: 8,
+            gap: 6,
+        },
+        saveBtnText: {
+            color: '#FFFFFF',
+            fontSize: 11,
+            fontWeight: '900',
+        },
+        outputContent: { flex: 1 },
+        imageWrapper: {
+            width: '100%',
+            aspectRatio: 1.2,
+            borderRadius: 20,
+            overflow: 'hidden',
+            position: 'relative',
+        },
+        mainImage: {
+            width: '100%',
+            height: '100%',
+            resizeMode: 'cover',
+        },
+        enhancedBadge: {
+            position: 'absolute',
+            bottom: 12,
+            right: 12,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.2)',
+        },
+        enhancedBadgeText: {
+            color: '#FFFFFF',
+            fontSize: 10,
+            fontWeight: '800',
+        },
+        loaderArea: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 60,
+        },
+        progressCircle: {
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.05)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+        },
+        loaderTitle: {
+            color: colors.textPrimary,
+            fontSize: 20,
+            fontWeight: '900',
+            marginBottom: 8,
+        },
+        loaderSubtitle: {
+            color: colors.textMuted,
+            fontSize: 13,
+            textAlign: 'center',
+            paddingHorizontal: 40,
+            lineHeight: 18,
+        },
 
-    // Modal
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        padding: 32,
-        gap: 16,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#0B2341',
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-    modalOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F8FAFC',
-        padding: 20,
-        borderRadius: 16,
-        gap: 16,
-    },
-    modalOptionText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#0B2341',
-    },
-});
+        // Modal
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'flex-end',
+        },
+        modalContent: {
+            backgroundColor: colors.cardBackground,
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            padding: 32,
+            gap: 16,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        modalTitle: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            marginBottom: 16,
+            textAlign: 'center',
+        },
+        modalOption: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.surfaceSoft,
+            padding: 20,
+            borderRadius: 16,
+            gap: 16,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        modalOptionText: {
+            fontSize: 16,
+            fontWeight: '700',
+            color: colors.textPrimary,
+        },
+    });
+}

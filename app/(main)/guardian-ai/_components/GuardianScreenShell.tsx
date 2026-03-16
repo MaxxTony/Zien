@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GuardianNav, GuardianTabId } from './GuardianNav';
+import { useAppTheme } from '@/context/ThemeContext';
 
 type GuardianScreenShellProps = {
   title: string;
@@ -25,12 +26,16 @@ export function GuardianScreenShell({
   activeTab,
   onTabChange,
 }: GuardianScreenShellProps) {
+  const { colors, theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors);
+  
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   return (
     <LinearGradient
-      colors={['#CAD8E4', '#D7E9F2', '#F3E1D7']}
+      colors={isDark ? ['#0C1623', '#111E2D', '#121F2F'] : ['#CAD8E4', '#D7E9F2', '#F3E1D7']}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
@@ -38,7 +43,7 @@ export function GuardianScreenShell({
         <View style={styles.header}>
           {showBack && (
             <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <MaterialCommunityIcons name="arrow-left" size={22} color="#0B2D3E" />
+              <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
             </Pressable>
           )}
           <View style={[styles.headerText, !showBack && styles.headerTextFull]}>
@@ -57,7 +62,7 @@ export function GuardianScreenShell({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   background: { flex: 1 },
   headerWrap: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 10 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -65,16 +70,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   headerText: { flex: 1 },
   headerTextFull: { marginLeft: 0 },
-  title: { fontSize: 20, fontWeight: '900', color: '#0B2D3E' },
-  subtitle: { fontSize: 12.5, color: '#5B6B7A', marginTop: 4, fontWeight: '700' },
+  title: { fontSize: 20, fontWeight: '900', color: colors.textPrimary },
+  subtitle: { fontSize: 12.5, color: colors.textSecondary, marginTop: 4, fontWeight: '700' },
   contentWrap: {
     flex: 1,
   },

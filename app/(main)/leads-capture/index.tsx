@@ -1,6 +1,6 @@
 import { ExternalLink } from '@/components/external-link';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -82,6 +82,10 @@ const METRICS = [
 ];
 
 export default function LeadsCaptureScreen() {
+    const { colors, theme } = useAppTheme();
+    const isDark = theme === 'dark';
+    const styles = getStyles(colors);
+    
     const router = useRouter();
     const [showModal, setShowModal] = useState(false);
     const [captureHistory, setCaptureHistory] = useState<LeadCaptureItem[]>(CAPTURE_HISTORY);
@@ -106,7 +110,7 @@ export default function LeadsCaptureScreen() {
     const renderMetric = (item: typeof METRICS[0], index: number) => (
         <View key={index} style={styles.metricCard}>
             <View style={styles.metricIconContainer}>
-                <MaterialCommunityIcons name={item.icon as any} size={18} color={Theme.textSecondary} />
+                <MaterialCommunityIcons name={item.icon as any} size={18} color={colors.textSecondary} />
             </View>
             <View>
                 <Text style={styles.metricLabel}>{item.label}</Text>
@@ -128,11 +132,11 @@ export default function LeadsCaptureScreen() {
                 <View style={styles.actionRow}>
                     <ExternalLink href={item.url as any}>
                         <View style={styles.miniActionBtn}>
-                            <MaterialCommunityIcons name="open-in-new" size={16} color={Theme.textSecondary} />
+                            <MaterialCommunityIcons name="open-in-new" size={16} color={colors.textSecondary} />
                         </View>
                     </ExternalLink>
                     <Pressable style={styles.miniActionBtn} onPress={() => setShowModal(true)}>
-                        <MaterialCommunityIcons name="pencil-outline" size={16} color={Theme.textSecondary} />
+                        <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.textSecondary} />
                     </Pressable>
                     <Pressable
                         style={[styles.miniActionBtn, styles.deleteBtn]}
@@ -241,11 +245,11 @@ export default function LeadsCaptureScreen() {
                 <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalIconContainer}>
-                            <MaterialCommunityIcons name="web-off" size={48} color={Theme.accentTeal} />
+                            <MaterialCommunityIcons name="web-off" size={48} color={colors.accentTeal} />
                         </View>
                         <Text style={styles.modalTitle}>Feature Limited</Text>
                         <Text style={styles.modalDescription}>
-                            This feature is currently not available on the app version. Please try this on our web  for the full experience.
+                            This feature is currently not available on the app version. Please try this on our web for the full experience.
                         </Text>
                         <Pressable
                             style={styles.modalButton}
@@ -260,10 +264,10 @@ export default function LeadsCaptureScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F1F6FB', // Matches the light part of the gradient in screenshot
+        backgroundColor: colors.backgroundGradient[0] || colors.cardBackground,
     },
     headerCreateBtn: {
         flexDirection: 'row',
@@ -289,12 +293,12 @@ const styles = StyleSheet.create({
     heroTitle: {
         fontSize: 28,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     heroDesc: {
         fontSize: 15,
-        color: Theme.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 22,
         maxWidth: '90%',
     },
@@ -309,7 +313,7 @@ const styles = StyleSheet.create({
         minWidth: '45%',
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         padding: 16,
         gap: 12,
@@ -318,26 +322,28 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
         elevation: 2,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
     },
     metricIconContainer: {
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
     },
     metricLabel: {
         fontSize: 10,
         fontWeight: '800',
-        color: Theme.textMuted,
+        color: colors.textSecondary,
         letterSpacing: 0.5,
         marginBottom: 2,
     },
     metricValue: {
         fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     sectionHeader: {
         marginBottom: 16,
@@ -345,15 +351,15 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     sectionSubtitle: {
         fontSize: 13,
-        color: Theme.textSecondary,
+        color: colors.textSecondary,
     },
     listContainer: {
-        paddingBottom: 100, // Increased to account for FAB
+        paddingBottom: 100,
     },
     fabContainer: {
         position: 'absolute',
@@ -366,12 +372,12 @@ const styles = StyleSheet.create({
     fab: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#0B2D3E',
+        backgroundColor: '#0BA0B2',
         paddingHorizontal: 24,
         paddingVertical: 14,
         borderRadius: 30,
         gap: 8,
-        shadowColor: '#0B2D3E',
+        shadowColor: '#0BA0B2',
         shadowOpacity: 0.3,
         shadowRadius: 15,
         shadowOffset: { width: 0, height: 8 },
@@ -384,13 +390,13 @@ const styles = StyleSheet.create({
         letterSpacing: -0.2,
     },
     leadCard: {
-        backgroundColor: '#FFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 20,
         marginHorizontal: 18,
         marginBottom: 16,
         padding: 16,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
         shadowColor: '#000',
         shadowOpacity: 0.03,
         shadowRadius: 12,
@@ -416,12 +422,12 @@ const styles = StyleSheet.create({
     leadTitle: {
         fontSize: 16,
         fontWeight: '800',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     leadType: {
         fontSize: 12,
-        color: Theme.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '500',
     },
     actionRow: {
@@ -432,19 +438,19 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 8,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.cardBorder,
     },
     deleteBtn: {
-        backgroundColor: '#FEF2F2',
-        borderColor: '#FEE2E2',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderColor: 'rgba(239, 68, 68, 0.1)',
     },
     divider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.cardBorder,
         marginBottom: 14,
     },
     leadStatsRow: {
@@ -458,18 +464,18 @@ const styles = StyleSheet.create({
     leadStatLabel: {
         fontSize: 9,
         fontWeight: '800',
-        color: Theme.textMuted,
+        color: colors.textSecondary,
         letterSpacing: 0.5,
         marginBottom: 6,
     },
     leadStatValue: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
     },
     leadsCount: {
         fontSize: 12,
-        color: Theme.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '400',
     },
     row: {
@@ -517,7 +523,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     modalContent: {
-        backgroundColor: '#FFF',
+        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         padding: 32,
         width: '100%',
@@ -528,12 +534,14 @@ const styles = StyleSheet.create({
         shadowRadius: 20,
         shadowOffset: { width: 0, height: 10 },
         elevation: 10,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
     },
     modalIconContainer: {
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: '#F0F9FA',
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
@@ -541,19 +549,19 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 22,
         fontWeight: '900',
-        color: '#0B2D3E',
+        color: colors.textPrimary,
         marginBottom: 12,
         textAlign: 'center',
     },
     modalDescription: {
         fontSize: 15,
-        color: Theme.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 22,
         marginBottom: 24,
     },
     modalButton: {
-        backgroundColor: '#0B2D3E',
+        backgroundColor: '#0BA0B2',
         paddingHorizontal: 32,
         paddingVertical: 14,
         borderRadius: 16,

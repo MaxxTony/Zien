@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { ZienCardScreenShell } from './_components/ZienCardScreenShell';
+import { useAppTheme } from '@/context/ThemeContext';
 
 const STAT_CARDS = [
   { key: 'total', label: 'Total Leads', value: '0', icon: 'account-outline' as const, iconBg: '#E0F2FE' },
@@ -19,6 +20,9 @@ const STAT_CARDS = [
 const TABLE_HEADERS = ['NAME', 'EMAIL', 'PHONE', 'DATE', 'ACTIONS'];
 
 export default function ZienCardLeadEnquiriesScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  
   const [search, setSearch] = useState('');
 
   const onExportCsv = () => {
@@ -105,14 +109,14 @@ export default function ZienCardLeadEnquiriesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 },
   exportBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: '#0BA0B2',
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 15,
@@ -131,10 +135,10 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     padding: 14,
     alignItems: 'center',
     minWidth: 0,
@@ -150,12 +154,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -169,10 +173,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 14,
     minHeight: 48,
   },
@@ -180,7 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     paddingVertical: 12,
     paddingRight: 8,
   },
@@ -188,23 +192,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 14,
     minHeight: 48,
   },
   filtersBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   tableCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
     minHeight: 280,
   },
@@ -214,14 +218,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8EEF4',
+    borderBottomColor: colors.cardBorder,
     gap: 8,
   },
   tableHeaderText: {
     flex: 1,
     fontSize: 11,
     fontWeight: '800',
-    color: '#9AA7B6',
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   emptyState: {
@@ -234,13 +238,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 16,
   },
   emptySub: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },

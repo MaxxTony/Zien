@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -72,6 +73,9 @@ const SLIDES = [
 ];
 
 export default function PresentationBuilderScreen() {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -102,7 +106,7 @@ export default function PresentationBuilderScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+                colors={colors.backgroundGradient as any}
                 style={[styles.background, { paddingTop: insets.top }]}
             >
                 <PageHeader
@@ -129,7 +133,7 @@ export default function PresentationBuilderScreen() {
                                     setShowStyleDropdown(false);
                                 }}
                             >
-                                <MaterialCommunityIcons name="cube-outline" size={18} color="#0B2341" />
+                                <MaterialCommunityIcons name="cube-outline" size={18} color={colors.textPrimary} />
                                 <Text style={styles.selectorValue} numberOfLines={1}>
                                     {property.id === 'generic' ? 'Select Property Context' : property.title}
                                 </Text>
@@ -151,7 +155,7 @@ export default function PresentationBuilderScreen() {
                                                 <Image source={{ uri: p.image }} style={styles.optionImage} />
                                             ) : (
                                                 <View style={styles.optionIconPlaceholder}>
-                                                    <MaterialCommunityIcons name="cube-outline" size={16} color="#0B2341" />
+                                                    <MaterialCommunityIcons name="cube-outline" size={16} color={colors.textPrimary} />
                                                 </View>
                                             )}
                                             <View style={styles.optionTextCenter}>
@@ -174,7 +178,7 @@ export default function PresentationBuilderScreen() {
                                     setShowPropDropdown(false);
                                 }}
                             >
-                                <MaterialCommunityIcons name={style.icon as any} size={18} color={style.color || "#0B2341"} />
+                                <MaterialCommunityIcons name={style.icon as any} size={18} color={style.color || colors.textPrimary} />
                                 <Text style={styles.selectorValue}>{style.title}</Text>
                                 <MaterialCommunityIcons name={showStyleDropdown ? "chevron-up" : "chevron-down"} size={18} color="#94A3B8" />
                             </Pressable>
@@ -190,7 +194,7 @@ export default function PresentationBuilderScreen() {
                                                 setShowStyleDropdown(false);
                                             }}
                                         >
-                                            <MaterialCommunityIcons name={s.icon as any} size={18} color={s.color || "#0B2341"} />
+                                            <MaterialCommunityIcons name={s.icon as any} size={18} color={s.color || colors.textPrimary} />
                                             <Text style={styles.optionTitleStyle}>{s.title}</Text>
                                             {style.id === s.id && <MaterialCommunityIcons name="check" size={16} color="#0BA0B2" />}
                                         </Pressable>
@@ -313,265 +317,271 @@ export default function PresentationBuilderScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    background: { flex: 1 },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 20 },
+function getStyles(colors: any) {
+    return StyleSheet.create({
+        container: { flex: 1 },
+        background: { flex: 1 },
+        scroll: { flex: 1 },
+        scrollContent: { paddingHorizontal: 20 },
 
-    // Selectors
-    selectorsRow: {
-        gap: 16,
-        marginBottom: 24,
-    },
-    selectorWrapper: {
-        width: '100%',
-        gap: 8,
-        position: 'relative',
-    },
-    selectorLabel: {
-        fontSize: 11,
-        fontWeight: '900',
-        color: '#0B2341',
-        letterSpacing: 0.8,
-        marginBottom: 4,
-    },
-    selectorBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        gap: 12,
-        shadowColor: '#000',
-        shadowOpacity: 0.02,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 8,
-        elevation: 1,
-    },
-    selectorBtnActive: {
-        borderColor: '#0BA0B2',
-        borderWidth: 2,
-    },
-    selectorValue: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#0B2341',
-    },
+        // Selectors
+        selectorsRow: {
+            gap: 16,
+            marginBottom: 24,
+        },
+        selectorWrapper: {
+            width: '100%',
+            gap: 8,
+            position: 'relative',
+        },
+        selectorLabel: {
+            fontSize: 11,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            letterSpacing: 0.8,
+            marginBottom: 4,
+        },
+        selectorBtn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.cardBackground,
+            borderRadius: 16,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            gap: 12,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.02,
+            shadowOffset: { width: 0, height: 4 },
+            shadowRadius: 8,
+            elevation: 1,
+        },
+        selectorBtnActive: {
+            borderColor: '#0BA0B2',
+            borderWidth: 2,
+        },
+        selectorValue: {
+            flex: 1,
+            fontSize: 14,
+            fontWeight: '700',
+            color: colors.textPrimary,
+        },
 
-    // Dropdown
-    dropdown: {
-        position: 'absolute',
-        top: 84,
-        left: 0,
-        right: 0,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 20,
-        elevation: 20,
-        zIndex: 2000,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    dropdownOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 14,
-        borderRadius: 14,
-        gap: 12,
-    },
-    optionImage: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-    },
-    optionIconPlaceholder: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: '#F8FAFC',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    optionTextCenter: {
-        flex: 1,
-    },
-    optionTitle: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0B2341',
-    },
-    optionSubtitle: {
-        fontSize: 11,
-        color: '#94A3B8',
-    },
-    optionTitleStyle: {
-        flex: 1,
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0B2341',
-    },
+        // Dropdown
+        dropdown: {
+            position: 'absolute',
+            top: 84,
+            left: 0,
+            right: 0,
+            backgroundColor: colors.cardBackground,
+            borderRadius: 20,
+            padding: 8,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.15,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 20,
+            elevation: 20,
+            zIndex: 2000,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        dropdownOption: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 14,
+            borderRadius: 14,
+            gap: 12,
+        },
+        optionImage: {
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+        },
+        optionIconPlaceholder: {
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            backgroundColor: colors.surfaceSoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        optionTextCenter: {
+            flex: 1,
+        },
+        optionTitle: {
+            fontSize: 13,
+            fontWeight: '800',
+            color: colors.textPrimary,
+        },
+        optionSubtitle: {
+            fontSize: 11,
+            color: colors.textMuted,
+        },
+        optionTitleStyle: {
+            flex: 1,
+            fontSize: 13,
+            fontWeight: '800',
+            color: colors.textPrimary,
+        },
 
-    // Brief Card
-    inputCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 20,
-        elevation: 4,
-    },
-    cardHeading: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#0B2341',
-        marginBottom: 8,
-    },
-    cardSubtitle: {
-        fontSize: 13,
-        color: '#64748B',
-        lineHeight: 18,
-        marginBottom: 20,
-    },
-    textArea: {
-        backgroundColor: '#F8FAFC',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 16,
-        padding: 16,
-        height: 150,
-        fontSize: 15,
-        color: '#0F172A',
-        fontWeight: '600',
-        marginBottom: 20,
-    },
-    generateBtn: {
-        backgroundColor: '#0B2341',
-        borderRadius: 12,
-        paddingVertical: 14,
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    generateBtnDisabled: { opacity: 0.6 },
-    generateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-    pillList: { flexDirection: 'row', gap: 8 },
-    pill: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-    pillText: { fontSize: 10, fontWeight: '700', color: '#64748B' },
+        // Brief Card
+        inputCard: {
+            backgroundColor: colors.cardBackground,
+            borderRadius: 24,
+            padding: 24,
+            marginBottom: 24,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.04,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 20,
+            elevation: 4,
+        },
+        cardHeading: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            marginBottom: 8,
+        },
+        cardSubtitle: {
+            fontSize: 13,
+            color: colors.textSecondary,
+            lineHeight: 18,
+            marginBottom: 20,
+        },
+        textArea: {
+            backgroundColor: colors.surfaceSoft,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            borderRadius: 16,
+            padding: 16,
+            height: 150,
+            fontSize: 15,
+            color: colors.textPrimary,
+            fontWeight: '600',
+            marginBottom: 20,
+        },
+        generateBtn: {
+            backgroundColor: colors.accentTeal,
+            borderRadius: 12,
+            paddingVertical: 14,
+            alignItems: 'center',
+            marginBottom: 20,
+        },
+        generateBtnDisabled: { opacity: 0.6 },
+        generateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+        pillList: { flexDirection: 'row', gap: 8 },
+        pill: { backgroundColor: colors.surfaceSoft, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+        pillText: { fontSize: 10, fontWeight: '700', color: colors.textSecondary },
 
-    // Output Card
-    outputCard: {
-        backgroundColor: '#0B2341',
-        borderRadius: 24,
-        padding: 16,
-        minHeight: 550,
-    },
-    outputHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-        paddingBottom: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#1E293B',
-    },
-    outputStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: '#0BA0B2',
-        marginRight: 8
-    },
-    outputTitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 1.2
-    },
-    outputActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8
-    },
-    mainActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    iconAction: {
-        width: 34,
-        height: 34,
-        borderRadius: 10,
-        backgroundColor: '#1E293B',
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    editBtn: {
-        width: 34,
-        height: 34,
-        backgroundColor: '#1E293B',
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    editBtnText: { color: '#CBD5E1', fontSize: 8, fontWeight: '900' },
-    exportBtn: {
-        backgroundColor: '#0BA0B2',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6
-    },
-    exportBtnText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+        // Output Card
+        outputCard: {
+            backgroundColor: colors.cardBackgroundSemi,
+            borderRadius: 24,
+            padding: 16,
+            minHeight: 550,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        outputHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 24,
+            paddingBottom: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.cardBorder,
+        },
+        outputStatus: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flex: 1,
+        },
+        statusDot: {
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: '#0BA0B2',
+            marginRight: 8
+        },
+        outputTitle: {
+            fontSize: 10,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            letterSpacing: 1.2
+        },
+        outputActions: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8
+        },
+        mainActions: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+        },
+        iconAction: {
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            backgroundColor: colors.surfaceSoft,
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        editBtn: {
+            width: 34,
+            height: 34,
+            backgroundColor: colors.surfaceSoft,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        editBtnText: { color: '#CBD5E1', fontSize: 8, fontWeight: '900' },
+        exportBtn: {
+            backgroundColor: '#0BA0B2',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6
+        },
+        exportBtnText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
 
-    // Presentation View
-    outputContent: { flex: 1 },
-    presentationView: { flex: 1 },
-    slideContainer: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        overflow: 'hidden',
-        minHeight: 480,
-    },
-    slideImage: { width: '100%', height: 220, resizeMode: 'cover' },
-    slideContent: { padding: 20, justifyContent: 'flex-start' },
-    slideChapter: { fontSize: 10, fontWeight: '900', color: '#94A3B8', marginBottom: 6, letterSpacing: 1 },
-    slideTitle: { fontSize: 24, fontWeight: '900', color: '#0B2341', lineHeight: 28, marginBottom: 8 },
-    slideSubtitle: { fontSize: 14, fontWeight: '700', color: '#0BA0B2', marginBottom: 12 },
-    slideDivider: { width: 30, height: 2, backgroundColor: '#0B2341', marginBottom: 16 },
-    slideDescription: { fontSize: 13, color: '#475569', lineHeight: 20 },
+        // Presentation View
+        outputContent: { flex: 1 },
+        presentationView: { flex: 1 },
+        slideContainer: {
+            backgroundColor: colors.cardBackground,
+            borderRadius: 24,
+            overflow: 'hidden',
+            minHeight: 480,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        slideImage: { width: '100%', height: 220, resizeMode: 'cover' },
+        slideContent: { padding: 20, justifyContent: 'flex-start' },
+        slideChapter: { fontSize: 10, fontWeight: '900', color: colors.textMuted, marginBottom: 6, letterSpacing: 1 },
+        slideTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, lineHeight: 28, marginBottom: 8 },
+        slideSubtitle: { fontSize: 14, fontWeight: '700', color: '#0BA0B2', marginBottom: 12 },
+        slideDivider: { width: 30, height: 2, backgroundColor: colors.textPrimary, marginBottom: 16 },
+        slideDescription: { fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
 
-    // Nav
-    navigationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 },
-    progressDots: { flexDirection: 'row', gap: 6 },
-    dot: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#1E293B' },
-    dotActive: { backgroundColor: '#0BA0B2' },
-    navControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    navBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1E293B', alignItems: 'center', justifyContent: 'center' },
-    navBtnPrimary: { borderWidth: 2, borderColor: '#0BA0B2' },
-    pageIndicator: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+        // Nav
+        navigationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 },
+        progressDots: { flexDirection: 'row', gap: 6 },
+        dot: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.surfaceSoft },
+        dotActive: { backgroundColor: '#0BA0B2' },
+        navControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+        navBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceSoft, alignItems: 'center', justifyContent: 'center' },
+        navBtnPrimary: { borderWidth: 2, borderColor: '#0BA0B2' },
+        pageIndicator: { color: colors.textPrimary, fontSize: 14, fontWeight: '900' },
 
-    // States
-    loaderState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    loaderText: { color: '#94A3B8', marginTop: 16, fontSize: 14 },
-    placeholderState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
-    placeholderTitle: { fontSize: 16, fontWeight: '900', color: '#64748B', marginTop: 16 },
-    placeholderSubtitle: { fontSize: 13, color: '#475569', textAlign: 'center', marginTop: 8, paddingHorizontal: 40, lineHeight: 18 },
-});
+        // States
+        loaderState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+        loaderText: { color: colors.textMuted, marginTop: 16, fontSize: 14 },
+        placeholderState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
+        placeholderTitle: { fontSize: 16, fontWeight: '900', color: colors.textSecondary, marginTop: 16 },
+        placeholderSubtitle: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: 8, paddingHorizontal: 40, lineHeight: 18 },
+    });
+};

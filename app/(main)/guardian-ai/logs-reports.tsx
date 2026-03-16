@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/context/ThemeContext';
 
 const METRIC_CARDS = [
   { id: 'telemetry', icon: 'console' as const, label: 'Total Telemetry', value: '4.2k' },
@@ -28,6 +29,8 @@ const AUDIT_ROWS = [
 ];
 
 export function LogsReportsView() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSafetyModal, setShowSafetyModal] = useState(false);
@@ -43,7 +46,7 @@ export function LogsReportsView() {
         {/* Action buttons */}
         <View style={styles.actionRow}>
           <Pressable style={styles.exportBtn}>
-            <MaterialCommunityIcons name="download-outline" size={18} color="#0B2D3E" />
+            <MaterialCommunityIcons name="download-outline" size={18} color={colors.textPrimary} />
             <Text style={styles.exportBtnText}>Archive</Text>
           </Pressable>
           <Pressable style={styles.fileReportBtn} onPress={() => setShowSafetyModal(true)}>
@@ -82,11 +85,11 @@ export function LogsReportsView() {
               />
             </View>
             <Pressable style={styles.premiumToolbarAction}>
-              <MaterialCommunityIcons name="calendar-range" size={18} color="#0B2D3E" />
+              <MaterialCommunityIcons name="calendar-range" size={18} color={colors.textPrimary} />
               <Text style={styles.premiumToolbarActionText}>Range</Text>
             </Pressable>
             <Pressable style={styles.premiumToolbarAction}>
-              <MaterialCommunityIcons name="tune" size={18} color="#0B2D3E" />
+              <MaterialCommunityIcons name="tune" size={18} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -146,7 +149,7 @@ export function LogsReportsView() {
               <Text style={styles.modalSubtitleFull}>File a manual incident or situational safety report.</Text>
             </View>
             <Pressable style={styles.modalCloseBtnFull} onPress={() => setShowSafetyModal(false)}>
-              <MaterialCommunityIcons name="close" size={24} color="#0B2D3E" />
+              <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -196,7 +199,7 @@ export function LogsReportsView() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 },
   actionRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
@@ -210,9 +213,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#0BA0B2',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
-  exportBtnText: { fontSize: 13, fontWeight: '800', color: '#0B2D3E' },
+  exportBtnText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
   fileReportBtn: {
     flex: 1.2,
     flexDirection: 'row',
@@ -242,11 +245,11 @@ const styles = StyleSheet.create({
     minWidth: '47%',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     shadowColor: '#0B2D3E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
@@ -258,7 +261,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -268,21 +271,21 @@ const styles = StyleSheet.create({
   premiumMetricLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#7B8794',
+    color: colors.textSecondary,
     letterSpacing: 0.4,
   },
   premiumMetricValue: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   premiumTrailContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     shadowColor: '#0B2D3E',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
@@ -292,7 +295,7 @@ const styles = StyleSheet.create({
   premiumTrailTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 16,
     letterSpacing: -0.5,
   },
@@ -306,34 +309,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   premiumSearchInput: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   premiumToolbarAction: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   premiumToolbarActionText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   auditList: {
     gap: 0,
@@ -341,7 +344,7 @@ const styles = StyleSheet.create({
   premiumAuditItem: {
     paddingVertical: 18,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
     gap: 8,
   },
   auditItemHeader: {
@@ -357,7 +360,7 @@ const styles = StyleSheet.create({
   auditTimeTextPremium: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#7B8794',
+    color: colors.textSecondary,
   },
   severityBadge: {
     paddingHorizontal: 8,
@@ -374,7 +377,7 @@ const styles = StyleSheet.create({
   severityBadgeText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#16A34A',
+    color: '#10B981',
   },
   severityCriticalText: {
     color: '#DC2626',
@@ -385,7 +388,7 @@ const styles = StyleSheet.create({
   auditItemTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     lineHeight: 22,
   },
   auditItemFooter: {
@@ -398,12 +401,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.cardBackground,
   },
   auditCategoryText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   auditAgentInfo: {
@@ -414,24 +417,24 @@ const styles = StyleSheet.create({
   auditAgentName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   loadArchivedBtn: {
     marginTop: 20,
     paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
   },
-  loadArchivedBtnText: { fontSize: 14, fontWeight: '800', color: '#0B2D3E' },
+  loadArchivedBtnText: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
   bottomSpacer: { height: 32 },
 
   // Full-Page Modal Styles
   modalFullContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalHeaderFull: {
     flexDirection: 'row',
@@ -446,13 +449,13 @@ const styles = StyleSheet.create({
   modalTitleFull: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   modalSubtitleFull: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 6,
     lineHeight: 20,
   },
@@ -460,7 +463,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(11, 45, 62, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -474,7 +477,7 @@ const styles = StyleSheet.create({
   formFieldLabel: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 10,
     marginTop: 20,
     letterSpacing: 0.3,
@@ -483,28 +486,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
   disclosureDropdownText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   disclosureTextArea: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 15,
     fontWeight: '600',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     minHeight: 120,
     textAlignVertical: 'top',
   },
@@ -516,7 +519,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.cardBackground,
   },
   uploadIconCircle: {
     width: 60,
@@ -530,19 +533,19 @@ const styles = StyleSheet.create({
   uploadZoneTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   uploadZoneSub: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#7B8794',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   modalFooterFixed: {
     padding: 24,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.cardBorder,
   },
   submitVaultBtnPremium: {
     backgroundColor: '#0B2D3E',
@@ -564,7 +567,7 @@ const styles = StyleSheet.create({
   cancelBtnTextPremiumFull: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   btnContentRow: {
     flexDirection: 'row',

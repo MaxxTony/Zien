@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -67,6 +68,9 @@ Featuring soaring ceilings, bespoke timber detailing, and an open-concept flow t
 const MOCK_IMAGE = 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80';
 
 export default function SocialPostLabScreen() {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -113,7 +117,7 @@ export default function SocialPostLabScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+                colors={colors.backgroundGradient as any}
                 style={[styles.background, { paddingTop: insets.top }]}
             >
                 <PageHeader
@@ -149,7 +153,7 @@ export default function SocialPostLabScreen() {
                                 <MaterialCommunityIcons
                                     name={platform.icon as any}
                                     size={18}
-                                    color={selectedPlatform === platform.id ? '#FFFFFF' : '#0B2341'}
+                                    color={selectedPlatform === platform.id ? '#FFFFFF' : colors.textPrimary}
                                 />
                                 <Text style={[
                                     styles.platformTabText,
@@ -267,238 +271,244 @@ export default function SocialPostLabScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    background: { flex: 1 },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 20 },
+function getStyles(colors: any) {
+    return StyleSheet.create({
+        container: { flex: 1 },
+        background: { flex: 1 },
+        scroll: { flex: 1 },
+        scrollContent: { paddingHorizontal: 20 },
 
-    // Platform Tabs
-    platformTabs: {
-        paddingVertical: 10,
-        gap: 8,
-        marginBottom: 20,
-    },
-    platformTab: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        marginRight: 8,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    platformTabActive: {
-        backgroundColor: '#0BA0B2',
-        borderColor: '#0BA0B2',
-    },
-    platformTabText: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0B2341',
-        marginLeft: 8,
-    },
-    platformTabTextActive: {
-        color: '#FFFFFF',
-    },
+        // Platform Tabs
+        platformTabs: {
+            paddingVertical: 10,
+            gap: 8,
+            marginBottom: 20,
+        },
+        platformTab: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.cardBackground,
+            borderRadius: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            marginRight: 8,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        platformTabActive: {
+            backgroundColor: colors.accentTeal,
+            borderColor: colors.accentTeal,
+        },
+        platformTabText: {
+            fontSize: 13,
+            fontWeight: '800',
+            color: colors.textPrimary,
+            marginLeft: 8,
+        },
+        platformTabTextActive: {
+            color: '#FFFFFF',
+        },
 
-    // Campaign Context Card
-    inputCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 20,
-        elevation: 4,
-    },
-    cardHeading: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#0B2341',
-        marginBottom: 8,
-    },
-    cardSubtitle: {
-        fontSize: 13,
-        color: '#64748B',
-        lineHeight: 18,
-        marginBottom: 20,
-    },
-    textArea: {
-        backgroundColor: '#F8FAFC',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 16,
-        padding: 16,
-        height: 180,
-        fontSize: 15,
-        color: '#0F172A',
-        fontWeight: '600',
-        marginBottom: 20,
-    },
-    inputFooter: {
-        flexDirection: 'row',
-        marginBottom: 16,
-    },
-    generateBtn: {
-        backgroundColor: '#0B2341',
-        paddingHorizontal: 32,
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    generateBtnDisabled: {
-        opacity: 0.6,
-    },
-    generateBtnText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '800',
-    },
-    styleList: { marginTop: 10 },
-    stylePill: {
-        paddingHorizontal: 8,
-        paddingVertical: 5,
-        borderRadius: 8,
-        backgroundColor: '#F1F5F9',
-        marginRight: 8,
-        height: 32,
-        justifyContent: 'center',
-    },
-    stylePillActive: {
-        backgroundColor: '#E2E8F0',
-    },
-    stylePillText: {
-        fontSize: 8,
-        color: '#64748B',
-        fontWeight: '700',
-    },
-    stylePillTextActive: {
-        color: '#0B2341',
-    },
+        // Campaign Context Card
+        inputCard: {
+            backgroundColor: colors.cardBackground,
+            borderRadius: 24,
+            padding: 24,
+            marginBottom: 24,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.04,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 20,
+            elevation: 4,
+        },
+        cardHeading: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            marginBottom: 8,
+        },
+        cardSubtitle: {
+            fontSize: 13,
+            color: colors.textSecondary,
+            lineHeight: 18,
+            marginBottom: 20,
+        },
+        textArea: {
+            backgroundColor: colors.surfaceSoft,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            borderRadius: 16,
+            padding: 16,
+            height: 180,
+            fontSize: 15,
+            color: colors.textPrimary,
+            fontWeight: '600',
+            marginBottom: 20,
+        },
+        inputFooter: {
+            flexDirection: 'row',
+            marginBottom: 16,
+        },
+        generateBtn: {
+            backgroundColor: colors.accentTeal,
+            paddingHorizontal: 32,
+            paddingVertical: 14,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        generateBtnDisabled: {
+            opacity: 0.6,
+        },
+        generateBtnText: {
+            color: '#FFFFFF',
+            fontSize: 14,
+            fontWeight: '800',
+        },
+        styleList: { marginTop: 10 },
+        stylePill: {
+            paddingHorizontal: 8,
+            paddingVertical: 5,
+            borderRadius: 8,
+            backgroundColor: colors.surfaceSoft,
+            marginRight: 8,
+            height: 32,
+            justifyContent: 'center',
+        },
+        stylePillActive: {
+            backgroundColor: colors.surfaceMuted,
+        },
+        stylePillText: {
+            fontSize: 8,
+            color: colors.textSecondary,
+            fontWeight: '700',
+        },
+        stylePillTextActive: {
+            color: colors.textPrimary,
+        },
 
-    // Output Card
-    outputCard: {
-        backgroundColor: '#0B2341',
-        borderRadius: 24,
-        padding: 16,
-        minHeight: 500,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 30,
-        elevation: 8,
-    },
-    outputHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    outputStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexShrink: 1,
-    },
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: '#0BA0B2',
-        marginRight: 6,
-    },
-    outputTitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 0.5,
-    },
-    outputActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    iconAction: {
-        width: 36,
-        height: 36,
-        borderRadius: 8,
-        backgroundColor: '#1E293B',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    exportBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#0BA0B2',
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        borderRadius: 8,
-        gap: 4,
-    },
-    exportBtnText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '900',
-    },
-    outputContent: { flex: 1 },
-    previewContainer: { gap: 16 },
-    imagePreviewContainer: {
-        width: '100%',
-        height: 320,
-        borderRadius: 16,
-        overflow: 'hidden',
-        backgroundColor: '#1E293B',
-    },
-    previewImage: {
-        width: '100%',
-        height: '100%',
-        resizeMode: 'cover',
-    },
-    captionArea: {
-        backgroundColor: '#1E293B',
-        borderRadius: 16,
-        padding: 16,
-        minHeight: 120,
-        marginTop: 16,
-    },
-    captionText: {
-        fontSize: 14,
-        color: '#CBD5E1',
-        lineHeight: 22,
-        fontWeight: '500',
-    },
-    loadingState: {
-        height: 120,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#1E293B',
-        borderRadius: 16,
-        marginTop: 16,
-    },
-    loadingText: {
-        color: '#94A3B8',
-        marginTop: 12,
-        fontSize: 13,
-        textAlign: 'center',
-    },
-    placeholderState: {
-        height: 120,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#1E293B',
-        borderRadius: 16,
-        marginTop: 16,
-    },
-    placeholderTitle: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#64748B',
-        marginTop: 12,
-    },
-});
+        // Output Card
+        outputCard: {
+            backgroundColor: colors.cardBackgroundSemi,
+            borderRadius: 24,
+            padding: 16,
+            minHeight: 500,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.2,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 30,
+            elevation: 8,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        outputHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 24,
+        },
+        outputStatus: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexShrink: 1,
+        },
+        statusDot: {
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: '#0BA0B2',
+            marginRight: 6,
+        },
+        outputTitle: {
+            fontSize: 10,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            letterSpacing: 0.5,
+        },
+        outputActions: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+        },
+        iconAction: {
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            backgroundColor: colors.surfaceSoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        exportBtn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#0BA0B2',
+            paddingHorizontal: 10,
+            paddingVertical: 7,
+            borderRadius: 8,
+            gap: 4,
+        },
+        exportBtnText: {
+            color: '#FFFFFF',
+            fontSize: 12,
+            fontWeight: '900',
+        },
+        outputContent: { flex: 1 },
+        previewContainer: { gap: 16 },
+        imagePreviewContainer: {
+            width: '100%',
+            height: 320,
+            borderRadius: 16,
+            overflow: 'hidden',
+            backgroundColor: colors.surfaceSoft,
+        },
+        previewImage: {
+            width: '100%',
+            height: '100%',
+            resizeMode: 'cover',
+        },
+        captionArea: {
+            backgroundColor: colors.surfaceSoft,
+            borderRadius: 16,
+            padding: 16,
+            minHeight: 120,
+            marginTop: 16,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        captionText: {
+            fontSize: 14,
+            color: colors.textPrimary,
+            lineHeight: 22,
+            fontWeight: '500',
+        },
+        loadingState: {
+            height: 120,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.surfaceSoft,
+            borderRadius: 16,
+            marginTop: 16,
+        },
+        loadingText: {
+            color: colors.textMuted,
+            marginTop: 12,
+            fontSize: 13,
+            textAlign: 'center',
+        },
+        placeholderState: {
+            height: 120,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.surfaceSoft,
+            borderRadius: 16,
+            marginTop: 16,
+        },
+        placeholderTitle: {
+            fontSize: 13,
+            fontWeight: '700',
+            color: colors.textSecondary,
+            marginTop: 12,
+        },
+    });
+}
 

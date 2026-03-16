@@ -101,8 +101,9 @@ type PlanModalProps = {
 };
 
 export function PlanModal({ visible, onClose }: PlanModalProps) {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
+  const { colors, theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors, isDark);
   const insets = useSafeAreaInsets();
   const [isDowngradeModalOpen, setIsDowngradeModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -324,7 +325,7 @@ export function PlanModal({ visible, onClose }: PlanModalProps) {
   );
 }
 
-function getStyles(colors: any) {
+function getStyles(colors: any, isDark: boolean) {
   return StyleSheet.create({
   background: { flex: 1 },
   header: {
@@ -449,12 +450,12 @@ function getStyles(colors: any) {
     borderWidth: 2,
   },
   planCtaDark: { backgroundColor: '#0B2D3E', borderColor: '#0B2D3E' },
-  planCtaActive: { backgroundColor: '#FFFFFF', borderColor: '#E3ECF4', borderWidth: 1 },
-  planCtaDisabled: { backgroundColor: '#FFFFFF', borderColor: '#F1F5F9' },
+  planCtaActive: { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, borderWidth: 1 },
+  planCtaDisabled: { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder },
   planCtaText: { fontSize: 14, fontWeight: '900' },
   planCtaTextDark: { color: '#FFFFFF' },
-  planCtaTextActive: { color: '#0B2D3E' },
-  planCtaTextDisabled: { color: '#0B2D3E' },
+  planCtaTextActive: { color: colors.textPrimary },
+  planCtaTextDisabled: { color: colors.textSecondary },
   noteCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',

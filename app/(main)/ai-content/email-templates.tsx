@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -71,6 +72,9 @@ Zien Realty Group`
 };
 
 export default function EmailTemplatesScreen() {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -121,7 +125,7 @@ export default function EmailTemplatesScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+                colors={colors.backgroundGradient as any}
                 style={[styles.background, { paddingTop: insets.top }]}
             >
                 <PageHeader
@@ -154,7 +158,7 @@ export default function EmailTemplatesScreen() {
                                 <MaterialCommunityIcons
                                     name={type.icon as any}
                                     size={18}
-                                    color={selectedType === type.id ? '#FFFFFF' : '#0B2341'}
+                                    color={selectedType === type.id ? '#FFFFFF' : colors.textPrimary}
                                 />
                                 <Text style={[
                                     styles.typeTabText,
@@ -277,250 +281,254 @@ export default function EmailTemplatesScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    background: { flex: 1 },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 20 },
+function getStyles(colors: any) {
+    return StyleSheet.create({
+        container: { flex: 1 },
+        background: { flex: 1 },
+        scroll: { flex: 1 },
+        scrollContent: { paddingHorizontal: 20 },
 
-    // Tabs
-    typeTabs: {
-        paddingVertical: 10,
-        gap: 8,
-        marginBottom: 20,
-    },
-    typeTab: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        marginRight: 8,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    typeTabActive: {
-        backgroundColor: '#0BA0B2',
-        borderColor: '#0BA0B2',
-    },
-    typeTabText: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0B2341',
-        marginLeft: 8,
-    },
-    typeTabTextActive: {
-        color: '#FFFFFF',
-    },
+        // Tabs
+        typeTabs: {
+            paddingVertical: 10,
+            gap: 8,
+            marginBottom: 20,
+        },
+        typeTab: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.cardBackground,
+            borderRadius: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            marginRight: 8,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        typeTabActive: {
+            backgroundColor: '#0BA0B2',
+            borderColor: '#0BA0B2',
+        },
+        typeTabText: {
+            fontSize: 13,
+            fontWeight: '800',
+            color: colors.textPrimary,
+            marginLeft: 8,
+        },
+        typeTabTextActive: {
+            color: '#FFFFFF',
+        },
 
-    // Campaign Context Card
-    inputCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 20,
-        elevation: 4,
-    },
-    cardHeading: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#0B2341',
-        marginBottom: 8,
-    },
-    cardSubtitle: {
-        fontSize: 13,
-        color: '#64748B',
-        lineHeight: 18,
-        marginBottom: 20,
-    },
-    textArea: {
-        backgroundColor: '#F8FAFC',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 16,
-        padding: 16,
-        height: 180,
-        fontSize: 15,
-        color: '#0F172A',
-        fontWeight: '600',
-        marginBottom: 20,
-    },
-    inputFooter: {
-        flexDirection: 'row',
-        marginBottom: 16,
-    },
-    generateBtn: {
-        backgroundColor: '#0B2341',
-        paddingHorizontal: 32,
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    generateBtnDisabled: {
-        opacity: 0.6,
-    },
-    generateBtnText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '800',
-    },
-    tagList: { marginTop: 10 },
-    tagPill: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 10,
-        backgroundColor: '#F1F5F9',
-        marginRight: 8,
-        justifyContent: 'center',
-    },
-    tagPillActive: {
-        backgroundColor: '#E2E8F0',
-    },
-    tagPillText: {
-        fontSize: 11,
-        color: '#64748B',
-        fontWeight: '700',
-    },
-    tagPillTextActive: {
-        color: '#0B2341',
-    },
+        // Campaign Context Card
+        inputCard: {
+            backgroundColor: colors.cardBackground,
+            borderRadius: 24,
+            padding: 24,
+            marginBottom: 24,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.04,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 20,
+            elevation: 4,
+        },
+        cardHeading: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            marginBottom: 8,
+        },
+        cardSubtitle: {
+            fontSize: 13,
+            color: colors.textSecondary,
+            lineHeight: 18,
+            marginBottom: 20,
+        },
+        textArea: {
+            backgroundColor: colors.surfaceSoft,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            borderRadius: 16,
+            padding: 16,
+            height: 180,
+            fontSize: 15,
+            color: colors.textPrimary,
+            fontWeight: '600',
+            marginBottom: 20,
+        },
+        inputFooter: {
+            flexDirection: 'row',
+            marginBottom: 16,
+        },
+        generateBtn: {
+            backgroundColor: colors.accentTeal,
+            paddingHorizontal: 32,
+            paddingVertical: 14,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        generateBtnDisabled: {
+            opacity: 0.6,
+        },
+        generateBtnText: {
+            color: '#FFFFFF',
+            fontSize: 14,
+            fontWeight: '800',
+        },
+        tagList: { marginTop: 10 },
+        tagPill: {
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 10,
+            backgroundColor: colors.surfaceSoft,
+            marginRight: 8,
+            justifyContent: 'center',
+        },
+        tagPillActive: {
+            backgroundColor: colors.surfaceMuted,
+        },
+        tagPillText: {
+            fontSize: 11,
+            color: colors.textSecondary,
+            fontWeight: '700',
+        },
+        tagPillTextActive: {
+            color: colors.textPrimary,
+        },
 
-    // Output Card
-    outputCard: {
-        backgroundColor: '#0B2341',
-        borderRadius: 24,
-        padding: 16,
-        minHeight: 450,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 30,
-        elevation: 8,
-    },
-    outputHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#1E293B',
-        paddingBottom: 16,
-    },
-    outputStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexShrink: 1,
-    },
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: '#0BA0B2',
-        marginRight: 6,
-    },
-    outputTitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 0.5,
-    },
-    outputActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    iconAction: {
-        width: 36,
-        height: 36,
-        borderRadius: 8,
-        backgroundColor: '#1E293B',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    exportBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#0BA0B2',
-        paddingHorizontal: 12,
-        paddingVertical: 7,
-        borderRadius: 8,
-        gap: 6,
-    },
-    exportBtnText: {
-        color: '#FFFFFF',
-        fontSize: 11,
-        fontWeight: '900',
-    },
-    outputContent: { flex: 1 },
-    loaderState: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    loaderText: {
-        color: '#94A3B8',
-        marginTop: 16,
-        fontSize: 14,
-        textAlign: 'center',
-    },
-    placeholderState: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 60,
-    },
-    placeholderTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: '#64748B',
-        marginTop: 16,
-    },
-    placeholderSubtitle: {
-        fontSize: 13,
-        color: '#475569',
-        textAlign: 'center',
-        marginTop: 8,
-        paddingHorizontal: 40,
-        lineHeight: 18,
-    },
-    emailBodyContainer: {
-        flex: 1,
-        gap: 16,
-    },
-    subjectRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1E293B',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        gap: 8,
-    },
-    subjectLabel: {
-        color: '#64748B',
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    subjectText: {
-        flex: 1,
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    emailTextArea: {
-        flex: 1,
-        backgroundColor: '#1E293B',
-        borderRadius: 16,
-        padding: 16,
-        color: '#CBD5E1',
-        fontSize: 14,
-        lineHeight: 22,
-        minHeight: 300,
-    },
-});
+        // Output Card
+        outputCard: {
+            backgroundColor: colors.cardBackgroundSemi,
+            borderRadius: 24,
+            padding: 16,
+            minHeight: 450,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.2,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 30,
+            elevation: 8,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        outputHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.cardBorder,
+            paddingBottom: 16,
+        },
+        outputStatus: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexShrink: 1,
+        },
+        statusDot: {
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: '#0BA0B2',
+            marginRight: 6,
+        },
+        outputTitle: {
+            fontSize: 10,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            letterSpacing: 0.5,
+        },
+        outputActions: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+        },
+        iconAction: {
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            backgroundColor: colors.surfaceSoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        exportBtn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#0BA0B2',
+            paddingHorizontal: 12,
+            paddingVertical: 7,
+            borderRadius: 8,
+            gap: 6,
+        },
+        exportBtnText: {
+            color: '#FFFFFF',
+            fontSize: 11,
+            fontWeight: '900',
+        },
+        outputContent: { flex: 1 },
+        loaderState: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        loaderText: {
+            color: colors.textMuted,
+            marginTop: 16,
+            fontSize: 14,
+            textAlign: 'center',
+        },
+        placeholderState: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 60,
+        },
+        placeholderTitle: {
+            fontSize: 16,
+            fontWeight: '900',
+            color: colors.textSecondary,
+            marginTop: 16,
+        },
+        placeholderSubtitle: {
+            fontSize: 13,
+            color: colors.textMuted,
+            textAlign: 'center',
+            marginTop: 8,
+            paddingHorizontal: 40,
+            lineHeight: 18,
+        },
+        emailBodyContainer: {
+            flex: 1,
+            gap: 16,
+        },
+        subjectRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.surfaceSoft,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            gap: 8,
+        },
+        subjectLabel: {
+            color: colors.textSecondary,
+            fontSize: 13,
+            fontWeight: '700',
+        },
+        subjectText: {
+            flex: 1,
+            color: colors.textPrimary,
+            fontSize: 14,
+            fontWeight: '600',
+        },
+        emailTextArea: {
+            flex: 1,
+            backgroundColor: colors.surfaceSoft,
+            borderRadius: 16,
+            padding: 16,
+            color: colors.textPrimary,
+            fontSize: 14,
+            lineHeight: 22,
+            minHeight: 300,
+        },
+    });
+}

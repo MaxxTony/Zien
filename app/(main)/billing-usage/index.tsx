@@ -1,5 +1,6 @@
 import { BillingCard, BillingScreenHeader, PlanModal, type BillingTabKey } from '@/components/billing';
 import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -69,45 +70,6 @@ function formatPercent(used: number, limit: number) {
   return Math.max(0, Math.min(1, used / limit));
 }
 
-function toneColor(tone: UsageRow['tone']) {
-  switch (tone) {
-    case 'warning':
-      return { fill: '#F59E0B', track: Theme.surfaceIcon };
-    case 'muted':
-      return { fill: Theme.accentBlue, track: Theme.surfaceIcon };
-    default:
-      return { fill: Theme.accentTeal, track: Theme.surfaceIcon };
-  }
-}
-
-function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <View style={{ gap: 4 }}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
-    </View>
-  );
-}
-
-function UsageProgressRow({ row }: { row: UsageRow }) {
-  const pct = formatPercent(row.used, row.limit);
-  const colors = toneColor(row.tone);
-  const widthPct = `${Math.round(pct * 100)}%` as const;
-
-  return (
-    <View style={styles.usageRow}>
-      <View style={styles.usageRowHeader}>
-        <Text style={styles.usageLabel}>{row.label}</Text>
-        <Text style={styles.usageValue}>
-          {row.used.toLocaleString()} / {row.limit.toLocaleString()}
-        </Text>
-      </View>
-      <View style={[styles.progressTrack, { backgroundColor: colors.track }]}>
-        <View style={[styles.progressFill, { width: widthPct, backgroundColor: colors.fill }]} />
-      </View>
-    </View>
-  );
-}
 
 type LedgerRow = {
   id: string;
@@ -120,6 +82,9 @@ type LedgerRow = {
 };
 
 export default function BillingUsageScreen() {
+  const { colors, theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors, isDark);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<BillingTabKey>('overview');
@@ -255,21 +220,21 @@ export default function BillingUsageScreen() {
 
   const chartConfig = useMemo(
     () => ({
-      backgroundGradientFrom: '#F7FBFF',
-      backgroundGradientTo: '#F7FBFF',
+      backgroundGradientFrom: colors.cardBackground,
+      backgroundGradientTo: colors.cardBackground,
       decimalPlaces: 0,
       color: (opacity = 1) => `rgba(11, 160, 178, ${opacity})`,
-      labelColor: (opacity = 1) => `rgba(91, 107, 122, ${opacity})`,
-      fillShadowGradientFrom: '#0BA0B2',
-      fillShadowGradientTo: '#1B5E9A',
+      labelColor: (opacity = 1) => colors.textSecondary,
+      fillShadowGradientFrom: colors.accentTeal,
+      fillShadowGradientTo: colors.accentDark ?? '#1B5E9A',
       fillShadowGradientOpacity: 1,
-      barPercentage: 0.64,
+      barPercentage: 0.65,
       propsForBackgroundLines: {
-        stroke: '#E8EEF6',
+        stroke: colors.divider,
         strokeDasharray: '4 6',
       },
     }),
-    []
+    [colors]
   );
 
   const consumptionTrendMonthly = useMemo(
@@ -290,19 +255,19 @@ export default function BillingUsageScreen() {
 
   const allocationPieData = useMemo(
     () => [
-      { name: 'Visual Staging', population: 75, color: Theme.accentTeal, legendFontColor: Theme.textSecondary, legendFontSize: 12 },
-      { name: 'Market Insight', population: 15, color: '#F97316', legendFontColor: Theme.textSecondary, legendFontSize: 12 },
-      { name: 'Other Ops', population: 10, color: Theme.accentDark, legendFontColor: Theme.textSecondary, legendFontSize: 12 },
+      { name: 'Visual Staging', population: 75, color: '#0BA0B2', legendFontColor: colors.textSecondary, legendFontSize: 12 },
+      { name: 'Market Insight', population: 15, color: '#F97316', legendFontColor: colors.textSecondary, legendFontSize: 12 },
+      { name: 'Other Ops', population: 10, color: isDark ? '#0BA0B2' : '#0B2D3E', legendFontColor: colors.textSecondary, legendFontSize: 12 },
     ],
     []
   );
 
   const analyticsLeaderboardRows = useMemo<AnalyticsLeaderboardRow[]>(
     () => [
-      { id: 'lb-1', name: 'Sarah Thompson', initials: 'ST', monthlyConsumption: '4,280 Units', primaryDomain: 'Visual Staging', peakActivity: 'Tuesdays', resourceHealth: 92, healthColor: Theme.accentTeal },
+      { id: 'lb-1', name: 'Sarah Thompson', initials: 'ST', monthlyConsumption: '4,280 Units', primaryDomain: 'Visual Staging', peakActivity: 'Tuesdays', resourceHealth: 92, healthColor: '#0BA0B2' },
       { id: 'lb-2', name: 'Michael Chen', initials: 'MC', monthlyConsumption: '2,150 Units', primaryDomain: 'Flyer Design', peakActivity: 'Mondays', resourceHealth: 45, healthColor: '#F97316' },
-      { id: 'lb-3', name: 'Elena Rodriguez', initials: 'ER', monthlyConsumption: '1,890 Units', primaryDomain: 'Direct Outreach', peakActivity: 'Fridays', resourceHealth: 78, healthColor: Theme.accentDark },
-      { id: 'lb-4', name: 'David Smith', initials: 'DS', monthlyConsumption: '940 Units', primaryDomain: 'CRM Sync', peakActivity: 'Daily', resourceHealth: 98, healthColor: Theme.accentTeal },
+      { id: 'lb-3', name: 'Elena Rodriguez', initials: 'ER', monthlyConsumption: '1,890 Units', primaryDomain: 'Direct Outreach', peakActivity: 'Fridays', resourceHealth: 78, healthColor: isDark ? '#0BA0B2' : '#0B2D3E' },
+      { id: 'lb-4', name: 'David Smith', initials: 'DS', monthlyConsumption: '940 Units', primaryDomain: 'CRM Sync', peakActivity: 'Daily', resourceHealth: 98, healthColor: '#0BA0B2' },
     ],
     []
   );
@@ -364,7 +329,7 @@ export default function BillingUsageScreen() {
                 </View>
               </Pressable>
               <Pressable onPress={() => handleInvoiceDownload(row.id)} style={styles.downloadPdfButton}>
-                <MaterialCommunityIcons name="download" size={20} color={Theme.textOnAccent} />
+                <MaterialCommunityIcons name="download" size={20} color={'#FFFFFF'} />
                 <Text style={styles.downloadPdfButtonText}>PDF</Text>
               </Pressable>
             </View>
@@ -614,11 +579,11 @@ export default function BillingUsageScreen() {
           <BillingCard style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>Team Efficiency Leaderboard</Text>
             <View style={styles.leaderboardSearchWrap}>
-              <MaterialCommunityIcons name="magnify" size={20} color={Theme.textSecondary} />
+              <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
               <TextInput
                 style={styles.leaderboardSearchInput}
                 placeholder="Filter by agent..."
-                placeholderTextColor={Theme.inputPlaceholder}
+                placeholderTextColor={isDark ? '#64748B' : Theme.inputPlaceholder}
                 value={leaderboardFilter}
                 onChangeText={setLeaderboardFilter}
               />
@@ -630,7 +595,7 @@ export default function BillingUsageScreen() {
                 filteredLeaderboardRows.map((row) => (
                   <View key={row.id} style={styles.leaderboardAgentCard}>
                     <View style={styles.leaderboardAgentCardHeader}>
-                      <View style={[styles.leaderboardInitials, { backgroundColor: Theme.accentDark }]}>
+                      <View style={[styles.leaderboardInitials, { backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E' }]}>
                         <Text style={styles.leaderboardInitialsText}>{row.initials}</Text>
                       </View>
                       <Text style={styles.leaderboardAgentCardName}>{row.name}</Text>
@@ -676,7 +641,7 @@ export default function BillingUsageScreen() {
 
       </View>
       <View style={styles.availableCapitalPill}>
-        <MaterialCommunityIcons name="wallet-outline" size={18} color={Theme.textPrimary} />
+        <MaterialCommunityIcons name="wallet-outline" size={18} color={colors.textPrimary} />
         <View>
           <Text style={styles.availableCapitalLabel}>AVAILABLE CAPITAL</Text>
           <Text style={styles.availableCapitalValue}>{availableCapital}</Text>
@@ -688,7 +653,7 @@ export default function BillingUsageScreen() {
           <View key={item.id} style={styles.marketplaceServiceCard}>
             <View style={styles.marketplaceCardTop}>
               <View style={styles.marketplaceCardIcon}>
-                <MaterialCommunityIcons name={item.icon as any} size={22} color={Theme.textSecondary} />
+                <MaterialCommunityIcons name={item.icon as any} size={22} color={colors.textSecondary} />
               </View>
               <View style={styles.marketplaceCategoryTag}>
                 <Text style={styles.marketplaceCategoryText}>{item.category}</Text>
@@ -701,7 +666,7 @@ export default function BillingUsageScreen() {
               <Text style={styles.marketplaceUnit}> {item.unit}</Text>
             </View>
             <Pressable style={styles.marketplaceAcquireBtn} onPress={() => openAcquireModal(item)}>
-              <MaterialCommunityIcons name="cart-outline" size={20} color={Theme.textOnAccent} />
+              <MaterialCommunityIcons name="cart-outline" size={20} color={'#FFFFFF'} />
               <Text style={styles.marketplaceAcquireBtnText}>Acquire Service</Text>
             </Pressable>
           </View>
@@ -716,7 +681,7 @@ export default function BillingUsageScreen() {
         </Text>
         <Pressable style={styles.marketplaceBundlesBtn} onPress={() => { }}>
           <Text style={styles.marketplaceBundlesBtnText}>View Enterprise Bundles</Text>
-          <MaterialCommunityIcons name="chevron-right" size={22} color={Theme.textPrimary} />
+          <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textPrimary} />
         </Pressable>
       </View>
     </View>
@@ -739,7 +704,7 @@ export default function BillingUsageScreen() {
   return (
     <>
       <LinearGradient
-        colors={[...Theme.backgroundGradient]}
+        colors={(isDark ? ['#0B101E', '#101B28'] : [...Theme.backgroundGradient]) as any}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={[styles.background, { paddingTop: insets.top }]}>
@@ -917,14 +882,14 @@ export default function BillingUsageScreen() {
             <View style={styles.secureAccessModalHeader}>
               <Text style={styles.secureAccessModalTitle}>Secure Access</Text>
               <Pressable onPress={closeAcquireModal} style={styles.secureAccessModalClose} hitSlop={12}>
-                <MaterialCommunityIcons name="close" size={22} color={Theme.textPrimary} />
+                <MaterialCommunityIcons name="close" size={22} color={colors.textPrimary} />
               </Pressable>
             </View>
             {acquireModalItem && (
               <>
                 <View style={styles.secureAccessServiceCard}>
                   <View style={styles.marketplaceCardIcon}>
-                    <MaterialCommunityIcons name={acquireModalItem.icon as any} size={22} color={Theme.textSecondary} />
+                    <MaterialCommunityIcons name={acquireModalItem.icon as any} size={22} color={colors.textSecondary} />
                   </View>
                   <View style={styles.secureAccessServiceInfo}>
                     <Text style={styles.secureAccessServiceName}>{acquireModalItem.title}</Text>
@@ -944,7 +909,7 @@ export default function BillingUsageScreen() {
                 </View>
                 <Pressable style={styles.secureAccessAuthorizeBtn} onPress={handleAuthorizeCapitalRelease}>
                   <Text style={styles.secureAccessAuthorizeBtnText}>Authorize Capital Release</Text>
-                  <MaterialCommunityIcons name="arrow-top-right" size={20} color={Theme.textOnAccent} />
+                  <MaterialCommunityIcons name="arrow-top-right" size={20} color={'#FFFFFF'} />
                 </Pressable>
                 <Text style={styles.secureAccessDisclaimer}>By confirming, you authorize ZIEN to process this one-time transaction.</Text>
               </>
@@ -958,7 +923,7 @@ export default function BillingUsageScreen() {
           <Pressable style={StyleSheet.absoluteFill} onPress={closeSettlementConfirmed} />
           <View style={styles.settlementConfirmedCard}>
             <View style={styles.settlementConfirmedIcon}>
-              <MaterialCommunityIcons name={'sparkles' as any} size={32} color={Theme.textOnAccent} />
+              <MaterialCommunityIcons name={'sparkles' as any} size={32} color={'#FFFFFF'} />
             </View>
             <Text style={styles.settlementConfirmedTitle}>Settlement Confirmed</Text>
             <Text style={styles.settlementConfirmedDesc}>
@@ -983,7 +948,7 @@ export default function BillingUsageScreen() {
             </View>
             <Text style={styles.cancelModalDesc}>
               If you cancel, your Professional Agent Seats and CRM Sync features will remain active until the end of your
-              current billing cycle on <Text style={{ fontWeight: '900', color: '#0B2D3E' }}>Feb 12, 2026</Text>. After that,
+              current billing cycle on <Text style={{ fontWeight: '900', color: colors.textPrimary }}>Feb 12, 2026</Text>. After that,
               your account will be downgraded to the basic free tier.
             </Text>
             <View style={styles.cancelModalFooter}>
@@ -1001,7 +966,7 @@ export default function BillingUsageScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   background: {
     flex: 1,
   },
@@ -1029,13 +994,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
-    backgroundColor: Theme.surfaceSoft,
+    borderColor: colors.cardBorder,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : Theme.surfaceSoft,
   },
   exportButtonText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   ledgerList: {
     marginTop: 16,
@@ -1048,7 +1013,7 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: Theme.rowBorder,
+    borderTopColor: colors.cardBorder,
   },
   ledgerRowFirst: {
     borderTopWidth: 0,
@@ -1068,26 +1033,26 @@ const styles = StyleSheet.create({
   ledgerDate: {
     fontSize: 14,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   ledgerDesc: {
     fontSize: 12.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   ledgerId: {
     fontSize: 12,
     fontWeight: '700',
-    color: Theme.accentTeal,
+    color: '#0BA0B2',
   },
   ledgerSource: {
     fontSize: 12,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   ledgerAmount: {
     fontSize: 15,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   downloadIconButton: {
     padding: 6,
@@ -1101,11 +1066,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   cardSubtitle: {
     fontSize: 12.5,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   linkText: {
@@ -1123,26 +1088,26 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: Theme.cardBackgroundSoft,
+    backgroundColor: colors.cardBackgroundSoft,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   planName: {
     fontSize: 18,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   planPrice: {
     fontSize: 15,
     fontWeight: '800',
-    color: Theme.accentTeal,
+    color: '#0BA0B2',
   },
   planPriceUnit: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   planFeatureList: {
@@ -1158,20 +1123,20 @@ const styles = StyleSheet.create({
   planFeatureText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   activeBadge: {
-    backgroundColor: Theme.cardBackgroundSoft,
+    backgroundColor: colors.cardBackgroundSoft,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
   },
   activeBadgeText: {
     fontSize: 10,
     fontWeight: '900',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   resourceCardHeader: {
@@ -1183,7 +1148,7 @@ const styles = StyleSheet.create({
   resourceSubtitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   autoReplenishRow: {
     flexDirection: 'row',
@@ -1192,7 +1157,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: Theme.rowBorder,
+    borderTopColor: colors.cardBorder,
   },
   autoReplenishLeft: {
     flexDirection: 'row',
@@ -1203,18 +1168,18 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: Theme.cardBackgroundSoft,
+    backgroundColor: colors.cardBackgroundSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   autoReplenishTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   autoReplenishSub: {
     fontSize: 12,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   adjustButton: {
@@ -1222,13 +1187,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
-    backgroundColor: Theme.surfaceSoft,
+    borderColor: colors.cardBorder,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : Theme.surfaceSoft,
   },
   adjustButtonText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   financialSection: {
     gap: 10,
@@ -1245,7 +1210,7 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: Theme.rowBorder,
+    borderTopColor: colors.cardBorder,
   },
   billingHistoryRowFirst: {
     borderTopWidth: 0,
@@ -1259,11 +1224,11 @@ const styles = StyleSheet.create({
   billingHistoryRowDate: {
     fontSize: 14,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   billingHistoryRowDesc: {
     fontSize: 12.5,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   billingHistoryRowMeta: {
@@ -1275,14 +1240,14 @@ const styles = StyleSheet.create({
   billingHistoryRowAmount: {
     fontSize: 15,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   downloadPdfButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: Theme.accentTeal,
+    backgroundColor: '#0BA0B2',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
@@ -1291,7 +1256,7 @@ const styles = StyleSheet.create({
   downloadPdfButtonText: {
     fontSize: 13,
     fontWeight: '800',
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   billingTableHeader: {
     flexDirection: 'row',
@@ -1299,13 +1264,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.rowBorder,
+    borderBottomColor: colors.cardBorder,
     gap: 8,
   },
   billingTableHeaderText: {
     fontSize: 10,
     fontWeight: '900',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   billingTableDescCol: {
@@ -1317,7 +1282,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.rowBorder,
+    borderBottomColor: colors.cardBorder,
     gap: 8,
   },
   pdfDownload: {
@@ -1328,12 +1293,12 @@ const styles = StyleSheet.create({
   pdfDownloadText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Theme.accentTeal,
+    color: '#0BA0B2',
   },
   paymentArchitectureTitle: {
     fontSize: 11,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: 0.6,
     marginBottom: 12,
   },
@@ -1345,7 +1310,7 @@ const styles = StyleSheet.create({
   },
   paymentExpiry: {
     fontSize: 12,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   planMetaGrid: {
@@ -1354,25 +1319,25 @@ const styles = StyleSheet.create({
   },
   planMetaItem: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     gap: 6,
   },
   metaLabel: {
     fontSize: 11.5,
-    color: '#7B8794',
+    color: colors.textSecondary,
     fontWeight: '700',
   },
   metaValue: {
     fontSize: 12.5,
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '800',
   },
   primaryButton: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
@@ -1394,12 +1359,12 @@ const styles = StyleSheet.create({
   usageLabel: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   usageValue: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#7B8794',
+    color: colors.textSecondary,
   },
   progressTrack: {
     height: 10,
@@ -1421,34 +1386,34 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   actionIcon: {
     width: 34,
     height: 34,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   sectionSubtitle: {
     fontSize: 12.5,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   invoiceRow: {
     flexDirection: 'row',
@@ -1472,16 +1437,16 @@ const styles = StyleSheet.create({
   invoiceCycle: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   invoiceDesc: {
     fontSize: 12.5,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   invoiceAmount: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     minWidth: 72,
     textAlign: 'right',
   },
@@ -1490,10 +1455,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   billingItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     padding: 14,
     gap: 12,
   },
@@ -1506,12 +1471,12 @@ const styles = StyleSheet.create({
   billingDate: {
     fontSize: 13.5,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   billingDesc: {
     marginTop: 4,
     fontSize: 12.5,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '700',
     lineHeight: 17,
   },
@@ -1522,7 +1487,7 @@ const styles = StyleSheet.create({
   billingAmount: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   invoiceDownloadButton: {
     flexDirection: 'row',
@@ -1531,30 +1496,30 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 14,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   invoiceDownloadIcon: {
     width: 34,
     height: 34,
     borderRadius: 12,
-    backgroundColor: '#EAF6F8',
+    backgroundColor: 'rgba(11, 160, 178, 0.15)',
     borderWidth: 1,
-    borderColor: '#CFECEF',
+    borderColor: 'rgba(11, 160, 178, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   invoiceDownloadTitle: {
     fontSize: 12.5,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   invoiceDownloadSub: {
     marginTop: 2,
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#7B8794',
+    color: colors.textSecondary,
   },
   statusPill: {
     borderRadius: 999,
@@ -1563,12 +1528,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   statusPaid: {
-    backgroundColor: '#EAF6F8',
-    borderColor: '#CFECEF',
+    backgroundColor: 'rgba(11, 160, 178, 0.15)',
+    borderColor: 'rgba(11, 160, 178, 0.2)',
   },
   statusDue: {
-    backgroundColor: '#FFF7ED',
-    borderColor: '#FED7AA',
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    borderColor: 'rgba(249, 115, 22, 0.2)',
   },
   statusText: {
     fontSize: 10.5,
@@ -1585,39 +1550,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   paymentIcon: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#EEF3F8',
+    backgroundColor: 'rgba(11, 160, 178, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   paymentTitle: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   paymentSub: {
     marginTop: 2,
     fontSize: 12,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '700',
   },
 
   // Premium Overview Styles
   premiumPlanCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     shadowColor: '#0B2D3E',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
@@ -1633,13 +1598,13 @@ const styles = StyleSheet.create({
   activePillContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: 'rgba(22, 163, 74, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#DCFCE7',
+    borderColor: 'rgba(22, 163, 74, 0.15)',
   },
   pulseDot: {
     width: 8,
@@ -1650,14 +1615,14 @@ const styles = StyleSheet.create({
   activePillText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#166534',
+    color: isDark ? '#22C55E' : '#166534',
     letterSpacing: 0.5,
   },
   tierIconContainer: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1667,7 +1632,7 @@ const styles = StyleSheet.create({
   planTierTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   planPriceRow: {
@@ -1679,16 +1644,16 @@ const styles = StyleSheet.create({
   planPriceValue: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   planPricePeriod: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#7B8794',
+    color: colors.textSecondary,
   },
   planDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.cardBorder,
     marginBottom: 20,
   },
   planFeaturesGrid: {
@@ -1706,18 +1671,18 @@ const styles = StyleSheet.create({
   planFeatureDetailText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   planRenewalText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#7B8794',
+    color: colors.textSecondary,
   },
   planActionContainer: {
     gap: 12,
   },
   premiumManageBtn: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
@@ -1739,21 +1704,21 @@ const styles = StyleSheet.create({
   },
 
   premiumResourceCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   premiumCardTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   premiumCardSubtitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7B8794',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   usageListContainer: {
@@ -1771,20 +1736,20 @@ const styles = StyleSheet.create({
   usageLabelText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   usageValueText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   usageLimitText: {
-    color: '#9AA7B6',
+    color: colors.textSecondary,
     fontWeight: '700',
   },
   premiumProgressTrack: {
     height: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#F1F5F9',
     borderRadius: 999,
     overflow: 'hidden',
   },
@@ -1796,11 +1761,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(11, 160, 178, 0.05)',
     padding: 16,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   autoReplenishInfo: {
     flexDirection: 'row',
@@ -1811,33 +1776,33 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#E0F2F1',
+    backgroundColor: 'rgba(11, 160, 178, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   replenishTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   replenishSub: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#7B8794',
+    color: colors.textSecondary,
     marginTop: 1,
   },
   replenishAdjustBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   replenishAdjustBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
 
   historyPreviewContainer: {
@@ -1852,7 +1817,7 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   viewAllBtn: {
     flexDirection: 'row',
@@ -1870,11 +1835,11 @@ const styles = StyleSheet.create({
   previewItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   previewItemLeft: {
     flex: 1,
@@ -1883,12 +1848,12 @@ const styles = StyleSheet.create({
   previewItemDate: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7B8794',
+    color: colors.textSecondary,
   },
   previewItemDesc: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   previewItemRight: {
     alignItems: 'flex-end',
@@ -1898,10 +1863,10 @@ const styles = StyleSheet.create({
   previewItemAmount: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   paidBadge: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: 'rgba(22, 163, 74, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1909,30 +1874,30 @@ const styles = StyleSheet.create({
   paidBadgeText: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#166534',
+    color: isDark ? '#22C55E' : '#166534',
   },
   previewDownloadBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : colors.cardBorder,
   },
 
   premiumPaymentCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   paymentSectionHeader: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#7B8794',
+    color: colors.textSecondary,
     letterSpacing: 1,
     marginBottom: 20,
   },
@@ -1987,30 +1952,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'transparent',
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : colors.cardBorder,
   },
   paymentActionText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   outlineButton: {
     marginTop: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     flexDirection: 'row',
     justifyContent: 'center',
   },
   outlineButtonText: {
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     fontWeight: '900',
     fontSize: 12.5,
   },
@@ -2039,22 +2004,22 @@ const styles = StyleSheet.create({
     minWidth: 72,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
-    backgroundColor: Theme.surfaceSoft,
+    borderColor: colors.cardBorder,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : Theme.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   analyticsToggleBtnActive: {
-    backgroundColor: Theme.accentDark,
-    borderColor: Theme.accentDark,
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
+    borderColor: isDark ? '#0BA0B2' : '#0B2D3E',
   },
   analyticsToggleText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   analyticsToggleTextActive: {
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   allocationChartWrap: {
     position: 'relative',
@@ -2070,12 +2035,12 @@ const styles = StyleSheet.create({
   allocationCenterValue: {
     fontSize: 20,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   allocationCenterUnit: {
     fontSize: 10,
     fontWeight: '800',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.5,
     marginTop: 2,
   },
@@ -2083,7 +2048,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Theme.inputBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -2093,7 +2058,7 @@ const styles = StyleSheet.create({
   leaderboardSearchInput: {
     flex: 1,
     fontSize: 14,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     padding: 0,
   },
   leaderboardCardList: {
@@ -2103,15 +2068,15 @@ const styles = StyleSheet.create({
   leaderboardEmpty: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingVertical: 24,
   },
   leaderboardAgentCard: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     padding: 16,
     gap: 12,
   },
@@ -2124,7 +2089,7 @@ const styles = StyleSheet.create({
   leaderboardAgentCardName: {
     fontSize: 15,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   leaderboardAgentCardRow: {
@@ -2136,12 +2101,12 @@ const styles = StyleSheet.create({
   leaderboardAgentCardLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
   },
   leaderboardAgentCardValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   leaderboardAgentCardHealth: {
     flexDirection: 'row',
@@ -2156,13 +2121,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.rowBorder,
+    borderBottomColor: colors.cardBorder,
     gap: 8,
   },
   leaderboardTh: {
     fontSize: 9,
     fontWeight: '900',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.4,
   },
   leaderboardThAgent: {
@@ -2190,7 +2155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.rowBorder,
+    borderBottomColor: colors.cardBorder,
     gap: 8,
   },
   leaderboardAgent: {
@@ -2210,18 +2175,18 @@ const styles = StyleSheet.create({
   leaderboardInitialsText: {
     fontSize: 11,
     fontWeight: '900',
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   leaderboardName: {
     fontSize: 13,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   leaderboardCell: {
     fontSize: 12,
     fontWeight: '600',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   leaderboardHealthCell: {
     flexDirection: 'row',
@@ -2230,7 +2195,7 @@ const styles = StyleSheet.create({
   leaderboardHealthTrack: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: Theme.surfaceIcon,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : Theme.surfaceIcon,
     overflow: 'hidden',
     flex: 1,
     minWidth: 40,
@@ -2242,7 +2207,7 @@ const styles = StyleSheet.create({
   leaderboardHealthPct: {
     fontSize: 11,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginLeft: 6,
     minWidth: 28,
   },
@@ -2256,7 +2221,7 @@ const styles = StyleSheet.create({
   tableHeaderText: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#7B8794',
+    color: colors.textSecondary,
     letterSpacing: 0.6,
   },
   teamRow: {
@@ -2271,12 +2236,12 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 13.5,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   teamMeta: {
     marginTop: 4,
     fontSize: 12,
-    color: '#7B8794',
+    color: colors.textSecondary,
     fontWeight: '700',
   },
   teamCredits: {
@@ -2287,7 +2252,7 @@ const styles = StyleSheet.create({
   marketTitle: {
     fontSize: 15.5,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   marketPrice: {
     fontSize: 14,
@@ -2296,7 +2261,7 @@ const styles = StyleSheet.create({
   },
   marketUnit: {
     fontSize: 12.5,
-    color: '#7B8794',
+    color: colors.textSecondary,
     fontWeight: '800',
   },
   marketplaceSection: {
@@ -2316,11 +2281,11 @@ const styles = StyleSheet.create({
   marketplaceTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   marketplaceSubtitle: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 6,
     lineHeight: 20,
   },
@@ -2328,34 +2293,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     alignSelf: "flex-end"
   },
   availableCapitalLabel: {
     fontSize: 9,
     fontWeight: '900',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.8,
   },
   availableCapitalValue: {
     fontSize: 15,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginTop: 2,
   },
   marketplaceCardList: {
     gap: 14,
   },
   marketplaceServiceCard: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
     padding: 18,
     gap: 12,
   },
@@ -2368,32 +2333,32 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : Theme.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   marketplaceCategoryTag: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
+    borderColor: colors.cardBorder,
   },
   marketplaceCategoryText: {
     fontSize: 10,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: 0.5,
   },
   marketplaceServiceTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   marketplaceServiceDesc: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 19,
     fontWeight: '600',
   },
@@ -2404,11 +2369,11 @@ const styles = StyleSheet.create({
   marketplacePrice: {
     fontSize: 18,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   marketplaceUnit: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '700',
     marginLeft: 4,
   },
@@ -2417,7 +2382,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Theme.accentDark,
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     paddingVertical: 14,
     borderRadius: 14,
     marginTop: 4,
@@ -2425,10 +2390,10 @@ const styles = StyleSheet.create({
   marketplaceAcquireBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   marketplaceBundlesSection: {
-    backgroundColor: Theme.accentDark,
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     borderRadius: 22,
     padding: 22,
     gap: 12,
@@ -2442,7 +2407,7 @@ const styles = StyleSheet.create({
   marketplaceBundlesTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   marketplaceBundlesDesc: {
     fontSize: 13,
@@ -2455,7 +2420,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     paddingVertical: 14,
     borderRadius: 14,
     marginTop: 6,
@@ -2463,12 +2428,12 @@ const styles = StyleSheet.create({
   marketplaceBundlesBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   // Full-Page Modal Shared Styles (matching Guardian)
   modalFullContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   modalHeaderFull: {
     flexDirection: 'row',
@@ -2483,13 +2448,13 @@ const styles = StyleSheet.create({
   modalTitleFull: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   modalSubtitleFull: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 6,
     lineHeight: 20,
   },
@@ -2497,7 +2462,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2530,26 +2495,26 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: 0.2,
   },
   premiumInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   inputWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     borderRadius: 16,
     paddingRight: 8,
   },
@@ -2559,12 +2524,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   cardTypeIcon: {
     width: 44,
     height: 32,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2572,34 +2537,34 @@ const styles = StyleSheet.create({
   },
   securityAuditPill: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(11, 160, 178, 0.05)',
     borderRadius: 20,
     padding: 20,
     gap: 16,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   securityBadgeWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   securityAuditText: {
     flex: 1,
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     lineHeight: 18,
   },
   authorizeBtn: {
     flex: 2,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
@@ -2612,9 +2577,9 @@ const styles = StyleSheet.create({
   },
   cancelActionBtn: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
@@ -2623,7 +2588,7 @@ const styles = StyleSheet.create({
   cancelActionBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   secureAccessModalOverlay: {
     flex: 1,
@@ -2635,11 +2600,11 @@ const styles = StyleSheet.create({
   secureAccessModalCard: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     shadowColor: '#0B2D3E',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.1,
@@ -2655,27 +2620,27 @@ const styles = StyleSheet.create({
   secureAccessModalTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   secureAccessModalClose: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secureAccessServiceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(11, 160, 178, 0.05)',
     borderRadius: 16,
     padding: 16,
     gap: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   secureAccessServiceInfo: {
     flex: 1,
@@ -2684,17 +2649,17 @@ const styles = StyleSheet.create({
   secureAccessServiceName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   secureAccessServiceMeta: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   secureAccessServicePrice: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   secureAccessTotalRow: {
     flexDirection: 'row',
@@ -2708,17 +2673,17 @@ const styles = StyleSheet.create({
   secureAccessTotalLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   secureAccessTotalValue: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   secureAccessPaymentLabel: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -2727,9 +2692,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.borderInput,
+    borderColor: colors.cardBorder,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -2738,7 +2703,7 @@ const styles = StyleSheet.create({
   secureAccessPaymentText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   secureAccessAuthorizeBtn: {
@@ -2746,7 +2711,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Theme.accentDark,
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     paddingVertical: 14,
     borderRadius: 14,
     marginBottom: 12,
@@ -2754,12 +2719,12 @@ const styles = StyleSheet.create({
   secureAccessAuthorizeBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   secureAccessDisclaimer: {
     fontSize: 11,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
   },
@@ -2773,7 +2738,7 @@ const styles = StyleSheet.create({
   settlementConfirmedCard: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 22,
     padding: 28,
     alignItems: 'center',
@@ -2782,7 +2747,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Theme.accentDark,
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -2790,20 +2755,20 @@ const styles = StyleSheet.create({
   settlementConfirmedTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 10,
   },
   settlementConfirmedDesc: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 21,
     marginBottom: 24,
   },
   settlementConfirmedBtn: {
     width: '100%',
-    backgroundColor: Theme.accentDark,
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
@@ -2811,7 +2776,7 @@ const styles = StyleSheet.create({
   settlementConfirmedBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   cancelModalOverlay: {
     flex: 1,
@@ -2823,7 +2788,7 @@ const styles = StyleSheet.create({
   cancelModalCard: {
     width: '100%',
     maxWidth: 440,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 28,
     padding: 32,
     shadowColor: '#0B2D3E',
@@ -2841,21 +2806,21 @@ const styles = StyleSheet.create({
   cancelModalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   cancelModalClose: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelModalDesc: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     lineHeight: 22,
     marginBottom: 32,
   },
@@ -2868,14 +2833,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   keepSubBtnText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   confirmCancelBtn: {
     flex: 1,
@@ -2903,11 +2868,11 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 560,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 22,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   modalHeaderRow: {
     flexDirection: 'row',
@@ -2918,21 +2883,21 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 12,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   modalSubtitle: {
     marginTop: 4,
     fontSize: 12.5,
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     fontWeight: '700',
   },
   planScroller: {
@@ -2944,21 +2909,21 @@ const styles = StyleSheet.create({
     width: 230,
     borderRadius: 18,
     padding: 14,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     gap: 12,
     overflow: 'hidden',
   },
   planCardCurrent: {
     borderColor: '#0BA0B2',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   currentPill: {
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -2972,19 +2937,19 @@ const styles = StyleSheet.create({
   planTier: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#7B8794',
+    color: colors.textSecondary,
     letterSpacing: 0.9,
   },
   planModalPrice: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   planModalUnit: {
     paddingBottom: 5,
     fontSize: 12,
     fontWeight: '800',
-    color: '#7B8794',
+    color: colors.textSecondary,
   },
   planBulletList: {
     gap: 8,
@@ -3004,7 +2969,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12.25,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     lineHeight: 16.5,
   },
   planCta: {
@@ -3015,7 +2980,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   planCtaDark: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     borderColor: '#0B2D3E',
   },
   planCtaAccent: {
@@ -3023,8 +2988,8 @@ const styles = StyleSheet.create({
     borderColor: '#F97316',
   },
   planCtaDisabled: {
-    backgroundColor: '#EEF3F8',
-    borderColor: '#E3ECF4',
+    backgroundColor: 'rgba(11, 160, 178, 0.1)',
+    borderColor: colors.cardBorder,
   },
   planCtaText: {
     fontSize: 12.5,
@@ -3037,15 +3002,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   planCtaTextDisabled: {
-    color: '#9AA7B6',
+    color: colors.textSecondary,
   },
   warningIcon: {
     width: 44,
     height: 44,
     borderRadius: 16,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: 'rgba(249, 115, 22, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3053,13 +3018,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   confirmBody: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -3070,17 +3035,17 @@ const styles = StyleSheet.create({
   },
   confirmOutline: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   confirmOutlineText: {
     fontSize: 12.5,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   confirmPrimary: {
     flex: 1,
@@ -3098,22 +3063,22 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 18,
-    backgroundColor: '#EAF6F8',
+    backgroundColor: 'rgba(11, 160, 178, 0.15)',
     borderWidth: 1,
-    borderColor: '#CFECEF',
+    borderColor: 'rgba(11, 160, 178, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   successTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   successBody: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -3128,7 +3093,7 @@ const styles = StyleSheet.create({
   settlementModalCard: {
     width: '100%',
     maxWidth: 440,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     overflow: 'hidden',
   },
@@ -3136,7 +3101,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    backgroundColor: '#0B2D3E',
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 24,
@@ -3179,16 +3144,16 @@ const styles = StyleSheet.create({
   settlementValue: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   settlementSubValue: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   settlementInvoiceBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(11, 160, 178, 0.05)',
     borderRadius: 16,
     padding: 20,
   },
@@ -3205,29 +3170,29 @@ const styles = StyleSheet.create({
   settlementLineDesc: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     flex: 1,
   },
   settlementLineAmount: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   settlementLineDescMuted: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     flex: 1,
   },
   settlementTotalLabel: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   settlementTotalAmount: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   settlementModalFooter: {
     flexDirection: 'row',
@@ -3254,15 +3219,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
   settlementCloseBtnText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   // Security Architecture (Update Credentials) modal
   credentialsModalOverlay: {
@@ -3278,7 +3243,7 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
   },
   credentialsModalCard: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderRadius: 24,
     overflow: 'hidden',
     maxHeight: '100%',
@@ -3294,11 +3259,11 @@ const styles = StyleSheet.create({
   credentialsModalTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   credentialsModalSubtitle: {
     fontSize: 13,
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     marginTop: 4,
   },
   credentialsModalClose: {
@@ -3316,18 +3281,18 @@ const styles = StyleSheet.create({
   credentialsInputLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   credentialsInput: {
-    backgroundColor: Theme.cardBackground,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: Theme.borderInput,
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
   credentialsRow: {
     flexDirection: 'row',
@@ -3340,7 +3305,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Theme.surfaceMuted,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : Theme.surfaceMuted,
     borderRadius: 12,
     padding: 14,
     marginTop: 4,
@@ -3349,7 +3314,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontWeight: '600',
-    color: Theme.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 18,
   },
   credentialsModalFooter: {
@@ -3358,11 +3323,11 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: Theme.rowBorder,
+    borderTopColor: colors.cardBorder,
   },
   credentialsAuthorizeBtn: {
     flex: 1,
-    backgroundColor: Theme.accentDark,
+    backgroundColor: isDark ? '#0BA0B2' : '#0B2D3E',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
@@ -3371,21 +3336,21 @@ const styles = StyleSheet.create({
   credentialsAuthorizeBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Theme.textOnAccent,
+    color: '#FFFFFF',
   },
   credentialsCancelBtn: {
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Theme.cardBorder,
-    backgroundColor: Theme.cardBackground,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     justifyContent: 'center',
   },
   credentialsCancelBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Theme.textPrimary,
+    color: colors.textPrimary,
   },
 });
 

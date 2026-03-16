@@ -2,10 +2,12 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
   Alert,
   Dimensions,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -99,6 +101,9 @@ const INITIAL_ENTRIES = [
 ];
 
 export default function AiContentScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -135,7 +140,7 @@ export default function AiContentScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+        colors={colors.backgroundGradient as any}
         style={[styles.background, { paddingTop: insets.top }]}
       >
         <PageHeader
@@ -149,6 +154,44 @@ export default function AiContentScreen() {
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Featured Virtual Staging Tool */}
+          <Pressable 
+            style={styles.featuredCard} 
+            onPress={() => router.push('/(main)/ai-content/virtual-staging')}
+          >
+            <LinearGradient
+              colors={['#083344', '#0891B2']} 
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.featuredGradient}
+            >
+              <View style={styles.featuredRight}>
+                {/* Side-by-Side Images */}
+                <Image 
+                  source={{ uri: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=400&q=80' }} 
+                  style={styles.halfImage} 
+                />
+                <Image 
+                  source={{ uri: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=400&q=80' }} 
+                  style={styles.halfImage} 
+                />
+                <View style={styles.labelBefore}><Text style={styles.labelText}>Before</Text></View>
+                <View style={styles.labelAfter}><Text style={styles.labelText}>After</Text></View>
+              </View>
+
+              <View style={styles.featuredLeft}>
+                <Text style={styles.featuredBadge}>Premiere Innovation</Text>
+                <Text style={styles.featuredTitle}>Virtual Staging</Text>
+                <Text style={styles.featuredSubtitle}>
+                  Turn cold, empty architectural shells into warm, hyper-realistic spaces.
+                </Text>
+                <View style={styles.tryBtn}>
+                  <Text style={styles.tryBtnText}>Try this</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </Pressable>
+
           {/* Content Tools Section */}
           <Text style={styles.sectionTitle}>Content Tools</Text>
           <View style={styles.toolsGrid}>
@@ -237,171 +280,264 @@ export default function AiContentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  background: { flex: 1 },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0B2341',
-    marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  toolsGrid: {
-    marginBottom: 32,
-    gap: 12,
-  },
-  toolCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  toolIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  toolContent: { flex: 1 },
-  toolTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0B2341',
-    marginBottom: 2,
-  },
-  toolDesc: {
-    fontSize: 12,
-    color: '#64748B',
-    lineHeight: 16,
-  },
-  libraryHeader: {
-    marginBottom: 16,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#0B2341',
-    fontWeight: '600',
-  },
-  libraryList: { gap: 16 },
-  contentCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 1,
-    borderWidth: 1,
-    borderColor: '#F8FAFC',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  cardInfo: { flex: 1 },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0B2341',
-    marginBottom: 2,
-  },
-  cardContext: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconActionBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  cardMetadata: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  typeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  typeBadgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  cardDate: {
-    fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '700',
-  },
-  usageContainer: {
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  usageInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  usageBarBg: {
-    flex: 1,
-    height: 6,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 3,
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  usageBarFill: {
-    height: '100%',
-    backgroundColor: '#0B2341',
-  },
-  usageCount: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#0B2341',
-    minWidth: 24,
-    textAlign: 'right',
-  },
-
-});
+function getStyles(colors: any) {
+  return StyleSheet.create({
+    container: { flex: 1 },
+    background: { flex: 1 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 16,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    featuredCard: {
+      borderRadius: 24,
+      overflow: 'hidden',
+      marginBottom: 32,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 20,
+      elevation: 6,
+    },
+    featuredGradient: {
+      flexDirection: 'column',
+      padding: 16,
+    },
+    featuredLeft: {
+      marginTop: 20,
+    },
+    featuredBadge: {
+      color: '#E0F2FE',
+      fontSize: 8,
+      fontWeight: '900',
+      letterSpacing: 1,
+      marginBottom: 6,
+      textTransform: 'uppercase',
+    },
+    featuredTitle: {
+      color: '#FFFFFF',
+      fontSize: 24,
+      fontWeight: '900',
+      marginBottom: 8,
+    },
+    featuredSubtitle: {
+      color: '#E0F2FE',
+      fontSize: 12,
+      lineHeight: 18,
+      marginBottom: 16,
+    },
+    tryBtn: {
+      backgroundColor: '#FFFFFF',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 10,
+      alignSelf: 'flex-start',
+    },
+    tryBtnText: {
+      color: '#0891B2',
+      fontWeight: '900',
+      fontSize: 12,
+    },
+    featuredRight: {
+      width: '100%',
+      aspectRatio: 1.4,
+      borderRadius: 16,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+      position: 'relative',
+      flexDirection: 'row',
+    },
+    halfImage: {
+      width: '50%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    afterImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    labelBefore: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    labelAfter: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      backgroundColor: '#0891B2',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    labelText: {
+      color: '#FFFFFF',
+      fontSize: 8,
+      fontWeight: '900',
+    },
+    toolsGrid: {
+      marginBottom: 32,
+      gap: 12,
+    },
+    toolCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 20,
+      padding: 16,
+      shadowColor: colors.cardShadowColor,
+      shadowOpacity: 0.04,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 10,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    toolIconBox: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 16,
+    },
+    toolContent: { flex: 1 },
+    toolTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    toolDesc: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      lineHeight: 16,
+    },
+    libraryHeader: {
+      marginBottom: 16,
+    },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      height: 44,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    libraryList: { gap: 16 },
+    contentCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 20,
+      padding: 20,
+      shadowColor: colors.cardShadowColor,
+      shadowOpacity: 0.03,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 6,
+      elevation: 1,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    cardInfo: { flex: 1 },
+    cardTitle: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    cardContext: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    cardActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    iconActionBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    cardMetadata: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    typeBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    typeBadgeText: {
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    cardDate: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontWeight: '700',
+    },
+    usageContainer: {
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+    usageInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    usageBarBg: {
+      flex: 1,
+      height: 6,
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 3,
+      marginRight: 12,
+      overflow: 'hidden',
+    },
+    usageBarFill: {
+      height: '100%',
+      backgroundColor: colors.accentTeal,
+    },
+    usageCount: {
+      fontSize: 12,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      minWidth: 24,
+      textAlign: 'right',
+    },
+  });
+};

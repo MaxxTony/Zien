@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { ZienCardScreenShell } from './_components/ZienCardScreenShell';
+import { useAppTheme } from '@/context/ThemeContext';
 
 const KPI_CARDS = [
   { key: 'views', label: 'Total Views', value: '1,248', icon: 'eye-outline' as const, trend: '+12%', trendUp: true },
@@ -30,24 +31,35 @@ const TRAFFIC_DATA = [
   { name: 'Tablet', population: 5, color: '#EA580C', legendFontColor: '#5B6B7A', legendFontSize: 12 },
 ];
 
-const chartConfig = {
-  backgroundGradientFrom: '#FFFFFF',
-  backgroundGradientTo: '#FFFFFF',
-  decimalPlaces: 0,
-  color: (opacity = 1) => `rgba(11, 45, 62, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(91, 107, 122, ${opacity})`,
-  strokeWidth: 2,
-  propsForDots: { r: '3' },
-  propsForBackgroundLines: { stroke: '#E8EEF4', strokeDasharray: '4 4' },
-  fillShadowGradientFrom: '#0B6B9E',
-  fillShadowGradientTo: '#0B6B9E',
-  fillShadowGradientOpacity: 0.25,
-};
+// Static defaults removed to useMemo inside component
 
 export default function ZienCardAnalyticsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
   const [dateRange] = useState<string>('Last 7 Days');
   const { width } = Dimensions.get('window');
   const chartWidth = Math.max(280, width - 18 * 2 - 24);
+
+  const dynamicChartConfig = useMemo(() => ({
+    backgroundGradientFrom: colors.cardBackground,
+    backgroundGradientTo: colors.cardBackground,
+    decimalPlaces: 0,
+    color: (opacity = 1) => colors.textPrimary,
+    labelColor: (opacity = 1) => colors.textSecondary,
+    strokeWidth: 2,
+    propsForDots: { r: '3' },
+    propsForBackgroundLines: { stroke: colors.cardBorder, strokeDasharray: '4 4' },
+    fillShadowGradientFrom: '#0B6B9E',
+    fillShadowGradientTo: '#0B6B9E',
+    fillShadowGradientOpacity: 0.25,
+  }), [colors]);
+
+  const dynamicTrafficData = useMemo(() => [
+    { name: 'Mobile', population: 75, color: '#0B6B9E', legendFontColor: colors.textSecondary, legendFontSize: 12 },
+    { name: 'Desktop', population: 20, color: '#059669', legendFontColor: colors.textSecondary, legendFontSize: 12 },
+    { name: 'Tablet', population: 5, color: '#EA580C', legendFontColor: colors.textSecondary, legendFontSize: 12 },
+  ], [colors]);
 
   const activityChartData = useMemo(
     () => ({
@@ -70,10 +82,10 @@ export default function ZienCardAnalyticsScreen() {
 
   const lineChartConfig = useMemo(
     () => ({
-      ...chartConfig,
+      ...dynamicChartConfig,
       color: (opacity = 1) => `rgba(11, 107, 158, ${opacity})`,
     }),
-    []
+    [dynamicChartConfig]
   );
 
   return (
@@ -90,7 +102,7 @@ export default function ZienCardAnalyticsScreen() {
           onPress={() => {}}
           accessibilityRole="button"
           accessibilityLabel="Date range">
-          <MaterialCommunityIcons name="calendar-outline" size={18} color="#5B6B7A" />
+          <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textSecondary} />
           <Text style={styles.dateRangeBtnText}>{dateRange}</Text>
         </Pressable>
         {/* KPI cards */}
@@ -102,7 +114,7 @@ export default function ZienCardAnalyticsScreen() {
           {KPI_CARDS.map((kpi) => (
             <View key={kpi.key} style={styles.kpiCard}>
               <View style={styles.kpiIconWrap}>
-                <MaterialCommunityIcons name={kpi.icon} size={20} color="#0B2D3E" />
+                <MaterialCommunityIcons name={kpi.icon} size={20} color={colors.textPrimary} />
               </View>
               <Text style={styles.kpiValue}>{kpi.value}</Text>
               <Text style={styles.kpiLabel}>{kpi.label}</Text>
@@ -147,13 +159,13 @@ export default function ZienCardAnalyticsScreen() {
           <Text style={styles.chartCardTitle}>Traffic Source</Text>
           <View style={styles.pieChartWrap}>
             <PieChart
-              data={TRAFFIC_DATA}
+              data={dynamicTrafficData}
               width={Math.min(chartWidth, 270)}
               height={170}
-              chartConfig={chartConfig as any}
+              chartConfig={dynamicChartConfig as any}
               accessor="population"
               backgroundColor="transparent"
-              paddingLeft="0"
+              paddingLeft="15"
               center={[0, 0]}
               hasLegend
               absolute={false}
@@ -167,26 +179,26 @@ export default function ZienCardAnalyticsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 },
   dateRangeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     alignSelf: 'flex-end',
     marginBottom: 15,
   },
   dateRangeBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   kpiScroll: { marginHorizontal: -18, marginBottom: 20 },
   kpiRow: {
@@ -197,17 +209,17 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     width: 140,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     padding: 14,
   },
   kpiIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#E8EEF4',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -215,12 +227,12 @@ const styles = StyleSheet.create({
   kpiValue: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   kpiLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   trendRow: {
@@ -234,17 +246,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   chartCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     padding: 16,
     marginBottom: 16,
   },
   chartCardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 14,
   },
   lineChartWrap: {

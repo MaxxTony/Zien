@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { DEFAULT_PROFILE_CARD, ProfileCard } from './_components/ProfileCard';
 import { ZienCardScreenShell } from './_components/ZienCardScreenShell';
+import { useAppTheme } from '@/context/ThemeContext';
 
 const PROFILES = [
   { id: 'new-work', name: 'New Work Profile', sub: 'work Profile' },
@@ -11,6 +12,10 @@ const PROFILES = [
 ] as const;
 
 export default function ZienCardDashboardScreen() {
+  const { colors, theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors);
+
   const router = useRouter();
   const [mainTab, setMainTab] = useState<'mycard' | 'enquiries'>('mycard');
   const [activeProfileId, setActiveProfileId] = useState<(typeof PROFILES)[number]['id']>('new-work');
@@ -41,7 +46,7 @@ export default function ZienCardDashboardScreen() {
 
           <View style={styles.activeProfileRow}>
             <View style={styles.activeProfileIconWrap}>
-              <MaterialCommunityIcons name="briefcase-outline" size={22} color="#0B2D3E" />
+              <MaterialCommunityIcons name="briefcase-outline" size={22} color={colors.textPrimary} />
             </View>
             <View style={styles.activeProfileTextWrap}>
               <Text style={styles.activeProfileTitle} numberOfLines={1}>{activeProfile.name}</Text>
@@ -68,7 +73,7 @@ export default function ZienCardDashboardScreen() {
             onPress={() => { }}
             accessibilityRole="button"
             accessibilityLabel="Create new profile">
-            <MaterialCommunityIcons name="plus" size={20} color="#0B2D3E" />
+            <MaterialCommunityIcons name="plus" size={20} color={colors.textPrimary} />
             <Text style={styles.createProfileBtnText}>Create New Profile</Text>
           </Pressable>
         </View>
@@ -118,13 +123,13 @@ export default function ZienCardDashboardScreen() {
                   <Pressable
                     style={({ pressed }) => [styles.secondaryBtn, pressed && styles.secondaryBtnPressed]}
                     onPress={() => router.push('/(main)/zien-card/basic-information')}>
-                    <MaterialCommunityIcons name="file-document-outline" size={20} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="file-document-outline" size={20} color={colors.textPrimary} />
                     <Text style={styles.secondaryBtnText}>Preview</Text>
                   </Pressable>
                   <Pressable
                     style={({ pressed }) => [styles.secondaryBtn, pressed && styles.secondaryBtnPressed]}
                     onPress={() => { }}>
-                    <MaterialCommunityIcons name="link-variant" size={20} color="#0B2D3E" />
+                    <MaterialCommunityIcons name="link-variant" size={20} color={colors.textPrimary} />
                     <Text style={styles.secondaryBtnText}>Copy Link</Text>
                   </Pressable>
                 </View>
@@ -144,7 +149,7 @@ export default function ZienCardDashboardScreen() {
               {/* Go Mobile — web only (hidden on native app) */}
               {Platform.OS === 'web' && (
                 <View style={styles.goMobileCard}>
-                  <MaterialCommunityIcons name="cellphone" size={24} color="#0B2D3E" />
+                  <MaterialCommunityIcons name="cellphone" size={24} color={colors.textPrimary} />
                   <View style={styles.goMobileTextWrap}>
                     <Text style={styles.goMobileTitle}>Go Mobile</Text>
                     <Text style={styles.goMobileSub}>Manage your digital cards on the go with the Zien App.</Text>
@@ -162,7 +167,7 @@ export default function ZienCardDashboardScreen() {
               <Text style={styles.enquiriesHeading}>Enquiries</Text>
               <Text style={styles.enquiriesSubheading}>Manage leads and contacts collected from your digital cards.</Text>
               <View style={styles.enquiriesEmptyCard}>
-                <MaterialCommunityIcons name="account-group-outline" size={64} color="#9AA7B6" />
+                <MaterialCommunityIcons name="account-group-outline" size={64} color={colors.textSecondary} />
                 <Text style={styles.enquiriesEmptyTitle}>No Data Yet</Text>
                 <Text style={styles.enquiriesEmptyText}>
                   Share your card QR code to start collecting enquiries. When someone scans and shares their info, it will appear here.
@@ -178,7 +183,7 @@ export default function ZienCardDashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 18,
@@ -187,17 +192,17 @@ const styles = StyleSheet.create({
   },
   activeCardOuter: {
     marginBottom: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     padding: 18,
     minHeight: 44,
   },
   activeCardLabel: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 14,
   },
   activeProfileRow: {
@@ -209,7 +214,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#E0F4F8',
+    backgroundColor: 'rgba(11, 160, 178, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -217,18 +222,18 @@ const styles = StyleSheet.create({
   activeProfileTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   activeProfileSub: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   switchToLabel: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#7B8794',
+    color: colors.textSecondary,
     letterSpacing: 0.6,
     marginTop: 18,
     marginBottom: 10,
@@ -245,12 +250,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.textPrimary,
   },
   switchToItemText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     flex: 1,
   },
   createProfileBtn: {
@@ -261,23 +266,23 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 14,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#D7DEE7',
+    borderColor: colors.cardBorder,
     marginTop: 8,
     minHeight: 52,
   },
   createProfileBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   mainSection: {},
   mainTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 14,
   },
   tabsRow: {
@@ -301,13 +306,13 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
   },
   tabTextActive: {
-    color: '#0B2D3E',
+    color: '#0BA0B2',
   },
   enquiryBadge: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.textPrimary,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -315,11 +320,11 @@ const styles = StyleSheet.create({
   enquiryBadgeText: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   workCardTag: {
     alignSelf: 'flex-start',
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.textPrimary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -328,29 +333,29 @@ const styles = StyleSheet.create({
   workCardTagText: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
     letterSpacing: 0.5,
   },
   profileCardWrap: {
     marginBottom: 20,
   },
   quickActionsCard: {
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 22,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     marginBottom: 16,
   },
   quickActionsTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   quickActionsSub: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 6,
     marginBottom: 18,
   },
@@ -359,7 +364,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: '#0B2D3E',
+    backgroundColor: '#0BA0B2',
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 16,
@@ -387,18 +392,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 12,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     minHeight: 52,
   },
   secondaryBtnPressed: {
-    backgroundColor: '#EEF3F8',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   secondaryBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   leadsBlock: {
     flexDirection: 'row',
@@ -409,11 +414,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E8EEF4',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   leadsIconWrap: {
     width: 44,
@@ -427,44 +432,44 @@ const styles = StyleSheet.create({
   leadsLabel: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#7B8794',
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   leadsValue: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   leadsMeta: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   goMobileCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   goMobileTextWrap: { flex: 1 },
   goMobileTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
   },
   goMobileSub: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   getAppBtn: {
-    backgroundColor: '#0B2D3E',
+    backgroundColor: colors.textPrimary,
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 14,
@@ -472,7 +477,7 @@ const styles = StyleSheet.create({
   getAppBtnText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
   enquiriesSection: {
     paddingTop: 8,
@@ -480,62 +485,62 @@ const styles = StyleSheet.create({
   enquiriesHeading: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   enquiriesSubheading: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginBottom: 24,
     lineHeight: 20,
   },
   enquiriesEmptyCard: {
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'rgba(255,255,255,0.02)',
     borderRadius: 22,
     padding: 40,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#D7DEE7',
+    borderColor: colors.cardBorder,
     minHeight: 280,
   },
   enquiriesEmptyTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 20,
   },
   enquiriesEmptyText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 12,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 16,
   },
   placeholderBox: {
-    backgroundColor: '#F7FBFF',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
     minHeight: 200,
   },
   placeholderTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0B2D3E',
+    color: colors.textPrimary,
     marginTop: 12,
   },
   placeholderSub: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     marginTop: 6,
     textAlign: 'center',
   },

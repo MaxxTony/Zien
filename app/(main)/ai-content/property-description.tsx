@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -70,6 +71,9 @@ const STYLE_OPTIONS = ['Cinematic', 'Professional', 'Minimalist', 'Emotional'];
 const MOCK_OUTPUT = `Perched majestically above the shimmering coastline,`;
 
 export default function PropertyDescriptionLabScreen() {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -116,7 +120,7 @@ export default function PropertyDescriptionLabScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={['#F8FAFC', '#F1F5F9', '#FFFFFF']}
+                colors={colors.backgroundGradient as any}
                 style={[styles.background, { paddingTop: insets.top }]}
             >
                 <PageHeader
@@ -270,242 +274,246 @@ export default function PropertyDescriptionLabScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    background: { flex: 1 },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 20 },
+function getStyles(colors: any) {
+    return StyleSheet.create({
+        container: { flex: 1 },
+        background: { flex: 1 },
+        scroll: { flex: 1 },
+        scrollContent: { paddingHorizontal: 20 },
 
-    // Property Selector
-    propertyList: {
-        paddingVertical: 10,
-        gap: 12,
-        marginBottom: 20,
-    },
-    propertyCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 14,
-        padding: 12,
-        width: 220,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        shadowColor: '#000',
-        shadowOpacity: 0.02,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 1,
-    },
-    propertyCardSelected: {
-        borderColor: '#0BA0B2',
-        borderWidth: 2,
-        backgroundColor: '#F0FDFA',
-    },
-    propertyIconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 10,
-        overflow: 'hidden',
-        marginRight: 12,
-        backgroundColor: '#F8FAFC',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    propertyImage: {
-        width: '100%',
-        height: '100%',
-    },
-    genericIconBox: {
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#F1F5F9',
-    },
-    propertyText: { flex: 1 },
-    propertyTitle: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: '#0B2341',
-        marginBottom: 2,
-    },
-    propertyAddress: {
-        fontSize: 11,
-        color: '#94A3B8',
-        fontWeight: '600',
-    },
+        // Property Selector
+        propertyList: {
+            paddingVertical: 10,
+            gap: 12,
+            marginBottom: 20,
+        },
+        propertyCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.cardBackground,
+            borderRadius: 14,
+            padding: 12,
+            width: 220,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.02,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 4,
+            elevation: 1,
+        },
+        propertyCardSelected: {
+            borderColor: '#0BA0B2',
+            borderWidth: 2,
+            backgroundColor: colors.cardBackground,
+        },
+        propertyIconContainer: {
+            width: 44,
+            height: 44,
+            borderRadius: 10,
+            overflow: 'hidden',
+            marginRight: 12,
+            backgroundColor: colors.surfaceSoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        propertyImage: {
+            width: '100%',
+            height: '100%',
+        },
+        genericIconBox: {
+            width: '100%',
+            height: '100%',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.surfaceMuted,
+        },
+        propertyText: { flex: 1 },
+        propertyTitle: {
+            fontSize: 14,
+            fontWeight: '800',
+            color: colors.textPrimary,
+            marginBottom: 2,
+        },
+        propertyAddress: {
+            fontSize: 11,
+            color: colors.textMuted,
+            fontWeight: '600',
+        },
 
-    // Input Features Card
-    inputCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 20,
-        elevation: 4,
-    },
-    cardHeading: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#0B2341',
-        marginBottom: 8,
-    },
-    cardSubtitle: {
-        fontSize: 13,
-        color: '#64748B',
-        lineHeight: 18,
-        marginBottom: 20,
-    },
-    textArea: {
-        backgroundColor: '#F8FAFC',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 16,
-        padding: 16,
-        height: 180,
-        fontSize: 15,
-        color: '#0F172A',
-        fontWeight: '600',
-        marginBottom: 20,
-    },
-    inputFooter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    generateBtn: {
-        backgroundColor: '#0B2341',
-        paddingHorizontal: 24,
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: 120,
-    },
-    generateBtnDisabled: {
-        opacity: 0.6,
-    },
-    generateBtnText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '800',
-    },
-    styleList: { flex: 1, marginTop: 10 },
-    stylePill: {
-        paddingHorizontal: 8,
-        paddingVertical: 5,
-        borderRadius: 8,
-        backgroundColor: '#F1F5F9',
-        marginRight: 8,
-        height: 32,
-        justifyContent: 'center',
-    },
-    stylePillActive: {
-        backgroundColor: '#E2E8F0',
-    },
-    stylePillText: {
-        fontSize: 8,
-        color: '#64748B',
-        fontWeight: '700',
-    },
-    stylePillTextActive: {
-        color: '#0B2341',
-    },
+        // Input Features Card
+        inputCard: {
+            backgroundColor: colors.cardBackground,
+            borderRadius: 24,
+            padding: 24,
+            marginBottom: 24,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.04,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 20,
+            elevation: 4,
+        },
+        cardHeading: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            marginBottom: 8,
+        },
+        cardSubtitle: {
+            fontSize: 13,
+            color: colors.textSecondary,
+            lineHeight: 18,
+            marginBottom: 20,
+        },
+        textArea: {
+            backgroundColor: colors.surfaceSoft,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            borderRadius: 16,
+            padding: 16,
+            height: 180,
+            fontSize: 15,
+            color: colors.textPrimary,
+            fontWeight: '600',
+            marginBottom: 20,
+        },
+        inputFooter: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 16,
+        },
+        generateBtn: {
+            backgroundColor: colors.accentTeal,
+            paddingHorizontal: 24,
+            paddingVertical: 14,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 120,
+        },
+        generateBtnDisabled: {
+            opacity: 0.6,
+        },
+        generateBtnText: {
+            color: '#FFFFFF',
+            fontSize: 14,
+            fontWeight: '800',
+        },
+        styleList: { flex: 1, marginTop: 10 },
+        stylePill: {
+            paddingHorizontal: 8,
+            paddingVertical: 5,
+            borderRadius: 8,
+            backgroundColor: colors.surfaceSoft,
+            marginRight: 8,
+            height: 32,
+            justifyContent: 'center',
+        },
+        stylePillActive: {
+            backgroundColor: colors.surfaceMuted,
+        },
+        stylePillText: {
+            fontSize: 8,
+            color: colors.textSecondary,
+            fontWeight: '700',
+        },
+        stylePillTextActive: {
+            color: colors.textPrimary,
+        },
 
-    // Output Card
-    outputCard: {
-        backgroundColor: '#0B2341',
-        borderRadius: 24,
-        padding: 24,
-        minHeight: 400,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 30,
-        elevation: 8,
-    },
-    outputHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    outputStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    statusDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#0BA0B2',
-        marginRight: 8,
-    },
-    outputTitle: {
-        fontSize: 12,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 1,
-    },
-    outputActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    iconAction: {
-        width: 36,
-        height: 36,
-        borderRadius: 8,
-        backgroundColor: '#1E293B',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    saveBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#0BA0B2',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        gap: 6,
-    },
-    saveBtnText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '900',
-    },
-    outputArea: {
-        flex: 1,
-    },
-    outputText: {
-        fontSize: 16,
-        color: '#CBD5E1',
-        lineHeight: 28,
-        fontWeight: '500',
-    },
-    placeholderState: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 40,
-    },
-    placeholderTitle: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        marginTop: 16,
-        marginBottom: 8,
-    },
-    placeholderSubtitle: {
-        fontSize: 13,
-        color: '#94A3B8',
-        textAlign: 'center',
-        lineHeight: 20,
-        paddingHorizontal: 20,
-    },
-});
+        // Output Card
+        outputCard: {
+            backgroundColor: colors.cardBackgroundSemi,
+            borderRadius: 24,
+            padding: 24,
+            minHeight: 400,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: 0.2,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 30,
+            elevation: 8,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        outputHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 24,
+        },
+        outputStatus: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+        statusDot: {
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: '#0BA0B2',
+            marginRight: 8,
+        },
+        outputTitle: {
+            fontSize: 12,
+            fontWeight: '900',
+            color: colors.textPrimary,
+            letterSpacing: 1,
+        },
+        outputActions: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+        },
+        iconAction: {
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            backgroundColor: colors.surfaceSoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        saveBtn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#0BA0B2',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 8,
+            gap: 6,
+        },
+        saveBtnText: {
+            color: '#FFFFFF',
+            fontSize: 12,
+            fontWeight: '900',
+        },
+        outputArea: {
+            flex: 1,
+        },
+        outputText: {
+            fontSize: 16,
+            color: colors.textPrimary,
+            lineHeight: 28,
+            fontWeight: '500',
+        },
+        placeholderState: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 40,
+        },
+        placeholderTitle: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.textSecondary,
+            marginTop: 16,
+            marginBottom: 8,
+        },
+        placeholderSubtitle: {
+            fontSize: 13,
+            color: colors.textMuted,
+            textAlign: 'center',
+            lineHeight: 20,
+            paddingHorizontal: 20,
+        },
+    });
+}
 

@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export type GuardianTabId = 'overview' | 'monitoring' | 'logs-reports' | 'admin';
 
@@ -21,6 +22,10 @@ type GuardianNavProps = {
 };
 
 export function GuardianNav({ activeTab, onTabChange }: GuardianNavProps) {
+  const { colors, theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors, isDark);
+
   const insets = useSafeAreaInsets();
 
   return (
@@ -52,13 +57,13 @@ export function GuardianNav({ activeTab, onTabChange }: GuardianNavProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   wrap: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: isDark ? 'rgba(16, 27, 40, 0.85)' : 'rgba(255, 255, 255, 0.8)',
     borderTopWidth: 1,
-    borderTopColor: '#E3ECF4',
+    borderTopColor: colors.cardBorder,
   },
   scrollContent: {
     flexDirection: 'row',
@@ -75,8 +80,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   pillActive: {
-    backgroundColor: '#0B2D3E',
-    // High-fidelity card shadow from the design
+    backgroundColor: '#0BA0B2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

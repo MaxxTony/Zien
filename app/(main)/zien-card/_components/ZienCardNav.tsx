@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/context/ThemeContext';
 
 const SECTIONS: Array<{
   route: string;
@@ -19,6 +20,8 @@ export function ZienCardNav() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
 
   const normalizedPath = pathname.replace(/\/$/, '') || '';
   const isDashboard =
@@ -60,13 +63,13 @@ export function ZienCardNav() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   wrap: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: 'rgba(247, 251, 255, 0.98)',
+    backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
-    borderTopColor: '#E3ECF4',
+    borderTopColor: colors.cardBorder,
   },
   scrollContent: {
     flexDirection: 'row',
@@ -79,18 +82,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E3ECF4',
+    borderColor: colors.cardBorder,
   },
   pillActive: {
-    backgroundColor: '#0B2D3E',
-    borderColor: '#0B2D3E',
+    backgroundColor: '#0BA0B2',
+    borderColor: '#0BA0B2',
   },
   pillText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#5B6B7A',
+    color: colors.textSecondary,
     maxWidth: 100,
   },
   pillTextActive: {
