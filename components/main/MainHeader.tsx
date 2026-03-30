@@ -22,6 +22,8 @@ type MainHeaderProps = {
   userName?: string;
   userEmail?: string;
   profileRoute?: Href;
+  backgroundColor?: string;
+  isAgency?: boolean;
 };
 
 // ── User Menu Bottom Sheet ──────────────────────────────
@@ -323,13 +325,14 @@ function getSheetStyles(colors: any) {
   });
 }
 
-// ── Main Header ────────────────────────────────────────
 function MainHeaderComponent({
   onMenuPress,
   userInitials = 'VP',
   userName = 'John Octane',
   userEmail = 'john@zien.ai',
   profileRoute = '/(main)/profile' as Href,
+  backgroundColor,
+  isAgency = false,
 }: MainHeaderProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -385,36 +388,63 @@ function MainHeaderComponent({
       <View style={styles.header}>
         {/* Hamburger */}
         <Pressable
-          style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+          style={({ pressed }) => [
+            styles.iconBtn,
+            pressed && styles.iconBtnPressed,
+          ]}
           onPress={onMenuPress}
         >
-          <MaterialCommunityIcons name="menu" size={22} color={colors.textPrimary} />
+          <MaterialCommunityIcons
+            name="menu"
+            size={22}
+            color={colors.textPrimary}
+          />
         </Pressable>
 
         {/* Brand logo centered */}
+        {/* Hidden Logo / Center Area */}
         <View style={styles.center}>
-          <Image
-            source={require('@/assets/appImages/nlogo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          {!isAgency && (
+            <Image
+              source={require('@/assets/appImages/nlogo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          )}
         </View>
 
-        {/* Avatar → opens bottom sheet */}
-        <Pressable
-          style={({ pressed }) => [styles.avatarWrap, pressed && { opacity: 0.8 }]}
-          onPress={() => setMenuOpen(true)}
-        >
-          <LinearGradient
-            colors={['#0BA0B2', '#1B5E9A']}
-            style={styles.avatar}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+        {isAgency ? (
+          <View style={styles.agencyHeaderRight}>
+
+
+            {/* Agency Avatar Block */}
+            <Pressable
+              style={styles.agencyAvatarRow}
+              onPress={() => router.push('/(main)/agency/profile' as Href)}
+            >
+              <View style={styles.agencyAvatarSquare}>
+                <Text style={styles.agencyAvatarText}>AC</Text>
+              </View>
+
+            </Pressable>
+          </View>
+        ) : (
+          /* Standard Avatar → opens bottom sheet */
+          <Pressable
+            style={({ pressed }) => [styles.avatarWrap, pressed && { opacity: 0.8 }]}
+            onPress={() => setMenuOpen(true)}
           >
-            <Text style={styles.avatarText}>{userInitials}</Text>
-          </LinearGradient>
-          <View style={styles.onlineDot} />
-        </Pressable>
+            <LinearGradient
+              colors={['#0BA0B2', '#1B5E9A']}
+              style={styles.avatar}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.avatarText}>{userInitials}</Text>
+            </LinearGradient>
+            <View style={styles.onlineDot} />
+          </Pressable>
+        )}
       </View>
 
       {/* Bottom sheet user menu */}
@@ -499,6 +529,64 @@ function getStyles(colors: any) {
       backgroundColor: '#22C55E',
       borderWidth: 2,
       borderColor: '#fff',
+    },
+    agencyHeaderRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    agencyStatusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: '#F1F5F9', // Pale gray background from image
+      borderRadius: 20,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+    },
+    agencyStatusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#0F172A', // Dark dot
+    },
+    agencyStatusText: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: '#0F172A',
+      letterSpacing: 0.5,
+    },
+    agencyAvatarRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    agencyAvatarSquare: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      backgroundColor: '#0F172A', // Navy background from image
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    agencyAvatarText: {
+      color: '#fff',
+      fontSize: 15,
+      fontWeight: '900',
+    },
+    agencyAdminName: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: '#0F172A',
+    },
+    agencyRole: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: '#F97316', // Orange from image
+      letterSpacing: 0.5,
+      marginTop: -1,
     },
   });
 }

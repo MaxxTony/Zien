@@ -1,10 +1,11 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { Href } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '@/context/ThemeContext';
-import type { NavMenuItem } from './NavDrawer';
 import { MainHeader } from './MainHeader';
+import type { NavMenuItem } from './NavDrawer';
 import { NavDrawer } from './NavDrawer';
 
 const DRAWER_WIDTH = 265;
@@ -14,6 +15,11 @@ type DashboardLayoutProps = {
   menuItems: NavMenuItem[];
   userInitials?: string;
   profileRoute?: string;
+  customLogo?: React.ReactNode;
+  customBackground?: string;
+  customHeaderBackground?: string;
+  backToMainRoute?: Href;
+  isAgency?: boolean;
 };
 
 export function DashboardLayout({
@@ -21,6 +27,11 @@ export function DashboardLayout({
   menuItems,
   userInitials,
   profileRoute,
+  customLogo,
+  customBackground,
+  customHeaderBackground,
+  backToMainRoute,
+  isAgency = false,
 }: DashboardLayoutProps) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
@@ -72,6 +83,8 @@ export function DashboardLayout({
           onMenuPress={openMenu}
           userInitials={userInitials}
           profileRoute={profileRoute as any}
+          backgroundColor={customHeaderBackground}
+          isAgency={isAgency}
         />
         {children}
       </LinearGradient>
@@ -83,6 +96,9 @@ export function DashboardLayout({
         menuItems={menuItems}
         onClose={closeMenu}
         onItemPress={handleMenuPress}
+        customLogo={customLogo}
+        customBackground={customBackground}
+        backToMainRoute={backToMainRoute}
       />
     </View>
   );
@@ -90,11 +106,11 @@ export function DashboardLayout({
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  wrapper: {
-    flex: 1,
-  },
-  background: {
-    flex: 1,
-  },
-});
+    wrapper: {
+      flex: 1,
+    },
+    background: {
+      flex: 1,
+    },
+  });
 }
