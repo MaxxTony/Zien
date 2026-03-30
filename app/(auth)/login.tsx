@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
   AuthCard,
@@ -12,7 +12,7 @@ import {
   AuthSubtitle,
   AuthTitle,
   SocialButton,
-  SSOButton,
+  SSOButton
 } from '@/components/auth';
 import GradientButton from '@/components/ui/GradientButton';
 import LabeledInput from '@/components/ui/labeled-input';
@@ -90,33 +90,33 @@ export default function LoginScreen() {
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  flex: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
-    padding: colors.screenPadding,
-    justifyContent: 'center',
-  },
-  form: {
-    alignSelf: 'stretch',
-    gap: 12,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 18,
-    alignItems: 'stretch',
-  },
-  agentButton: {
-    flex: 1,
-  },
-  joinTeamButton: {
-    flex: 0,
-    minWidth: 100,
-  },
-  socialRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 14,
-  },
-});
+    flex: { flex: 1 },
+    scrollContent: {
+      flexGrow: 1,
+      padding: colors.screenPadding,
+      justifyContent: 'center',
+    },
+    form: {
+      alignSelf: 'stretch',
+      gap: 12,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 18,
+      alignItems: 'stretch',
+    },
+    agentButton: {
+      flex: 1,
+    },
+    joinTeamButton: {
+      flex: 0,
+      minWidth: 100,
+    },
+    socialRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 14,
+    },
+  });
 }

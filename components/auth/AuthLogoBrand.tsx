@@ -24,7 +24,7 @@ export default function AuthLogoBrand({
   return (
     <>
       <Image
-        source={require('@/assets/images/icon.png')}
+        source={require('@/assets/images/rem.png')}
         style={[defaultLogoSize, { marginBottom: 8 }, logoStyle]}
         resizeMode="contain"
       />

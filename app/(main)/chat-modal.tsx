@@ -1,9 +1,6 @@
 import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Voice, {
-    SpeechErrorEvent,
-    SpeechResultsEvent,
-} from '@react-native-voice/voice';
+
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -90,83 +87,17 @@ export default function ChatModalScreen() {
 
     const [inputText, setInputText] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [showVoiceUI, setShowVoiceUI] = useState(false);
-    const [isListening, setIsListening] = useState(false);
-    const [voiceText, setVoiceText] = useState('');
+
     const [isAiTyping, setIsAiTyping] = useState(false);
     const [inputFocused, setInputFocused] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-    const pulseAnim = useRef(new Animated.Value(1)).current;
-    const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
     const flatListRef = useRef<FlatList>(null);
-    const ringScaleAnim = useRef(new Animated.Value(1)).current;
     const inset = useSafeAreaInsets();
 
-    // ── Pulse animation for voice ──────────────────────
-    const startPulse = useCallback(() => {
-        pulseLoop.current = Animated.loop(
-            Animated.sequence([
-                Animated.timing(pulseAnim, { toValue: 1.45, duration: 700, useNativeDriver: true }),
-                Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-            ])
-        );
-        pulseLoop.current.start();
 
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(ringScaleAnim, { toValue: 1.8, duration: 900, useNativeDriver: true }),
-                Animated.timing(ringScaleAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
-            ])
-        ).start();
-    }, [pulseAnim, ringScaleAnim]);
 
-    const stopPulse = useCallback(() => {
-        pulseLoop.current?.stop();
-        pulseAnim.setValue(1);
-        ringScaleAnim.setValue(1);
-    }, [pulseAnim, ringScaleAnim]);
 
-    // ── Voice event handlers ───────────────────────────
-    useEffect(() => {
-        Voice.onSpeechStart = () => { setIsListening(true); startPulse(); };
-        Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => setVoiceText(e.value?.[0] ?? '');
-        Voice.onSpeechResults = (e: SpeechResultsEvent) => {
-            setVoiceText(e.value?.[0] ?? '');
-            setIsListening(false);
-            stopPulse();
-        };
-        Voice.onSpeechError = (_e: SpeechErrorEvent) => { setIsListening(false); stopPulse(); };
-        Voice.onSpeechEnd = () => { setIsListening(false); stopPulse(); };
-        return () => { Voice.destroy().then(Voice.removeAllListeners); };
-    }, [startPulse, stopPulse]);
-
-    const handleStartVoice = useCallback(async () => {
-        setShowVoiceUI(true);
-        setVoiceText('');
-        try { await Voice.start('en-US'); }
-        catch (e) { setShowVoiceUI(false); }
-    }, []);
-
-    const handleCancelVoice = useCallback(async () => {
-        try { if (isListening) await Voice.stop(); } catch (e) { }
-        setShowVoiceUI(false);
-        setIsListening(false);
-        setVoiceText('');
-        stopPulse();
-    }, [isListening, stopPulse]);
-
-    const handleAcceptVoice = useCallback(async () => {
-        try { if (isListening) await Voice.stop(); } catch (e) { }
-        const finalizedText = voiceText.trim();
-        if (finalizedText) {
-            setInputText(inputText ? `${inputText} ${finalizedText}` : finalizedText);
-        }
-        setShowVoiceUI(false);
-        setIsListening(false);
-        setVoiceText('');
-        stopPulse();
-    }, [isListening, voiceText, inputText, stopPulse]);
 
     const handleSubmit = useCallback((overrideText?: string) => {
         const text = (overrideText ?? inputText).trim();
@@ -356,81 +287,37 @@ export default function ChatModalScreen() {
                     <View style={[
                         styles.inputBar,
                         inputFocused && styles.inputBarFocused,
-                        showVoiceUI && styles.inputBarListening,
                     ]}>
+                        <TextInput
+                            placeholder={isAiTyping ? 'Zien is thinking…' : 'Ask Zien to find properties, create content, or manage leads...'}
+                            placeholderTextColor={colors.inputPlaceholder}
+                            style={styles.input}
+                            value={isAiTyping ? '' : inputText}
+                            onChangeText={(t) => { if (!isAiTyping) setInputText(t); }}
+                            multiline={false}
+                            returnKeyType="send"
+                            onSubmitEditing={() => handleSubmit()}
+                            editable={!isAiTyping}
+                            onFocus={() => setInputFocused(true)}
+                            onBlur={() => setInputFocused(false)}
+                        />
 
-                        {showVoiceUI ? (
-                            /* ── Voice Mode ── */
-                            <>
-                                {/* Animated mic ring */}
-                                <View style={styles.voiceMicContainer}>
-                                    <Animated.View style={[styles.voiceRing, { transform: [{ scale: ringScaleAnim }] }]} />
-                                    <Animated.View style={[styles.voiceDot, { transform: [{ scale: pulseAnim }] }]} />
-                                </View>
-
-                                <View style={styles.voiceMiddle}>
-                                    <Text
-                                        style={[styles.voiceText, !voiceText && styles.voiceTextPlaceholder]}
-                                        numberOfLines={1}
-                                        ellipsizeMode="tail"
-                                    >
-                                        {voiceText || (isListening ? 'Listening…' : 'Tap accept to use')}
-                                    </Text>
-                                </View>
-
-                                <View style={styles.voiceControls}>
-                                    <Pressable onPress={handleCancelVoice} style={styles.voiceCancelBtn} hitSlop={8}>
-                                        <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
-                                    </Pressable>
-                                    <Pressable onPress={handleAcceptVoice} style={styles.voiceAcceptBtn} hitSlop={8}>
-                                        <MaterialCommunityIcons name="check" size={18} color="#fff" />
-                                    </Pressable>
-                                </View>
-                            </>
-                        ) : (
-                            /* ── Text Mode ── */
-                            <>
-                                <TextInput
-                                    placeholder={isAiTyping ? 'Zien is thinking…' : 'Ask Zien to find properties, create content, or manage leads...'}
-                                    placeholderTextColor={colors.inputPlaceholder}
-                                    style={styles.input}
-                                    value={isAiTyping ? '' : inputText}
-                                    onChangeText={(t) => { if (!isAiTyping) setInputText(t); }}
-                                    multiline={false}
-                                    returnKeyType="send"
-                                    onSubmitEditing={() => handleSubmit()}
-                                    editable={!isAiTyping}
-                                    onFocus={() => setInputFocused(true)}
-                                    onBlur={() => setInputFocused(false)}
-                                />
-
-                                {/* Right action: mic or send */}
-                                {inputText.trim().length > 0 && !isAiTyping ? (
-                                    <Pressable
-                                        onPress={() => handleSubmit()}
-                                        style={({ pressed }) => [styles.sendBtn, pressed && { opacity: 0.8 }]}
-                                        hitSlop={8}
-                                    >
-                                        <LinearGradient
-                                            colors={['#0BA0B2', '#1B5E9A']}
-                                            style={styles.sendBtnGradient}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 1 }}
-                                        >
-                                            <MaterialCommunityIcons name="arrow-up" size={18} color="#fff" />
-                                        </LinearGradient>
-                                    </Pressable>
-                                ) : (
-                                    <Pressable
-                                        onPress={handleStartVoice}
-                                        style={({ pressed }) => [styles.micBtn, pressed && { opacity: 0.8 }, isAiTyping && { opacity: 0.4 }]}
-                                        hitSlop={8}
-                                        disabled={isAiTyping}
-                                    >
-                                        <MaterialCommunityIcons name="microphone-outline" size={19} color={colors.textSecondary} />
-                                    </Pressable>
-                                )}
-                            </>
+                        {/* Right action: send */}
+                        {inputText.trim().length > 0 && !isAiTyping && (
+                            <Pressable
+                                onPress={() => handleSubmit()}
+                                style={({ pressed }) => [styles.sendBtn, pressed && { opacity: 0.8 }]}
+                                hitSlop={8}
+                            >
+                                <LinearGradient
+                                    colors={['#0BA0B2', '#1B5E9A']}
+                                    style={styles.sendBtnGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <MaterialCommunityIcons name="arrow-up" size={18} color="#fff" />
+                                </LinearGradient>
+                            </Pressable>
                         )}
                     </View>
                 </View>
@@ -815,10 +702,7 @@ function getStyles(colors: any) {
             shadowOpacity: 0.1,
             shadowRadius: 16,
         },
-        inputBarListening: {
-            borderColor: colors.accentTeal,
-            backgroundColor: `${colors.accentTeal}06`,
-        },
+
         input: {
             flex: 1,
             fontSize: 14.5,
@@ -843,79 +727,7 @@ function getStyles(colors: any) {
             shadowOffset: { width: 0, height: 4 },
             elevation: 3,
         },
-        micBtn: {
-            width: 36,
-            height: 36,
-            borderRadius: 12,
-            backgroundColor: colors.surfaceIcon,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: colors.cardBorder,
-        },
 
-        // ── Voice UI ─────────────────────────────────────
-        voiceMicContainer: {
-            width: 36,
-            height: 36,
-            alignItems: 'center',
-            justifyContent: 'center',
-        },
-        voiceRing: {
-            position: 'absolute',
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            borderWidth: 2,
-            borderColor: `${colors.accentTeal}40`,
-        },
-        voiceDot: {
-            width: 14,
-            height: 14,
-            borderRadius: 7,
-            backgroundColor: '#EF4444',
-        },
-        voiceMiddle: {
-            flex: 1,
-            paddingRight: 4,
-        },
-        voiceText: {
-            fontSize: 14.5,
-            color: colors.textPrimary,
-            fontWeight: '500',
-        },
-        voiceTextPlaceholder: {
-            fontStyle: 'italic',
-            color: colors.accentTeal,
-        },
-        voiceControls: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-        },
-        voiceCancelBtn: {
-            width: 34,
-            height: 34,
-            borderRadius: 10,
-            backgroundColor: colors.surfaceIcon,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: colors.cardBorder,
-        },
-        voiceAcceptBtn: {
-            width: 34,
-            height: 34,
-            borderRadius: 10,
-            backgroundColor: colors.accentTeal,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: colors.accentTeal,
-            shadowOpacity: 0.4,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 4 },
-            elevation: 3,
-        },
 
         // ── History Modal ────────────────────────────────
         historyOverlay: {
