@@ -19,12 +19,6 @@ const ACCOUNT_TYPES = [
     icon: 'account-group-outline',
   },
   {
-    id: 'join',
-    title: 'Join Existing Team',
-    description: 'Connecting with your team? Access your workspace with an invite.',
-    icon: 'office-building-outline',
-  },
-  {
     id: 'enterprise',
     title: 'Brokerage / Enterprise',
     description: 'Custom solutions for large organizations. Contact for SSO & setup.',
@@ -53,10 +47,6 @@ export default function RegisterScreen() {
                 onPress={() => {
                   if (item.id === 'enterprise') {
                     router.push('/(auth)/enterprise-contact');
-                    return;
-                  }
-                  if (item.id === 'join') {
-                    router.push('/(auth)/join-team-invite');
                     return;
                   }
                   if (item.id === 'team') {
@@ -94,59 +84,59 @@ export default function RegisterScreen() {
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
-    padding: 18,
-    justifyContent: 'center',
-  },
-  cardSoft: {
-    backgroundColor: colors.cardBackground,
-    borderColor: colors.cardBorder,
-  },
-  list: {
-    alignSelf: 'stretch',
-    gap: 12,
-  },
-  listItem: {
-    flexDirection: 'row',
-    gap: 12,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: 14,
-  },
-  listIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  listContent: {
-    flex: 1,
-    gap: 4,
-  },
-  listTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  listDescription: {
-    fontSize: 12.5,
-    color: colors.textSecondary,
-  },
-  footerText: {
-    marginTop: 18,
-    fontSize: 12.5,
-    color: colors.textSecondary,
-  },
-  footerLink: {
-    color: colors.accentTeal,
-    fontWeight: '600',
-  },
-});
+    scrollContent: {
+      flexGrow: 1,
+      padding: 18,
+      justifyContent: 'center',
+    },
+    cardSoft: {
+      backgroundColor: colors.cardBackground,
+      borderColor: colors.cardBorder,
+    },
+    list: {
+      alignSelf: 'stretch',
+      gap: 12,
+    },
+    listItem: {
+      flexDirection: 'row',
+      gap: 12,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: 14,
+    },
+    listIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    listContent: {
+      flex: 1,
+      gap: 4,
+    },
+    listTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    listDescription: {
+      fontSize: 12.5,
+      color: colors.textSecondary,
+    },
+    footerText: {
+      marginTop: 18,
+      fontSize: 12.5,
+      color: colors.textSecondary,
+    },
+    footerLink: {
+      color: colors.accentTeal,
+      fontWeight: '600',
+    },
+  });
 }

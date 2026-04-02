@@ -7,9 +7,12 @@ type LabeledInputProps = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
   inputStyle?: StyleProp<TextStyle>;
+  inputRowStyle?: StyleProp<ViewStyle>;
   rightLabel?: string;
   onRightLabelPress?: () => void;
   rightInputElement?: React.ReactNode;
+  error?: string;
+  required?: boolean;
 };
 
 export default function LabeledInput({
@@ -17,9 +20,12 @@ export default function LabeledInput({
   containerStyle,
   labelStyle,
   inputStyle,
+  inputRowStyle,
   rightLabel,
   onRightLabelPress,
   rightInputElement,
+  error,
+  required,
   ...inputProps
 }: LabeledInputProps) {
   const { colors } = useAppTheme();
@@ -27,19 +33,23 @@ export default function LabeledInput({
   
   return (
     <View style={[styles.container, containerStyle]}>
-      <View style={styles.labelRow}>
-        <Text style={[styles.label, labelStyle]}>{label}</Text>
-        {rightLabel ? (
-          onRightLabelPress ? (
-            <Pressable onPress={onRightLabelPress}>
+      {label ? (
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, labelStyle]}>
+            {label} {required ? <Text style={{ color: '#ef4444' }}>*</Text> : null}
+          </Text>
+          {rightLabel ? (
+            onRightLabelPress ? (
+              <Pressable onPress={onRightLabelPress}>
+                <Text style={styles.rightLabel}>{rightLabel}</Text>
+              </Pressable>
+            ) : (
               <Text style={styles.rightLabel}>{rightLabel}</Text>
-            </Pressable>
-          ) : (
-            <Text style={styles.rightLabel}>{rightLabel}</Text>
-          )
-        ) : null}
-      </View>
-      <View style={styles.inputRow}>
+            )
+          ) : null}
+        </View>
+      ) : null}
+      <View style={[styles.inputRow, inputRowStyle, !!error && { borderColor: '#ef4444' }]}>
         <TextInput
           {...inputProps}
           style={[styles.input, inputStyle]}
@@ -47,6 +57,7 @@ export default function LabeledInput({
         />
         {rightInputElement ? <View style={styles.inputRight}>{rightInputElement}</View> : null}
       </View>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
 }
@@ -87,5 +98,10 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   inputRight: {
     paddingLeft: 6,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#ef4444',
+    marginTop: -2,
   },
 });

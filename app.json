@@ -14,6 +14,16 @@
       "buildNumber": "13",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "18.219.170.119": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": false
+            }
+          }
+        },
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload and manage property images.",
         "NSCameraUsageDescription": "This app needs access to your camera to capture property photos and videos.",
         "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your library.",

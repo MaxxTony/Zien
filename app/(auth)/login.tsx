@@ -78,7 +78,7 @@ export default function LoginScreen() {
                 Don't have an account? <AuthFooterLink onPress={() => router.push('/(auth)/register')}>Create one</AuthFooterLink>
               </AuthFooterText>
               <AuthFooterText>
-                Are you a Brokerage? <AuthFooterLink onPress={() => Alert.alert('Coming soon')}>Contact Enterprise</AuthFooterLink>
+                Are you a Brokerage? <AuthFooterLink onPress={() => router.push('/(auth)/enterprise-contact')}>Contact Enterprise</AuthFooterLink>
               </AuthFooterText>
             </AuthFooter>
           </AuthCard>

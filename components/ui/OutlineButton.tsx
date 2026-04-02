@@ -7,14 +7,25 @@ type OutlineButtonProps = {
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  disabled?: boolean;
 };
 
-export default function OutlineButton({ title, onPress, style, textStyle }: OutlineButtonProps) {
+export default function OutlineButton({
+  title,
+  onPress,
+  style,
+  textStyle,
+  disabled,
+}: OutlineButtonProps) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
 
   return (
-    <Pressable style={[styles.button, style]} onPress={onPress}>
+    <Pressable
+      style={[styles.button, style, disabled && styles.disabled]}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+    >
       <Text style={[styles.text, textStyle]}>{title}</Text>
     </Pressable>
   );
@@ -29,6 +40,9 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 11,
+  },
+  disabled: {
+    opacity: 0.5,
   },
   text: {
     color: colors.outlineButtonText,

@@ -1,3 +1,4 @@
+import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
@@ -49,6 +50,7 @@ function NavDrawerComponent({
   const styles = getStyles(colors);
   const router = useRouter();
   const segments = useSegments();
+  const { logout } = useAuth();
   const currentRoute = segments.length > 0 ? '/' + segments.join('/') : '/dashboard';
 
   if (!visible) return null;
@@ -142,6 +144,24 @@ function NavDrawerComponent({
           })}
         </ScrollView>
 
+        {/* Logout at the bottom */}
+        {/* <View style={styles.logoutWrapper}>
+          <View style={styles.headerDivider} />
+          <Pressable
+            style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
+            onPress={logout}
+          >
+            <View style={styles.iconWrap}>
+              <MaterialCommunityIcons 
+                  name="logout" 
+                  size={20} 
+                  color="#EF4444" 
+              />
+            </View>
+            <Text style={[styles.itemText, { color: '#EF4444', fontWeight: '700' }]}>Logout</Text>
+          </Pressable>
+        </View> */}
+
         {/* Back to main link at the bottom if provided */}
         {backToMainRoute && (
           <View style={{ paddingTop: 10, borderTopWidth: 1, borderTopColor: customBackground ? 'rgba(255,255,255,0.1)' : colors.divider }}>
@@ -150,10 +170,10 @@ function NavDrawerComponent({
               onPress={() => router.push(backToMainRoute)}
             >
               <View style={styles.iconWrap}>
-                <MaterialCommunityIcons 
-                    name="arrow-left" 
-                    size={20} 
-                    color={customBackground ? '#fff' : colors.textSecondary} 
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={20}
+                  color={customBackground ? '#fff' : colors.textSecondary}
                 />
               </View>
               <Text style={[styles.itemText, customBackground ? { color: '#fff' } : {}]}>Back to Main App</Text>
@@ -258,6 +278,10 @@ function getStyles(colors: any) {
     },
     itemTextDisabled: {
       color: colors.inputPlaceholder,
+    },
+    logoutWrapper: {
+      marginTop: 'auto',
+      paddingBottom: 10,
     },
   });
 }

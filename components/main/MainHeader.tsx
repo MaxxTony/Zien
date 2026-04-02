@@ -1,8 +1,9 @@
+import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -165,12 +166,13 @@ export default function UserMenuSheet({
                     <MaterialCommunityIcons name="chevron-right" size={18} color={colors.inputPlaceholder} />
                   )}
                   {action.id === 'theme' && (
-                    <Switch
-                      value={theme === 'dark'}
-                      pointerEvents="none"
-                      trackColor={{ false: '#CBD5E1', true: colors.accentTeal }}
-                      thumbColor="#FFFFFF"
-                    />
+                    <View pointerEvents="none">
+                      <Switch
+                        value={theme === 'dark'}
+                        trackColor={{ false: '#CBD5E1', true: colors.accentTeal }}
+                        thumbColor="#FFFFFF"
+                      />
+                    </View>
                   )}
                 </Pressable>
               </View>
@@ -339,6 +341,8 @@ function MainHeaderComponent({
   const { theme, toggleTheme, colors } = useAppTheme();
   const styles = getStyles(colors);
 
+  const { logout } = useAuth();
+
   const handleSignOut = useCallback(() => {
     Alert.alert(
       'Sign Out',
@@ -348,14 +352,14 @@ function MainHeaderComponent({
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: () => router.replace('/(auth)/login'),
+          onPress: logout,
         },
       ],
       { cancelable: true }
     );
-  }, [router]);
+  }, [logout]);
 
-  const MENU_ACTIONS: MenuAction[] = [
+  const MENU_ACTIONS: MenuAction[] = useMemo(() => [
     {
       id: 'profile',
       icon: 'account-circle-outline',
@@ -381,7 +385,7 @@ function MainHeaderComponent({
       color: '#EF4444',
       onPress: handleSignOut,
     },
-  ];
+  ], [theme, toggleTheme, router, profileRoute, handleSignOut]);
 
   return (
     <>

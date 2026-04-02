@@ -9,6 +9,7 @@ type AuthLogoBrandProps = {
   logoStyle?: StyleProp<ImageStyle>;
   brandStyle?: StyleProp<TextStyle>;
   gradientStyle?: StyleProp<ViewStyle>;
+  hideLogoText?: boolean;
 };
 
 const defaultLogoSize = { width: 86, height: 86 };
@@ -19,6 +20,7 @@ export default function AuthLogoBrand({
   logoStyle,
   brandStyle,
   gradientStyle,
+  hideLogoText = false,
 }: AuthLogoBrandProps) {
   const { colors } = useAppTheme();
   return (
@@ -28,7 +30,7 @@ export default function AuthLogoBrand({
         style={[defaultLogoSize, { marginBottom: 8 }, logoStyle]}
         resizeMode="contain"
       />
-      {brandLabel ? (
+      {brandLabel && !hideLogoText ? (
         <MaskedView
           maskElement={
             <Text
