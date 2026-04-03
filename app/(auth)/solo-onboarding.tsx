@@ -49,7 +49,7 @@ export default function SoloOnboardingScreen() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showWebView, setShowWebView] = useState(false);
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
-  const [countdown, setCountdown] = useState(5);
+  const [successData, setSuccessData] = useState<any>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -167,8 +167,9 @@ export default function SoloOnboardingScreen() {
     mutationFn: (sId: string) => completeCheckout(sId),
     onSuccess: (data) => {
       console.log('Checkout Complete Result:', data);
-      if (data.user_id) {
-        login(data.user_id.toString());
+      if (data.user_id && data.access_token) {
+        login(data.user_id.toString(), data.access_token, data.role);
+        setSuccessData(data);
         setIsCompletingCheckout(false);
         setShowSuccess(true);
       }
@@ -180,22 +181,7 @@ export default function SoloOnboardingScreen() {
     },
   });
 
-  // Auto-redirect effect
-  useMemo(() => {
-    if (showSuccess) {
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            router.push('/(main)/dashboard');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [showSuccess]);
+  // Manual redirect handled by user button click
 
   const updateField = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -217,26 +203,26 @@ export default function SoloOnboardingScreen() {
             <Text style={styles.subtitle}>Let's start with your basic details</Text>
 
             <View style={styles.form}>
-              <View style={styles.row}>
-                <LabeledInput
-                  label="First Name"
-                  placeholder="First Name"
-                  required
-                  containerStyle={styles.flexItem}
-                  value={formData.firstName}
-                  onChangeText={(val) => updateField('firstName', val)}
-                  error={errors.firstName}
-                />
-                <LabeledInput
-                  label="Last Name"
-                  placeholder="Last Name"
-                  required
-                  containerStyle={styles.flexItem}
-                  value={formData.lastName}
-                  onChangeText={(val) => updateField('lastName', val)}
-                  error={errors.lastName}
-                />
-              </View>
+
+              <LabeledInput
+                label="First Name"
+                placeholder="First Name"
+                required
+                containerStyle={styles.flexItem}
+                value={formData.firstName}
+                onChangeText={(val) => updateField('firstName', val)}
+                error={errors.firstName}
+              />
+              <LabeledInput
+                label="Last Name"
+                placeholder="Last Name"
+                required
+                containerStyle={styles.flexItem}
+                value={formData.lastName}
+                onChangeText={(val) => updateField('lastName', val)}
+                error={errors.lastName}
+              />
+
               <LabeledInput
                 label="Email"
                 placeholder="Email"
@@ -273,6 +259,33 @@ export default function SoloOnboardingScreen() {
                   codeTextStyle={styles.phoneCodeText}
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
+                  countryPickerProps={{
+                    modalProps: {
+                      statusBarTranslucent: false,
+                    },
+                    withFilter: true,
+                    withAlphaFilter: true,
+                    filterProps: {
+                      autoFocus: true,
+                      placeholder: 'Enter country name',
+                      style: {
+                        flex: 1,
+                        height: 48,
+                        color: '#0F172A',
+                        fontSize: 15,
+                        textAlignVertical: 'center',
+                      },
+                    },
+                    theme: {
+                      backgroundColor: '#FFFFFF',
+                      onBackground: '#0F172A',
+                      fontSize: 15,
+                      filterPlaceholderTextColor: '#64748B',
+                      activeOpacity: 0.7,
+                      itemHeight: 55,
+                      flagSize: 20,
+                    },
+                  }}
                 />
                 {errors.phone ? <Text style={styles.errorTextSmall}>{errors.phone}</Text> : null}
                 {errors._form ? <Text style={styles.errorTextSmall}>{errors._form}</Text> : null}
@@ -635,33 +648,46 @@ export default function SoloOnboardingScreen() {
     </View>
   );
 
-  const renderSuccess = () => (
-    <View style={styles.successContainer}>
-      <View style={styles.successIconOuter}>
-        <View style={styles.successIconInner}>
-          <MaterialCommunityIcons name="check" size={32} color="#10B981" />
+  const renderSuccess = () => {
+    const planName = successData?.plan_summary?.plan?.name || 'Pro Agent';
+    const addons = successData?.plan_summary?.addons || [];
+    const redirectTo = successData?.redirect_to || (successData?.role === 'agency_user' ? '/agency' : '/(main)/dashboard');
+
+    return (
+      <View style={styles.successContainer}>
+        <View style={styles.successIconOuter}>
+          <View style={styles.successIconInner}>
+            <MaterialCommunityIcons name="check" size={32} color="#10B981" />
+          </View>
         </View>
+
+        <Text style={styles.successTitle}>Welcome to Zien!</Text>
+        <Text style={styles.successHighlight}>{planName} Trial Started.</Text>
+
+        <Text style={styles.successDescription}>
+          Your 14-day trial is now active. Your saved payment method will be charged at the end of the trial unless you cancel.
+        </Text>
+
+        {addons.length > 0 && (
+          <View style={styles.successPlanDetails}>
+            <Text style={styles.successDetailsTitle}>Included Add-ons:</Text>
+            {addons.map((addon: any) => (
+              <View key={addon.id} style={styles.successAddonRow}>
+                <MaterialCommunityIcons name="check-circle" size={16} color="#10B981" />
+                <Text style={styles.successAddonName}>{addon.name}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <GradientButton
+          title="Continue to Workspace"
+          style={styles.successButton}
+          onPress={() => router.push(redirectTo as any)}
+        />
       </View>
-
-      <Text style={styles.successTitle}>Welcome to Zien!</Text>
-
-      <Text style={styles.successHighlight}>Trial started — account ready.</Text>
-
-      <Text style={styles.successDescription}>
-        Your 14-day trial is now active. Your saved payment method will be charged at the end of the trial unless you cancel.
-      </Text>
-
-      <View style={styles.redirectBadge}>
-        <Text style={styles.redirectText}>Opening your dashboard in {countdown}s...</Text>
-      </View>
-
-      <GradientButton
-        title="Go to Dashboard Now"
-        style={styles.successButton}
-        onPress={() => router.push('/(main)/dashboard')}
-      />
-    </View>
-  );
+    );
+  };
 
   return (
     <AuthScreenBackground>
@@ -671,18 +697,23 @@ export default function SoloOnboardingScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            (showSuccess || isCompletingCheckout) && { justifyContent: 'center' }
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View style={styles.topNav}>
-            <Pressable style={styles.backButton} onPress={goBack} hitSlop={12}>
-              <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
-            </Pressable>
+          {!showSuccess && !isCompletingCheckout && (
+            <View style={styles.topNav}>
+              <Pressable style={styles.backButton} onPress={goBack} hitSlop={12}>
+                <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
+              </Pressable>
 
-            <View style={{ width: 44 }} />
-          </View>
+              <View style={{ width: 44 }} />
+            </View>
+          )}
 
           <AuthCard>
             {/* Added centered logo brand here as well to match design flow */}
@@ -838,7 +869,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   durationPickerContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 14,
     padding: 4,
     marginBottom: 8,
@@ -1084,7 +1115,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     color: '#0F172A',
   },
   summaryCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.inputBackground,
     borderRadius: 16,
     padding: 20,
     gap: 12,
@@ -1235,6 +1266,30 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     width: '100%',
     marginTop: 10,
     alignSelf: 'stretch',
+  },
+  successPlanDetails: {
+    width: '100%',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  successDetailsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 12,
+  },
+  successAddonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  successAddonName: {
+    fontSize: 14,
+    color: '#475569',
+    fontWeight: '500',
   },
   retryButton: {
     paddingHorizontal: 24,

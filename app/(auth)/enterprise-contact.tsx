@@ -225,6 +225,33 @@ export default function EnterpriseContactScreen() {
                       codeTextStyle={styles.phoneCodeText}
                       flagButtonStyle={styles.phoneFlagButton}
                       placeholder="Phone number"
+                      countryPickerProps={{
+                        modalProps: {
+                          statusBarTranslucent: false,
+                        },
+                        withFilter: true,
+                        withAlphaFilter: true,
+                        filterProps: {
+                          autoFocus: true,
+                          placeholder: 'Enter country name',
+                          style: { 
+                            flex: 1, 
+                            height: 48, 
+                            color: '#0F172A',
+                            fontSize: 15,
+                            textAlignVertical: 'center',
+                          },
+                        },
+                        theme: {
+                          backgroundColor: '#FFFFFF',
+                          onBackground: '#0F172A',
+                          fontSize: 15,
+                          filterPlaceholderTextColor: '#64748B',
+                          activeOpacity: 0.7,
+                          itemHeight: 55,
+                          flagSize: 20,
+                        },
+                      }}
                     />
                   )}
                 />

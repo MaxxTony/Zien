@@ -30,7 +30,7 @@ export default function LabeledInput({
 }: LabeledInputProps) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-  
+
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? (
@@ -89,6 +89,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderInput,
     paddingHorizontal: 14,
+    height: 50
   },
   input: {
     flex: 1,

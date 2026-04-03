@@ -4,8 +4,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type AuthContextType = {
   userId: string | null;
+  accessToken: string | null;
+  userRole: string | null;
   isLoading: boolean;
-  login: (id: string) => Promise<void>;
+  login: (id: string, token: string, role?: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -13,6 +15,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const segments = useSegments();
@@ -25,12 +29,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inOnboarding = segments[1] === 'solo-onboarding' || segments[1] === 'team-onboarding';
     const atRoot = !segments[0];
 
     if (userId) {
-      if (inAuthGroup || atRoot) {
-        // Redirect to dashboard if logged in and at auth pages or root
-        router.replace('/(main)/dashboard');
+      if ((inAuthGroup && !inOnboarding) || atRoot) {
+        // Redirect based on role
+        const dashboardPath = userRole === 'agency_user' ? '/agency' : '/(main)/dashboard';
+        router.replace(dashboardPath as any);
       }
     } else {
       if (!inAuthGroup) {
@@ -38,13 +44,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.replace('/login');
       }
     }
-  }, [userId, segments, isLoading]);
+  }, [userId, userRole, segments, isLoading]);
 
   const loadStorageData = async () => {
     try {
       const storedUserId = await AsyncStorage.getItem('user_id');
+      const storedToken = await AsyncStorage.getItem('access_token');
+      const storedRole = await AsyncStorage.getItem('user_role');
+
       if (storedUserId) {
         setUserId(storedUserId);
+      }
+      if (storedToken) {
+        setAccessToken(storedToken);
+      }
+      if (storedRole) {
+        setUserRole(storedRole);
       }
     } catch (e) {
       console.error('Failed to load auth data', e);
@@ -53,19 +68,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (id: string) => {
+  const login = async (id: string, token: string, role?: string) => {
     setUserId(id);
+    setAccessToken(token);
+    if (role) setUserRole(role);
     await AsyncStorage.setItem('user_id', id);
+    await AsyncStorage.setItem('access_token', token);
+    if (role) await AsyncStorage.setItem('user_role', role);
   };
 
   const logout = async () => {
     setUserId(null);
+    setAccessToken(null);
+    setUserRole(null);
     await AsyncStorage.removeItem('user_id');
+    await AsyncStorage.removeItem('access_token');
+    await AsyncStorage.removeItem('user_role');
     router.replace('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ userId, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ userId, accessToken, userRole, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

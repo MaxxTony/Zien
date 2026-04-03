@@ -56,6 +56,7 @@ export interface TeamCheckoutPayload {
   plan_id: number;
   primary_market: string;
   team_name: string;
+  team_logo?: string;
 }
 
 export interface PlansResponse {
@@ -170,4 +171,41 @@ export const completeCheckout = async (sessionId: string): Promise<any> => {
   } finally {
     clearTimeout(timeoutId);
   }
+};
+
+export interface UploadLogoResponse {
+  ok: boolean;
+  url: string;
+  key: string;
+}
+
+export const uploadTeamLogo = async (fileUri: string): Promise<UploadLogoResponse> => {
+  const formData = new FormData();
+  
+  // Extract filename and extension
+  const filename = fileUri.split('/').pop() || 'logo.png';
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : `image/png`;
+
+  formData.append('file', {
+    uri: fileUri,
+    name: filename,
+    type,
+  } as any);
+
+  const response = await fetch(`${API_BASE_URL}/website/register/team/logo`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'Accept': 'application/json',
+      // Content-Type is set automatically for FormData
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to upload logo');
+  }
+
+  return response.json();
 };

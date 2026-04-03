@@ -424,7 +424,7 @@ function MainHeaderComponent({
             {/* Agency Avatar Block */}
             <Pressable
               style={styles.agencyAvatarRow}
-              onPress={() => router.push('/(main)/agency/profile' as Href)}
+              onPress={() => setMenuOpen(true)}
             >
               <View style={styles.agencyAvatarSquare}>
                 <Text style={styles.agencyAvatarText}>AC</Text>

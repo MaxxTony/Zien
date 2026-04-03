@@ -4,7 +4,7 @@ import LabeledInput from '@/components/ui/labeled-input';
 import OutlineButton from '@/components/ui/OutlineButton';
 import PasswordInput from '@/components/ui/PasswordInput';
 import StepIndicator from '@/components/ui/StepIndicator';
-import { Addon, completeCheckout, fetchTeamPlans, Plan, registerTeamCheckout, TeamCheckoutPayload } from '@/services/plans';
+import { Addon, completeCheckout, fetchTeamPlans, Plan, registerTeamCheckout, TeamCheckoutPayload, uploadTeamLogo } from '@/services/plans';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -22,7 +23,7 @@ import {
   StyleSheet,
   Switch,
   Text,
-  View,
+  View
 } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,7 +50,9 @@ export default function TeamOnboardingScreen() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showWebView, setShowWebView] = useState(false);
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
-  const [countdown, setCountdown] = useState(5);
+  const [showLogoModal, setShowLogoModal] = useState(false);
+  const [localLogoUri, setLocalLogoUri] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<any>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -110,6 +113,7 @@ export default function TeamOnboardingScreen() {
         billing: duration.charAt(0).toUpperCase() + duration.slice(1),
         addon_ids,
         primary_market: formData.primaryMarket,
+        team_logo: formData.teamLogo || undefined,
       };
 
       registerMutation.mutate(payload);
@@ -146,6 +150,7 @@ export default function TeamOnboardingScreen() {
   const registerMutation = useMutation({
     mutationFn: registerTeamCheckout,
     onSuccess: (data) => {
+      console.log('Registration Success Result:', data);
       if (data.checkout_url && data.session_id) {
         setCheckoutUrl(data.checkout_url);
         setSessionId(data.session_id);
@@ -162,8 +167,10 @@ export default function TeamOnboardingScreen() {
   const completeCheckoutMutation = useMutation({
     mutationFn: (sId: string) => completeCheckout(sId),
     onSuccess: (data) => {
-      if (data.user_id) {
-        login(data.user_id.toString());
+      console.log('Checkout Complete Result:', JSON.stringify(data, null, 2));
+      if (data.user_id && data.access_token) {
+        login(data.user_id.toString(), data.access_token, data.role);
+        setSuccessData(data);
         setIsCompletingCheckout(false);
         setShowSuccess(true);
       }
@@ -174,22 +181,21 @@ export default function TeamOnboardingScreen() {
     },
   });
 
-  // Auto-redirect effect
-  // useMemo(() => {
-  //   if (showSuccess) {
-  //     const timer = setInterval(() => {
-  //       setCountdown((prev) => {
-  //         if (prev <= 1) {
-  //           clearInterval(timer);
-  //           router.push('/(main)/dashboard');
-  //           return 0;
-  //         }
-  //         return prev - 1;
-  //       });
-  //     }, 10000);
-  //     return () => clearInterval(timer);
-  //   }
-  // }, [showSuccess]);
+  const uploadLogoMutation = useMutation({
+    mutationFn: (uri: string) => uploadTeamLogo(uri),
+    onSuccess: (data) => {
+      console.log(data)
+      if (data.ok && data.url) {
+        updateField('teamLogo', data.url);
+      }
+    },
+    onError: (error: Error) => {
+      console.error('Logo upload failed:', error.message);
+      setErrors(prev => ({ ...prev, teamLogo: 'Logo upload failed. Please try again.' }));
+    },
+  });
+
+  // Manual redirect handled by user button click
 
   const updateField = (field: keyof typeof formData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -202,18 +208,46 @@ export default function TeamOnboardingScreen() {
     }
   };
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-      base64: true,
-    });
+  const handleImagePicker = async (source: 'camera' | 'library') => {
+    try {
+      // Check/Request Permissions
+      if (source === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Required', 'We need camera access to take a photo.');
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Required', 'We need gallery access to choose a photo.');
+          return;
+        }
+      }
 
-    if (!result.canceled && result.assets[0].base64) {
-      updateField('teamLogo', `data:image/jpeg;base64,${result.assets[0].base64}`);
+      const options: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      };
+
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync(options)
+        : await ImagePicker.launchImageLibraryAsync(options);
+
+      if (!result.canceled && result.assets[0].uri) {
+        setLocalLogoUri(result.assets[0].uri);
+        uploadLogoMutation.mutate(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Image picker error:', err);
+      Alert.alert('Error', 'An unexpected error occurred while picking the image.');
     }
+  };
+
+  const pickImage = () => {
+    setShowLogoModal(true);
   };
 
   const renderStepContent = () => {
@@ -225,26 +259,26 @@ export default function TeamOnboardingScreen() {
             <Text style={styles.subtitle}>Set up your personal access first</Text>
 
             <View style={styles.form}>
-              <View style={styles.row}>
-                <LabeledInput
-                  label="First Name"
-                  placeholder="First Name"
-                  required
-                  containerStyle={styles.flexItem}
-                  value={formData.firstName}
-                  onChangeText={(val) => updateField('firstName', val)}
-                  error={errors.firstName}
-                />
-                <LabeledInput
-                  label="Last Name"
-                  placeholder="Last Name"
-                  required
-                  containerStyle={styles.flexItem}
-                  value={formData.lastName}
-                  onChangeText={(val) => updateField('lastName', val)}
-                  error={errors.lastName}
-                />
-              </View>
+
+              <LabeledInput
+                label="First Name"
+                placeholder="First Name"
+                required
+                containerStyle={styles.flexItem}
+                value={formData.firstName}
+                onChangeText={(val) => updateField('firstName', val)}
+                error={errors.firstName}
+              />
+              <LabeledInput
+                label="Last Name"
+                placeholder="Last Name"
+                required
+                containerStyle={styles.flexItem}
+                value={formData.lastName}
+                onChangeText={(val) => updateField('lastName', val)}
+                error={errors.lastName}
+              />
+
               <LabeledInput
                 label="Email"
                 placeholder="Email"
@@ -279,6 +313,36 @@ export default function TeamOnboardingScreen() {
                   codeTextStyle={styles.phoneCodeText}
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
+                  countryPickerProps={{
+                    modalProps: {
+                      statusBarTranslucent: false,
+                    },
+                    withFilter: true,
+                    withAlphaFilter: true,
+
+                    filterProps: {
+                      autoFocus: true,
+                      placeholder: 'Enter country name',
+                      style: {
+                        flex: 1,
+                        height: 48,
+                        color: '#0F172A',
+                        fontSize: 15,
+                        textAlignVertical: 'center',
+
+                      },
+                    },
+                    theme: {
+                      backgroundColor: '#FFFFFF',
+                      onBackground: '#0F172A',
+                      fontSize: 15,
+                      filterPlaceholderTextColor: '#64748B',
+                      activeOpacity: 0.7,
+                      itemHeight: 55,
+                      flagSize: 20,
+
+                    },
+                  }}
                 />
                 {errors.phone ? <Text style={styles.errorTextSmall}>{errors.phone}</Text> : null}
               </View>
@@ -328,16 +392,24 @@ export default function TeamOnboardingScreen() {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Team Logo (Optional)</Text>
-                <Pressable style={styles.uploadArea} onPress={pickImage}>
-                  {formData.teamLogo ? (
-                    <Image source={{ uri: formData.teamLogo }} style={styles.logoPreview} />
+                <Pressable style={styles.uploadArea} onPress={pickImage} disabled={uploadLogoMutation.isPending}>
+                  {uploadLogoMutation.isPending ? (
+                    <ActivityIndicator color={colors.accent} />
+                  ) : localLogoUri ? (
+                    <View style={styles.logoPreviewContainer}>
+                      <Image source={{ uri: localLogoUri }} style={styles.logoPreview} resizeMode='contain' />
+                      <View style={styles.editBadge}>
+                        <MaterialCommunityIcons name="pencil" size={14} color="#FFFFFF" />
+                      </View>
+                    </View>
                   ) : (
                     <>
                       <MaterialCommunityIcons name="cloud-upload-outline" size={32} color="#64748B" />
-                      <Text style={styles.uploadText}>Drag and drop or click to upload</Text>
+                      <Text style={styles.uploadText}>Tap to upload team logo</Text>
                     </>
                   )}
                 </Pressable>
+                {errors.teamLogo ? <Text style={styles.errorTextSmall}>{errors.teamLogo}</Text> : null}
               </View>
             </View>
 
@@ -658,30 +730,44 @@ export default function TeamOnboardingScreen() {
     </View>
   );
 
-  const renderSuccess = () => (
-    <View style={styles.successContainer}>
-      <View style={styles.successIconOuter}>
-        <View style={styles.successIconInner}>
-          <MaterialCommunityIcons name="check" size={32} color="#10B981" />
+  const renderSuccess = () => {
+    const planName = successData?.plan_summary?.plan?.name || 'Team';
+    const addons = successData?.plan_summary?.addons || [];
+    const redirectTo = successData?.redirect_to || (successData?.role === 'agency_user' ? '/agency' : '/(main)/dashboard');
+
+    return (
+      <View style={styles.successContainer}>
+        <View style={styles.successIconOuter}>
+          <View style={styles.successIconInner}>
+            <MaterialCommunityIcons name="check" size={32} color="#10B981" />
+          </View>
         </View>
-      </View>
-      <Text style={styles.successTitle}>Welcome to the Team!</Text>
-      <Text style={styles.successHighlight}>Trial started — account ready.</Text>
-      <Text style={styles.successDescription}>
-        Your 14-day trial is now active. We've sent a confirmation email to <Text style={styles.bold}>{formData.email}</Text>.
-      </Text>
+        <Text style={styles.successTitle}>Welcome to the Team!</Text>
+        <Text style={styles.successHighlight}>{planName} Trial Started.</Text>
+        <Text style={styles.successDescription}>
+          Your 14-day trial is now active. We've sent a confirmation email to <Text style={styles.bold}>{formData.email}</Text>.
+        </Text>
 
-      <View style={styles.redirectBadge}>
-        <Text style={styles.redirectText}>Redirecting to your dashboard in {countdown}s...</Text>
-      </View>
+        {addons.length > 0 && (
+          <View style={styles.successPlanDetails}>
+            <Text style={styles.successDetailsTitle}>Included Add-ons:</Text>
+            {addons.map((addon: any) => (
+              <View key={addon.id} style={styles.successAddonRow}>
+                <MaterialCommunityIcons name="check-circle" size={16} color="#10B981" />
+                <Text style={styles.successAddonName}>{addon.name}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
-      <GradientButton
-        title="Go to Dashboard Now"
-        style={styles.successButton}
-        onPress={() => router.push('/(main)/dashboard')}
-      />
-    </View>
-  );
+        <GradientButton
+          title="Continue to Workspace"
+          style={styles.successButton}
+          onPress={() => router.push(redirectTo as any)}
+        />
+      </View>
+    );
+  };
 
   return (
     <AuthScreenBackground>
@@ -691,16 +777,22 @@ export default function TeamOnboardingScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent, 
+            { paddingBottom: insets.bottom, paddingTop: insets.top },
+            (showSuccess || isCompletingCheckout) && { justifyContent: 'center' }
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View style={styles.topNav}>
-            <Pressable style={styles.backButton} onPress={goBack} hitSlop={12}>
-              <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
-            </Pressable>
-          </View>
+          {!showSuccess && !isCompletingCheckout && (
+            <View style={styles.topNav}>
+              <Pressable style={styles.backButton} onPress={goBack} hitSlop={12}>
+                <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+          )}
 
           <AuthCard>
             <AuthLogoBrand brandLabel="ZIEN" />
@@ -732,6 +824,63 @@ export default function TeamOnboardingScreen() {
           )}
         </View>
       </Modal>
+
+      {/* Modern Logo Picker Modal */}
+      <Modal visible={showLogoModal} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalDismiss} onPress={() => setShowLogoModal(false)} />
+          <View style={styles.bottomSheetContainer}>
+            <View style={styles.bottomSheetHeader}>
+              <View style={styles.dragHandle} />
+              <Text style={styles.bottomSheetTitle}>Team Logo</Text>
+              <Text style={styles.bottomSheetSubtitle}>Select a source to upload your logo</Text>
+            </View>
+
+            <View style={styles.bottomSheetOptions}>
+              <Pressable
+                style={({ pressed }) => [styles.optionItem, pressed && styles.optionItemPressed]}
+                onPress={() => {
+                  setShowLogoModal(false);
+                  handleImagePicker('camera');
+                }}
+              >
+                <View style={[styles.optionIconCard, { backgroundColor: '#E0F2FE' }]}>
+                  <MaterialCommunityIcons name="camera-outline" size={24} color="#0284C7" />
+                </View>
+                <View style={styles.optionTextContainer}>
+                  <Text style={styles.optionTitle}>Take Photo</Text>
+                  <Text style={styles.optionSubtitle}>Use camera to click a new logo</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.optionItem, pressed && styles.optionItemPressed]}
+                onPress={() => {
+                  setShowLogoModal(false);
+                  handleImagePicker('library');
+                }}
+              >
+                <View style={[styles.optionIconCard, { backgroundColor: '#F0FDF4' }]}>
+                  <MaterialCommunityIcons name="image-outline" size={24} color="#16A34A" />
+                </View>
+                <View style={styles.optionTextContainer}>
+                  <Text style={styles.optionTitle}>Choose from Gallery</Text>
+                  <Text style={styles.optionSubtitle}>Select from your existing photos</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
+              </Pressable>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [styles.cancelOption, pressed && styles.optionItemPressed]}
+              onPress={() => setShowLogoModal(false)}
+            >
+              <Text style={styles.cancelOptionText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </AuthScreenBackground>
   );
 }
@@ -741,8 +890,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: colors.screenPadding,
-    paddingTop: Math.max(insets.top, 10),
-    paddingBottom: Math.max(insets.bottom, 40),
+
   },
   topNav: {
     flexDirection: 'row',
@@ -801,11 +949,11 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   phoneInputWrapper: {
     width: '100%',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: colors.inputBackground,
+    borderRadius: colors.inputBorderRadius,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    height: 54,
+    borderColor: colors.borderInput,
+    height: 50,
     overflow: 'hidden',
   },
   phoneTextContainer: {
@@ -816,20 +964,20 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   phoneTextInput: {
     fontSize: 15,
     marginLeft: 10,
-    color: '#0F172A',
+    color: colors.textPrimary,
     fontWeight: '500',
     backgroundColor: 'transparent',
   },
   phoneCodeText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   phoneFlagButton: {
     width: 70,
     backgroundColor: 'transparent',
     borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
+    borderRightColor: colors.borderInput,
   },
   errorTextSmall: {
     fontSize: 12,
@@ -838,13 +986,13 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   uploadArea: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderInput,
     borderStyle: 'dashed',
     borderRadius: 12,
     height: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.inputBackground,
     gap: 8,
   },
   uploadText: {
@@ -852,9 +1000,34 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     color: '#64748B',
   },
   logoPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  logoPreviewContainer: {
+    position: 'relative',
+    width: 90,
+    height: 90,
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#002244',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   roleCard: {
     backgroundColor: '#F1F5F9',
@@ -940,7 +1113,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   durationPickerContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 14,
     padding: 4,
     marginBottom: 8,
@@ -1187,7 +1360,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     color: '#002244',
   },
   summaryCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.inputBackground,
     borderRadius: 16,
     padding: 20,
     gap: 12,
@@ -1240,46 +1413,79 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   successContainer: {
     alignItems: 'center',
     paddingVertical: 20,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   successIconOuter: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#ECFDF5',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 40,
   },
   successIconInner: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#D1FAE5',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
   },
   successTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 8,
+    color: '#061E41',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   successHighlight: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.accent,
-    marginBottom: 16,
+    color: '#059669',
     textAlign: 'center',
+    marginBottom: 32,
   },
   successDescription: {
-    fontSize: 14,
-    color: '#64748B',
+    fontSize: 15,
+    color: '#475569',
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: 48,
+    paddingHorizontal: 10,
   },
   successButton: {
     width: '100%',
+    height: 56,
+    marginTop: 10,
+    alignSelf: 'stretch',
+  },
+  successPlanDetails: {
+    width: '100%',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  successDetailsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 12,
+  },
+  successAddonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  successAddonName: {
+    fontSize: 14,
+    color: '#475569',
+    fontWeight: '500',
   },
   loadingContainerLarge: {
     paddingVertical: 50,
@@ -1336,5 +1542,98 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 34, 68, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalDismiss: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  bottomSheetContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    shadowColor: '#002244',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  dragHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  bottomSheetHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  bottomSheetTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  bottomSheetSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  bottomSheetOptions: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  optionItemPressed: {
+    backgroundColor: '#F1F5F9',
+    opacity: 0.9,
+  },
+  optionIconCard: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  optionSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  cancelOption: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: '#FFF1F2',
+  },
+  cancelOptionText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#E11D48',
   },
 });

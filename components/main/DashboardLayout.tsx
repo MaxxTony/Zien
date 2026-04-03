@@ -71,6 +71,8 @@ export function DashboardLayout({
     [closeMenu]
   );
 
+  const finalProfileRoute = profileRoute || (isAgency ? '/(main)/agency/profile' : '/(main)/profile');
+
   return (
     <View style={styles.wrapper}>
       <LinearGradient
@@ -82,7 +84,7 @@ export function DashboardLayout({
         <MainHeader
           onMenuPress={openMenu}
           userInitials={userInitials}
-          profileRoute={profileRoute as any}
+          profileRoute={finalProfileRoute as any}
           backgroundColor={customHeaderBackground}
           isAgency={isAgency}
         />
