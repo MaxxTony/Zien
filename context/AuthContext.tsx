@@ -96,7 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.removeItem('access_token');
     await AsyncStorage.removeItem('user_role');
     await AsyncStorage.removeItem('is_complete_profile');
-    router.replace('/login');
+    // Note: Redirection will be handled automatically by the protector effect 
+    // when it notices accessToken is null and user is in a protected route
   };
 
   return (

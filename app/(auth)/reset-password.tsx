@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,21 +17,56 @@ import OutlineButton from '@/components/ui/OutlineButton';
 import PasswordInput from '@/components/ui/PasswordInput';
 
 import { useAppTheme } from '@/context/ThemeContext';
+import { resetPassword } from '@/services/authService';
 
 export default function ResetPasswordScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const router = useRouter();
+  const { email, otp } = useLocalSearchParams();
 
-  const handleReset = () => {
-    Alert.alert('Password reset', 'Your password has been updated.', [
-      { text: 'OK', onPress: () => router.replace('/(auth)/login') },
-    ]);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleReset = async () => {
+    if (!newPassword || newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await resetPassword({
+        email: (email as string) || '',
+        otp: (otp as string) || '',
+        new_password: newPassword,
+      });
+
+      if (response.reset) {
+        Alert.alert('Success', 'Your password has been reset successfully.', [
+          { text: 'Login Now', onPress: () => router.replace('/(auth)/login') },
+        ]);
+      }
+    } catch (error: any) {
+      console.error('Reset Password Error:', error.message);
+      Alert.alert('Error', error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <AuthScreenBackground>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView 
+        style={styles.flex} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <AuthCard>
             <View style={styles.backButtonRow}>
@@ -44,13 +80,23 @@ export default function ResetPasswordScreen() {
             <AuthSubtitle center>Create a new password for your account.</AuthSubtitle>
 
             <View style={styles.form}>
-              <PasswordInput label="New Password" placeholder="New password" />
-              <PasswordInput label="Confirm Password" placeholder="Confirm password" />
+              <PasswordInput 
+                label="New Password" 
+                placeholder="New password"
+                value={newPassword}
+                onChangeText={setNewPassword}
+              />
+              <PasswordInput 
+                label="Confirm Password" 
+                placeholder="Confirm password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
             </View>
 
             <View style={styles.actionRow}>
-              <GradientButton title="Reset Password" style={styles.primaryButtonFlex} onPress={handleReset} />
-              <OutlineButton title="Back" style={styles.secondaryButton} onPress={() => router.back()} />
+              <GradientButton title="Reset Password" style={styles.primaryButtonFlex} onPress={handleReset} isLoading={isLoading} />
+              <OutlineButton title="Back" style={styles.secondaryButton} onPress={() => router.back()} disabled={isLoading} />
             </View>
           </AuthCard>
         </ScrollView>

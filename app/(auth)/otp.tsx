@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,10 +21,25 @@ export default function OtpScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const router = useRouter();
+  const { email } = useLocalSearchParams();
+
+  const [otp, setOtp] = useState('');
+
+  const handleVerify = () => {
+    if (otp.length < 4) return;
+    router.push({
+      pathname: '/(auth)/reset-password',
+      params: { email, otp }
+    } as any);
+  };
 
   return (
     <AuthScreenBackground>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <AuthCard style={styles.cardSoft}>
             <View style={styles.backButtonRow}>
@@ -34,20 +50,22 @@ export default function OtpScreen() {
             <AuthLogoBrand brandLabel="ZIEN" />
 
             <AuthTitle>Enter OTP</AuthTitle>
-            <AuthSubtitle center>We sent a 6-digit code to your email.</AuthSubtitle>
+            <AuthSubtitle center>We sent a 4-digit code to your email.</AuthSubtitle>
 
             <View style={styles.form}>
               <LabeledInput
                 label="OTP Code"
-                placeholder="123456"
+                placeholder="1234"
                 keyboardType="number-pad"
                 autoCapitalize="none"
-                maxLength={6}
+                maxLength={4}
+                value={otp}
+                onChangeText={setOtp}
               />
             </View>
 
             <View style={styles.actionRow}>
-              <GradientButton title="Verify OTP" style={styles.primaryButtonFlex} onPress={() => router.push('/(auth)/reset-password')} />
+              <GradientButton title="Verify OTP" style={styles.primaryButtonFlex} onPress={handleVerify} />
               <OutlineButton title="Back" style={styles.secondaryButton} onPress={() => router.back()} />
             </View>
           </AuthCard>
@@ -59,46 +77,46 @@ export default function OtpScreen() {
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  flex: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
-    padding: colors.screenPadding,
-    justifyContent: 'center',
-  },
-  cardSoft: {
-    backgroundColor: colors.cardBackground,
-  },
-  backButtonRow: {
-    alignSelf: 'stretch',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  backButton: {
-    padding: 8,
-    borderRadius: colors.inputBorderRadius,
-    backgroundColor: colors.cardBackground,
-    shadowColor: colors.cardShadowColor,
-    shadowOffset: colors.cardShadowOffset,
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  form: {
-    alignSelf: 'stretch',
-    gap: 12,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 18,
-    alignItems: 'stretch',
-  },
-  primaryButtonFlex: {
-    flex: 1,
-  },
-  secondaryButton: {
-    flex: 0,
-    minWidth: 100,
-  },
-});
+    flex: { flex: 1 },
+    scrollContent: {
+      flexGrow: 1,
+      padding: colors.screenPadding,
+      justifyContent: 'center',
+    },
+    cardSoft: {
+      backgroundColor: colors.cardBackground,
+    },
+    backButtonRow: {
+      alignSelf: 'stretch',
+      alignItems: 'flex-start',
+      marginBottom: 4,
+    },
+    backButton: {
+      padding: 8,
+      borderRadius: colors.inputBorderRadius,
+      backgroundColor: colors.cardBackground,
+      shadowColor: colors.cardShadowColor,
+      shadowOffset: colors.cardShadowOffset,
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    form: {
+      alignSelf: 'stretch',
+      gap: 12,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 18,
+      alignItems: 'stretch',
+    },
+    primaryButtonFlex: {
+      flex: 1,
+    },
+    secondaryButton: {
+      flex: 0,
+      minWidth: 100,
+    },
+  });
 }

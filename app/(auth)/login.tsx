@@ -20,8 +20,8 @@ import LabeledInput from '@/components/ui/labeled-input';
 import OutlineButton from '@/components/ui/OutlineButton';
 import PasswordInput from '@/components/ui/PasswordInput';
 
-import { useAppTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { useAppTheme } from '@/context/ThemeContext';
 import { loginAgent } from '@/services/authService';
 
 export default function LoginScreen() {
@@ -49,24 +49,8 @@ export default function LoginScreen() {
       const { access_token, role, complete_profile } = response;
 
       // Store token, role and profile status in context & storage
+      // Redirection will be handled automatically by AuthContext's protector effect
       await login(access_token, role, complete_profile);
-
-      // Redirection logic
-      if (complete_profile) {
-        // Navigate to appropriate dashboard
-        if (role === 'agency' || role === 'agency_user') {
-          router.replace('/(main)/agency');
-        } else {
-          router.replace('/(main)/dashboard');
-        }
-      } else {
-        // Navigate to onboarding
-        if (role === 'agency' || role === 'agency_user') {
-          router.replace('/(auth)/team-onboarding?isCompleting=true');
-        } else {
-          router.replace('/(auth)/solo-onboarding?isCompleting=true');
-        }
-      }
     } catch (error: any) {
       console.error('Login Error:', error.message);
       Alert.alert('Login Failed', error.message);
