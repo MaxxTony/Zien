@@ -20,7 +20,7 @@ import {
   StyleSheet,
   Switch,
   Text,
-  View,
+  View
 } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -247,7 +247,6 @@ export default function SoloOnboardingScreen() {
                   defaultValue={formData.phone}
                   defaultCode="US"
                   layout="second"
-
                   onChangeText={(text) => updateField('phone', text)}
                   onChangeFormattedText={(text) => {
                     setFormattedPhone(text);
@@ -266,34 +265,16 @@ export default function SoloOnboardingScreen() {
                   codeTextStyle={styles.phoneCodeText}
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
+                  withDarkTheme={true}
                   countryPickerProps={{
-                    modalProps: {
-                      statusBarTranslucent: false,
-                    },
+
                     withFilter: true,
                     withAlphaFilter: true,
-                    filterProps: {
-                      autoFocus: true,
-                      placeholder: 'Enter country name',
-                      style: {
-                        flex: 1,
-                        height: 48,
-                        color: '#0F172A',
-                        fontSize: 15,
-                        textAlignVertical: 'center',
-                      },
-                    },
-                    theme: {
-                      backgroundColor: '#FFFFFF',
-                      onBackground: '#0F172A',
-                      fontSize: 15,
-                      filterPlaceholderTextColor: '#64748B',
-                      activeOpacity: 0.7,
-                      itemHeight: 55,
-                      flagSize: 20,
-                    },
+
+
                   }}
                 />
+
                 {errors.phone ? <Text style={styles.errorTextSmall}>{errors.phone}</Text> : null}
                 {errors._form ? <Text style={styles.errorTextSmall}>{errors._form}</Text> : null}
               </View>
@@ -531,24 +512,47 @@ export default function SoloOnboardingScreen() {
                 <Text style={styles.sectionLabel}>Add-ons for {duration.charAt(0).toUpperCase() + duration.slice(1)}</Text>
                 {activePlan?.addons.map((addon: Addon) => {
                   const addonPrice = addon.prices.find(p => p.billing_interval === duration) || addon.prices[0];
+                  const isSelected = !!selectedAddons[addon.slug];
+
+                  // Map slugs to relevant icons
+                  const iconName = addon.slug.includes('staging') ? 'camera-plus-outline' :
+                    addon.slug.includes('lead') ? 'account-check-outline' :
+                      addon.slug.includes('property') || addon.slug.includes('intelligence') ? 'home-search-outline' :
+                        'plus-circle-outline';
+
                   return (
-                    <View key={addon.id} style={styles.addOnItem}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.addOnName}>{addon.name}</Text>
-                        <Text style={styles.addOnSub}>{addon.description}</Text>
+                    <Pressable
+                      key={addon.id}
+                      style={[styles.addOnItem, isSelected && styles.addOnItemSelected]}
+                      onPress={() => toggleAddon(addon.slug)}
+                    >
+                      <View style={styles.addOnItemMain}>
+                        <View style={[styles.addOnIconBox, isSelected && styles.addOnIconBoxSelected]}>
+                          <MaterialCommunityIcons
+                            name={iconName as any}
+                            size={20}
+                            color={isSelected ? '#7EEEF7' : colors.textSecondary}
+                          />
+                        </View>
+                        <View style={styles.addOnTextGroup}>
+                          <Text style={styles.addOnName} numberOfLines={1}>{addon.name}</Text>
+                          <Text style={styles.addOnSub}>{addon.description}</Text>
+                          <View style={styles.addOnActionCol}>
+                            <Text style={[styles.addOnPrice, isSelected && styles.addOnPriceActive]}>
+                              {addonPrice ? `$${addonPrice.price}` : 'N/A'}
+                            </Text>
+                            <Switch
+                              value={isSelected}
+                              onValueChange={() => toggleAddon(addon.slug)}
+                              trackColor={{ false: colors.borderLight, true: colors.accent }}
+                              thumbColor="#FFFFFF"
+                            />
+                          </View>
+                        </View>
+
                       </View>
-                      <View style={styles.addOnAction}>
-                        <Text style={styles.addOnPrice}>
-                          {addonPrice ? `$${addonPrice.price}` : 'N/A'}
-                        </Text>
-                        <Switch
-                          value={!!selectedAddons[addon.slug]}
-                          onValueChange={() => toggleAddon(addon.slug)}
-                          trackColor={{ false: '#E2E8F0', true: colors.accent }}
-                          thumbColor="#FFFFFF"
-                        />
-                      </View>
-                    </View>
+
+                    </Pressable>
                   );
                 })}
               </View>
@@ -778,7 +782,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -794,12 +798,12 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 8,
     marginBottom: 24,
     textAlign: 'center',
@@ -822,7 +826,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   requiredAsterisk: {
     color: '#EF4444',
@@ -871,7 +875,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   sectionLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   durationPickerContainer: {
@@ -898,7 +902,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   durationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   durationTextActive: {
     color: '#0F172A',
@@ -909,7 +913,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     gap: 6,
   },
   saveBadge: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: colors.inputBackground,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -920,10 +924,10 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     color: '#059669',
   },
   premiumPlanCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderLight,
     overflow: 'hidden',
     shadowColor: '#0b2341',
     shadowOffset: { width: 0, height: 4 },
@@ -971,7 +975,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   roleBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.inputBackground,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -982,7 +986,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   roleBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: colors.textSecondary,
     letterSpacing: 0.3,
   },
   roleBadgeTextActive: {
@@ -991,10 +995,10 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   planNameText: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   planNameTextSelected: {
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   selectedCheckmark: {
     width: 26,
@@ -1008,7 +1012,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: colors.borderLight,
   },
   priceBand: {
     flexDirection: 'row',
@@ -1024,24 +1028,24 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   priceCurrency: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginTop: 4,
   },
   priceAmount: {
     fontSize: 34,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     lineHeight: 38,
   },
   priceDecimals: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   priceInterval: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   priceOnDark: {
@@ -1051,7 +1055,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     color: 'rgba(255,255,255,0.65)',
   },
   billedAnnuallyBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.inputBackground,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1059,7 +1063,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   billedAnnuallyText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   featuresList: {
     gap: 10,
@@ -1081,12 +1085,12 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   featureText: {
     fontSize: 13,
-    color: '#475569',
+    color: colors.textSecondary,
     fontWeight: '500',
     flex: 1,
   },
   featureTextActive: {
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   addOnSection: {
     gap: 12,
@@ -1094,32 +1098,73 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   addOnItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 14,
+    alignItems: 'flex-start',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    borderRadius: 20,
     padding: 16,
+    marginBottom: 8,
+  },
+  addOnItemSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.inputBackground,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  addOnItemMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  addOnIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.inputBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  addOnIconBoxSelected: {
+    backgroundColor: '#0b2341',
+    borderColor: colors.accent,
+  },
+  addOnTextGroup: {
+    flex: 1,
+    paddingTop: 2,
   },
   addOnName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    marginBottom: 4,
   },
   addOnSub: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    lineHeight: 18,
   },
-  addOnAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  addOnActionCol: {
+    paddingTop: 10,
+    gap: 8,
+    flexDirection: "row",
+    alignItems: "center"
   },
   addOnPrice: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: '900',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  addOnPriceActive: {
+    color: colors.accent,
   },
   summaryCard: {
     backgroundColor: colors.inputBackground,
@@ -1130,7 +1175,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   summaryTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   summaryRow: {
@@ -1139,38 +1184,38 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#475569',
+    color: colors.textSecondary,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   summaryDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.borderLight,
     borderStyle: 'dashed',
     borderRadius: 1,
   },
   summaryTotalLabel: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   summaryTotalValue: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   trialInfo: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     lineHeight: 18,
     marginTop: 4,
   },
   trialBold: {
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   loadingContainerLarge: {
     paddingVertical: 50,
@@ -1180,30 +1225,30 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   loadingTitleLarge: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginTop: 10,
     textAlign: 'center',
   },
   loadingSubtitleLarge: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 20,
   },
   redirectBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.inputBackground,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderLight,
   },
   redirectText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.textSecondary,
   },
   actionRow: {
     flexDirection: 'row',
@@ -1232,7 +1277,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 40,
@@ -1250,7 +1295,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   successTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#061E41',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -1263,7 +1308,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   successDescription: {
     fontSize: 15,
-    color: '#475569',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 48,
@@ -1276,7 +1321,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   successPlanDetails: {
     width: '100%',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.inputBackground,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
@@ -1284,7 +1329,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   successDetailsTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   successAddonRow: {
@@ -1295,7 +1340,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   successAddonName: {
     fontSize: 14,
-    color: '#475569',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   retryButton: {
@@ -1306,7 +1351,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   supportText: {
     marginTop: 24,
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   supportLink: {
@@ -1325,7 +1370,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   errorContainer: {
@@ -1336,13 +1381,13 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   errorTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   errorSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 20,
@@ -1353,13 +1398,13 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.borderLight,
     paddingHorizontal: 16,
   },
   webViewTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   closeWebViewButton: {
     position: 'absolute',
@@ -1374,6 +1419,6 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
 });

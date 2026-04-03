@@ -88,7 +88,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.borderLight,
   },
   lineDone: {
     backgroundColor: colors.accent,
@@ -108,8 +108,8 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderWidth: 1,
   },
   dotInactive: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
+    backgroundColor: colors.inputBackground,
+    borderColor: colors.borderLight,
   },
   dotActive: {
     backgroundColor: colors.accent,
@@ -121,17 +121,17 @@ const getStyles = (colors: any) => StyleSheet.create({
     elevation: 6,
   },
   dotDone: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
+    backgroundColor: colors.textPrimary,
+    borderColor: colors.textPrimary,
   },
   dotText: {
     fontSize: 13,
     fontWeight: '800',
   },
   dotTextInactive: {
-    color: '#CBD5E1',
+    color: colors.textMuted,
   },
   dotTextActive: {
-    color: '#FFFFFF',
+    color: colors.cardBackground,
   },
 });

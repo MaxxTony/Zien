@@ -12,8 +12,7 @@ import {
   AuthScreenBackground,
   AuthSubtitle,
   AuthTitle,
-  SocialButton,
-  SSOButton
+  SocialButton
 } from '@/components/auth';
 import GradientButton from '@/components/ui/GradientButton';
 import LabeledInput from '@/components/ui/labeled-input';
@@ -113,7 +112,7 @@ export default function LoginScreen() {
               />
             </View>
 
-            <SSOButton onPress={() => Alert.alert('Coming soon')} />
+            {/* <SSOButton onPress={() => Alert.alert('Coming soon')} /> */}
 
             <AuthFooter>
               <AuthFooterText>
