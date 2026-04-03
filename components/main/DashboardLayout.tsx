@@ -95,6 +95,7 @@ export function DashboardLayout({
         translateX={drawerTranslateX}
         width={DRAWER_WIDTH}
         paddingTop={insets.top + 18}
+        paddingBottom={insets.bottom}
         menuItems={menuItems}
         onClose={closeMenu}
         onItemPress={handleMenuPress}

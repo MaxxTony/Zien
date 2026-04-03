@@ -26,6 +26,7 @@ type NavDrawerProps = {
   translateX: Animated.Value;
   width: number;
   paddingTop: number;
+  paddingBottom: number;
   menuItems: NavMenuItem[];
   onClose: () => void;
   onItemPress: (route?: Href) => void;
@@ -39,6 +40,7 @@ function NavDrawerComponent({
   translateX,
   width,
   paddingTop,
+  paddingBottom,
   menuItems,
   onClose,
   onItemPress,
@@ -69,7 +71,7 @@ function NavDrawerComponent({
       <Animated.View
         style={[
           styles.drawer,
-          { width, paddingTop, transform: [{ translateX }] },
+          { width, paddingTop, paddingBottom, transform: [{ translateX }] },
           customBackground ? { backgroundColor: customBackground } : {},
         ]}
       >
@@ -144,23 +146,6 @@ function NavDrawerComponent({
           })}
         </ScrollView>
 
-        {/* Logout at the bottom */}
-        {/* <View style={styles.logoutWrapper}>
-          <View style={styles.headerDivider} />
-          <Pressable
-            style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
-            onPress={logout}
-          >
-            <View style={styles.iconWrap}>
-              <MaterialCommunityIcons 
-                  name="logout" 
-                  size={20} 
-                  color="#EF4444" 
-              />
-            </View>
-            <Text style={[styles.itemText, { color: '#EF4444', fontWeight: '700' }]}>Logout</Text>
-          </Pressable>
-        </View> */}
 
         {/* Back to main link at the bottom if provided */}
         {backToMainRoute && (

@@ -3,20 +3,20 @@ import { useRouter, useSegments } from 'expo-router';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type AuthContextType = {
-  userId: string | null;
   accessToken: string | null;
   userRole: string | null;
+  isCompleteProfile: boolean;
   isLoading: boolean;
-  login: (id: string, token: string, role?: string) => Promise<void>;
+  login: (token: string, role?: string, isComplete?: boolean) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [userId, setUserId] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isCompleteProfile, setIsCompleteProfile] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const segments = useSegments();
@@ -32,10 +32,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const inOnboarding = segments[1] === 'solo-onboarding' || segments[1] === 'team-onboarding';
     const atRoot = !segments[0];
 
-    if (userId) {
+    if (accessToken) {
       if ((inAuthGroup && !inOnboarding) || atRoot) {
-        // Redirect based on role
-        const dashboardPath = userRole === 'agency_user' ? '/agency' : '/(main)/dashboard';
+        // Note: Specific redirection logic is handled in the Login screen after API call
+        // This is a safety fallback for app restarts
+        let dashboardPath = (userRole === 'agency_user' || userRole === 'agency') ? '/(main)/agency' : '/(main)/dashboard';
+        
+        // If profile is not complete, redirect back to onboarding
+        if (!isCompleteProfile) {
+          dashboardPath = (userRole === 'agency_user' || userRole === 'agency') 
+            ? '/(auth)/team-onboarding?isCompleting=true' 
+            : '/(auth)/solo-onboarding?isCompleting=true';
+        }
+        
         router.replace(dashboardPath as any);
       }
     } else {
@@ -44,22 +53,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.replace('/login');
       }
     }
-  }, [userId, userRole, segments, isLoading]);
+  }, [accessToken, userRole, isCompleteProfile, segments, isLoading]);
 
   const loadStorageData = async () => {
     try {
-      const storedUserId = await AsyncStorage.getItem('user_id');
       const storedToken = await AsyncStorage.getItem('access_token');
       const storedRole = await AsyncStorage.getItem('user_role');
+      const storedComplete = await AsyncStorage.getItem('is_complete_profile');
 
-      if (storedUserId) {
-        setUserId(storedUserId);
-      }
       if (storedToken) {
         setAccessToken(storedToken);
       }
       if (storedRole) {
         setUserRole(storedRole);
+      }
+      if (storedComplete !== null) {
+        setIsCompleteProfile(storedComplete === 'true');
       }
     } catch (e) {
       console.error('Failed to load auth data', e);
@@ -68,27 +77,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (id: string, token: string, role?: string) => {
-    setUserId(id);
+  const login = async (token: string, role?: string, isComplete?: boolean) => {
     setAccessToken(token);
     if (role) setUserRole(role);
-    await AsyncStorage.setItem('user_id', id);
+    if (isComplete !== undefined) setIsCompleteProfile(isComplete);
+    
     await AsyncStorage.setItem('access_token', token);
     if (role) await AsyncStorage.setItem('user_role', role);
+    if (isComplete !== undefined) {
+      await AsyncStorage.setItem('is_complete_profile', isComplete ? 'true' : 'false');
+    }
   };
 
   const logout = async () => {
-    setUserId(null);
     setAccessToken(null);
     setUserRole(null);
-    await AsyncStorage.removeItem('user_id');
+    setIsCompleteProfile(false);
     await AsyncStorage.removeItem('access_token');
     await AsyncStorage.removeItem('user_role');
+    await AsyncStorage.removeItem('is_complete_profile');
     router.replace('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ userId, accessToken, userRole, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ accessToken, userRole, isCompleteProfile, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

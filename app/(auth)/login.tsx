@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
@@ -20,11 +21,59 @@ import OutlineButton from '@/components/ui/OutlineButton';
 import PasswordInput from '@/components/ui/PasswordInput';
 
 import { useAppTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { loginAgent } from '@/services/authService';
 
 export default function LoginScreen() {
   const { colors } = useAppTheme();
+  const { login } = useAuth();
   const styles = getStyles(colors);
   const router = useRouter();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('Attempting login for:', email);
+      const response = await loginAgent({ email, password });
+      console.log('Login Success:', response);
+
+      const { access_token, role, complete_profile } = response;
+
+      // Store token, role and profile status in context & storage
+      await login(access_token, role, complete_profile);
+
+      // Redirection logic
+      if (complete_profile) {
+        // Navigate to appropriate dashboard
+        if (role === 'agency' || role === 'agency_user') {
+          router.replace('/(main)/agency');
+        } else {
+          router.replace('/(main)/dashboard');
+        }
+      } else {
+        // Navigate to onboarding
+        if (role === 'agency' || role === 'agency_user') {
+          router.replace('/(auth)/team-onboarding?isCompleting=true');
+        } else {
+          router.replace('/(auth)/solo-onboarding?isCompleting=true');
+        }
+      }
+    } catch (error: any) {
+      console.error('Login Error:', error.message);
+      Alert.alert('Login Failed', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AuthScreenBackground>
@@ -44,15 +93,24 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
+                value={email}
+                onChangeText={setEmail}
               />
               <PasswordInput
+                value={password}
+                onChangeText={setPassword}
                 rightLabel="Forgot?"
                 onRightLabelPress={() => router.push('/(auth)/forgot-password')}
               />
             </View>
 
             <View style={styles.actionRow}>
-              <GradientButton title="I'm an Agent" style={styles.agentButton} onPress={() => router.push('/(main)/dashboard')} />
+              <GradientButton
+                title="Sign In"
+                style={styles.agentButton}
+                onPress={handleLogin}
+                isLoading={isLoading}
+              />
               <OutlineButton title="Join Team" style={styles.joinTeamButton} onPress={() => router.push('/(auth)/join-team-invite')} />
             </View>
 

@@ -8,7 +8,7 @@ import { Addon, CheckoutPayload, completeCheckout, fetchSoloPlans, Plan, registe
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -36,9 +36,11 @@ export default function SoloOnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
   const styles = getStyles(colors, insets);
-  const { login } = useAuth();
+  const { login, logout, accessToken } = useAuth();
+  const { isCompleting } = useLocalSearchParams();
+  const isCompletingMode = isCompleting === 'true';
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(isCompletingMode ? 3 : 1);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro-agent');
   const [duration, setDuration] = useState<'monthly' | 'annually'>('monthly');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
@@ -118,6 +120,11 @@ export default function SoloOnboardingScreen() {
     setCurrentStep((prev) => Math.min(prev + 1, 3));
   };
   const goBack = () => {
+    if (isCompletingMode) {
+      // Gracefully logout to break the redirection loop and allow returning to login
+      logout();
+      return;
+    }
     if (currentStep === 1) {
       router.back();
       return;
@@ -144,7 +151,7 @@ export default function SoloOnboardingScreen() {
   };
 
   const registerMutation = useMutation({
-    mutationFn: registerSoloCheckout,
+    mutationFn: (payload: CheckoutPayload) => registerSoloCheckout(payload, accessToken),
     onSuccess: (data) => {
       console.log('Registration Success Result:', data);
       if (data.checkout_url && data.session_id) {
@@ -167,8 +174,8 @@ export default function SoloOnboardingScreen() {
     mutationFn: (sId: string) => completeCheckout(sId),
     onSuccess: (data) => {
       console.log('Checkout Complete Result:', data);
-      if (data.user_id && data.access_token) {
-        login(data.user_id.toString(), data.access_token, data.role);
+      if (data.access_token) {
+        login(data.access_token, data.role, true);
         setSuccessData(data);
         setIsCompletingCheckout(false);
         setShowSuccess(true);
@@ -599,7 +606,7 @@ export default function SoloOnboardingScreen() {
                 title="Back"
                 style={styles.secondaryButton}
                 onPress={goBack}
-                disabled={registerMutation.isPending}
+                disabled={registerMutation.isPending || isCompletingMode}
               />
               <GradientButton
                 title="Continue"

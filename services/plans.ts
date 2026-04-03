@@ -103,26 +103,32 @@ const fetchAllPlans = async (): Promise<PlansResponse> => {
   }
 };
 
-export const registerSoloCheckout = async (payload: CheckoutPayload): Promise<any> => {
-  return registerCheckout(payload, 'solo');
+export const registerSoloCheckout = async (payload: CheckoutPayload, accessToken?: string | null): Promise<any> => {
+  return registerCheckout(payload, 'solo', accessToken);
 };
 
-export const registerTeamCheckout = async (payload: TeamCheckoutPayload): Promise<any> => {
-  return registerCheckout(payload, 'team');
+export const registerTeamCheckout = async (payload: TeamCheckoutPayload, accessToken?: string | null): Promise<any> => {
+  return registerCheckout(payload, 'team', accessToken);
 };
 
-const registerCheckout = async (payload: any, flow: 'solo' | 'team'): Promise<any> => {
+const registerCheckout = async (payload: any, flow: 'solo' | 'team', accessToken?: string | null): Promise<any> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
 
   try {
     const response = await fetch(`${CHECKOUT_API_URL}/website/register/${flow}/checkout`, {
       method: 'POST',
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
+      headers: headers,
       body: JSON.stringify(payload),
     });
 
