@@ -9,7 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -52,6 +52,7 @@ export default function SoloOnboardingScreen() {
   const [showWebView, setShowWebView] = useState(false);
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
   const [successData, setSuccessData] = useState<any>(null);
+  const phoneInputRef = useRef<PhoneInput>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -70,21 +71,51 @@ export default function SoloOnboardingScreen() {
     const newErrors: Record<string, string> = {};
 
     if (currentStep === 1) {
-      if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-      if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+      const nameRegex = /^[A-Za-z\s.-]+$/;
+      
+      if (!formData.firstName.trim()) {
+        newErrors.firstName = 'First name is required';
+      } else if (!nameRegex.test(formData.firstName)) {
+        newErrors.firstName = 'First name should only contain letters';
+      }
+
+      if (!formData.lastName.trim()) {
+        newErrors.lastName = 'Last name is required';
+      } else if (!nameRegex.test(formData.lastName)) {
+        newErrors.lastName = 'Last name should only contain letters';
+      }
+
       if (!formData.email.trim()) {
         newErrors.email = 'Email is required';
       } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
         newErrors.email = 'Invalid email format';
       }
-      if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-      if (!formData.password) newErrors.password = 'Password is required';
+      if (!formData.phone.trim()) {
+        newErrors.phone = 'Phone number is required';
+      } else if (phoneInputRef.current && !phoneInputRef.current.isValidNumber(formData.phone)) {
+        newErrors.phone = 'Invalid number for ' + (phoneInputRef.current.getCountryCode() || 'selected country');
+      }
+
+      if (!formData.password) {
+        newErrors.password = 'Password is required';
+      } else if (formData.password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters';
+      }
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
       }
     } else if (currentStep === 2) {
+      const genericRegex = /^[A-Za-z\s.-]+$/;
+
       if (!formData.licenseNumber.trim()) newErrors.licenseNumber = 'License number is required';
-      if (!formData.primaryMarket.trim()) newErrors.primaryMarket = 'Primary market is required';
+      
+      if (!formData.primaryMarket.trim()) {
+        newErrors.primaryMarket = 'Primary market is required';
+      } else if (!genericRegex.test(formData.primaryMarket)) {
+        newErrors.primaryMarket = 'Market name should only contain letters';
+      } else if (formData.primaryMarket.length < 2) {
+        newErrors.primaryMarket = 'Market name is too short';
+      }
     }
 
     setErrors(newErrors);
@@ -244,6 +275,7 @@ export default function SoloOnboardingScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Phone Number <Text style={styles.requiredAsterisk}>*</Text></Text>
                 <PhoneInput
+                  ref={phoneInputRef}
                   defaultValue={formData.phone}
                   defaultCode="US"
                   layout="second"
@@ -892,7 +924,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     borderRadius: 10,
   },
   durationOptionActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -905,7 +937,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     color: colors.textSecondary,
   },
   durationTextActive: {
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   annuallyLabelContainer: {
     flexDirection: 'row',

@@ -409,11 +409,14 @@ function MainHeaderComponent({
         {/* Hidden Logo / Center Area */}
         <View style={styles.center}>
           {!isAgency && (
-            <Image
-              source={require('@/assets/appImages/nlogo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('@/assets/images/rem.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <Text style={styles.logoText}>Zein</Text>
+            </View>
           )}
         </View>
 
@@ -446,7 +449,6 @@ function MainHeaderComponent({
             >
               <Text style={styles.avatarText}>{userInitials}</Text>
             </LinearGradient>
-            <View style={styles.onlineDot} />
           </Pressable>
         )}
       </View>
@@ -498,9 +500,20 @@ function getStyles(colors: any) {
       flex: 1,
       alignItems: 'center',
     },
+    logoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
     logo: {
-      width: 110,
-      height: 46,
+      width: 38,
+      height: 38,
+    },
+    logoText: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
     },
     avatarWrap: {
       position: 'relative',

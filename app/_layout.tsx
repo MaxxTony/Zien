@@ -2,14 +2,14 @@ import { useReactQueryDevTools } from '@dev-plugins/react-query';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { ThemeProvider as AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ThemeProvider as AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
 
 const queryClient = new QueryClient();
 
@@ -52,7 +52,7 @@ function InnerLayout() {
 
   return (
     <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, animation: "fade" }} >
         <Stack.Screen name="(auth)/login" />
         <Stack.Screen name="(auth)/forgot-password" />
         <Stack.Screen name="(auth)/otp" />

@@ -10,7 +10,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -55,6 +55,7 @@ export default function TeamOnboardingScreen() {
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [localLogoUri, setLocalLogoUri] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<any>(null);
+  const phoneInputRef = useRef<PhoneInput>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -74,21 +75,57 @@ export default function TeamOnboardingScreen() {
     const newErrors: Record<string, string> = {};
 
     if (currentStep === 1) {
-      if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-      if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+      const nameRegex = /^[A-Za-z\s.-]+$/;
+
+      if (!formData.firstName.trim()) {
+        newErrors.firstName = 'First name is required';
+      } else if (!nameRegex.test(formData.firstName)) {
+        newErrors.firstName = 'First name should only contain letters';
+      }
+
+      if (!formData.lastName.trim()) {
+        newErrors.lastName = 'Last name is required';
+      } else if (!nameRegex.test(formData.lastName)) {
+        newErrors.lastName = 'Last name should only contain letters';
+      }
+
       if (!formData.email.trim()) {
         newErrors.email = 'Email is required';
       } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
         newErrors.email = 'Invalid email format';
       }
-      if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-      if (!formData.password) newErrors.password = 'Password is required';
+      if (!formData.phone.trim()) {
+        newErrors.phone = 'Phone number is required';
+      } else if (phoneInputRef.current && !phoneInputRef.current.isValidNumber(formData.phone)) {
+        newErrors.phone = 'Invalid number for ' + (phoneInputRef.current.getCountryCode() || 'selected country');
+      }
+
+      if (!formData.password) {
+        newErrors.password = 'Password is required';
+      } else if (formData.password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters';
+      }
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
       }
     } else if (currentStep === 2) {
-      if (!formData.teamName.trim()) newErrors.teamName = 'Team name is required';
-      if (!formData.primaryMarket.trim()) newErrors.primaryMarket = 'Primary market is required';
+      const genericRegex = /^[A-Za-z\s.-]+$/;
+
+      if (!formData.teamName.trim()) {
+        newErrors.teamName = 'Team name is required';
+      } else if (formData.teamName.length < 3) {
+        newErrors.teamName = 'Team name must be at least 3 characters';
+      } else if (/^\d+$/.test(formData.teamName)) {
+        newErrors.teamName = 'Team name cannot be only numbers';
+      }
+
+      if (!formData.primaryMarket.trim()) {
+        newErrors.primaryMarket = 'Primary market is required';
+      } else if (!genericRegex.test(formData.primaryMarket)) {
+        newErrors.primaryMarket = 'Market name should only contain letters';
+      } else if (formData.primaryMarket.length < 2) {
+        newErrors.primaryMarket = 'Market name is too short';
+      }
     }
 
     setErrors(newErrors);
@@ -300,6 +337,7 @@ export default function TeamOnboardingScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Phone Number <Text style={styles.requiredAsterisk}>*</Text></Text>
                 <PhoneInput
+                  ref={phoneInputRef}
                   defaultValue={formData.phone}
                   defaultCode="US"
                   layout="second"
@@ -408,7 +446,7 @@ export default function TeamOnboardingScreen() {
 
             <View style={styles.roleCard}>
               <View style={styles.roleHeader}>
-                <MaterialCommunityIcons name="shield-check-outline" size={24} color="#0F172A" />
+                <MaterialCommunityIcons name="shield-check-outline" size={24} color={colors.textPrimary} />
                 <Text style={styles.roleTitle}>Role: Team Owner</Text>
               </View>
               <Text style={styles.roleDescription}>
@@ -806,7 +844,7 @@ export default function TeamOnboardingScreen() {
       </KeyboardAvoidingView>
 
       <Modal visible={showWebView} animationType="slide" transparent={false}>
-        <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingTop: Math.max(insets.top, 20) }}>
+        <View style={{ flex: 1, backgroundColor: colors.cardBackground, paddingTop: insets.top }}>
           <View style={styles.webViewHeader}>
             <Text style={styles.webViewTitle}>Checkout</Text>
             <Pressable onPress={() => setShowWebView(false)} style={styles.closeWebViewButton}>
@@ -945,7 +983,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#002244',
+    color: colors.textPrimary,
   },
   requiredAsterisk: {
     color: '#EF4444',
@@ -1033,7 +1071,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     elevation: 4,
   },
   roleCard: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.inputBackground,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -1047,17 +1085,17 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   roleTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#002244',
+    color: colors.textPrimary,
   },
   roleDescription: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     lineHeight: 20,
     paddingLeft: 36,
   },
   roleHelpText: {
     fontSize: 14,
-    color: '#0F172A',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 22,
@@ -1111,7 +1149,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   sectionLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   durationPickerContainer: {
@@ -1141,7 +1179,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     color: colors.textSecondary,
   },
   durationTextActive: {
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   annuallyLabelContainer: {
     flexDirection: 'row',
@@ -1482,7 +1520,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   successTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#061E41',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -1571,7 +1609,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.borderLight,
   },
   webViewTitle: {
     fontSize: 18,
@@ -1601,7 +1639,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     borderTopRightRadius: 32,
     paddingHorizontal: 24,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: Math.max(insets.bottom, 24),
     shadowColor: '#002244',
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.1,
@@ -1638,10 +1676,10 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.inputBackground,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.borderLight,
   },
   optionItemPressed: {
     backgroundColor: colors.inputBackground,
@@ -1673,7 +1711,7 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: colors.inputBackground,
   },
   cancelOptionText: {
     fontSize: 16,
