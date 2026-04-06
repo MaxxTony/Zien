@@ -2,6 +2,7 @@ import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -40,6 +41,7 @@ interface AddContactModalProps {
   isEditing?: boolean;
   availableGroups: string[];
   availableTags: string[];
+  loading?: boolean;
 }
 
 export const AddContactModal: React.FC<AddContactModalProps> = ({
@@ -50,6 +52,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
   isEditing = false,
   availableGroups,
   availableTags,
+  loading = false,
 }) => {
   const { colors, theme } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -85,7 +88,16 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
         setFirstName(initialData.firstName || '');
         setLastName(initialData.lastName || '');
         setEmail(initialData.email || '');
-        setPhone(initialData.phone || '');
+        
+        // Correctly prefill the phone number by stripping the country prefix if it's there
+        const rawPhone = initialData.phone || '';
+        const callingCode = (initialData.countryCode || '').replace('+', '');
+        if (callingCode && rawPhone.startsWith(callingCode)) {
+          setPhone(rawPhone.slice(callingCode.length));
+        } else {
+          setPhone(rawPhone);
+        }
+
         setGroup(initialData.group || (availableGroups[0] || ''));
         setTag(initialData.tag || (availableTags[0] || ''));
         setCountryCodeISO(getIsoCode(initialData.countryCode));
@@ -139,12 +151,16 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
       return;
     }
 
+    const callingCode = phoneInputRef.current?.getCallingCode() || '91';
+    const nationalNumber = phone.replace(/\D/g, '');
+    const fullNumber = callingCode + nationalNumber;
+
     onSave({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim(),
-      phone: phone.trim(),
-      countryCode: phoneInputRef.current?.getCallingCode() ? `+${phoneInputRef.current.getCallingCode()}` : '+91',
+      phone: fullNumber,
+      countryCode: `+${callingCode}`,
       group,
       tag,
     });
@@ -283,8 +299,16 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
               <Pressable style={styles.cancelBtn} onPress={onClose}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
-              <Pressable style={styles.saveBtn} onPress={handleSave}>
-                <Text style={styles.saveText}>{isEditing ? 'Update' : 'Save'}</Text>
+              <Pressable 
+                style={[styles.saveBtn, loading && { opacity: 0.7 }]} 
+                onPress={handleSave}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveText}>{isEditing ? 'Update' : 'Save'}</Text>
+                )}
               </Pressable>
             </View>
           </KeyboardAvoidingView>

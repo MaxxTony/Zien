@@ -18,6 +18,8 @@ type PageHeaderProps = {
     onRightPress?: () => void;
     /** Tint color for the right icon button background and icon (default: teal) */
     rightIconColor?: string;
+    /** If true, uses light text/icons (for dark backgrounds) */
+    light?: boolean;
 };
 
 export const PageHeader = memo(function PageHeader({
@@ -27,6 +29,7 @@ export const PageHeader = memo(function PageHeader({
     rightIcon,
     onRightPress,
     rightIconColor,
+    light = false,
     children,
 }: PageHeaderProps & { children?: React.ReactNode }) {
     const { colors } = useAppTheme();
@@ -41,15 +44,19 @@ export const PageHeader = memo(function PageHeader({
                 onPress={onBack}
                 hitSlop={12}
             >
-                <MaterialCommunityIcons name="arrow-left" size={20} color={colors.textPrimary} />
+                <MaterialCommunityIcons 
+                    name="arrow-left" 
+                    size={20} 
+                    color={light ? '#FFFFFF' : colors.textPrimary} 
+                />
             </Pressable>
 
             {/* ── Title + subtitle ── */}
             <View style={styles.center}>
                 <View style={styles.titleRow}>
-                    <Text style={styles.title} numberOfLines={1}>{title}</Text>
+                    <Text style={[styles.title, light && { color: '#FFFFFF' }]} numberOfLines={1}>{title}</Text>
                 </View>
-                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+                {subtitle ? <Text style={[styles.subtitle, light && { color: 'rgba(255,255,255,0.7)' }]}>{subtitle}</Text> : null}
             </View>
 
             {/* ── Optional right action button or children ── */}

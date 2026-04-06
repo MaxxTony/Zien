@@ -1,28 +1,28 @@
-import React, { useState } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { 
-  getCRMMeta, 
-  addCRMGroup, 
-  addCRMTag, 
-  deleteCRMGroup, 
-  deleteCRMTag 
+import {
+  addCRMGroup,
+  addCRMTag,
+  deleteCRMGroup,
+  deleteCRMTag,
+  getCRMMeta
 } from '@/services/crmService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ManageMetaModalProps {
   visible: boolean;

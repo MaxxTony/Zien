@@ -1,150 +1,148 @@
 import { PageHeader } from '@/components/ui/PageHeader';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
+import { addCRMGroup, addCRMLead, addCRMTag, CRMLead, deleteCRMLead, getCRMLeads, getCRMMeta, updateCRMLead } from '@/services/crmService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import PhoneInput from "react-native-phone-number-input";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ManageMetaModal } from './components/modals/ManageMetaModal';
 
-const SUMMARY_CARDS = [
-  { id: 'new', label: 'NEW', count: 2 },
-  { id: 'qualified', label: 'QUALIFIED', count: 1 },
-  { id: 'unqualified', label: 'UNQUALIFIED', count: 1 },
-  { id: 'archived', label: 'ARCHIVED', count: 0 },
-];
 
-type LeadStatus = 'NEW' | 'QUALIFIED' | 'UNQUALIFIED';
-
-const INITIAL_LEADS = [
-  { id: '1', name: 'Jessica Miller', status: 'NEW' as LeadStatus, source: 'Open House', date: 'Today', score: 94, isHot: true, isConverted: false, isArchived: false },
-  { id: '2', name: 'Robert Chen', status: 'QUALIFIED' as LeadStatus, source: 'Website', date: 'Yesterday', score: 82, isHot: true, isConverted: false, isArchived: false },
-  { id: '3', name: 'David Wilson', status: 'UNQUALIFIED' as LeadStatus, source: 'Manual', date: '2 days ago', score: 25, isHot: false, isConverted: false, isArchived: false },
-  { id: '4', name: 'Sarah Connor', status: 'NEW' as LeadStatus, source: 'Referral', date: '3 days ago', score: 88, isHot: true, isConverted: false, isArchived: false },
-];
-
-const getStatusStyle = (status: string) => {
-  switch (status) {
-    case 'NEW': return { bg: '#FFE4E6', text: '#E11D48' };
-    case 'QUALIFIED': return { bg: '#E0F2FE', text: '#0284C7' };
-    case 'UNQUALIFIED': return { bg: '#F1F5F9', text: '#475569' };
-    default: return { bg: '#F1F5F9', text: '#475569' };
-  }
-};
-
-function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEditPress }: { lead: (typeof INITIAL_LEADS)[number], onDeletePress: () => void, onConvertPress: () => void, onToggleArchive: () => void, onEditPress: () => void }) {
+function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEditPress, isArchiving, isConverting }: {
+  lead: CRMLead,
+  onDeletePress: () => void,
+  onConvertPress: () => void,
+  onToggleArchive: () => void,
+  onEditPress: () => void,
+  isArchiving?: boolean,
+  isConverting?: boolean
+}) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-  const isHigh = lead.score >= 80;
-  const isLow = lead.score < 50;
-  const statusColors = getStatusStyle(lead.status);
+  const fullName = `${lead.first_name} ${lead.last_name}`;
+  const isHot = lead.score >= 80;
+  const isHigh = lead.score >= 70;
+  const isLow = lead.score < 40;
 
-  if (lead.isConverted) {
+    const isActive = lead.status === 1;
+    const badgeLabel = isActive ? 'ACTIVE' : 'INACTIVE';
+    const badgeColor = isActive ? '#10B981' : '#EF4444';
+
     return (
-      <View style={styles.leadCard}>
-        <View style={styles.leadCardTop}>
-          <View style={[styles.leadCardIconWrap, styles.leadCardIconWrapNormal]}>
-            <MaterialCommunityIcons name="account-outline" size={24} color={colors.textPrimary} />
+      <View style={[styles.leadCard, isHot && styles.leadCardHotBorder]}>
+        <View style={styles.leadCardHeader}>
+          <View style={styles.leadAvatar}>
+            <LinearGradient
+              colors={isHot ? ['#FF6B00', '#FF8E3C'] : ['#0BA0B2', '#26C7DB']}
+              style={styles.avatarCircle}
+            >
+              <Text style={styles.avatarLetter}>{lead.first_name.charAt(0).toUpperCase()}</Text>
+            </LinearGradient>
+            {isHot && (
+              <View style={styles.hotBadgeSmall}>
+                <MaterialCommunityIcons name="fire" size={10} color="#FFFFFF" />
+              </View>
+            )}
           </View>
-          <View style={styles.tagsContainer}>
-            <View style={[styles.tag, { backgroundColor: colors.surfaceSoft }]}>
-              <Text style={[styles.tagText, { color: colors.textPrimary }]}>CONVERTED</Text>
+  
+          <View style={styles.leadMainInfo}>
+            <View style={styles.nameRow}>
+              <Text style={styles.leadCardName} numberOfLines={1}>{fullName}</Text>
+              {isHot && (
+                <View style={styles.hotTag}>
+                  <Text style={styles.hotTagText}>HOT</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.leadCardSub} numberOfLines={1}>{lead.email || 'No email provided'}</Text>
+          </View>
+  
+          <View style={{ alignItems: 'flex-end', gap: 8 }}>
+            <View style={[styles.statusBadge, { backgroundColor: `${badgeColor}15` }]}>
+              <Text style={[styles.statusLabel, { color: badgeColor }]}>{badgeLabel}</Text>
+            </View>
+            <View style={styles.scoreContainer}>
+              <Text style={styles.scoreTitle}>AI SCORE</Text>
+              <Text style={[styles.scoreValue, isHigh ? { color: '#0BA0B2' } : isLow ? { color: '#E11D48' } : { color: colors.textPrimary }]}>
+                {lead.score}
+              </Text>
             </View>
           </View>
         </View>
-
-        <Text style={styles.leadCardName}>{lead.name}</Text>
-        <Text style={styles.leadCardSource}>{lead.source} • {lead.date}</Text>
-
-        <View style={styles.leadCardScoreRow}>
-          <Text style={styles.leadCardScoreLabel}>AI Lead Score</Text>
-          <Text style={[
-            styles.leadCardScoreValue,
-            isHigh ? { color: '#0BA0B2' } : isLow ? { color: '#E11D48' } : { color: colors.textPrimary }
-          ]}>
-            {lead.score}/100
-          </Text>
+  
+        <View style={styles.divider} />
+  
+        <View style={styles.leadMetaRow}>
+          <View style={styles.metaItem}>
+            <MaterialCommunityIcons name="source-branch" size={14} color={colors.textMuted} />
+            <Text style={styles.metaText}>{lead.source}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <MaterialCommunityIcons name="calendar-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.metaText}>{lead.lead_date_label}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <MaterialCommunityIcons name="account-group-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.metaText}>{lead.group?.name || 'No Group'}</Text>
+          </View>
         </View>
-
-        <View style={styles.convertedStateContainer}>
-          <Text style={styles.convertedStateText}>Converted to Contact</Text>
+  
+        <View style={styles.tagsRow}>
+          {lead.tag && (
+            <View style={[styles.tagBadge, { backgroundColor: `${lead.tag.tag_color}15`, borderColor: `${lead.tag.tag_color}30` }]}>
+              <View style={[styles.tagDot, { backgroundColor: lead.tag.tag_color }]} />
+              <Text style={[styles.tagLabel, { color: lead.tag.tag_color }]}>{lead.tag.name}</Text>
+            </View>
+          )}
+        </View>
+  
+        <View style={styles.cardActions}>
+          {isActive ? (
+            <>
+              <Pressable style={styles.primaryAction} onPress={onConvertPress} disabled={isConverting || isArchiving}>
+                {isConverting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="account-convert" size={16} color="#FFFFFF" />
+                    <Text style={styles.primaryActionText}>Convert</Text>
+                  </>
+                )}
+              </Pressable>
+              <Pressable style={styles.whiteAction} onPress={onToggleArchive} disabled={isArchiving || isConverting}>
+                {isArchiving ? (
+                  <ActivityIndicator size="small" color={colors.textPrimary} />
+                ) : (
+                  <Text style={styles.whiteActionText}>Archive</Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <Pressable style={styles.darkAction} onPress={onToggleArchive} disabled={isArchiving}>
+              {isArchiving ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.darkActionText}>Unarchive</Text>
+              )}
+            </Pressable>
+          )}
+  
+          <View style={styles.secondaryActions}>
+            <Pressable style={styles.iconAction} onPress={onEditPress}>
+              <MaterialCommunityIcons name="pencil-outline" size={18} color="#6A7D8C" />
+            </Pressable>
+            <Pressable style={[styles.iconAction, styles.deleteAction]} onPress={onDeletePress}>
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#E11D48" />
+            </Pressable>
+          </View>
         </View>
       </View>
     );
-  }
-
-  return (
-    <View style={[styles.leadCard, lead.isHot && styles.leadCardHotBorder]}>
-      <View style={styles.leadCardTop}>
-        <View style={styles.leadCardIconWrap}>
-          {lead.isHot ? (
-            <MaterialCommunityIcons name="fire" size={24} color="#FF6B00" />
-          ) : (
-            <MaterialCommunityIcons name="account-outline" size={24} color="#5B6B7A" />
-          )}
-        </View>
-        <View style={styles.tagsContainer}>
-          <View style={[styles.tag, { backgroundColor: lead.isArchived ? '#F3F6F8' : statusColors.bg }]}>
-            <Text style={[styles.tagText, { color: lead.isArchived ? '#0B2D3E' : statusColors.text }]}>
-              {lead.isArchived ? 'ARCHIVED' : lead.status}
-            </Text>
-          </View>
-          {lead.isHot && (
-            <View style={[styles.tag, styles.tagHot]}>
-              <Text style={[styles.tagText, styles.tagTextHot]}>HOT LEAD</Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <Text style={styles.leadCardName}>{lead.name}</Text>
-      <Text style={styles.leadCardSource}>{lead.source} • {lead.date}</Text>
-
-      <View style={styles.leadCardScoreRow}>
-        <Text style={styles.leadCardScoreLabel}>AI Lead Score</Text>
-        <Text style={[
-          styles.leadCardScoreValue,
-          isHigh ? { color: '#0BA0B2' } : isLow ? { color: '#E11D48' } : { color: colors.textPrimary }
-        ]}>
-          {lead.score}/100
-        </Text>
-      </View>
-
-      {lead.isArchived ? (
-        <View style={[styles.leadCardActions, { gap: 8 }]}>
-          <Pressable style={styles.leadCardConvertBtn} onPress={onToggleArchive}>
-            <Text style={styles.leadCardConvertText}>Unarchive</Text>
-          </Pressable>
-          <Pressable style={styles.leadCardDeleteBtnArchived} onPress={onDeletePress}>
-            <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.textPrimary} />
-          </Pressable>
-        </View>
-      ) : (
-        <View style={styles.leadCardActions}>
-          <Pressable style={styles.leadCardConvertBtn} onPress={onConvertPress}>
-            <Text style={styles.leadCardConvertText}>Convert</Text>
-          </Pressable>
-          <Pressable style={styles.leadCardArchiveBtn} onPress={onToggleArchive}>
-            <Text style={styles.leadCardArchiveText}>Archive</Text>
-          </Pressable>
-          <Pressable style={styles.leadCardEditBtn} onPress={onEditPress}>
-            <MaterialCommunityIcons name="pencil-outline" size={18} color="#6A7D8C" />
-          </Pressable>
-          <Pressable style={styles.leadCardDeleteBtn} onPress={onDeletePress}>
-            <MaterialCommunityIcons name="trash-can-outline" size={18} color="#E11D48" />
-          </Pressable>
-        </View>
-      )}
-    </View>
-  );
 }
 
 export default function LeadsScreen() {
@@ -152,13 +150,36 @@ export default function LeadsScreen() {
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [leadsList, setLeadsList] = useState(INITIAL_LEADS);
+  const { accessToken } = useAuth();
+  const [leadsList, setLeadsList] = useState<CRMLead[]>([]);
+  const { data: serverLeads, isLoading: isLoadingLeads, refetch: refetchLeads } = useQuery({
+    queryKey: ['crm-leads', accessToken],
+    queryFn: () => getCRMLeads(accessToken!)
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetchLeads();
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const [search, setSearch] = useState('');
   const [isImportModalVisible, setImportModalVisible] = useState(false);
   const [importInstructions, setImportInstructions] = useState('');
   const [selectedFile, setSelectedFile] = useState<{ name: string; size: string } | null>(null);
+  const [selectedTab, setSelectedTab] = useState('Active');
   const [isHotFilterActive, setHotFilterActive] = useState(false);
+  const [loadingLeadId, setLoadingLeadId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [convertingLeadId, setConvertingLeadId] = useState<string | null>(null);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
-  const [leadToConvert, setLeadToConvert] = useState<typeof INITIAL_LEADS[number] | null>(null);
+  const [leadToConvert, setLeadToConvert] = useState<any | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('All Status');
   const [isStatusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [convertGroupDropdownOpen, setConvertGroupDropdownOpen] = useState(false);
@@ -166,7 +187,7 @@ export default function LeadsScreen() {
   const [convertGroup, setConvertGroup] = useState('Buyer');
   const [convertTag, setConvertTag] = useState('Hot');
   const [convertColor, setConvertColor] = useState('#FF6B00');
-  const [leadToEdit, setLeadToEdit] = useState<typeof INITIAL_LEADS[number] | null>(null);
+  const [leadToEdit, setLeadToEdit] = useState<any | null>(null);
   const [editSourceDropdownOpen, setEditSourceDropdownOpen] = useState(false);
   const [editStatusDropdownOpen, setEditStatusDropdownOpen] = useState(false);
   const [editGroupDropdownOpen, setEditGroupDropdownOpen] = useState(false);
@@ -174,38 +195,218 @@ export default function LeadsScreen() {
   const [editGroup, setEditGroup] = useState('Buyer');
   const [editTag, setEditTag] = useState('Lead');
   const [editSource, setEditSource] = useState('Manual Entry');
-  const [editStatus, setEditStatus] = useState('Unqualified');
+  const [editStatus, setEditStatus] = useState('Active');
   const [editColor, setEditColor] = useState('#0BA0B2');
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [addGroupModalVisible, setAddGroupModalVisible] = useState(false);
 
-  let filteredLeads = leadsList;
-  if (isHotFilterActive) {
-    filteredLeads = filteredLeads.filter(l => l.isHot);
-  }
-  if (selectedStatus !== 'All Status') {
-    filteredLeads = filteredLeads.filter(l => {
-      if (selectedStatus === 'Converted') return l.isConverted;
-      if (selectedStatus === 'Archived') return l.isArchived;
-      if (l.isArchived || l.isConverted) return false;
-      return l.status === selectedStatus.toUpperCase();
+  // New Lead Form States
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [formattedPhone, setFormattedPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('US');
+  const [customGroup, setCustomGroup] = useState('');
+  const [customTag, setCustomTag] = useState('');
+  const [isSavingLead, setIsSavingLead] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
+
+  const phoneInput = useRef<PhoneInput>(null);
+
+  const { data: crmMeta } = useQuery({
+    queryKey: ['crmMeta'],
+    queryFn: () => getCRMMeta(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  // Selection Modal States
+  const [isSelectionModalVisible, setSelectionModalVisible] = useState(false);
+  const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
+  const [selectionTitle, setSelectionTitle] = useState('');
+  const [onSelectHandler, setOnSelectHandler] = useState<(opt: string) => void>(() => {});
+
+  const openSelection = (title: string, options: string[], onSelect: (opt: string) => void) => {
+    setSelectionTitle(title);
+    setSelectionOptions(options);
+    setOnSelectHandler(() => (opt: string) => {
+      onSelect(opt);
+      setSelectionModalVisible(false);
     });
-  }
-
-  const toggleArchive = (id: string) => {
-    setLeadsList(prev => prev.map(l => l.id === id ? { ...l, isArchived: !l.isArchived } : l));
+    setSelectionModalVisible(true);
   };
 
-  const confirmDelete = () => {
-    if (leadToDelete) {
-      setLeadsList(prev => prev.filter(l => l.id !== leadToDelete));
-      setLeadToDelete(null);
+  // Populate form for editing
+  useEffect(() => {
+    if (leadToEdit) {
+      setFirstName(leadToEdit.first_name || '');
+      setLastName(leadToEdit.last_name || '');
+      setEmail(leadToEdit.email || '');
+      setPhone(leadToEdit.phone || '');
+      setFormattedPhone(leadToEdit.phone || '');
+      setEditGroup(leadToEdit.group?.name || 'Buyer');
+      setEditTag(leadToEdit.tag?.name || 'Lead');
+      setEditSource(leadToEdit.source || 'Manual Entry');
+      setEditStatus(leadToEdit.status === 1 ? 'Active' : 'Inactive');
+      setEditColor(leadToEdit.tag?.tag_color || '#0BA0B2');
+      setSelectedGroupId(leadToEdit.group_id);
+      setSelectedTagId(leadToEdit.tag_id);
+    }
+  }, [leadToEdit]);
+
+  const filteredLeads = (serverLeads || []).filter(lead => {
+    // Hide converted leads
+    if (lead.lead_date_label === 'Converted') {
+      return false;
+    }
+
+    const statusLabel = lead.status === 1 ? 'Active' : 'Inactive';
+    // Tab Filter
+    if (selectedTab === 'Active' && statusLabel !== 'Active') return false;
+    if (selectedTab === 'New' && statusLabel !== 'Active') return false;
+    if (selectedTab === 'Inactive' && statusLabel !== 'Inactive') return false;
+    if (selectedTab === 'Archived' && statusLabel !== 'Inactive') return false;
+
+    // AI Score Filter (Hot Leads toggle)
+    if (isHotFilterActive && lead.score < 80) return false;
+
+    // Search Filter
+    if (search.trim() !== '') {
+      const s = search.toLowerCase();
+      const first = lead.first_name ? lead.first_name.toLowerCase() : '';
+      const last = lead.last_name ? lead.last_name.toLowerCase() : '';
+      const email = lead.email ? lead.email.toLowerCase() : '';
+      const source = lead.source ? lead.source.toLowerCase() : '';
+
+      const match = first.includes(s) || last.includes(s) || email.includes(s) || source.includes(s);
+      if (!match) return false;
+    }
+
+    return true;
+  });
+
+  const toggleArchive = async (lead: CRMLead) => {
+    if (!accessToken) return;
+    try {
+      setLoadingLeadId(lead.id);
+      const newStatus = lead.status === 1 ? 0 : 1;
+      await updateCRMLead(accessToken, lead.id, { status: newStatus });
+      await refetchLeads();
+      Alert.alert('Success', `Lead ${newStatus === 0 ? 'archived' : 'unarchived'} successfully.`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update lead status.');
+    } finally {
+      setLoadingLeadId(null);
     }
   };
 
-  const confirmConvert = () => {
-    if (leadToConvert) {
-      setLeadsList(prev => prev.map(l => l.id === leadToConvert.id ? { ...l, isConverted: true } : l));
-      setLeadToConvert(null);
+  const confirmDelete = async () => {
+    if (leadToDelete && accessToken) {
+      try {
+        setIsDeleting(true);
+        await deleteCRMLead(accessToken, leadToDelete);
+        await refetchLeads();
+        setLeadToDelete(null);
+        Alert.alert('Success', 'Lead deleted successfully.');
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'Failed to delete lead.');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  const handleDirectConvert = async (lead: CRMLead) => {
+    if (!accessToken) return;
+    try {
+      setConvertingLeadId(lead.id);
+      await updateCRMLead(accessToken, lead.id, { 
+        status: 1, 
+        lead_date_label: 'Converted' 
+      });
+      await refetchLeads();
+      Alert.alert('Success', 'Lead converted successfully.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to convert lead.');
+    } finally {
+      setConvertingLeadId(null);
+    }
+  };
+
+  const handleSaveLead = async () => {
+    if (!accessToken) return;
+    if (!firstName || !lastName || !email) {
+      Alert.alert('Error', 'First Name, Last Name, and Email are required.');
+      return;
+    }
+
+    try {
+      setIsSavingLead(true);
+      let finalGroupId = selectedGroupId;
+      let finalTagId = selectedTagId;
+
+      const isCustomGroup = editGroup === 'Custom Group...';
+      const isCustomTag = editTag === 'Custom Tag...';
+
+      if (isCustomGroup && customGroup) {
+        const newGroup = await addCRMGroup(accessToken, customGroup);
+        finalGroupId = newGroup.id;
+      }
+
+      if (isCustomTag && customTag) {
+        const newTag = await addCRMTag(accessToken, customTag, editColor);
+        finalTagId = newTag.id;
+      }
+
+      const payload: any = {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone: phone,
+        country_code: countryCode,
+        source: editSource,
+        status: editStatus === 'Active' ? '1' : '0',
+        group_id: finalGroupId,
+        tag_id: finalTagId,
+        custom_group: isCustomGroup ? customGroup : undefined,
+        custom_tag: isCustomTag ? customTag : undefined,
+        tag_color: isCustomTag ? editColor : undefined,
+        score: 75,
+        lead_date_label: 'Today',
+      };
+
+      if (!payload.group_id && !isCustomGroup) {
+        Alert.alert('Error', 'Please select a valid group.');
+        setIsSavingLead(false);
+        return;
+      }
+      if (!payload.tag_id && !isCustomTag) {
+        Alert.alert('Error', 'Please select a valid tag.');
+        setIsSavingLead(false);
+        return;
+      }
+
+      if (isCustomGroup) payload.custom_group = customGroup;
+      if (isCustomTag) {
+        payload.custom_tag = customTag;
+        payload.tag_color = editColor;
+      }
+
+      if (leadToEdit) {
+        await updateCRMLead(accessToken, leadToEdit.id, payload);
+      } else {
+        await addCRMLead(accessToken, payload);
+      }
+
+      await refetchLeads();
+      setIsEditModalVisible(false);
+      setLeadToEdit(null);
+      Alert.alert('Success', `Lead ${leadToEdit ? 'updated' : 'added'} successfully.`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save lead.');
+    } finally {
+      setIsSavingLead(false);
     }
   };
 
@@ -222,79 +423,71 @@ export default function LeadsScreen() {
       />
 
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0BA0B2']} tintColor="#0BA0B2" />
+        }
         showsVerticalScrollIndicator={false}>
 
-        {/* Actions Row: Top Buttons */}
-        <View style={[styles.topButtonsRow, { zIndex: 20 }]}>
-          <View style={{ flex: 1, zIndex: 20 }}>
-            <Pressable style={styles.topFilterDropdown} onPress={() => setStatusDropdownOpen(!isStatusDropdownOpen)}>
-              <MaterialCommunityIcons name="filter-variant" size={16} color={colors.textPrimary} style={{ marginRight: 4 }} />
-              <Text style={styles.topFilterText} numberOfLines={1} ellipsizeMode="tail">{selectedStatus === 'All Status' ? 'All' : selectedStatus}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={16} color={colors.textPrimary} />
-            </Pressable>
-
-            {isStatusDropdownOpen && (
-              <View style={styles.dropdownMenu}>
-                {['All Status', 'New', 'Qualified', 'Unqualified', 'Archived', 'Converted'].map((status) => (
-                  <Pressable
-                    key={status}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setSelectedStatus(status);
-                      setStatusDropdownOpen(false);
-                    }}
-                  >
-                    {selectedStatus === status && (
-                      <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                    )}
-                    <Text style={[styles.dropdownItemText, selectedStatus === status && { fontWeight: '700' }]}>{status}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-
-          <Pressable style={[styles.aiImportBtn, { flex: 1 }]} onPress={() => setImportModalVisible(true)}>
-            <MaterialCommunityIcons name="folder-upload-outline" size={18} color={colors.textPrimary} />
-            <Text style={styles.aiImportBtnText} numberOfLines={1}>AI Import</Text>
+        {/* Actions */}
+        <View style={styles.topActions}>
+          <Pressable style={styles.actionBtn} onPress={() => Alert.alert('Coming Soon', 'This feature is being fine-tuned for maximum intelligence.')}>
+            <MaterialCommunityIcons name="robot-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.actionBtnText}>AI Import</Text>
           </Pressable>
-          <Pressable style={[styles.addLeadBtn, { flex: 1 }]} onPress={() => {
-            setLeadToEdit(null);
-            setEditGroup('Buyer');
-            setEditTag('Lead');
-            setEditSource('Manual Entry');
-            setEditStatus('New');
-            setEditColor('#0BA0B2');
-            setIsEditModalVisible(true);
-          }}>
-            <Text style={styles.addLeadBtnText} numberOfLines={1}>+ Add Lead</Text>
+          <Pressable style={styles.actionBtn} onPress={() => setAddGroupModalVisible(true)}>
+            <MaterialCommunityIcons name="cog-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.actionBtnText}>Groups & Tags</Text>
           </Pressable>
         </View>
 
         <View style={{ zIndex: 10, marginBottom: 20 }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.searchFilterRow}
-            style={{ overflow: 'visible' }}
-          >
+          <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
               <MaterialCommunityIcons name="magnify" size={20} color="#8DA4B5" />
               <TextInput
                 placeholder="Find leads by name, source, or ID..."
                 placeholderTextColor="#8DA4B5"
                 style={styles.searchInput}
+                value={search}
+                onChangeText={setSearch}
               />
             </View>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabsContainer}
+            style={styles.tabsScroll}
+          >
+            {['Active', 'Inactive', 'New', 'Archived'].map((tab) => (
+              <Pressable
+                key={tab}
+                style={[styles.tabButton, selectedTab === tab && styles.tabButtonActive]}
+                onPress={() => setSelectedTab(tab)}
+              >
+                <Text style={[styles.tabText, selectedTab === tab && styles.tabTextActive]}>
+                  {tab}
+                </Text>
+              </Pressable>
+            ))}
 
             <Pressable
               style={[styles.hotFilterBtn, isHotFilterActive && styles.hotFilterBtnActive]}
               onPress={() => setHotFilterActive(!isHotFilterActive)}
             >
-              <MaterialCommunityIcons name="fire" size={16} color={isHotFilterActive ? "#FF6B00" : "#6A7D8C"} style={{ marginRight: 4 }} />
-              <Text style={[styles.hotFilterText, isHotFilterActive ? { color: "#FF6B00" } : { color: "#6A7D8C" }]}>Hot Leads</Text>
+              <MaterialCommunityIcons 
+                name="fire" 
+                size={16} 
+                color={isHotFilterActive ? "#FF6B00" : "#6A7D8C"} 
+                style={{ marginRight: 4 }} 
+              />
+              <Text style={[styles.hotFilterText, isHotFilterActive && { color: '#FFFFFF' }]}>
+                Hot Leads
+              </Text>
             </Pressable>
             {isHotFilterActive && (
               <Pressable style={styles.clearFilterBtn} onPress={() => setHotFilterActive(false)}>
@@ -305,23 +498,7 @@ export default function LeadsScreen() {
           </ScrollView>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.summaryCarousel}
-        >
-          {[
-            { id: 'new', label: 'NEW', count: leadsList.filter(l => !l.isArchived && !l.isConverted && l.status === 'NEW').length },
-            { id: 'qualified', label: 'QUALIFIED', count: leadsList.filter(l => !l.isArchived && !l.isConverted && l.status === 'QUALIFIED').length },
-            { id: 'unqualified', label: 'UNQUALIFIED', count: leadsList.filter(l => !l.isArchived && !l.isConverted && l.status === 'UNQUALIFIED').length },
-            { id: 'archived', label: 'ARCHIVED', count: leadsList.filter(l => l.isArchived).length },
-          ].map((card) => (
-            <View key={card.id} style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>{card.label}</Text>
-              <Text style={styles.summaryCount}>{card.count}</Text>
-            </View>
-          ))}
-        </ScrollView>
+
 
         <View style={styles.listHeaderRow}>
           <Text style={styles.sectionTitle}>
@@ -330,19 +507,29 @@ export default function LeadsScreen() {
         </View>
 
         <View style={styles.leadList}>
-          {filteredLeads.map((lead) => (
+          {isLoadingLeads ? (
+            <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color="#0BA0B2" />
+            </View>
+          ) : filteredLeads.length === 0 ? (
+            <View style={{ paddingVertical: 60, alignItems: 'center' }}>
+              <Text style={{ color: '#6A7D8C', fontWeight: '700' }}>No leads found</Text>
+            </View>
+          ) : filteredLeads.map((lead) => (
             <LeadCard
               key={lead.id}
               lead={lead}
+              isArchiving={loadingLeadId === lead.id}
+              isConverting={convertingLeadId === lead.id}
               onDeletePress={() => setLeadToDelete(lead.id)}
-              onConvertPress={() => setLeadToConvert(lead)}
-              onToggleArchive={() => toggleArchive(lead.id)}
+              onConvertPress={() => handleDirectConvert(lead)}
+              onToggleArchive={() => toggleArchive(lead)}
               onEditPress={() => {
                 setLeadToEdit(lead);
                 setEditGroup('Buyer');
                 setEditTag('Lead');
                 setEditSource(lead.source);
-                setEditStatus(lead.status === 'NEW' ? 'New' : lead.status === 'QUALIFIED' ? 'Qualified' : 'Unqualified');
+                setEditStatus(lead.status === 1 ? 'Active' : 'Inactive');
                 setEditColor('#0BA0B2');
                 setIsEditModalVisible(true);
               }}
@@ -478,163 +665,22 @@ export default function LeadsScreen() {
               This lead and its AI scoring history will be{'\n'}deleted. This action cannot be undone.
             </Text>
             <View style={styles.modalDeleteActions}>
-              <Pressable style={styles.modalCancelBtn} onPress={() => setLeadToDelete(null)}>
+              <Pressable style={styles.modalCancelBtn} onPress={() => setLeadToDelete(null)} disabled={isDeleting}>
                 <Text style={styles.modalCancelBtnText}>Cancel</Text>
               </Pressable>
-              <Pressable style={styles.modalDeleteConfirmBtn} onPress={confirmDelete}>
-                <Text style={styles.modalDeleteConfirmBtnText}>Delete Lead</Text>
+              <Pressable style={styles.modalDeleteConfirmBtn} onPress={confirmDelete} disabled={isDeleting}>
+                {isDeleting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalDeleteConfirmBtnText}>Delete Lead</Text>
+                )}
               </Pressable>
             </View>
           </Pressable>
         </Pressable>
       </Modal>
 
-      <Modal
-        visible={!!leadToConvert}
-        transparent={false}
-        animationType="slide"
-        onRequestClose={() => setLeadToConvert(null)}
-      >
-        <View style={styles.fullScreenModalContainer}>
-          <View style={styles.fullScreenModalHeader}>
-            <Text style={styles.fullScreenModalTitle}>Convert Lead to Contact</Text>
-            <Pressable style={styles.fullScreenModalCloseIcon} onPress={() => setLeadToConvert(null)}>
-              <MaterialCommunityIcons name="close" size={16} color={colors.textPrimary} />
-            </Pressable>
-          </View>
-
-          <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={{ paddingBottom: 100 }}>
-            <View style={styles.convertRow}>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>First Name</Text>
-                <TextInput style={styles.convertInput} defaultValue={leadToConvert?.name.split(' ')[0]} />
-              </View>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Last Name</Text>
-                <TextInput style={styles.convertInput} defaultValue={leadToConvert?.name.split(' ').slice(1).join(' ')} />
-              </View>
-            </View>
-
-            <View style={styles.convertRow}>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Email</Text>
-                <TextInput style={styles.convertInput} placeholder="name@email.com" placeholderTextColor="#8DA4B5" />
-              </View>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Phone</Text>
-                <TextInput style={styles.convertInput} placeholder="(555) 123-4567" placeholderTextColor="#8DA4B5" />
-              </View>
-            </View>
-
-            <View style={[styles.convertRow, { zIndex: 10 }]}>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Group</Text>
-                <Pressable
-                  style={styles.convertDropdown}
-                  onPress={() => {
-                    setConvertTagDropdownOpen(false);
-                    setConvertGroupDropdownOpen(!convertGroupDropdownOpen);
-                  }}
-                >
-                  <Text style={styles.convertDropdownText}>{convertGroup}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
-                </Pressable>
-                {convertGroupDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {['Buyer', 'Seller', 'Investor', 'Custom Group...'].map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setConvertGroup(opt);
-                          setConvertGroupDropdownOpen(false);
-                        }}
-                      >
-                        {convertGroup === opt && (
-                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                        )}
-                        <Text style={[styles.formDropdownItemText, convertGroup === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View style={[styles.convertRow, { zIndex: 9 }]}>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Tag</Text>
-                <Pressable
-                  style={styles.convertDropdown}
-                  onPress={() => {
-                    setConvertGroupDropdownOpen(false);
-                    setConvertTagDropdownOpen(!convertTagDropdownOpen);
-                  }}
-                >
-                  <Text style={styles.convertDropdownText}>{convertTag}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
-                </Pressable>
-                {convertTagDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {['Hot', 'Warm', 'Cold', 'Lead', 'Custom Tag...'].map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setConvertTag(opt);
-                          setConvertTagDropdownOpen(false);
-                        }}
-                      >
-                        {convertTag === opt && (
-                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                        )}
-                        <Text style={[styles.formDropdownItemText, convertTag === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.convertRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.convertLabel}>Lead Source (Read Only)</Text>
-                <View style={styles.convertInputDisabled}>
-                  <Text style={[styles.convertDropdownText, { color: '#6A7D8C', fontWeight: '700' }]}>{leadToConvert?.source}</Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={[styles.convertCol, { marginBottom: 32 }]}>
-              <Text style={styles.convertLabel}>Tag Color Preset</Text>
-              <View style={styles.tagColorRow}>
-                {['#0BA0B2', '#FF6B00', '#0B2D3E', '#6366F1', '#10B981', '#64748B', '#E11D48', '#9333EA'].map((color) => {
-                  const isActive = convertColor === color;
-                  return (
-                    <Pressable
-                      key={color}
-                      onPress={() => setConvertColor(color)}
-                      style={isActive ? [styles.tagColorCircleOuter, { borderColor: color === '#FF6B00' ? '#FF8A00' : color }] : undefined}
-                    >
-                      <View style={[styles.tagColorCircle, { backgroundColor: color }]} />
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          </ScrollView>
-
-          {/* Fixed Bottom Actions */}
-          <View style={[styles.convertActions, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-            <Pressable style={styles.convertCancelBtn} onPress={() => setLeadToConvert(null)}>
-              <Text style={styles.convertCancelBtnText}>Cancel</Text>
-            </Pressable>
-            <Pressable style={styles.convertConfirmBtn} onPress={confirmConvert}>
-              <Text style={styles.convertConfirmBtnText}>Finalize Conversion</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      {/* Remove Convert Modal as per direct conversion request */}
 
       {/* --- Edit / Add Modal --- */}
       <Modal
@@ -652,27 +698,57 @@ export default function LeadsScreen() {
           </View>
 
           <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={{ paddingBottom: 100 }} key={leadToEdit ? leadToEdit.id : 'new_lead'}>
-            <View style={styles.convertRow}>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>First Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
-                <TextInput style={styles.convertInput} defaultValue={leadToEdit ? leadToEdit.name.split(' ')[0] : ''} placeholder="John" placeholderTextColor="#8DA4B5" />
-              </View>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Last Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
-                <TextInput style={styles.convertInput} defaultValue={leadToEdit ? leadToEdit.name.split(' ').slice(1).join(' ') : ''} placeholder="Doe" placeholderTextColor="#8DA4B5" />
-              </View>
+
+            <View style={styles.convertCol}>
+              <Text style={styles.convertLabel}>First Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
+              <TextInput
+                style={styles.convertInput}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="John"
+                placeholderTextColor="#8DA4B5"
+              />
+            </View>
+            <View style={styles.convertCol}>
+              <Text style={styles.convertLabel}>Last Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
+              <TextInput
+                style={styles.convertInput}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Doe"
+                placeholderTextColor="#8DA4B5"
+              />
             </View>
 
-            <View style={styles.convertRow}>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Email <Text style={{ color: '#E11D48' }}>*</Text></Text>
-                <TextInput style={styles.convertInput} placeholder="john@example.com" placeholderTextColor="#8DA4B5" />
-              </View>
-              <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Phone</Text>
-                <TextInput style={styles.convertInput} placeholder="(555) 000-0000" placeholderTextColor="#8DA4B5" />
-              </View>
+
+
+            <View style={styles.convertCol}>
+              <Text style={styles.convertLabel}>Email <Text style={{ color: '#E11D48' }}>*</Text></Text>
+              <TextInput
+                style={styles.convertInput}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="john@example.com"
+                placeholderTextColor="#8DA4B5"
+              />
             </View>
+            <View style={styles.convertCol}>
+              <Text style={styles.convertLabel}>Phone</Text>
+              <PhoneInput
+                ref={phoneInput}
+                defaultValue={phone}
+                defaultCode={countryCode as any}
+                layout="second"
+                containerStyle={[styles.convertInput, { width: '100%', height: 50, paddingHorizontal: 0, overflow: 'hidden' }]}
+                textContainerStyle={{ backgroundColor: 'transparent', paddingVertical: 0 }}
+                textInputStyle={{ color: colors.textPrimary, fontSize: 14, height: 50 }}
+                codeTextStyle={{ color: colors.textPrimary, fontSize: 14 }}
+                onChangeText={(text) => setPhone(text)}
+                onChangeFormattedText={(text) => setFormattedPhone(text)}
+                onChangeCountry={(country) => setCountryCode(country.cca2 as any)}
+              />
+            </View>
+
 
             <View style={[styles.convertRow, { zIndex: 11 }]}>
               <View style={styles.convertCol}>
@@ -680,64 +756,24 @@ export default function LeadsScreen() {
                 <Pressable
                   style={styles.convertDropdown}
                   onPress={() => {
-                    setEditStatusDropdownOpen(false);
-                    setEditGroupDropdownOpen(false);
-                    setEditTagDropdownOpen(false);
-                    setEditSourceDropdownOpen(!editSourceDropdownOpen);
+                    openSelection('Select Source', ['Manual Entry', 'Website', 'Referral', 'Social Media', 'Open House', 'Zillow'], (opt) => setEditSource(opt));
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{editSource}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
-                {editSourceDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {['Manual Entry', 'Website', 'Referral', 'Social Media', 'Open House', 'Zillow'].map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setEditSource(opt);
-                          setEditSourceDropdownOpen(false);
-                        }}
-                      >
-                        {editSource === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />}
-                        <Text style={[styles.formDropdownItemText, editSource === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
               </View>
               <View style={styles.convertCol}>
                 <Text style={styles.convertLabel}>Status</Text>
                 <Pressable
                   style={styles.convertDropdown}
                   onPress={() => {
-                    setEditSourceDropdownOpen(false);
-                    setEditGroupDropdownOpen(false);
-                    setEditTagDropdownOpen(false);
-                    setEditStatusDropdownOpen(!editStatusDropdownOpen);
+                    openSelection('Select Status', ['Active', 'Inactive'], (opt) => setEditStatus(opt));
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{editStatus}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
-                {editStatusDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {['New', 'Qualified', 'Unqualified', 'Archived'].map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setEditStatus(opt);
-                          setEditStatusDropdownOpen(false);
-                        }}
-                      >
-                        {editStatus === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />}
-                        <Text style={[styles.formDropdownItemText, editStatus === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
               </View>
             </View>
 
@@ -747,34 +783,40 @@ export default function LeadsScreen() {
                 <Pressable
                   style={styles.convertDropdown}
                   onPress={() => {
-                    setEditSourceDropdownOpen(false);
-                    setEditStatusDropdownOpen(false);
-                    setEditTagDropdownOpen(false);
-                    setEditGroupDropdownOpen(!editGroupDropdownOpen);
+                    openSelection(
+                      'Select Group', 
+                      ([...(crmMeta?.groups.map(g => g.name) || []), 'Custom Group...']), 
+                      (opt) => {
+                        setEditGroup(opt);
+                        if (opt !== 'Custom Group...') {
+                          setCustomGroup('');
+                          const matched = crmMeta?.groups.find(g => g.name === opt);
+                          if (matched) setSelectedGroupId(matched.id);
+                        } else {
+                          setSelectedGroupId(null);
+                        }
+                      }
+                    );
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{editGroup}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
-                {editGroupDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {['Buyer', 'Seller', 'Investor', 'Custom Group...'].map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setEditGroup(opt);
-                          setEditGroupDropdownOpen(false);
-                        }}
-                      >
-                        {editGroup === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />}
-                        <Text style={[styles.formDropdownItemText, editGroup === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
               </View>
             </View>
+
+            {editGroup === 'Custom Group...' && (
+              <View style={[styles.convertCol, { marginBottom: 20 }]}>
+                <Text style={styles.convertLabel}>Custom Group Name</Text>
+                <TextInput
+                  style={styles.convertInput}
+                  placeholder="Enter custom group"
+                  placeholderTextColor="#8DA4B5"
+                  value={customGroup}
+                  onChangeText={setCustomGroup}
+                />
+              </View>
+            )}
 
             <View style={[styles.convertRow, { zIndex: 9 }]}>
               <View style={styles.convertCol}>
@@ -782,52 +824,59 @@ export default function LeadsScreen() {
                 <Pressable
                   style={styles.convertDropdown}
                   onPress={() => {
-                    setEditSourceDropdownOpen(false);
-                    setEditStatusDropdownOpen(false);
-                    setEditGroupDropdownOpen(false);
-                    setEditTagDropdownOpen(!editTagDropdownOpen);
+                    openSelection(
+                      'Select Tag', 
+                      ([...(crmMeta?.tags.map(t => t.name) || []), 'Custom Tag...']), 
+                      (opt) => {
+                        setEditTag(opt);
+                        if (opt !== 'Custom Tag...') {
+                          setCustomTag('');
+                          const matched = crmMeta?.tags.find(t => t.name === opt);
+                          if (matched) setSelectedTagId(matched.id);
+                        } else {
+                          setSelectedTagId(null);
+                        }
+                      }
+                    );
                   }}
                 >
                   <Text style={styles.convertDropdownText}>{editTag}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
-                {editTagDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {['Hot', 'Warm', 'Cold', 'Lead', 'Custom Tag...'].map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setEditTag(opt);
-                          setEditTagDropdownOpen(false);
-                        }}
-                      >
-                        {editTag === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />}
-                        <Text style={[styles.formDropdownItemText, editTag === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
               </View>
             </View>
 
-            <View style={[styles.convertCol, { marginBottom: 32 }]}>
-              <Text style={styles.convertLabel}>Tag Color Theme</Text>
-              <View style={styles.tagColorRow}>
-                {['#0BA0B2', '#FF6B00', '#0B2D3E', '#6366F1', '#10B981', '#64748B', '#E11D48', '#9333EA'].map((color) => {
-                  const isActive = editColor === color;
-                  return (
-                    <Pressable
-                      key={color}
-                      onPress={() => setEditColor(color)}
-                      style={isActive ? [styles.tagColorCircleOuter, { borderColor: color === '#FF6B00' ? '#FF8A00' : color }] : undefined}
-                    >
-                      <View style={[styles.tagColorCircle, { backgroundColor: color }]} />
-                    </Pressable>
-                  );
-                })}
+            {editTag === 'Custom Tag...' && (
+              <View style={[styles.convertCol, { marginBottom: 20 }]}>
+                <Text style={styles.convertLabel}>Custom Tag Name</Text>
+                <TextInput
+                  style={styles.convertInput}
+                  placeholder="Enter custom tag"
+                  placeholderTextColor="#8DA4B5"
+                  value={customTag}
+                  onChangeText={setCustomTag}
+                />
               </View>
-            </View>
+            )}
+            {editTag === 'Custom Tag...' && (
+              <View style={[styles.convertCol, { marginBottom: 32 }]}>
+                <Text style={styles.convertLabel}>Tag Color Theme</Text>
+                <View style={styles.tagColorRow}>
+                  {['#0BA0B2', '#FF6B00', '#0B2D3E', '#6366F1', '#10B981', '#64748B', '#E11D48', '#9333EA'].map((color) => {
+                    const isActive = editColor === color;
+                    return (
+                      <Pressable
+                        key={color}
+                        onPress={() => setEditColor(color)}
+                        style={isActive ? [styles.tagColorCircleOuter, { borderColor: color === '#FF6B00' ? '#FF8A00' : color }] : undefined}
+                      >
+                        <View style={[styles.tagColorCircle, { backgroundColor: color }]} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
           </ScrollView>
 
           {/* Fixed Bottom Actions */}
@@ -835,865 +884,1059 @@ export default function LeadsScreen() {
             <Pressable style={styles.convertCancelBtn} onPress={() => { setIsEditModalVisible(false); setLeadToEdit(null); }}>
               <Text style={styles.convertCancelBtnText}>Cancel</Text>
             </Pressable>
-            <Pressable style={styles.convertConfirmBtn} onPress={() => { /* stub save */ setIsEditModalVisible(false); setLeadToEdit(null); }}>
-              <Text style={styles.convertConfirmBtnText}>Save</Text>
+            <Pressable 
+              style={[styles.convertConfirmBtn, isSavingLead && { opacity: 0.7 }]} 
+              onPress={handleSaveLead}
+              disabled={isSavingLead}
+            >
+              {isSavingLead ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.convertConfirmBtnText}>Save</Text>
+              )}
             </Pressable>
           </View>
+
+          <Modal
+            visible={isSelectionModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setSelectionModalVisible(false)}
+          >
+            <Pressable style={styles.modalOverlay} onPress={() => setSelectionModalVisible(false)}>
+              <View style={[styles.modalContainer, { padding: 0, overflow: 'hidden' }]} onStartShouldSetResponder={() => true} onResponderTerminationRequest={() => false} onTouchEnd={e => e.stopPropagation()}>
+                <View style={{ padding: 24, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <Text style={{ fontSize: 20, fontWeight: '900', color: colors.textPrimary }}>{selectionTitle}</Text>
+                   <Pressable onPress={() => setSelectionModalVisible(false)}>
+                     <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+                   </Pressable>
+                </View>
+                <ScrollView style={{ maxHeight: 400 }}>
+                   {selectionOptions.map((opt) => (
+                      <Pressable 
+                        key={opt} 
+                        style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                        onPress={() => onSelectHandler(opt)}
+                      >
+                         <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary }}>{opt}</Text>
+                         <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+                      </Pressable>
+                   ))}
+                </ScrollView>
+              </View>
+            </Pressable>
+          </Modal>
         </View>
       </Modal>
+
+      <ManageMetaModal
+        visible={addGroupModalVisible}
+        onClose={() => setAddGroupModalVisible(false)}
+      />
+
+      {/* Dynamic Action Button */}
+      <View style={[styles.fabContainer, { bottom: insets.bottom + 16 }]}>
+        <Pressable style={styles.fab} onPress={() => {
+          setLeadToEdit(null);
+          setFirstName('');
+          setLastName('');
+          setEmail('');
+          setPhone('');
+          setFormattedPhone('');
+          setCountryCode('US');
+          setCustomGroup('');
+          setCustomTag('');
+          setEditGroup(crmMeta?.groups?.[0]?.name || 'Buyer');
+          setEditTag(crmMeta?.tags?.[0]?.name || 'Lead');
+          setSelectedGroupId(crmMeta?.groups?.[0]?.id || null);
+          setSelectedTagId(crmMeta?.tags?.[0]?.id || null);
+          setEditSource('Manual Entry');
+          setEditStatus('Active');
+          setEditColor(crmMeta?.tags?.[0]?.tag_color || '#0BA0B2');
+          setIsEditModalVisible(true);
+        }}>
+          <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
+        </Pressable>
+      </View>
     </LinearGradient>
   );
 }
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  container: { flex: 1 },
+    container: { flex: 1 },
 
-  scroll: { flex: 1 },
-  scrollContent: { paddingTop: 10 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingTop: 10 },
 
-  topButtonsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 4,
-    marginBottom: 16,
-  },
-  aiImportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 48,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingHorizontal: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  aiImportBtnText: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '700',
-    marginLeft: 4,
-  },
-  addLeadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 48,
-    backgroundColor: colors.accentTeal,
-    borderRadius: 14,
-    paddingHorizontal: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  addLeadBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
+    topActions: { flexDirection: 'row', gap: 10, marginBottom: 20, paddingHorizontal: 20 },
+    actionBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cardBackground,
+      paddingVertical: 12,
+      borderRadius: 14,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    actionBtnText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+    fabContainer: { position: 'absolute', right: 20 },
+    fab: {
+      width: 63,
+      height: 63,
+      borderRadius: 31.5,
+      backgroundColor: '#0BA0B2',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#0BA0B2',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      elevation: 10,
+    },
 
-  searchFilterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    gap: 5,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    height: 48,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
-    minWidth: 240,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 13,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  topFilterDropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-    height: 48,
-    paddingHorizontal: 6,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 14,
-  },
-  topFilterText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginHorizontal: 2,
-  },
-  filterDropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    height: 48,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 14,
-  },
-  filterText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: 54, // just below the filter button
-    left: 0,
-    backgroundColor: '#616E7C',
-    borderRadius: 10,
-    paddingVertical: 8,
-    minWidth: 160,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 8,
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    paddingLeft: 36,
-  },
-  dropdownItemText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  hotFilterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    height: 48,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 14,
-  },
-  hotFilterText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  hotFilterBtnActive: {
-    borderColor: '#FFE0CC',
-    backgroundColor: '#FFF0E6',
-    borderWidth: 1,
-  },
-  clearFilterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceSoft,
-    height: 48,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-  },
-  clearFilterText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6A7D8C',
-  },
+    searchFilterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      gap: 5,
+    },
+    searchContainer: {
+      paddingHorizontal: 20,
+      marginBottom: 12,
+    },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+      height: 48,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.03,
+      shadowRadius: 6,
+      elevation: 1,
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: 8,
+      fontSize: 13,
+      color: colors.textPrimary,
+      fontWeight: '500',
+    },
+    topFilterDropdown: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cardBackground,
+      height: 48,
+      paddingHorizontal: 6,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 14,
+    },
+    topFilterText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      textAlign: 'center',
+      marginHorizontal: 2,
+    },
+    filterDropdown: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+      height: 48,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 14,
+    },
+    filterText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    dropdownMenu: {
+      position: 'absolute',
+      top: 54, // just below the filter button
+      left: 0,
+      backgroundColor: '#616E7C',
+      borderRadius: 10,
+      paddingVertical: 8,
+      minWidth: 160,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 14,
+      elevation: 8,
+      zIndex: 1000,
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      paddingLeft: 36,
+    },
+    dropdownItemText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    hotFilterBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 100,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+    },
+    hotFilterText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#475569',
+    },
+    hotFilterBtnActive: {
+      backgroundColor: '#0F172A',
+      borderColor: '#0F172A',
+    },
+    clearFilterBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSoft,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 100,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    clearFilterText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#6A7D8C',
+    },
+    tabsScroll: {
+      paddingLeft: 20,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingRight: 40,
+      paddingBottom: 4,
+    },
+    tabButton: {
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 100,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+    },
+    tabButtonActive: {
+      backgroundColor: '#0F172A',
+      borderColor: '#0F172A',
+    },
+    tabText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#475569',
+    },
+    tabTextActive: {
+      color: '#FFFFFF',
+    },
 
-  summaryCarousel: {
-    paddingHorizontal: 20,
-    gap: 12,
-    paddingBottom: 24,
-  },
-  summaryCard: {
-    backgroundColor: colors.cardBackground,
-    width: 140,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
-    alignItems: 'center',
-  },
-  summaryLabel: { fontSize: 11, fontWeight: '700', color: '#8DA4B5', letterSpacing: 0.8, marginBottom: 8 },
-  summaryCount: { fontSize: 32, fontWeight: '800', color: colors.textPrimary },
+    summaryCarousel: {
+      paddingHorizontal: 20,
+      gap: 12,
+      paddingBottom: 24,
+    },
+    summaryCard: {
+      backgroundColor: colors.cardBackground,
+      width: 140,
+      paddingVertical: 18,
+      paddingHorizontal: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.03,
+      shadowRadius: 10,
+      elevation: 2,
+      alignItems: 'center',
+    },
+    summaryLabel: { fontSize: 11, fontWeight: '700', color: '#8DA4B5', letterSpacing: 0.8, marginBottom: 8 },
+    summaryCount: { fontSize: 32, fontWeight: '800', color: colors.textPrimary },
 
-  listHeaderRow: {
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6A7D8C',
-  },
-  leadList: {
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  leadCard: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.04,
-    shadowRadius: 14,
-    elevation: 3,
-  },
-  leadCardHotBorder: {
-    borderColor: '#FF6B00',
-    borderWidth: 1.5,
-  },
-  leadCardTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  leadCardIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leadCardIconWrapNormal: {
-    backgroundColor: colors.surfaceSoft,
-  },
-  leadCardIconWrapHot: {
-    backgroundColor: '#FFF0E6',
-  },
-  tagsContainer: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  tag: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  tagHot: {
-    backgroundColor: '#FF6B00',
-  },
-  tagText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
-  tagTextHot: { color: '#FFFFFF' },
+    listHeaderRow: {
+      paddingHorizontal: 20,
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#6A7D8C',
+    },
+    leadList: {
+      paddingHorizontal: 20,
+      gap: 16,
+    },
+    leadCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 20,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    leadCardHotBorder: {
+      borderColor: '#FF6B0040',
+      borderWidth: 1.5,
+    },
+    leadCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    leadAvatar: {
+      position: 'relative',
+    },
+    avatarCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarLetter: {
+      color: '#FFFFFF',
+      fontSize: 20,
+      fontWeight: '800',
+    },
+    hotBadgeSmall: {
+      position: 'absolute',
+      bottom: -4,
+      right: -4,
+      backgroundColor: '#FF6B00',
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.cardBackground,
+    },
+    leadMainInfo: {
+      flex: 1,
+      marginLeft: 14,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    leadCardName: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    hotTag: {
+      backgroundColor: '#FF6B0015',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    hotTagText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#FF6B00',
+    },
+    leadCardSub: {
+      fontSize: 13,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    scoreContainer: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSoft,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 14,
+    },
+    scoreTitle: {
+      fontSize: 8,
+      fontWeight: '800',
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+    },
+    scoreValue: {
+      fontSize: 18,
+      fontWeight: '900',
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.cardBorder,
+      marginVertical: 16,
+    },
+    leadMetaRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    metaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    metaText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    tagsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 20,
+    },
+    tagBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+      borderWidth: 1,
+    },
+    tagDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    tagLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    statusBadge: {
+      backgroundColor: colors.surfaceSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+    },
+    statusBadgeConverted: {
+      backgroundColor: '#0BA0B215',
+    },
+    statusLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    cardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    primaryAction: {
+      backgroundColor: '#0BA0B2',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 14,
+      shadowColor: '#0BA0B2',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    primaryActionText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    secondaryActions: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    darkAction: {
+      backgroundColor: '#0F172A',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 12,
+      minWidth: 120,
+      alignItems: 'center',
+    },
+    darkActionText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    whiteAction: {
+      backgroundColor: '#FFFFFF',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      minWidth: 80,
+      alignItems: 'center',
+    },
+    whiteActionText: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    iconAction: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    deleteAction: {
+      borderColor: '#E11D4820',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    modalContainer: {
+      width: '100%',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 28,
+      padding: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 5,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 24,
+    },
+    modalTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
+    modalSubtitle: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginTop: 6, maxWidth: '90%' },
+    modalDashedArea: {
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+      borderStyle: 'dashed',
+      borderRadius: 20,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      paddingVertical: 40,
+      paddingHorizontal: 20,
+    },
+    modalIconCircle: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    modalDragText: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
+    modalBrowseText: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginBottom: 24 },
+    modalSelectBtn: {
+      backgroundColor: colors.cardBackground,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.03,
+      shadowRadius: 4,
+      elevation: 1,
+      marginBottom: 24,
+    },
+    modalSelectBtnText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+    modalSupportText: { fontSize: 12, color: '#8DA4B5', fontWeight: '500' },
+    modalDeleteIconCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: '#FFF1F2',
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      marginBottom: 20,
+    },
+    modalDeleteTitle: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: 8,
+      letterSpacing: -0.4,
+    },
+    modalDeleteSubtitle: {
+      fontSize: 14,
+      color: '#6A7D8C',
+      textAlign: 'center',
+      marginBottom: 28,
+      lineHeight: 20,
+      paddingHorizontal: 10,
+    },
+    modalDeleteActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    modalCancelBtn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cardBackground,
+    },
+    modalCancelBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    modalDeleteConfirmBtn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 12,
+      backgroundColor: '#DE3B49',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalDeleteConfirmBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    convertedStateContainer: {
+      backgroundColor: '#0BA0B210',
+      padding: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    convertedStateText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#0BA0B2',
+    },
+    fullScreenModalContainer: {
+      flex: 1,
+      backgroundColor: colors.cardBackground,
+    },
+    fullScreenModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingTop: 60, // approximate top inset for modal
+      paddingBottom: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    fullScreenModalTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
+    fullScreenModalCloseIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    fullScreenModalContent: {
+      flex: 1,
+      paddingHorizontal: 24,
+      paddingTop: 24,
+    },
+    convertRow: {
+      flexDirection: 'row',
+      gap: 16,
+      marginBottom: 20,
+    },
+    convertCol: {
+      flex: 1,
+      marginBottom: 10
+    },
+    convertLabel: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    convertInput: {
+      height: 48,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textPrimary,
+      backgroundColor: colors.cardBackground,
+    },
+    convertInputDisabled: {
+      height: 48,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceSoft,
+    },
+    convertDropdown: {
+      height: 48,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.cardBackground,
+    },
+    convertDropdownText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    formDropdownMenu: {
+      position: 'absolute',
+      top: 60,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      elevation: 10,
+      zIndex: 2000,
+    },
+    formDropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    formDropdownItemText: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '600',
+      marginLeft: 30, // Space for the checkmark
+    },
+    formDropdownCheck: {
+      position: 'absolute',
+      left: 14,
+    },
+    tagColorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      height: 48,
+    },
+    tagColorCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+    },
+    tagColorCircleOuter: {
+      width: 36,
+      height: 36,
+      borderRadius: 14,
+      borderWidth: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    convertActions: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingTop: 16,
+      paddingHorizontal: 24, // Added space from left and right
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+      backgroundColor: colors.cardBackground,
+    },
+    convertCancelBtn: {
+      flex: 1,
+      height: 52,
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    convertCancelBtnText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    convertConfirmBtn: {
+      flex: 2,
+      height: 52,
+      backgroundColor: colors.accentTeal,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    convertConfirmBtnText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
 
-  leadCardName: { fontSize: 18, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
-  leadCardSource: { fontSize: 13, color: '#6A7D8C', fontWeight: '500' },
-
-  leadCardScoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  leadCardScoreLabel: { fontSize: 13, fontWeight: '600', color: '#6A7D8C' },
-  leadCardScoreValue: { fontSize: 16, fontWeight: '800' },
-
-  leadCardActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-  },
-  leadCardConvertBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leadCardConvertText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
-  leadCardArchiveBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leadCardArchiveText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  leadCardEditBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leadCardDeleteBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#FFF1F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leadCardDeleteBtnArchived: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  modalContainer: {
-    width: '100%',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-  },
-  modalTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
-  modalSubtitle: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginTop: 6, maxWidth: '90%' },
-  modalDashedArea: {
-    borderWidth: 1.5,
-    borderColor: colors.cardBorder,
-    borderStyle: 'dashed',
-    borderRadius: 20,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-  modalIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  modalDragText: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
-  modalBrowseText: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginBottom: 24 },
-  modalSelectBtn: {
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-    marginBottom: 24,
-  },
-  modalSelectBtnText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
-  modalSupportText: { fontSize: 12, color: '#8DA4B5', fontWeight: '500' },
-  modalDeleteIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FFF1F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  modalDeleteTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 8,
-    letterSpacing: -0.4,
-  },
-  modalDeleteSubtitle: {
-    fontSize: 14,
-    color: '#6A7D8C',
-    textAlign: 'center',
-    marginBottom: 28,
-    lineHeight: 20,
-    paddingHorizontal: 10,
-  },
-  modalDeleteActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-  },
-  modalCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  modalDeleteConfirmBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#DE3B49',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalDeleteConfirmBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  convertedStateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 12,
-    marginTop: 16,
-  },
-  convertedStateText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0BA0B2',
-  },
-  fullScreenModalContainer: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-  },
-  fullScreenModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 60, // approximate top inset for modal
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  fullScreenModalTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
-  fullScreenModalCloseIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fullScreenModalContent: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  convertRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
-  },
-  convertCol: {
-    flex: 1,
-  },
-  convertLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  convertInput: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textPrimary,
-    backgroundColor: colors.cardBackground,
-  },
-  convertInputDisabled: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceSoft,
-  },
-  convertDropdown: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-  },
-  convertDropdownText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  formDropdownMenu: {
-    position: 'absolute',
-    top: 76,
-    left: 0,
-    right: 0,
-    backgroundColor: '#6A7D8C',
-    borderRadius: 12,
-    paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 8,
-    zIndex: 1000,
-  },
-  formDropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    paddingLeft: 36,
-  },
-  formDropdownItemText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  tagColorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 48,
-  },
-  tagColorCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-  },
-  tagColorCircleOuter: {
-    width: 36,
-    height: 36,
-    borderRadius: 14,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  convertActions: {
-    flexDirection: 'row',
-    gap: 16,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    backgroundColor: colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  convertCancelBtn: {
-    flex: 1,
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-  },
-  convertCancelBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  convertConfirmBtn: {
-    flex: 1.5,
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  convertConfirmBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-
-  // --- AI Lead Import Styles ---
-  fullPageModal: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-  },
-  modalContent: {
-    flex: 1,
-  },
-  premiumModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 16,
-    paddingBottom: 20,
-    backgroundColor: colors.cardBackground,
-  },
-  premiumModalTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  premiumModalSubtitle: {
-    fontSize: 14,
-    color: '#6A7D8C',
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  premiumCloseBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  premiumModalBody: {
-    paddingHorizontal: 28,
-  },
-  aiImportTitleRow: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'center',
-  },
-  aiImportHeaderText: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  aiIconSquare: {
-    width: 44,
-    height: 44,
-    backgroundColor: '#0BA0B2',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0BA0B2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  importCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 24,
-    padding: 24,
-    paddingTop: 0,
-  },
-  importLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  importSectionLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  instructionInputContainer: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 16,
-    padding: 16,
-    minHeight: 120,
-    marginBottom: 16,
-  },
-  instructionInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '500',
-    textAlignVertical: 'top',
-    lineHeight: 22,
-  },
-  uploadBtnSmall: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  dropzone: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderStyle: 'dashed',
-    borderRadius: 20,
-    paddingVertical: 40,
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-  },
-  dropzoneIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#f0f4f8',
-  },
-  dropzoneTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  dropzoneSubtitle: {
-    fontSize: 13,
-    color: '#6A7D8C',
-    fontWeight: '600',
-  },
-  fileStatusArea: {
-    gap: 16,
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: '#f6f9fc',
-  },
-  fileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 20,
-    padding: 16,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.03,
-    shadowRadius: 15,
-    elevation: 2,
-  },
-  fileIconBox: {
-    width: 48,
-    height: 56,
-    backgroundColor: colors.accentTeal,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fileDetails: {
-    flex: 1,
-  },
-  fileName: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  fileMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  readyTag: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#10B981',
-  },
-  changeFileText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#E11D48',
-  },
-  mappingBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#0BA0B2',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  mappingBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 10,
-  },
-  mappingBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-  },
+    // --- AI Lead Import Styles ---
+    fullPageModal: {
+      flex: 1,
+      backgroundColor: colors.cardBackground,
+    },
+    modalContent: {
+      flex: 1,
+    },
+    premiumModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 28,
+      paddingTop: 16,
+      paddingBottom: 20,
+      backgroundColor: colors.cardBackground,
+    },
+    premiumModalTitle: {
+      fontSize: 24,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
+    premiumModalSubtitle: {
+      fontSize: 14,
+      color: '#6A7D8C',
+      fontWeight: '500',
+      marginTop: 4,
+    },
+    premiumCloseBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    premiumModalBody: {
+      paddingHorizontal: 28,
+    },
+    aiImportTitleRow: {
+      flex: 1,
+      flexDirection: 'row',
+      gap: 16,
+      alignItems: 'center',
+    },
+    aiImportHeaderText: {
+      flex: 1,
+      paddingRight: 10,
+    },
+    aiIconSquare: {
+      width: 44,
+      height: 44,
+      backgroundColor: '#0BA0B2',
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#0BA0B2',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    importCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 24,
+      paddingTop: 0,
+    },
+    importLabelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 16,
+    },
+    importSectionLabel: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    instructionInputContainer: {
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 16,
+      padding: 16,
+      minHeight: 120,
+      marginBottom: 16,
+    },
+    instructionInput: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '500',
+      textAlignVertical: 'top',
+      lineHeight: 22,
+    },
+    uploadBtnSmall: {
+      position: 'absolute',
+      right: 12,
+      top: 12,
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: colors.cardBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    dropzone: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderStyle: 'dashed',
+      borderRadius: 20,
+      paddingVertical: 40,
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+    },
+    dropzoneIconCircle: {
+      width: 60,
+      height: 60,
+      borderRadius: 20,
+      backgroundColor: colors.cardBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: '#f0f4f8',
+    },
+    dropzoneTitle: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    dropzoneSubtitle: {
+      fontSize: 13,
+      color: '#6A7D8C',
+      fontWeight: '600',
+    },
+    fileStatusArea: {
+      gap: 16,
+      padding: 16,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: '#f6f9fc',
+    },
+    fileCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 20,
+      padding: 16,
+      gap: 14,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.03,
+      shadowRadius: 15,
+      elevation: 2,
+    },
+    fileIconBox: {
+      width: 48,
+      height: 56,
+      backgroundColor: colors.accentTeal,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    fileDetails: {
+      flex: 1,
+    },
+    fileName: {
+      fontSize: 15,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    fileMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    readyTag: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#10B981',
+    },
+    changeFileText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: '#E11D48',
+    },
+    mappingBtn: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      shadowColor: '#0BA0B2',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    mappingBtnGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 18,
+      gap: 10,
+    },
+    mappingBtnText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '800',
+    },
   });
 }

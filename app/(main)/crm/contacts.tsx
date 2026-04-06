@@ -7,11 +7,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -36,6 +35,17 @@ export default function ContactsScreen() {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
 
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   // API Metadata
   const { data: metaData } = useQuery({
     queryKey: ['crm-meta'],
@@ -43,17 +53,35 @@ export default function ContactsScreen() {
     enabled: !!accessToken,
   });
 
-  // API Contacts
-  const { data: serverContacts, isLoading: isLoadingContacts } = useQuery({
-    queryKey: ['crm-contacts'],
-    queryFn: () => getCRMContacts(accessToken!),
-    enabled: !!accessToken,
-  });
-
-  const [search, setSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('All Groups');
   const [selectedStatus, setSelectedStatus] = useState('All status');
   const [selectedTag, setSelectedTag] = useState('All Tags');
+
+  // API Contacts - Server-side Filtering
+  const { data: serverContacts, isLoading: isLoadingContacts } = useQuery({
+    queryKey: ['crm-contacts', debouncedSearch, selectedGroup, selectedStatus, selectedTag],
+    queryFn: () => {
+      const filters: any = {};
+      if (debouncedSearch) filters.q = debouncedSearch;
+
+      if (selectedGroup !== 'All Groups') {
+        const groupObj = metaData?.groups?.find(g => g.name === selectedGroup);
+        if (groupObj) filters.group_id = groupObj.id;
+      }
+
+      if (selectedTag !== 'All Tags') {
+        const tagObj = metaData?.tags?.find(t => t.name === selectedTag);
+        if (tagObj) filters.tag_id = tagObj.id;
+      }
+
+      if (selectedStatus !== 'All status') {
+        filters.status = selectedStatus === 'Active' ? 1 : 0;
+      }
+
+      return getCRMContacts(accessToken!, filters);
+    },
+    enabled: !!accessToken,
+  });
 
   const [modalVisible, setModalVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -62,6 +90,15 @@ export default function ContactsScreen() {
 
   const [activeDropdown, setActiveDropdown] = useState<'group' | 'status' | 'tag' | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const clearFilters = () => {
+    setSearch('');
+    setSelectedGroup('All Groups');
+    setSelectedStatus('All status');
+    setSelectedTag('All Tags');
+  };
+
+  const filtersActive = search !== '' || selectedGroup !== 'All Groups' || selectedStatus !== 'All status' || selectedTag !== 'All Tags';
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -75,8 +112,6 @@ export default function ContactsScreen() {
     }
   };
 
-  // AI Import State
-  const [aiImportModalVisible, setAiImportModalVisible] = useState(false);
 
   // Management State
   const [addGroupModalVisible, setAddGroupModalVisible] = useState(false);
@@ -93,21 +128,8 @@ export default function ContactsScreen() {
   const tagOptionsShow = ['All Tags', ...availableTags];
 
   const contactsList = useMemo(() => {
-    if (!serverContacts) return [];
-
-    return serverContacts.filter(contact => {
-      const fullName = `${contact.first_name} ${contact.last_name}`.toLowerCase();
-      const matchesSearch = fullName.includes(search.toLowerCase()) ||
-        contact.email.toLowerCase().includes(search.toLowerCase());
-
-      const matchesGroup = selectedGroup === 'All Groups' || contact.group?.name === selectedGroup;
-      const statusText = contact.status === 1 ? 'Active' : 'Inactive (archived)';
-      const matchesStatus = selectedStatus === 'All status' || statusText === selectedStatus;
-      const matchesTag = selectedTag === 'All Tags' || contact.tag?.name === selectedTag;
-
-      return matchesSearch && matchesGroup && matchesStatus && matchesTag;
-    });
-  }, [serverContacts, search, selectedGroup, selectedStatus, selectedTag]);
+    return serverContacts || [];
+  }, [serverContacts]);
 
   const openAddModal = () => {
     setIsEditing(false);
@@ -128,7 +150,7 @@ export default function ContactsScreen() {
   const handleToggleStatus = async (contactId: string, currentStatus: number) => {
     const newStatus = currentStatus === 1 ? 0 : 1;
     const actionText = newStatus === 0 ? 'archiving' : 'restoring';
-    
+
     try {
       setIsUpdating(true);
       await updateCRMContactStatus(accessToken!, contactId, newStatus);
@@ -227,8 +249,8 @@ export default function ContactsScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.accent}
             colors={[colors.accent]}
@@ -238,7 +260,7 @@ export default function ContactsScreen() {
 
         {/* Actions */}
         <View style={styles.topActions}>
-          <Pressable style={styles.actionBtn} onPress={() => setAiImportModalVisible(true)}>
+          <Pressable style={styles.actionBtn} onPress={() => Alert.alert('Coming Soon', 'This feature is being fine-tuned for maximum intelligence.')}>
             <MaterialCommunityIcons name="robot-outline" size={18} color={colors.textPrimary} />
             <Text style={styles.actionBtnText}>AI Import</Text>
           </Pressable>
@@ -259,6 +281,11 @@ export default function ContactsScreen() {
               placeholder="Search leads by name or email..."
               placeholderTextColor="#94A3B8"
             />
+            {search !== '' && (
+              <Pressable onPress={() => setSearch('')} style={{ padding: 4 }}>
+                <MaterialCommunityIcons name="close-circle" size={18} color="#94A3B8" />
+              </Pressable>
+            )}
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
@@ -277,7 +304,15 @@ export default function ContactsScreen() {
               <MaterialCommunityIcons name="chevron-down" size={16} color={selectedTag !== 'All Tags' ? colors.textPrimary : '#64748B'} />
             </Pressable>
           </ScrollView>
-          <Text style={styles.resultsCount}>Showing <Text style={{ fontWeight: '900', color: colors.textPrimary }}>{contactsList.length}</Text> intelligent matches</Text>
+          <View style={styles.resultsHeader}>
+            <Text style={styles.resultsCount}>Showing <Text style={{ fontWeight: '900', color: colors.textPrimary }}>{contactsList.length}</Text> intelligent matches</Text>
+            {filtersActive && (
+              <Pressable onPress={clearFilters} style={styles.clearFiltersBtn}>
+                <MaterialCommunityIcons name="filter-remove-outline" size={14} color={colors.accent} />
+                <Text style={styles.clearFiltersText}>Clear All</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
         {/* Lead Grid */}
@@ -381,7 +416,7 @@ export default function ContactsScreen() {
                     <View style={styles.noteHeader}>
                       <MaterialCommunityIcons name="text-box-search-outline" size={14} color="#0BA0B2" />
                       <Text style={styles.noteHeaderText}>
-                        LATEST ACTIVITY • {new Date(contact.latest_note.created_at).toLocaleDateString()}
+                        LATEST NOTE • {new Date(contact.latest_note.created_at).toLocaleDateString()}
                       </Text>
                     </View>
                     <Text style={styles.noteContent} numberOfLines={2}>
@@ -406,10 +441,10 @@ export default function ContactsScreen() {
                 {/* 6. Redesigned Premium Action Bar */}
                 <View style={styles.cardActionRow}>
                   <Pressable style={styles.archiveAction} onPress={() => handleToggleStatus(contact.id, contact.status)}>
-                    <MaterialCommunityIcons 
-                      name={contact.status === 1 ? "archive-arrow-down-outline" : "refresh"} 
-                      size={16} 
-                      color={colors.textSecondary} 
+                    <MaterialCommunityIcons
+                      name={contact.status === 1 ? "archive-outline" : "refresh"}
+                      size={16}
+                      color={colors.textSecondary}
                     />
                     <Text style={styles.archiveActionText}>
                       {contact.status === 1 ? 'Archive' : 'Restore'}
@@ -420,12 +455,12 @@ export default function ContactsScreen() {
                     <Pressable style={styles.iconActionBtn} onPress={() => openEditModal(contact)}>
                       <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.textSecondary} />
                     </Pressable>
-                    <Pressable style={[styles.iconActionBtn, { backgroundColor: '#EF444410' }]} onPress={() => confirmDelete(contact.id)}>
+                    <Pressable style={[styles.iconActionBtn, { backgroundColor: '#EF444410', borderColor: '#EF444420' }]} onPress={() => confirmDelete(contact.id)}>
                       <MaterialCommunityIcons name="delete-outline" size={18} color="#EF4444" />
                     </Pressable>
                   </View>
 
-                  <Pressable 
+                  <Pressable
                     style={styles.profileAction}
                     onPress={() => router.push({ pathname: '/(main)/crm/profile', params: { id: contact.id } })}>
                     <Text style={styles.profileActionText}>Profile</Text>
@@ -459,6 +494,7 @@ export default function ContactsScreen() {
         availableGroups={availableGroups}
         availableTags={availableTags}
         isEditing={isEditing}
+        loading={isUpdating}
         initialData={selectedContact ? {
           firstName: selectedContact.first_name,
           lastName: selectedContact.last_name,
@@ -531,7 +567,28 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   filterBtnActive: { borderColor: colors.accent, backgroundColor: colors.accent + '08' },
   filterBtnText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   filterBtnTextActive: { color: colors.accent },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingRight: 4,
+  },
   resultsCount: { fontSize: 12, color: colors.textSecondary, fontWeight: '600', marginLeft: 4 },
+  clearFiltersBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.accent + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  clearFiltersText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.accent,
+  },
   contactList: { gap: 16 },
   contactCard: {
     backgroundColor: colors.cardBackground,
@@ -658,8 +715,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(100, 116, 139, 0.05)',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   archiveActionText: {
     fontSize: 13,
@@ -668,23 +729,29 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   centerActions: {
     flexDirection: 'row',
-    gap: 14,
+    gap: 8,
     alignItems: 'center',
   },
   iconActionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(100, 116, 139, 0.08)',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(100, 116, 139, 0.05)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   profileAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#0BA0B208',
+    borderWidth: 1,
+    borderColor: '#0BA0B220',
   },
   profileActionText: {
     fontSize: 14,

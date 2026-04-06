@@ -1,13 +1,30 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAuth } from '@/context/AuthContext';
+import { useAppTheme } from '@/context/ThemeContext';
+import { 
+  CRMFollowUp, 
+  getCRMFollowUps, 
+  getCRMMeta, 
+  createCRMFollowUp, 
+  updateCRMFollowUp, 
+  deleteCRMFollowUp, 
+  markCRMFollowUpDone,
+  rescheduleCRMFollowUp,
+  getCRMContacts,
+  CRMContact
+} from '@/services/crmService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useAppTheme } from '@/context/ThemeContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,69 +36,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const TABS = ['All', 'Today', 'Upcoming', 'Overdue', 'Completed'] as const;
 type TabId = (typeof TABS)[number];
 
-const TASKS = [
-  {
-    id: '1',
-    title: 'Send Appraisal Report',
-    contact: 'Jessica Miller',
-    tags: ['#Urgent', '#Report'],
-    group: 'Sales',
-    dueDate: 'Today, 14:00',
-    priority: 'High',
-    status: 'pending',
-    icon: 'calendar-check-outline',
-    isOverdue: false,
-  },
-  {
-    id: '2',
-    title: 'Schedule Second Viewing',
-    contact: 'Robert Chen',
-    tags: ['#Follow-up'],
-    group: 'Viewing',
-    dueDate: 'Today, 16:30',
-    priority: 'Medium',
-    status: 'pending',
-    icon: 'calendar-clock-outline',
-    isOverdue: false,
-  },
-  {
-    id: '3',
-    title: 'Initial Discovery Call',
-    contact: 'David Wilson',
-    tags: ['#New'],
-    group: 'Leads',
-    dueDate: 'Yesterday',
-    priority: 'High',
-    status: 'overdue',
-    icon: 'alert-circle-outline',
-    isOverdue: true,
-  },
-  {
-    id: '4',
-    title: 'Send Similar Listings',
-    contact: 'Sarah Connor',
-    tags: ['#Inventory'],
-    group: 'Sales',
-    dueDate: 'Tomorrow',
-    priority: 'Low',
-    status: 'pending',
-    icon: 'calendar-text-outline',
-    isOverdue: false,
-  },
-  {
-    id: '5',
-    title: 'Contract Review',
-    contact: 'Michael Scott',
-    tags: ['#Archived'],
-    group: 'Legal',
-    dueDate: '12 Feb 2026',
-    priority: 'Medium',
-    status: 'completed',
-    icon: 'check-circle-outline',
-    isOverdue: false,
-  },
-];
-
 function TaskCard({
   task,
   onEdit,
@@ -89,7 +43,7 @@ function TaskCard({
   onReschedule,
   onDone
 }: {
-  task: typeof TASKS[number],
+  task: CRMFollowUp,
   onEdit: () => void,
   onDelete: () => void,
   onReschedule: () => void,
@@ -97,95 +51,101 @@ function TaskCard({
 }) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-  const isHigh = task.priority === 'High';
-  const isMedium = task.priority === 'Medium';
-  const isLow = task.priority === 'Low';
-  const isCompleted = task.status === 'completed';
 
-  const priorityColor = isHigh ? '#EF4444' : isMedium ? '#F59E0B' : '#64748B';
-  const priorityBg = isHigh ? '#FEF2F2' : isMedium ? '#FFFBEB' : '#F1F5F9';
+  const isCompleted = task.status === 0 || !!task.completed_at;
+  const isOverdue = !isCompleted && new Date(task.due_at) < new Date();
+
+  const dueDateFormatted = new Date(task.due_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dueTimeFormatted = new Date(task.due_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <View style={[styles.card, isCompleted && styles.cardCompleted]}>
       <View style={styles.cardMain}>
-        <View style={[styles.cardIconWrap, task.isOverdue && styles.cardIconOverdue, isCompleted && styles.cardIconCompleted]}>
+        <View style={[
+          styles.cardIconWrap,
+          isOverdue && styles.cardIconOverdue,
+          isCompleted && styles.cardIconCompleted
+        ]}>
           <MaterialCommunityIcons
-            name={isCompleted ? 'check-circle' : task.icon as any}
-            size={22}
-            color={task.isOverdue ? '#EF4444' : isCompleted ? '#10B981' : '#64748B'}
+            name={isCompleted ? "check-circle" : (isOverdue ? "alert-circle" : "calendar-clock")}
+            size={24}
+            color={isCompleted ? "#10B981" : (isOverdue ? "#EF4444" : "#8DA4B5")}
           />
         </View>
 
         <View style={styles.cardContent}>
           <View style={styles.cardHeaderRow}>
             <Text style={[styles.cardTitle, isCompleted && styles.cardTitleCompleted]} numberOfLines={1}>
-              {task.title}
+              {task.subject}
             </Text>
-            <View style={[styles.priorityBadge, { backgroundColor: priorityBg }]}>
-              <Text style={[styles.priorityText, { color: priorityColor }]}>{task.priority}</Text>
+            <View style={[
+              styles.priorityBadge,
+              { backgroundColor: task.priority === 'High' ? 'rgba(239, 68, 68, 0.1)' : (task.priority === 'Medium' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)') }
+            ]}>
+              <Text style={[
+                styles.priorityText,
+                { color: task.priority === 'High' ? '#EF4444' : (task.priority === 'Medium' ? '#F59E0B' : '#10B981') }
+              ]}>{task.priority}</Text>
             </View>
           </View>
 
           <Text style={styles.cardContact}>
-            Contact: <Text style={styles.cardContactName}>{task.contact}</Text>
+            Contact: <Text style={styles.cardContactName}>{task.contact?.first_name ? `${task.contact.first_name} ${task.contact.last_name || ''}` : 'Manual Task'}</Text>
           </Text>
 
-          <View style={styles.tagsRow}>
-            {task.tags.map(tag => (
-              <View style={styles.tagPill} key={tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
+          {(task.group || task.tag) && (
+            <View style={styles.tagsRow}>
+              {task.group && (
+                <View style={styles.tagPill}>
+                  <Text style={styles.tagText}>{task.group.name}</Text>
+                </View>
+              )}
+              {task.tag && (
+                <View style={[styles.tagPill, { borderLeftWidth: 3, borderLeftColor: task.tag.tag_color }]}>
+                  <Text style={styles.tagText}>{task.tag.name}</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
-              <MaterialCommunityIcons name="folder-outline" size={14} color="#64748B" />
-              <Text style={styles.infoText}>{task.group}</Text>
+              <MaterialCommunityIcons name="calendar" size={14} color="#8DA4B5" />
+              <Text style={styles.infoText}>{dueDateFormatted}</Text>
             </View>
             <View style={styles.infoItem}>
-              <MaterialCommunityIcons
-                name={task.isOverdue ? "alert-circle-outline" : "clock-outline"}
-                size={14}
-                color={task.isOverdue ? "#EF4444" : "#64748B"}
-              />
-              <Text style={[styles.infoText, task.isOverdue && { color: '#EF4444', fontWeight: '700' }]}>
-                {task.dueDate}
-              </Text>
+              <MaterialCommunityIcons name="clock-outline" size={14} color="#8DA4B5" />
+              <Text style={styles.infoText}>{dueTimeFormatted}</Text>
             </View>
           </View>
         </View>
       </View>
 
-      <View style={[styles.cardActions, isCompleted && { justifyContent: 'flex-end' }]}>
-        {!isCompleted && (
-          <View style={styles.actionIcons}>
-            <Pressable style={styles.actionIconBtn} onPress={onDone}>
-              <MaterialCommunityIcons
-                name="check-circle-outline"
-                size={20}
-                color={colors.textPrimary}
-              />
-            </Pressable>
-            <Pressable style={styles.actionIconBtn} onPress={onEdit}>
-              <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.textPrimary} />
-            </Pressable>
-            <Pressable style={styles.actionIconBtn} onPress={onDelete}>
-              <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" />
-            </Pressable>
-          </View>
-        )}
+      <View style={styles.cardActions}>
+        {!isCompleted ? (
+          <>
+            <View style={styles.actionIcons}>
+              <Pressable style={styles.actionIconBtn} onPress={onEdit}>
+                <MaterialCommunityIcons name="pencil-outline" size={20} color="#64748B" />
+              </Pressable>
+              <Pressable style={styles.actionIconBtn} onPress={onDelete}>
+                <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" />
+              </Pressable>
+              <Pressable style={[styles.actionIconBtn, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]} onPress={onDone}>
+                <MaterialCommunityIcons name="check" size={20} color="#10B981" />
+              </Pressable>
+            </View>
 
-        {isCompleted ? (
-          <View style={styles.completedBadge}>
-            <MaterialCommunityIcons name="check" size={14} color="#10B981" />
-            <Text style={styles.completedLabel}>Completed</Text>
-          </View>
+            <Pressable style={styles.rescheduleBtn} onPress={onReschedule}>
+              <MaterialCommunityIcons name="calendar-refresh" size={18} color="#0F172A" />
+              <Text style={styles.rescheduleText}>Reschedule</Text>
+            </Pressable>
+          </>
         ) : (
-          <Pressable style={styles.rescheduleBtn} onPress={onReschedule}>
-            <MaterialCommunityIcons name="calendar-sync-outline" size={16} color={colors.textPrimary} />
-            <Text style={styles.rescheduleText}>Reschedule</Text>
-          </Pressable>
+          <View style={styles.completedBadge}>
+            <MaterialCommunityIcons name="check" size={16} color="#10B981" />
+            <Text style={styles.completedLabel}>Task Completed</Text>
+          </View>
         )}
       </View>
     </View>
@@ -197,108 +157,299 @@ export default function FollowUpsScreen() {
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { accessToken } = useAuth();
+
   const [activeTab, setActiveTab] = useState<TabId>('All');
   const [isAddTaskModalVisible, setAddTaskModalVisible] = useState(false);
-  const [editingTask, setEditingTask] = useState<typeof TASKS[number] | null>(null);
-  const [deletingTask, setDeletingTask] = useState<typeof TASKS[number] | null>(null);
-  const [tasksList, setTasksList] = useState(TASKS);
-  const [rescheduleTask, setRescheduleTask] = useState<typeof TASKS[number] | null>(null);
+  const [editingTask, setEditingTask] = useState<CRMFollowUp | null>(null);
+  const [deletingTask, setDeletingTask] = useState<CRMFollowUp | null>(null);
+  const [rescheduleTask, setRescheduleTask] = useState<CRMFollowUp | null>(null);
 
   const [groupFilter, setGroupFilter] = useState('All Groups');
   const [tagFilter, setTagFilter] = useState('All Tags');
-  const [isGroupDropdownOpen, setGroupDropdownOpen] = useState(false);
-  const [isTagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [activeDropdown, setActiveDropdown] = useState<'group' | 'tag' | null>(null);
+  
+  const queryClient = useQueryClient();
 
-  // Add Task Modal Form States
+  // API Meta Data
+  const { data: crmMeta } = useQuery({
+    queryKey: ['crm-meta'],
+    queryFn: () => getCRMMeta(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  // API Follow-Ups
+  const { data: followUpsData, isLoading: isLoadingTasks, refetch: refetchTasks } = useQuery({
+    queryKey: ['crm-follow-ups'],
+    queryFn: () => getCRMFollowUps(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  // API Contacts for Selection
+  const { data: contactsData } = useQuery({
+    queryKey: ['crm-contacts'],
+    queryFn: () => getCRMContacts(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchTasks()]);
+    setRefreshing(false);
+  };
+
   const [modalSubject, setModalSubject] = useState('');
-  const [modalContact, setModalContact] = useState('');
+  const [modalContactId, setModalContactId] = useState<string | null>(null);
   const [modalDate, setModalDate] = useState(new Date());
-  const [modalGroup, setModalGroup] = useState('Viewing');
-  const [modalTag, setModalTag] = useState('Report');
+  const [modalGroupId, setModalGroupId] = useState<number | null>(null);
+  const [modalTagId, setModalTagId] = useState<number | null>(null);
   const [modalPriority, setModalPriority] = useState('Low');
   const [modalColor, setModalColor] = useState('#8B5CF6');
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isModalGroupDropdownOpen, setModalGroupDropdownOpen] = useState(false);
   const [isModalTagDropdownOpen, setModalTagDropdownOpen] = useState(false);
+  const [isModalContactDropdownOpen, setModalContactDropdownOpen] = useState(false);
+  const [modalManualContact, setModalManualContact] = useState('');
 
   // Reschedule Form State
   const [rescheduleDate, setRescheduleDate] = useState(new Date());
   const [showReschedulePicker, setShowReschedulePicker] = useState(false);
 
-  const TAG_COLORS = ['#0BA0B2', '#F97316', '#0F172A', '#6366F1', '#10B981', '#64748B', '#EC4899', '#8B5CF6'];
-  const GROUP_OPTIONS = ['All Groups', 'Sales', 'Viewing', 'Leads', 'Legal'];
-  const TAG_OPTIONS = ['All Tags', '#Urgent', '#Report', '#Follow-up', '#New', '#Inventory', '#Archived'];
-
-  const MODAL_GROUP_OPTIONS = ['Sales', 'Marketing', 'Viewing', 'Custom Group...'];
-  const MODAL_TAG_OPTIONS = ['Urgent', 'Follow-up', 'Report', 'Custom Tag...'];
 
   const openAddModal = () => {
     setEditingTask(null);
     setModalSubject('');
-    setModalContact('');
+    setModalContactId(null);
+    setModalManualContact('');
     setModalDate(new Date());
-    setModalGroup('Viewing');
-    setModalTag('Report');
-    setModalPriority('Low');
+    setModalGroupId(crmMeta?.groups[0]?.id || null);
+    setModalTagId(crmMeta?.tags[0]?.id || null);
+    setModalPriority('Medium');
     setModalColor('#8B5CF6');
     setAddTaskModalVisible(true);
   };
 
-  const openEditModal = (task: typeof TASKS[number]) => {
+  const openEditModal = (task: CRMFollowUp) => {
     setEditingTask(task);
-    setModalSubject(task.title);
-    setModalContact(task.contact);
-    // Rough date parsing for demo
-    setModalDate(new Date());
-    setModalGroup(task.group);
-    setModalTag(task.tags[0].replace('#', ''));
+    setModalSubject(task.subject);
+    setModalContactId(task.contact_id);
+    const cName = task.contact?.first_name ? `${task.contact.first_name} ${task.contact.last_name || ''}` : '';
+    setModalManualContact(cName);
+    setModalDate(new Date(task.due_at));
+    setModalGroupId(task.group_id);
+    setModalTagId(task.tag_id);
     setModalPriority(task.priority);
     setModalColor('#0BA0B2');
     setAddTaskModalVisible(true);
   };
 
-  const filteredTasks = tasksList.filter(task => {
-    const matchGroup = groupFilter === 'All Groups' || task.group === groupFilter;
-    const matchTag = tagFilter === 'All Tags' || task.tags.includes(tagFilter);
-    if (!matchGroup || !matchTag) return false;
+  // Filtering Logic
+  const filteredTasks = (followUpsData || []).filter((t) => {
+    const isCompleted = t.status === 0 || !!t.completed_at;
+    const dueTime = new Date(t.due_at).getTime();
+    const now = new Date().getTime();
+    const isOverdue = !isCompleted && dueTime < now;
 
-    if (activeTab === 'Today') {
-      return task.dueDate.startsWith('Today') && task.status !== 'completed';
-    }
-    if (activeTab === 'Upcoming') {
-      return !task.dueDate.startsWith('Today') && !task.isOverdue && task.status !== 'completed';
-    }
-    if (activeTab === 'Overdue') {
-      return task.isOverdue && task.status !== 'completed';
-    }
-    if (activeTab === 'Completed') {
-      return task.status === 'completed';
-    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const isToday = dueTime >= today.getTime() && dueTime < tomorrow.getTime();
+    const isUpcoming = dueTime >= tomorrow.getTime();
+
+    // Tab Specific Logic
+    if (activeTab === 'Today' && (!isToday || isCompleted)) return false;
+    if (activeTab === 'Upcoming' && (!isUpcoming || isCompleted)) return false;
+    if (activeTab === 'Overdue' && (!isOverdue || isCompleted)) return false;
+    if (activeTab === 'Completed' && !isCompleted) return false;
+    // Note: 'All' tab shows everything (no return false here)
+
+    // Search Filter
+    if (search && !t.subject.toLowerCase().includes(search.toLowerCase()) && !t.contact?.first_name?.toLowerCase().includes(search.toLowerCase())) return false;
+
+    // Group Filter
+    if (groupFilter !== 'All Groups' && t.group?.name !== groupFilter) return false;
+
+    // Tag Filter
+    if (tagFilter !== 'All Tags' && t.tag?.name !== tagFilter) return false;
 
     return true;
   });
 
-  const markTaskDone = (id: string) => {
-    setTasksList(prev => prev.map(t => t.id === id ? { ...t, status: 'completed', isOverdue: false } : t));
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: (payload: any) => createCRMFollowUp(accessToken!, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-follow-ups'] });
+      setAddTaskModalVisible(false);
+      Alert.alert('Success', 'Follow-up created successfully.');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to create follow-up.');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => updateCRMFollowUp(accessToken!, id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-follow-ups'] });
+      setAddTaskModalVisible(false);
+      setRescheduleTask(null);
+      Alert.alert('Success', 'Follow-up updated successfully.');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to update follow-up.');
+    },
+  });
+
+  const doneMutation = useMutation({
+    mutationFn: (id: string) => markCRMFollowUpDone(accessToken!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-follow-ups'] });
+      Alert.alert('Success', 'Task marked as completed.');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to complete task.');
+    },
+  });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: ({ id, due_at }: { id: string; due_at: string }) => rescheduleCRMFollowUp(accessToken!, id, due_at),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-follow-ups'] });
+      setRescheduleTask(null);
+      Alert.alert('Success', 'Task rescheduled successfully.');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to reschedule task.');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteCRMFollowUp(accessToken!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-follow-ups'] });
+      setDeletingTask(null);
+      Alert.alert('Success', 'Follow-up deleted successfully.');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to delete follow-up.');
+    },
+  });
+
+  const handleSave = async () => {
+    if (!modalSubject.trim()) {
+      Alert.alert('Required', 'Please enter a subject.');
+      return;
+    }
+
+    const payload = {
+      subject: modalSubject,
+      contact_id: modalContactId,
+      due_at: modalDate.toISOString(),
+      group_id: modalGroupId,
+      tag_id: modalTagId,
+      priority: modalPriority,
+      status: 1, // Active
+    };
+
+    if (editingTask) {
+      const updatePayload = {
+        subject: modalSubject,
+        contact_id: modalContactId,
+        due_at: modalDate.toISOString(),
+        group_id: modalGroupId,
+        tag_id: modalTagId,
+        priority: modalPriority,
+      };
+      updateMutation.mutate({ id: editingTask.id, payload: updatePayload });
+    } else {
+      const createPayload = {
+        subject: modalSubject,
+        contact_id: modalContactId,
+        due_at: modalDate.toISOString(),
+        group_id: modalGroupId,
+        tag_id: modalTagId,
+        priority: modalPriority,
+        status: 1, // Active for new tasks
+      };
+      createMutation.mutate(createPayload);
+    }
   };
 
-  const handleDeleteTask = (id: string) => {
-    setTasksList(prev => prev.filter(t => t.id !== id));
-    setDeletingTask(null);
+  const markTaskDone = async (id: string) => {
+    doneMutation.mutate(id);
   };
+
+  const handleDeleteTask = async (id: string) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleReschedule = async () => {
+    if (!rescheduleTask) return;
+    const formattedDate = rescheduleDate.toISOString().split('.')[0].slice(0, 16); 
+    rescheduleMutation.mutate({ 
+      id: rescheduleTask.id, 
+      due_at: formattedDate
+    });
+  };
+
+  const selectedGroupName = useMemo(() => {
+    return crmMeta?.groups.find(g => g.id === modalGroupId)?.name || 'Select Group';
+  }, [crmMeta, modalGroupId]);
+
+  const selectedTagName = useMemo(() => {
+    return crmMeta?.tags.find(t => t.id === modalTagId)?.name || 'Select Tag';
+  }, [crmMeta, modalTagId]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <PageHeader
-        title="Follow-Ups"
-        subtitle="Manage automated and manual interactions with your prospects."
-        onBack={() => router.back()}
-        rightIcon="plus"
-        onRightPress={openAddModal}
-      />
+    <View style={styles.container}>
+      <View style={{ paddingTop: insets.top }}>
+        <PageHeader
+          title="Follow-Ups"
+          subtitle="Manage automated and manual interactions with your prospects."
+          onBack={() => router.back()}
+        />
+      </View>
 
-      <View style={styles.topTabsContainer}>
+      <View style={styles.searchBarContainer}>
+        <View style={styles.searchInputWrapper}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#8DA4B5" />
+          <TextInput
+            placeholder="Search by contact or subject..."
+            placeholderTextColor="#8DA4B5"
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
+      </View>
+
+      <View style={styles.filterSection}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
+          <Pressable
+            style={[styles.filterBtn, groupFilter !== 'All Groups' && styles.filterBtnActive]}
+            onPress={() => setActiveDropdown('group')}
+          >
+            <Text style={[styles.filterBtnText, groupFilter !== 'All Groups' && styles.filterBtnTextActive]}>{groupFilter}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={16} color={groupFilter !== 'All Groups' ? colors.textPrimary : '#64748B'} />
+          </Pressable>
+
+          <Pressable
+            style={[styles.filterBtn, tagFilter !== 'All Tags' && styles.filterBtnActive]}
+            onPress={() => setActiveDropdown('tag')}
+          >
+            <Text style={[styles.filterBtnText, tagFilter !== 'All Tags' && styles.filterBtnTextActive]}>{tagFilter}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={16} color={tagFilter !== 'All Tags' ? colors.textPrimary : '#64748B'} />
+          </Pressable>
+        </ScrollView>
+      </View>
+
+      <View style={styles.tabsContainer}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -318,86 +469,90 @@ export default function FollowUpsScreen() {
         </ScrollView>
       </View>
 
-      <View style={styles.searchAndFilterBar}>
-        <View style={styles.searchInputContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#8DA4B5" />
-          <TextInput
-            placeholder="Search by contact or subject..."
-            placeholderTextColor="#8DA4B5"
-            style={styles.searchInput}
-          />
-        </View>
-      </View>
-
-      <View style={styles.refineByRow}>
-        <Text style={styles.refineLabel}>Refine by:</Text>
-        <View style={styles.filterActionsRow}>
-          <View style={{ zIndex: 2000 }}>
-            <Pressable
-              style={styles.filterDropdown}
-              onPress={() => { setGroupDropdownOpen(!isGroupDropdownOpen); setTagDropdownOpen(false); }}
-            >
-              <Text style={styles.filterDropdownText}>{groupFilter}</Text>
-              <MaterialCommunityIcons name={isGroupDropdownOpen ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
-            </Pressable>
-            {isGroupDropdownOpen && (
-              <View style={styles.dropdownMenu}>
-                {GROUP_OPTIONS.map(opt => (
-                  <Pressable key={opt} style={styles.dropdownItem} onPress={() => { setGroupFilter(opt); setGroupDropdownOpen(false); }}>
-                    {groupFilter === opt && (
-                      <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={styles.dropdownCheckIcon} />
-                    )}
-                    <Text style={[styles.dropdownItemText, groupFilter === opt && styles.dropdownItemTextActive]}>{opt}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-
-          <View style={{ zIndex: 1000 }}>
-            <Pressable
-              style={styles.filterDropdown}
-              onPress={() => { setTagDropdownOpen(!isTagDropdownOpen); setGroupDropdownOpen(false); }}
-            >
-              <Text style={styles.filterDropdownText}>{tagFilter}</Text>
-              <MaterialCommunityIcons name={isTagDropdownOpen ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
-            </Pressable>
-            {isTagDropdownOpen && (
-              <View style={styles.dropdownMenu}>
-                {TAG_OPTIONS.map(opt => (
-                  <Pressable key={opt} style={styles.dropdownItem} onPress={() => { setTagFilter(opt); setTagDropdownOpen(false); }}>
-                    {tagFilter === opt && (
-                      <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={styles.dropdownCheckIcon} />
-                    )}
-                    <Text style={[styles.dropdownItemText, tagFilter === opt && styles.dropdownItemTextActive]}>{opt}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
-      </View>
-
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.listContainer, { paddingBottom: 24 + insets.bottom }]}
-        showsVerticalScrollIndicator={false}>
-        {filteredTasks.map((t) => (
-          <TaskCard
-            key={t.id}
-            task={t}
-            onEdit={() => openEditModal(t)}
-            onDelete={() => setDeletingTask(t)}
-            onDone={() => markTaskDone(t.id)}
-            onReschedule={() => setRescheduleTask(t)}
-          />
-        ))}
-        {filteredTasks.length === 0 && (
-          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-            <Text style={{ color: '#8DA4B5', fontWeight: 'bold' }}>No tasks found matching these filters.</Text>
+        contentContainerStyle={[styles.listContainer, { paddingBottom: 100 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0BA0B2']} tintColor="#0BA0B2" />
+        }
+      >
+        {isLoadingTasks ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 100 }}>
+            <ActivityIndicator size="large" color="#0BA0B2" />
+            <Text style={{ marginTop: 12, color: '#6A7D8C', fontWeight: '700' }}>Syncing Follow-Ups...</Text>
           </View>
+        ) : (
+          <>
+            {filteredTasks.map((t) => (
+              <TaskCard
+                key={t.id}
+                task={t}
+                onEdit={() => openEditModal(t)}
+                onDelete={() => setDeletingTask(t)}
+                onDone={() => markTaskDone(t.id)}
+                onReschedule={() => setRescheduleTask(t)}
+              />
+            ))}
+            {filteredTasks.length === 0 && (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <Text style={{ color: '#8DA4B5', fontWeight: 'bold' }}>No tasks found matching these filters.</Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <Pressable
+        style={[styles.fab, { bottom: 24 + insets.bottom }]}
+        onPress={openAddModal}
+      >
+        <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
+      </Pressable>
+
+      {/* Quick Filter Modal */}
+      <Modal
+        visible={activeDropdown !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveDropdown(null)}
+      >
+        <Pressable style={styles.bottomSheetOverlay} onPress={() => setActiveDropdown(null)}>
+          <View style={[styles.noteBottomSheet, { paddingBottom: 40 }]}>
+            <View style={styles.bottomSheetHandle} />
+            <Text style={[styles.modalTitle, { marginBottom: 20, textAlign: 'center' }]}>
+              {activeDropdown === 'group' ? 'Select Group' : 'Select Tag'}
+            </Text>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {(activeDropdown === 'group'
+                ? ['All Groups', ...(crmMeta?.groups.map(g => g.name) || [])]
+                : ['All Tags', ...(crmMeta?.tags.map(t => t.name) || [])]
+              ).map((opt) => (
+                <Pressable
+                  key={opt}
+                  style={styles.dropdownOption}
+                  onPress={() => {
+                    if (activeDropdown === 'group') setGroupFilter(opt);
+                    else setTagFilter(opt);
+                    setActiveDropdown(null);
+                  }}
+                >
+                  <Text style={[
+                    styles.dropdownOptionText,
+                    (activeDropdown === 'group' ? groupFilter : tagFilter) === opt && { color: '#0BA0B2', fontWeight: '800' }
+                  ]}>
+                    {opt}
+                  </Text>
+                  {(activeDropdown === 'group' ? groupFilter : tagFilter) === opt && (
+                    <MaterialCommunityIcons name="check" size={20} color="#0BA0B2" />
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Add Task Modal (Full Page) */}
       <Modal
@@ -440,10 +595,10 @@ export default function FollowUpsScreen() {
                 <Text style={styles.modalLabel}>Contact Name</Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Search contacts..."
+                  placeholder="e.g. John Doe (Fresh Insert)"
                   placeholderTextColor="#8DA4B5"
-                  value={modalContact}
-                  onChangeText={setModalContact}
+                  value={modalManualContact}
+                  onChangeText={setModalManualContact}
                 />
               </View>
 
@@ -463,25 +618,38 @@ export default function FollowUpsScreen() {
                   style={styles.modalDropdownTrigger}
                   onPress={() => { setModalGroupDropdownOpen(!isModalGroupDropdownOpen); setModalTagDropdownOpen(false); }}
                 >
-                  <Text style={styles.modalDropdownText}>{modalGroup}</Text>
+                  <Text style={styles.modalDropdownText}>{selectedGroupName}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
-                {isModalGroupDropdownOpen && (
-                  <View style={styles.modalFormDropdownMenu}>
-                    {MODAL_GROUP_OPTIONS.map(opt => (
-                      <Pressable
-                        key={opt}
-                        style={styles.modalFormDropdownItem}
-                        onPress={() => { setModalGroup(opt); setModalGroupDropdownOpen(false); }}
-                      >
-                        {modalGroup === opt && (
-                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={styles.modalDropdownCheckIcon} />
-                        )}
-                        <Text style={[styles.modalFormDropdownItemText, modalGroup === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
+                <Modal
+                  visible={isModalGroupDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setModalGroupDropdownOpen(false)}
+                >
+                  <Pressable style={styles.selectionModalOverlay} onPress={() => setModalGroupDropdownOpen(false)}>
+                    <View style={styles.selectionModalContainer}>
+                      <Text style={styles.selectionModalTitle}>Select Group</Text>
+                      <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+                        {crmMeta?.groups.map((g, index, arr) => (
+                          <Pressable
+                            key={g.id}
+                            style={[
+                              styles.selectionModalItem,
+                              index === arr.length - 1 && styles.selectionModalItemLast
+                            ]}
+                            onPress={() => { setModalGroupId(g.id); setModalGroupDropdownOpen(false); }}
+                          >
+                            <Text style={[styles.selectionModalItemText, modalGroupId === g.id && styles.selectionModalItemTextActive]}>{g.name}</Text>
+                            {modalGroupId === g.id && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color="#0BA0B2" />
+                            )}
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </Pressable>
+                </Modal>
               </View>
 
               <View style={[styles.modalFieldGroup, { zIndex: 2000 }]}>
@@ -490,41 +658,41 @@ export default function FollowUpsScreen() {
                   style={styles.modalDropdownTrigger}
                   onPress={() => { setModalTagDropdownOpen(!isModalTagDropdownOpen); setModalGroupDropdownOpen(false); }}
                 >
-                  <Text style={styles.modalDropdownText}>{modalTag}</Text>
+                  <Text style={styles.modalDropdownText}>{selectedTagName}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
-                {isModalTagDropdownOpen && (
-                  <View style={styles.modalFormDropdownMenu}>
-                    {MODAL_TAG_OPTIONS.map(opt => (
-                      <Pressable
-                        key={opt}
-                        style={styles.modalFormDropdownItem}
-                        onPress={() => { setModalTag(opt); setModalTagDropdownOpen(false); }}
-                      >
-                        {modalTag === opt && (
-                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={styles.modalDropdownCheckIcon} />
-                        )}
-                        <Text style={[styles.modalFormDropdownItemText, modalTag === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
+                <Modal
+                  visible={isModalTagDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setModalTagDropdownOpen(false)}
+                >
+                  <Pressable style={styles.selectionModalOverlay} onPress={() => setModalTagDropdownOpen(false)}>
+                    <View style={styles.selectionModalContainer}>
+                      <Text style={styles.selectionModalTitle}>Select Tag</Text>
+                      <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+                        {crmMeta?.tags.map((t, index, arr) => (
+                          <Pressable
+                            key={t.id}
+                            style={[
+                              styles.selectionModalItem,
+                              index === arr.length - 1 && styles.selectionModalItemLast
+                            ]}
+                            onPress={() => { setModalTagId(t.id); setModalTagDropdownOpen(false); }}
+                          >
+                            <Text style={[styles.selectionModalItemText, modalTagId === t.id && styles.selectionModalItemTextActive]}>{t.name}</Text>
+                            {modalTagId === t.id && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color="#0BA0B2" />
+                            )}
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </Pressable>
+                </Modal>
               </View>
 
-              <View style={styles.modalFieldGroup}>
-                <Text style={styles.modalLabel}>Tag Color Preset</Text>
-                <View style={styles.colorPresetRow}>
-                  {TAG_COLORS.map(color => (
-                    <Pressable
-                      key={color}
-                      onPress={() => setModalColor(color)}
-                      style={[styles.modalTagColorCircleOuter, modalColor === color && { borderColor: color }]}
-                    >
-                      <View style={[styles.modalTagColorCircle, { backgroundColor: color }]} />
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
+
 
               <View style={styles.modalFieldGroup}>
                 <Text style={styles.modalLabel}>Priority</Text>
@@ -575,8 +743,16 @@ export default function FollowUpsScreen() {
             <Pressable style={styles.modalCancelBtn} onPress={() => setAddTaskModalVisible(false)}>
               <Text style={styles.modalCancelBtnText}>Cancel</Text>
             </Pressable>
-            <Pressable style={styles.modalSaveBtn} onPress={() => setAddTaskModalVisible(false)}>
-              <Text style={styles.modalSaveBtnText}>Save</Text>
+            <Pressable 
+              style={styles.modalSaveBtn} 
+              onPress={handleSave}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {createMutation.isPending || updateMutation.isPending ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.modalSaveBtnText}>Save</Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -616,8 +792,16 @@ export default function FollowUpsScreen() {
                 <Pressable style={[styles.modalCancelBtn, { flex: 1 }]} onPress={() => setRescheduleTask(null)}>
                   <Text style={styles.modalCancelBtnText}>Cancel</Text>
                 </Pressable>
-                <Pressable style={[styles.modalSaveBtn, { flex: 1.5 }]} onPress={() => setRescheduleTask(null)}>
-                  <Text style={styles.modalSaveBtnText}>Save Changes</Text>
+                <Pressable 
+                  style={[styles.modalSaveBtn, { flex: 1.5 }]} 
+                  onPress={handleReschedule}
+                  disabled={rescheduleMutation.isPending}
+                >
+                  {rescheduleMutation.isPending ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.modalSaveBtnText}>Save Changes</Text>
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -675,8 +859,16 @@ export default function FollowUpsScreen() {
               <Pressable style={styles.alertCancelBtn} onPress={() => setDeletingTask(null)}>
                 <Text style={styles.alertCancelBtnText}>Cancel</Text>
               </Pressable>
-              <Pressable style={styles.alertDeleteBtn} onPress={() => deletingTask && handleDeleteTask(deletingTask.id)}>
-                <Text style={styles.alertDeleteBtnText}>Delete</Text>
+              <Pressable 
+                style={styles.alertDeleteBtn} 
+                onPress={() => deletingTask && handleDeleteTask(deletingTask.id)}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.alertDeleteBtnText}>Delete</Text>
+                )}
               </Pressable>
             </View>
           </View>
@@ -688,613 +880,677 @@ export default function FollowUpsScreen() {
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.cardBackground },
-  topTabsContainer: { marginBottom: 16 },
-  tabsScroll: { paddingHorizontal: 20, gap: 10 },
-  tabItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: 'transparent'
-  },
-  tabItemActive: {
-    backgroundColor: colors.accentTeal,
-    borderColor: '#0B2D3E'
-  },
-  tabText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
-  tabTextActive: { color: '#FFFFFF' },
+    container: { flex: 1, backgroundColor: colors.cardBackground },
+    topTabsContainer: { marginBottom: 16 },
 
-  searchAndFilterBar: { paddingHorizontal: 20, marginBottom: 12 },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    height: 52,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: colors.textPrimary, fontWeight: '500' },
+    searchBarContainer: { paddingHorizontal: 20, marginBottom: 16 },
+    searchInputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F1F5F9',
+      height: 52,
+      borderRadius: 26,
+      paddingHorizontal: 20,
+    },
+    selectionModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(11, 45, 62, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    selectionModalContainer: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 32,
+      width: '100%',
+      maxWidth: 340,
+      padding: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 20 },
+      shadowOpacity: 0.15,
+      shadowRadius: 30,
+      elevation: 10,
+    },
+    selectionModalTitle: {
+      fontSize: 20,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 20,
+      textAlign: 'center',
+      letterSpacing: -0.5,
+    },
+    selectionModalItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surfaceSoft,
+    },
+    selectionModalItemActive: {
+      backgroundColor: 'rgba(11, 160, 178, 0.05)',
+      borderRadius: 12,
+      paddingHorizontal: 8,
+    },
+    selectionModalItemLast: {
+      borderBottomWidth: 0,
+    },
+    selectionModalItemText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    selectionModalItemTextActive: {
+      color: '#0BA0B2',
+      fontWeight: '800',
+    },
+    searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: colors.textPrimary, fontWeight: '500' },
 
-  refineByRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-    zIndex: 100
-  },
-  filterActionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    zIndex: 2000,
-  },
-  refineLabel: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
-  filterDropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    gap: 6
-  },
-  filterDropdownText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  dropdownMenu: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    minWidth: 160,
-    backgroundColor: '#6A7D8C',
-    borderRadius: 16,
-    paddingVertical: 10,
-    marginTop: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingLeft: 40
-  },
-  dropdownCheckIcon: {
-    position: 'absolute',
-    left: 14
-  },
-  dropdownItemText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
-  dropdownItemTextActive: { fontWeight: '900' },
+    filterSection: { marginBottom: 16 },
+    filtersScroll: { paddingHorizontal: 20, gap: 10 },
+    filterBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F1F5F9',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    filterBtnActive: { borderColor: '#0BA0B2', backgroundColor: '#0BA0B208' },
+    filterBtnText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
+    filterBtnTextActive: { color: '#0BA0B2' },
 
-  scroll: { flex: 1 },
-  listContainer: { paddingHorizontal: 20, gap: 16, paddingTop: 4 },
+    dropdownOption: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F1F5F9',
+    },
+    dropdownOptionText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: '#334155',
+    },
 
-  card: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 4
-  },
-  cardCompleted: {
-    backgroundColor: colors.surfaceSoft,
-    borderColor: colors.cardBorder,
-    opacity: 0.8,
-  },
-  cardMain: { flexDirection: 'row', gap: 16 },
-  cardIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  cardIconOverdue: { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
-  cardIconCompleted: { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
-  cardContent: { flex: 1 },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6
-  },
-  cardTitle: { fontSize: 17, fontWeight: '900', color: colors.textPrimary, flex: 1, marginRight: 8 },
-  cardTitleCompleted: { color: '#8DA4B5', textDecorationLine: 'line-through' },
+    tabsContainer: { marginBottom: 20 },
+    tabsScroll: { paddingHorizontal: 20, gap: 8 },
+    tabItem: {
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 100,
+      backgroundColor: '#F0F9FA',
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    tabItemActive: {
+      backgroundColor: '#0BA0B2',
+      borderColor: '#0BA0B2',
+    },
+    tabText: { fontSize: 14, fontWeight: '700', color: '#64748B' },
+    tabTextActive: { color: '#FFFFFF' },
 
-  priorityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  priorityText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+    fab: {
+      position: 'absolute',
+      right: 20,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.accentTeal,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: colors.accentTeal,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
+      zIndex: 100,
+    },
 
-  cardContact: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
-  cardContactName: { fontWeight: '800', color: colors.textPrimary },
+    scroll: { flex: 1 },
+    listContainer: { paddingHorizontal: 20, gap: 16, paddingTop: 4 },
 
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  tagPill: { backgroundColor: colors.surfaceSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  tagText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+    card: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.04,
+      shadowRadius: 16,
+      elevation: 4
+    },
+    cardCompleted: {
+      backgroundColor: colors.surfaceSoft,
+      borderColor: colors.cardBorder,
+      opacity: 0.8,
+    },
+    cardMain: { flexDirection: 'row', gap: 16 },
+    cardIconWrap: {
+      width: 52,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    cardIconOverdue: { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
+    cardIconCompleted: { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
+    cardContent: { flex: 1 },
+    cardHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6
+    },
+    cardTitle: { fontSize: 17, fontWeight: '900', color: colors.textPrimary, flex: 1, marginRight: 8 },
+    cardTitleCompleted: { color: '#8DA4B5', textDecorationLine: 'line-through' },
 
-  infoGrid: {
-    flexDirection: 'row',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    gap: 16
-  },
-  infoItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  infoText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
+    priorityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    priorityText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
 
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 12
-  },
-  actionIcons: { flexDirection: 'row', gap: 10 },
-  actionIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder
-  },
-  rescheduleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingHorizontal: 16,
-    height: 40,
-    borderRadius: 12,
-  },
-  rescheduleText: { color: colors.textPrimary, fontSize: 13, fontWeight: '800' },
+    cardContact: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
+    cardContactName: { fontWeight: '800', color: colors.textPrimary },
 
-  completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 10,
-  },
-  completedLabel: { fontSize: 13, fontWeight: '900', color: '#10B981' },
+    tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+    tagPill: { backgroundColor: colors.surfaceSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    tagText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 45, 62, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  rescheduleModalContainer: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 24,
-    width: '100%',
-    paddingTop: 24,
-    paddingBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalContainer: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 24,
-    width: '100%',
-    maxHeight: '90%',
-    paddingTop: 24,
-    paddingBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    color: '#6A7D8C',
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  modalCloseIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalScroll: {
-    paddingHorizontal: 24,
-    paddingBottom: 8,
-  },
-  modalFieldGroup: {
-    marginBottom: 16,
-  },
-  modalLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#334155',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  modalInput: {
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: colors.cardBorder,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: colors.textPrimary,
-    backgroundColor: colors.cardBackground,
-    fontWeight: '600',
-  },
-  modalRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalInputWithIcon: {
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: colors.cardBorder,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-  },
-  modalDateText: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  priorityRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  priorityPillBtn: {
-    flex: 1,
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: colors.cardBorder,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  priorityPillBtnActive: {
-    borderColor: '#0B2D3E',
-    backgroundColor: colors.accentTeal,
-  },
-  priorityPillText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textSecondary,
-  },
-  priorityPillTextActive: {
-    color: '#FFFFFF',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    height: 52,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-  },
-  modalCancelBtnText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800' },
-  modalCreateBtn: {
-    flex: 1.5,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalCreateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+    infoGrid: {
+      flexDirection: 'row',
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+      gap: 16
+    },
+    infoItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    infoText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
 
-  // --- New Modal Styles ---
-  fullPageModal: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-  },
-  premiumModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  fullScreenModalTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  fullScreenModalCloseIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalBody: {
-    paddingHorizontal: 24,
-    paddingTop: 10,
-  },
-  modalDropdownTrigger: {
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: colors.cardBorder,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-  },
-  modalDropdownText: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  modalFormDropdownMenu: {
-    position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
-    backgroundColor: '#6A7D8C',
-    borderRadius: 16,
-    paddingVertical: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 8,
-    zIndex: 5000,
-  },
-  modalFormDropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingLeft: 40,
-  },
-  modalFormDropdownItemText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  modalDropdownCheckIcon: {
-    position: 'absolute',
-    left: 14,
-  },
-  colorPresetRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 4,
-  },
-  modalTagColorCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-  },
-  modalTagColorCircleOuter: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fixedBottomActions: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    gap: 16,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    backgroundColor: colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  modalSaveBtn: {
-    flex: 1.5,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  modalSaveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  pickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  pickerContainer: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 40,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  pickerHeader: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  pickerTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  pickerDoneBtn: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0BA0B2',
-  },
-  bottomFixModal: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    width: '100%',
-    marginTop: 'auto',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  alertOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 45, 62, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  alertContainer: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 32,
-    width: '100%',
-    maxWidth: 340,
-    padding: 32,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.15,
-    shadowRadius: 30,
-    elevation: 10,
-  },
-  alertIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  alertTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  alertDescription: {
-    fontSize: 15,
-    color: '#6A7D8C',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-    paddingHorizontal: 10,
-  },
-  alertActions: {
-    flexDirection: 'row',
-    gap: 16,
-    width: '100%',
-  },
-  alertCancelBtn: {
-    flex: 1,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertCancelBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  alertDeleteBtn: {
-    flex: 1,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  alertDeleteBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
+    cardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 20,
+      gap: 12
+    },
+    actionIcons: { flexDirection: 'row', gap: 10 },
+    actionIconBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder
+    },
+    rescheduleBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      paddingHorizontal: 16,
+      height: 40,
+      borderRadius: 12,
+    },
+    rescheduleText: { color: colors.textPrimary, fontSize: 13, fontWeight: '800' },
+
+    completedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      paddingHorizontal: 12,
+      height: 36,
+      borderRadius: 10,
+    },
+    completedLabel: { fontSize: 13, fontWeight: '900', color: '#10B981' },
+
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(11, 45, 62, 0.4)',
+      justifyContent: 'flex-end',
+    },
+    bottomSheetOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    noteBottomSheet: {
+      backgroundColor: colors.cardBackground,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      padding: 24,
+      minHeight: 250,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 20,
+    },
+    bottomSheetHandle: {
+      width: 44,
+      height: 5,
+      backgroundColor: colors.cardBorder,
+      borderRadius: 3,
+      alignSelf: 'center',
+      marginBottom: 24,
+    },
+    rescheduleModalContainer: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      width: '100%',
+      paddingTop: 24,
+      paddingBottom: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    modalContainer: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      width: '100%',
+      maxHeight: '90%',
+      paddingTop: 24,
+      paddingBottom: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingHorizontal: 24,
+      marginBottom: 20,
+    },
+    modalTitle: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
+    modalSubtitle: {
+      fontSize: 13,
+      color: '#6A7D8C',
+      fontWeight: '500',
+      marginTop: 4,
+    },
+    modalCloseIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalScroll: {
+      paddingHorizontal: 24,
+      paddingBottom: 8,
+    },
+    modalFieldGroup: {
+      marginBottom: 16,
+    },
+    modalLabel: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: '#334155',
+      marginBottom: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    modalInput: {
+      height: 52,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      fontSize: 15,
+      color: colors.textPrimary,
+      backgroundColor: colors.cardBackground,
+      fontWeight: '600',
+    },
+    modalRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    modalInputWithIcon: {
+      height: 52,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.cardBackground,
+    },
+    modalDateText: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    priorityRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    priorityPillBtn: {
+      flex: 1,
+      height: 52,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    priorityPillBtnActive: {
+      borderColor: colors.accentTeal,
+      backgroundColor: colors.accentTeal,
+    },
+    priorityPillText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    priorityPillTextActive: {
+      color: '#FFFFFF',
+    },
+    modalActions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 12,
+    },
+    modalCancelBtn: {
+      flex: 1,
+      height: 52,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cardBackground,
+    },
+    modalCancelBtnText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800' },
+    modalCreateBtn: {
+      flex: 1.5,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: colors.accentTeal,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalCreateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+
+    // --- New Modal Styles ---
+    fullPageModal: {
+      flex: 1,
+      backgroundColor: colors.cardBackground,
+    },
+    premiumModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      paddingBottom: 20,
+    },
+    fullScreenModalTitle: {
+      fontSize: 28,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
+    fullScreenModalCloseIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalContent: {
+      flex: 1,
+    },
+    modalBody: {
+      paddingHorizontal: 24,
+      paddingTop: 10,
+    },
+    modalDropdownTrigger: {
+      height: 52,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.cardBackground,
+    },
+    modalDropdownText: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    modalTagColorCircleOuter: {
+      width: 38,
+      height: 38,
+      borderRadius: 14,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    fixedBottomActions: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      gap: 16,
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      backgroundColor: colors.cardBackground,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+    modalSaveBtn: {
+      flex: 1.5,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: colors.accentTeal,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    modalSaveBtnText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    pickerOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    pickerContainer: {
+      backgroundColor: colors.cardBackground,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingBottom: 40,
+      justifyContent: "center",
+      alignItems: "center"
+    },
+    pickerHeader: {
+      width: '100%',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    pickerTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    pickerDoneBtn: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#0BA0B2',
+    },
+    bottomFixModal: {
+      backgroundColor: colors.cardBackground,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      width: '100%',
+      marginTop: 'auto',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 20,
+    },
+    alertOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(11, 45, 62, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    alertContainer: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 32,
+      width: '100%',
+      maxWidth: 340,
+      padding: 32,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 20 },
+      shadowOpacity: 0.15,
+      shadowRadius: 30,
+      elevation: 10,
+    },
+    alertIconCircle: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 24,
+    },
+    alertTitle: {
+      fontSize: 24,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    alertDescription: {
+      fontSize: 15,
+      color: '#6A7D8C',
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 32,
+      paddingHorizontal: 10,
+    },
+    alertActions: {
+      flexDirection: 'row',
+      gap: 16,
+      width: '100%',
+    },
+    alertCancelBtn: {
+      flex: 1,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    alertCancelBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    alertDeleteBtn: {
+      flex: 1,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: '#EF4444',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#EF4444',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    alertDeleteBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    autocompleteContainer: {
+      position: 'relative',
+      width: '100%',
+    },
+    autocompleteDropdown: {
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      marginTop: 4,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 15,
+      elevation: 5,
+      zIndex: 10000,
+    },
+    autocompleteItem: {
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surfaceSoft,
+    },
+    autocompleteItemTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    autocompleteItemSub: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    modalTextInput: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
   });
 }
