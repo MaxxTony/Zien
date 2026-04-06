@@ -1,9 +1,11 @@
-import { PageHeader } from '@/components/ui';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/context/ThemeContext';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { getCRMContactDetail } from '@/services/crmService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
     Linking,
     Pressable,
@@ -14,20 +16,33 @@ import {
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export default function ProfileScreen() {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
-  const insets = useSafeAreaInsets();
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+    const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const { accessToken } = useAuth();
+
+    // API Lead Details
+    const { data: contact, isLoading, error } = useQuery({
+        queryKey: ['crm-contact', id],
+        queryFn: () => getCRMContactDetail(accessToken!, id!),
+        enabled: !!accessToken && !!id,
+    });
 
     // Notes State
-    const [notes, setNotes] = useState([
-        { id: '1', text: 'Very interested in modern kitchen and gym space.', date: 'Jan 25, 2026' },
-        { id: '2', text: 'Sent the YouTube walkthrough. She confirmed interest.', date: 'Jan 26, 2026' },
-    ]);
+    const [notes, setNotes] = useState<any[]>([]);
     const [newNote, setNewNote] = useState('');
     const [isAddingNote, setIsAddingNote] = useState(false);
+
+    useEffect(() => {
+        if (contact?.notes) {
+            setNotes(contact.notes);
+        }
+    }, [contact]);
 
     const handleSaveNote = () => {
         if (newNote.trim()) {
@@ -50,6 +65,28 @@ export default function ProfileScreen() {
         }
     };
 
+    if (isLoading) {
+        return (
+            <View style={[styles.background, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>Syncing Intelligence Profile...</Text>
+            </View>
+        );
+    }
+
+    if (error || !contact) {
+        return (
+            <View style={[styles.background, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>Lead Profile not found.</Text>
+                <Pressable onPress={() => router.back()} style={{ marginTop: 20 }}>
+                    <Text style={{ color: colors.accentTeal }}>Go Back</Text>
+                </Pressable>
+            </View>
+        );
+    }
+
+    const fullName = `${contact.first_name} ${contact.last_name}`;
+    const groupName = contact.group?.name || 'Standard';
+
     return (
         <LinearGradient
             colors={colors.backgroundGradient as any}
@@ -58,7 +95,7 @@ export default function ProfileScreen() {
             style={[styles.background, { paddingTop: insets.top }]}>
 
             <PageHeader
-                title="Jessica Miller"
+                title={fullName}
                 onBack={() => router.back()}
             />
 
@@ -75,33 +112,37 @@ export default function ProfileScreen() {
                     <View style={styles.premiumCard}>
                         <View style={styles.profileHeader}>
                             <View style={styles.avatarWrap}>
-                                <Text style={styles.avatarText}>J</Text>
+                                <Text style={styles.avatarText}>{contact.first_name.charAt(0)}</Text>
                             </View>
                             <View style={styles.profileDetails}>
                                 <View style={styles.nameBadgeRow}>
-                                    <Text style={styles.profileName}>Jessica Miller</Text>
+                                    <Text style={styles.profileName}>{fullName}</Text>
                                     <View style={styles.buyerBadge}>
-                                        <Text style={styles.buyerBadgeText}>BUYER</Text>
+                                        <Text style={styles.buyerBadgeText}>{groupName.toUpperCase()}</Text>
                                     </View>
                                 </View>
-                                <Text style={styles.profileContact}>jessica.m@gmail.com • (555) 123-4567</Text>
+                                <Text style={styles.profileContact}>{contact.email} {contact.phone ? `• ${contact.country_code} ${contact.phone}` : ''}</Text>
 
                                 <View style={styles.actionButtonsRow}>
                                     <Pressable
                                         style={styles.actionBtnLight}
-                                        onPress={() => Linking.openURL('mailto:jessica.m@gmail.com')}>
+                                        onPress={() => Linking.openURL(`mailto:${contact.email}`)}>
                                         <Text style={styles.actionBtnLightText}>Email</Text>
                                     </Pressable>
-                                    <Pressable
-                                        style={styles.actionBtnLight}
-                                        onPress={() => Linking.openURL('tel:+15551234567')}>
-                                        <Text style={styles.actionBtnLightText}>Call</Text>
-                                    </Pressable>
-                                    <Pressable
-                                        style={styles.actionBtnLight}
-                                        onPress={() => Linking.openURL('https://wa.me/15551234567')}>
-                                        <Text style={styles.actionBtnLightText}>WhatsApp</Text>
-                                    </Pressable>
+                                    {contact.phone && (
+                                        <Pressable
+                                            style={styles.actionBtnLight}
+                                            onPress={() => Linking.openURL(`tel:${contact.country_code}${contact.phone}`)}>
+                                            <Text style={styles.actionBtnLightText}>Call</Text>
+                                        </Pressable>
+                                    )}
+                                    {contact.phone && (
+                                        <Pressable
+                                            style={styles.actionBtnLight}
+                                            onPress={() => Linking.openURL(`https://wa.me/${contact.country_code.replace('+', '')}${contact.phone}`)}>
+                                            <Text style={styles.actionBtnLightText}>WhatsApp</Text>
+                                        </Pressable>
+                                    )}
                                 </View>
                             </View>
                         </View>
@@ -115,23 +156,20 @@ export default function ProfileScreen() {
                         </View>
                         <View style={styles.heatScoreContainer}>
                             <View style={styles.heatScoreWrap}>
-                                <Text style={styles.heatScoreValue}>94</Text>
+                                <Text style={styles.heatScoreValue}>{contact.heat_index || 50}</Text>
                                 <Text style={styles.heatScoreMax}>/100</Text>
                             </View>
                             <Text style={styles.heatStatusText}>DYNAMIC SCORING ACTIVE</Text>
                         </View>
+                        {/* Placeholder breakdowns if not provided */}
                         <View style={styles.heatBreakdown}>
                             <View style={styles.heatItem}>
-                                <Text style={styles.heatItemLabel}>Property View (Malibu Villa)</Text>
-                                <Text style={styles.heatItemAction}>+15</Text>
+                                <Text style={styles.heatItemLabel}>Profile Intensity</Text>
+                                <Text style={styles.heatItemAction}>{contact.heat_index && contact.heat_index > 50 ? 'High' : 'Moderate'}</Text>
                             </View>
                             <View style={styles.heatItem}>
-                                <Text style={styles.heatItemLabel}>Email Open (Open House Kit)</Text>
-                                <Text style={styles.heatItemAction}>+5</Text>
-                            </View>
-                            <View style={styles.heatItem}>
-                                <Text style={styles.heatItemLabel}>Showing Attendance</Text>
-                                <Text style={styles.heatItemAction}>+25</Text>
+                                <Text style={styles.heatItemLabel}>Engagement Level</Text>
+                                <Text style={styles.heatItemAction}>Stable</Text>
                             </View>
                         </View>
                     </View>
@@ -139,9 +177,9 @@ export default function ProfileScreen() {
                     {/* 3. Pipeline Stage Card */}
                     <View style={styles.pipelineCard}>
                         <Text style={styles.pipelineTitleSmall}>CURRENT PIPELINE STAGE</Text>
-                        <Text style={styles.pipelineStageName}>Showing</Text>
+                        <Text style={styles.pipelineStageName}>{contact.pipeline_stage || 'Discovery'}</Text>
                         <View style={styles.pipelineProgressContainer}>
-                            <View style={[styles.pipelineProgressFill, { width: '75%' }]} />
+                            <View style={[styles.pipelineProgressFill, { width: contact.pipeline_stage ? '75%' : '25%' }]} />
                         </View>
                     </View>
 

@@ -65,6 +65,12 @@ export interface PlansResponse {
   teamRoleId: number;
 }
 
+export interface UploadLogoResponse {
+  ok: boolean;
+  url: string;
+  key: string;
+}
+
 export const fetchSoloPlans = async (): Promise<Plan[]> => {
   const result = await fetchAllPlans();
   return result.plans.filter(p => p.roleId === result.soloRoleId);
@@ -179,16 +185,11 @@ export const completeCheckout = async (sessionId: string): Promise<any> => {
   }
 };
 
-export interface UploadLogoResponse {
-  ok: boolean;
-  url: string;
-  key: string;
-}
+
 
 export const uploadTeamLogo = async (fileUri: string): Promise<UploadLogoResponse> => {
   const formData = new FormData();
-  
-  // Extract filename and extension
+
   const filename = fileUri.split('/').pop() || 'logo.png';
   const match = /\.(\w+)$/.exec(filename);
   const type = match ? `image/${match[1]}` : `image/png`;
@@ -204,7 +205,6 @@ export const uploadTeamLogo = async (fileUri: string): Promise<UploadLogoRespons
     body: formData,
     headers: {
       'Accept': 'application/json',
-      // Content-Type is set automatically for FormData
     },
   });
 

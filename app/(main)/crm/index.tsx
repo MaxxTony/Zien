@@ -46,19 +46,8 @@ const OVERVIEW_TABS = [
   { id: 'heat-index', label: 'Heat Index Stats' },
 ] as const;
 
-const METRIC_CARDS = [
-  { title: 'TOTAL CONTACTS', value: '1,284', meta: '+12%', icon: 'account-group-outline' as const },
-  { title: 'ACTIVE DEALS', value: '18', meta: '+2', icon: 'briefcase-outline' as const },
-  { title: 'HOT LEADS', value: '42', meta: '+8', icon: 'fire' as const },
-  { title: 'AVG. HEAT INDEX', value: '72', meta: '+4 pts', icon: 'trending-up' as const },
-];
 
-const RECENT_LEADS = [
-  { id: '1', name: 'Jessica Miller', source: 'Open House QR', score: 94, time: '2m ago' },
-  { id: '2', name: 'Robert Chen', source: 'Instagram / Staging', score: 82, time: '1h ago' },
-  { id: '3', name: 'David Wilson', source: 'Zillow Clipper', score: 45, time: '3h ago' },
-  { id: '4', name: 'Sarah Connor', source: 'Facebook UTM', score: 88, time: '5h ago' },
-];
+
 
 const LEAD_SOURCE_CARDS = [
   { id: '1', source: 'OPEN HOUSE QR', dotColor: '#0BA0B2', leads: 432, convRate: '18.4%', roi: 'High', roiHigh: true },
@@ -88,21 +77,6 @@ const HEAT_SURGE_TRIGGERS = [
   { id: '4', label: 'Multiple Listing Comparisons', pts: '+20 pts' },
 ];
 
-const ACTIVITY_LOG_DATA = [
-  { id: '1', actor: 'Jessica Miller', action: 'New lead captured', detail: 'Open House QR', score: 94, time: '2 minutes ago', bgColor: '#E0F7FA', icon: 'account-plus-outline' as const, leftBorder: '#0BA0B2' },
-  { id: '2', actor: 'You', action: 'Sent follow-up email', detail: '→ Robert Chen', score: null, time: '15 minutes ago', bgColor: '#F3F4F6', icon: 'email-outline' as const, leftBorder: 'transparent' },
-  { id: '3', actor: 'Robert Chen', action: 'Opened email', detail: '"Property Tour Invitation"', score: 82, time: '1 hour ago', bgColor: '#FFF3E0', icon: 'email-open-outline' as const, leftBorder: 'transparent' },
-  { id: '4', actor: 'System', action: 'Heat Index updated', detail: '→ Sarah Connor', scoreChange: '+12 pts', score: null, time: '2 hours ago', bgColor: '#F3F4F6', icon: 'cog-outline' as const, leftBorder: 'transparent' },
-  { id: '5', actor: 'David Wilson', action: 'New lead captured', detail: 'Zillow Clipper', score: 45, time: '3 hours ago', bgColor: '#E0F7FA', icon: 'account-plus-outline' as const, leftBorder: '#0BA0B2' },
-  { id: '6', actor: 'You', action: 'Created new deal', detail: 'Malibu Villa - Sarah Connor', score: null, time: '4 hours ago', bgColor: '#E8F5E9', icon: 'currency-usd' as const, leftBorder: '#15803D' },
-  { id: '7', actor: 'Sarah Connor', action: 'Clicked property link', detail: 'Malibu Villa', score: 88, time: '5 hours ago', bgColor: '#FFF3E0', icon: 'cursor-default-click-outline' as const, leftBorder: 'transparent' },
-  { id: '8', actor: 'System', action: 'Automation triggered', detail: 'Open House Follow-Up', score: null, time: '6 hours ago', bgColor: '#F3E5F5', icon: 'robot-outline' as const, leftBorder: 'transparent' },
-  { id: '9', actor: 'Michael Torres', action: 'New lead captured', detail: 'Instagram Ads', score: 76, time: '7 hours ago', bgColor: '#E0F7FA', icon: 'account-plus-outline' as const, leftBorder: '#0BA0B2' },
-  { id: '10', actor: 'You', action: 'Updated contact info', detail: '→ Jessica Miller', score: null, time: '8 hours ago', bgColor: '#F3F4F6', icon: 'pencil-outline' as const, leftBorder: 'transparent' },
-  { id: '11', actor: 'Emma Davis', action: 'Scheduled appointment', detail: 'Tomorrow at 2:00 PM', score: null, time: '9 hours ago', bgColor: '#FCE4EC', icon: 'calendar-outline' as const, leftBorder: 'transparent' },
-  { id: '12', actor: 'System', action: 'Lead score recalculated', detail: '→ Robert Chen', scoreChange: '+8 pts', score: null, time: '10 hours ago', bgColor: '#F3F4F6', icon: 'cog-outline' as const, leftBorder: 'transparent' },
-  { id: '13', actor: 'You', action: 'Added note', detail: '→ David Wilson', score: null, time: '11 hours ago', bgColor: '#F3F4F6', icon: 'note-text-outline' as const, leftBorder: 'transparent' },
-];
 
 export default function CRMScreen() {
   const { colors } = useAppTheme();
@@ -171,7 +145,7 @@ export default function CRMScreen() {
   }, [crmData]);
 
   const displayRecentLeads = useMemo(() => {
-    if (!crmData?.recentLeads || crmData.recentLeads.length === 0) return RECENT_LEADS;
+    if (!crmData?.recentLeads || crmData.recentLeads.length === 0) return [];
     return crmData.recentLeads.map((lead, index) => ({
       ...lead,
       id: `api-lead-${index}`
@@ -183,7 +157,7 @@ export default function CRMScreen() {
   }, []);
 
   const displayActivityLog = useMemo(() => {
-    if (!crmData?.activityLog || crmData.activityLog.length === 0) return ACTIVITY_LOG_DATA;
+    if (!crmData?.activityLog || crmData.activityLog.length === 0) return [];
     return crmData.activityLog.map((activity, index) => ({
       ...activity,
       id: activity.id || `api-activity-${index}`
@@ -324,7 +298,11 @@ export default function CRMScreen() {
                 <Text style={styles.cardTitle}>Recent Lead Flows</Text>
 
               </View>
-              {displayRecentLeads.map((lead, idx) => (
+              {displayRecentLeads.length === 0 ? (
+                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: colors.textSecondary, fontWeight: '600' }}>No recent leads captured</Text>
+                </View>
+              ) : displayRecentLeads.map((lead, idx) => (
                 <View
                   key={lead.id}
                   style={[styles.leadRow, idx === displayRecentLeads.length - 1 && styles.leadRowLast]}>
@@ -495,7 +473,14 @@ export default function CRMScreen() {
             style={styles.activityLogScroll}
             contentContainerStyle={[styles.activityLogContent, { paddingBottom: insets.bottom + 80 }]}
             showsVerticalScrollIndicator={false}>
-            {displayActivityLog.map((activity) => (
+            {displayActivityLog.length === 0 ? (
+              <View style={{ padding: 40, alignItems: 'center', opacity: 0.5 }}>
+                <MaterialCommunityIcons name="pulse" size={48} color={colors.textMuted} />
+                <Text style={{ marginTop: 16, fontSize: 16, fontWeight: '700', color: colors.textMuted, textAlign: 'center' }}>
+                  No recent activities found
+                </Text>
+              </View>
+            ) : displayActivityLog.map((activity) => (
               <View
                 key={activity.id}
                 style={[

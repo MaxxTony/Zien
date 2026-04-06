@@ -1,17 +1,19 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { ThemeColors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { getCRMMeta } from '@/services/crmService';
+import { addCRMContact, AddCRMContactPayload, CRMContact, deleteCRMContact, getCRMContacts, getCRMMeta, updateCRMContact, updateCRMContactStatus } from '@/services/crmService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
+  ActivityIndicator,
+  Alert,
+  Linking,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,20 +21,12 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AddContactModal } from './components/modals/AddContactModal';
 import { ManageMetaModal } from './components/modals/ManageMetaModal';
-
-const CONTACTS = [
-  { id: '1', name: 'Jessica Miller', email: 'jessica@gmail.com', heat: 94, source: 'Open House - 123 Business Way', attribution: 'Staging → Instagram Post', group: 'Buyer', status: 'IN FOLLOW-UP', tag: 'HOT', note: 'Looking for multi-family units in the downtown area. Cash buyer.', noteDate: '2 days ago' },
-  { id: '2', name: 'Robert Chen', email: 'robert.c@gmail.com', heat: 82, source: 'Virtual Staging - Instagram', attribution: 'Instagram Ad', group: 'Buyer', status: 'INTERESTED', tag: 'WARM', note: 'Interested in properties near the university. Looking for a 3-bedroom.', noteDate: '1 week ago' },
-  { id: '3', name: 'David Wilson', email: 'david.w@gmail.com', heat: 25, source: 'Manual Import', attribution: 'Client Referral', group: 'Seller', status: 'DORMANT', tag: 'COLD', note: 'Previous client, just checking in. No active requirements.', noteDate: '1 month ago' },
-  { id: '4', name: 'Sarah Connor', email: 'sarah.c@gmail.com', heat: 88, source: 'Social - Facebook - P101', attribution: 'Facebook Retargeting', group: 'Investor', status: 'SEEKING PROPERTY', tag: 'HOT', note: 'Aggressive investor looking for flip opportunities under $500k.', noteDate: '3 days ago' },
-];
+import { QuickFilterModal } from './components/modals/QuickFilterModal';
 
 const STATUS_OPTIONS = ['All status', 'Active', 'Inactive (archived)'];
 const TYPE_OPTIONS = ['Buyer', 'Seller', 'Investor'] as const;
-const PRESET_COLORS = ['#00A3AD', '#EA580C', '#0B213E', '#6366F1', '#10B981', '#64748B', '#EC4899', '#8B5CF6'];
-
-
 
 export default function ContactsScreen() {
   const { colors } = useAppTheme();
@@ -40,6 +34,7 @@ export default function ContactsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
 
   // API Metadata
   const { data: metaData } = useQuery({
@@ -48,41 +43,44 @@ export default function ContactsScreen() {
     enabled: !!accessToken,
   });
 
-  const queryClient = useQueryClient();
+  // API Contacts
+  const { data: serverContacts, isLoading: isLoadingContacts } = useQuery({
+    queryKey: ['crm-contacts'],
+    queryFn: () => getCRMContacts(accessToken!),
+    enabled: !!accessToken,
+  });
 
   const [search, setSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('All Groups');
   const [selectedStatus, setSelectedStatus] = useState('All status');
   const [selectedTag, setSelectedTag] = useState('All Tags');
 
-  const [activeDropdown, setActiveDropdown] = useState<'group' | 'status' | 'tag' | null>(null);
-
   const [modalVisible, setModalVisible] = useState(false);
-  const [dropdownSearch, setDropdownSearch] = useState('');
-  const [firstName, setFirstName] = useState('Jessica');
-  const [lastName, setLastName] = useState('Miller');
-  const [email, setEmail] = useState('name@email.com');
-  const [phone, setPhone] = useState('(555) 123-4567');
-  const [type, setType] = useState<(typeof TYPE_OPTIONS)[number]>('Buyer');
-  const [leadSource, setLeadSource] = useState('Open House - 123 Business Way');
-  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
-  const [contactsList, setContactsList] = useState(CONTACTS);
-  const [notesModalVisible, setNotesModalVisible] = useState(false);
-  const [selectedContactForNote, setSelectedContactForNote] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedTagInModal, setSelectedTagInModal] = useState('Hot');
-  const [tagColor, setTagColor] = useState('#EA580C');
-  const [activePicker, setActivePicker] = useState<'type' | 'tag' | null>(null);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [contactIdToDelete, setContactIdToDelete] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
+
+  const [activeDropdown, setActiveDropdown] = useState<'group' | 'status' | 'tag' | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['crm-meta'] }),
+        queryClient.invalidateQueries({ queryKey: ['crm-contacts'] })
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // AI Import State
   const [aiImportModalVisible, setAiImportModalVisible] = useState(false);
-  const [importInstructions, setImportInstructions] = useState('');
-  const [selectedFile, setSelectedFile] = useState<any>(null);
 
   // Management State
   const [addGroupModalVisible, setAddGroupModalVisible] = useState(false);
+
   const availableGroups = useMemo(() => {
     return metaData?.groups?.map(g => g.name) || [];
   }, [metaData]);
@@ -94,67 +92,121 @@ export default function ContactsScreen() {
   const groupOptions = ['All Groups', ...availableGroups];
   const tagOptionsShow = ['All Tags', ...availableTags];
 
-  const toggleArchive = (id: string) => {
-    setContactsList(prev => prev.map(c => {
-      if (c.id === id) {
-        const isArchived = c.status === 'ARCHIVED';
-        return { ...c, status: isArchived ? 'IN FOLLOW-UP' : 'ARCHIVED' };
-      }
-      return c;
-    }));
-  };
+  const contactsList = useMemo(() => {
+    if (!serverContacts) return [];
+
+    return serverContacts.filter(contact => {
+      const fullName = `${contact.first_name} ${contact.last_name}`.toLowerCase();
+      const matchesSearch = fullName.includes(search.toLowerCase()) ||
+        contact.email.toLowerCase().includes(search.toLowerCase());
+
+      const matchesGroup = selectedGroup === 'All Groups' || contact.group?.name === selectedGroup;
+      const statusText = contact.status === 1 ? 'Active' : 'Inactive (archived)';
+      const matchesStatus = selectedStatus === 'All status' || statusText === selectedStatus;
+      const matchesTag = selectedTag === 'All Tags' || contact.tag?.name === selectedTag;
+
+      return matchesSearch && matchesGroup && matchesStatus && matchesTag;
+    });
+  }, [serverContacts, search, selectedGroup, selectedStatus, selectedTag]);
 
   const openAddModal = () => {
     setIsEditing(false);
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setPhone('');
-    setType('Buyer');
-    setLeadSource('');
-    setSelectedTagInModal('Hot');
-    setTagColor('#EA580C');
+    setSelectedContact(null);
     setModalVisible(true);
   };
 
-  const openEditModal = (contact: any) => {
+  const openEditModal = (contact: CRMContact) => {
     setIsEditing(true);
-    const names = contact.name.split(' ');
-    setFirstName(names[0] || '');
-    setLastName(names.slice(1).join(' ') || '');
-    setEmail(contact.email);
-    setPhone('(555) 123-4567'); // Default for now
-    setType(contact.group as any);
-    setLeadSource(contact.source);
-    setSelectedTagInModal(contact.tag);
-    setTagColor(contact.tag === 'HOT' ? '#EA580C' : contact.tag === 'WARM' ? '#0BA0B2' : '#64748B');
+    setSelectedContact(contact);
     setModalVisible(true);
   };
 
   const closeModal = () => {
     setModalVisible(false);
-    setActivePicker(null);
   };
 
-  const handleSaveContact = () => {
-    closeModal();
+  const handleToggleStatus = async (contactId: string, currentStatus: number) => {
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    const actionText = newStatus === 0 ? 'archiving' : 'restoring';
+    
+    try {
+      setIsUpdating(true);
+      await updateCRMContactStatus(accessToken!, contactId, newStatus);
+      queryClient.invalidateQueries({ queryKey: ['crm-contacts'] });
+    } catch (error: any) {
+      Alert.alert('Status Update Failed', error.message || `Failed to update contact status while ${actionText}.`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSaveContact = async (data: any) => {
+    const groupObj = metaData?.groups?.find(g => g.name === data.group);
+    const tagObj = metaData?.tags?.find(t => t.name === data.tag);
+
+    if (!groupObj || !tagObj) {
+      Alert.alert('Selection Error', 'Please select a valid group and tag.');
+      return;
+    }
+
+    const payload: AddCRMContactPayload = {
+      first_name: data.firstName,
+      last_name: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      country_code: data.countryCode,
+      group_id: groupObj.id,
+      tag_id: tagObj.id,
+    };
+
+    try {
+      setIsUpdating(true);
+      if (isEditing && selectedContact) {
+        await updateCRMContact(accessToken!, selectedContact.id, payload);
+      } else {
+        await addCRMContact(accessToken!, payload);
+      }
+      closeModal();
+      queryClient.invalidateQueries({ queryKey: ['crm-contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-overview'] });
+    } catch (error: any) {
+      Alert.alert('API Error', error.message || `Something went wrong while ${isEditing ? 'updating' : 'adding'} contact`);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const confirmDelete = (id: string) => {
-    setContactIdToDelete(id);
-    setDeleteModalVisible(true);
+    Alert.alert(
+      'Delete contact',
+      'Are you sure you want to permanently delete this lead? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => handleDeleteContact(id) }
+      ]
+    );
   };
 
-  const handleDeleteContact = () => {
-    if (contactIdToDelete) {
-      setContactsList(prev => prev.filter(c => c.id !== contactIdToDelete));
-      setDeleteModalVisible(false);
-      setContactIdToDelete(null);
+  const handleDeleteContact = async (id: string) => {
+    try {
+      setIsUpdating(true);
+      await deleteCRMContact(accessToken!, id);
+      queryClient.invalidateQueries({ queryKey: ['crm-contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-overview'] });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to delete contact');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const toggleDropdown = (type: 'group' | 'status' | 'tag') => {
     setActiveDropdown(activeDropdown === type ? null : type);
+  };
+
+  const formatCurrency = (val: string | number | null) => {
+    if (!val) return 'N/A';
+    return typeof val === 'number' ? `$${val.toLocaleString()}` : val;
   };
 
   return (
@@ -165,32 +217,38 @@ export default function ContactsScreen() {
       style={[styles.background, { paddingTop: insets.top }]}>
       <PageHeader
         title="Contacts"
-        subtitle="Unified database with full attribution and grouped automation."
+        subtitle="Unified lead intelligence with real-time attribution data."
         onBack={() => router.back()}
-
       />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
-        {/* Actions: Import + Add Contact */}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.cardBackground}
+          />
+        }>
+
+        {/* Actions */}
         <View style={styles.topActions}>
-          <Pressable
-            style={styles.actionBtn}
-            onPress={() => setAiImportModalVisible(true)}>
+          <Pressable style={styles.actionBtn} onPress={() => setAiImportModalVisible(true)}>
             <MaterialCommunityIcons name="robot-outline" size={18} color={colors.textPrimary} />
             <Text style={styles.actionBtnText}>AI Import</Text>
           </Pressable>
-          <Pressable
-            style={styles.actionBtn}
-            onPress={() => setAddGroupModalVisible(true)}>
-            <MaterialCommunityIcons name="account-group-outline" size={18} color={colors.textPrimary} />
-            <Text style={styles.actionBtnText}>Add Group & Tags</Text>
+          <Pressable style={styles.actionBtn} onPress={() => setAddGroupModalVisible(true)}>
+            <MaterialCommunityIcons name="cog-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.actionBtnText}>Groups & Tags</Text>
           </Pressable>
         </View>
 
+        {/* Filters */}
         <View style={styles.filterSection}>
           <View style={styles.searchContainer}>
             <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
@@ -198,1567 +256,478 @@ export default function ContactsScreen() {
               style={styles.searchInput}
               value={search}
               onChangeText={setSearch}
-              placeholder="Find by name, email, or source..."
+              placeholder="Search leads by name or email..."
               placeholderTextColor="#94A3B8"
             />
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-            {/* Group Filter */}
             <Pressable style={[styles.filterBtn, selectedGroup !== 'All Groups' && styles.filterBtnActive]} onPress={() => toggleDropdown('group')}>
-              <MaterialCommunityIcons name="filter-outline" size={18} color={selectedGroup !== 'All Groups' ? colors.textPrimary : '#64748B'} />
               <Text style={[styles.filterBtnText, selectedGroup !== 'All Groups' && styles.filterBtnTextActive]}>{selectedGroup}</Text>
               <MaterialCommunityIcons name="chevron-down" size={16} color={selectedGroup !== 'All Groups' ? colors.textPrimary : '#64748B'} />
             </Pressable>
 
-            {/* Status Filter */}
             <Pressable style={[styles.filterBtn, selectedStatus !== 'All status' && styles.filterBtnActive]} onPress={() => toggleDropdown('status')}>
-              <MaterialCommunityIcons name="account-search-outline" size={18} color={selectedStatus !== 'All status' ? colors.textPrimary : '#64748B'} />
               <Text style={[styles.filterBtnText, selectedStatus !== 'All status' && styles.filterBtnTextActive]}>{selectedStatus}</Text>
               <MaterialCommunityIcons name="chevron-down" size={16} color={selectedStatus !== 'All status' ? colors.textPrimary : '#64748B'} />
             </Pressable>
 
-            {/* Tag Filter */}
             <Pressable style={[styles.filterBtn, selectedTag !== 'All Tags' && styles.filterBtnActive]} onPress={() => toggleDropdown('tag')}>
-              <MaterialCommunityIcons name="tag-outline" size={18} color={selectedTag !== 'All Tags' ? colors.textPrimary : '#64748B'} />
               <Text style={[styles.filterBtnText, selectedTag !== 'All Tags' && styles.filterBtnTextActive]}>{selectedTag}</Text>
               <MaterialCommunityIcons name="chevron-down" size={16} color={selectedTag !== 'All Tags' ? colors.textPrimary : '#64748B'} />
             </Pressable>
           </ScrollView>
-          <Text style={styles.resultsCount}>Showing <Text style={{ fontWeight: '900', color: colors.textPrimary }}>{contactsList.length}</Text> contacts</Text>
+          <Text style={styles.resultsCount}>Showing <Text style={{ fontWeight: '900', color: colors.textPrimary }}>{contactsList.length}</Text> intelligent matches</Text>
         </View>
 
+        {/* Lead Grid */}
         <View style={styles.contactList}>
-          {contactsList.map((contact) => {
-            const isArchived = contact.status === 'ARCHIVED';
+          {isLoadingContacts ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color={colors.accent} />
+              <Text style={styles.loaderText}>Syncing CRM Data...</Text>
+            </View>
+          ) : contactsList.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="account-search-outline" size={48} color={colors.textMuted} />
+              <Text style={styles.emptyText}>No leads found matching your filters.</Text>
+            </View>
+          ) : contactsList.map((contact: CRMContact) => {
+            const fullName = `${contact.first_name} ${contact.last_name}`;
+            const groupName = contact.group?.name || 'Standard';
+            const tagName = contact.tag?.name || 'General';
+            const tagColor = contact.tag?.tag_color || '#64748B';
+            const phoneNumber = contact.phone ? `${contact.country_code} ${contact.phone}` : 'N/A';
+            const dateJoined = new Date(contact.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
             return (
-              <View key={contact.id} style={[styles.contactCard, isArchived && styles.contactCardArchived]}>
-                {/* Profile Section */}
+              <View key={contact.id} style={styles.contactCard}>
+                {/* 1. Header Info */}
                 <View style={styles.cardHeaderRow}>
                   <View style={styles.avatarWrap}>
-                    <Text style={styles.avatarText}>{contact.name.charAt(0)}</Text>
+                    <Text style={styles.avatarText}>{contact.first_name.charAt(0)}</Text>
+                    <View style={[styles.statusDot, { backgroundColor: contact.status === 1 ? '#10B981' : '#64748B' }]} />
                   </View>
                   <View style={styles.contactMain}>
-                    <Text style={styles.contactName}>{contact.name}</Text>
-                    <Text style={styles.contactEmail}>{contact.email}</Text>
-                  </View>
-                </View>
-
-                {/* AI Heat Section */}
-                <View style={styles.cardSection}>
-                  <View style={styles.labelRowWithIcon}>
-                    <Text style={styles.cardLabel}>AI HEAT</Text>
-                    <MaterialCommunityIcons name="fire" size={12} color="#EA580C" style={{ marginLeft: 4, marginBottom: 6 }} />
-                  </View>
-                  <View style={styles.heatRow}>
-                    <View style={styles.heatBarContainer}>
-                      <View style={[styles.heatBarFill, { width: `${contact.heat}%`, backgroundColor: contact.heat > 70 ? '#EA580C' : contact.heat > 40 ? '#F59E0B' : '#0BA0B2' }]} />
+                    <Text style={styles.contactName}>{fullName}</Text>
+                    <View style={styles.contactSubInfo}>
+                      <MaterialCommunityIcons name="email-outline" size={12} color={colors.textMuted} />
+                      <Text style={styles.contactEmail}>{contact.email}</Text>
                     </View>
-                    <Text style={[styles.heatValue, { color: contact.heat > 70 ? '#EA580C' : contact.heat > 40 ? '#F59E0B' : '#0BA0B2' }]}>{contact.heat}</Text>
+                    {contact.phone && (
+                      <View style={styles.contactSubInfo}>
+                        <MaterialCommunityIcons name="phone-outline" size={12} color={colors.textMuted} />
+                        <Text style={styles.contactEmail}>{phoneNumber}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={[styles.heatBadge, { backgroundColor: contact.heat_index > 70 ? '#FEF2F2' : colors.surfaceIcon }]}>
+                    <MaterialCommunityIcons name="fire" size={16} color={contact.heat_index > 70 ? '#EF4444' : colors.iconMuted} />
+                    <Text style={[styles.heatValue, { color: contact.heat_index > 70 ? '#EF4444' : colors.textPrimary }]}>{contact.heat_index}</Text>
                   </View>
                 </View>
 
-                {/* Lead Source / Attribution */}
-                <View style={styles.cardSection}>
-                  <Text style={styles.cardLabel}>LEAD SOURCE / ATTRIBUTION</Text>
-                  <Text style={styles.sourceTitle}>{contact.source}</Text>
-                  <Text style={styles.sourceSubtitle}>{contact.attribution}</Text>
-                </View>
-
-                <View style={styles.multiInfoRow}>
-                  {/* Tags */}
-                  <View style={[styles.infoCol, { flex: 0.8 }]}>
-                    <Text style={styles.cardLabel}>TAGS</Text>
-                    <View style={[styles.tagBadge, { borderColor: contact.tag === 'HOT' ? '#EA580C' : contact.tag === 'WARM' ? '#0BA0B2' : '#64748B', backgroundColor: contact.tag === 'HOT' ? '#FFF7ED' : contact.tag === 'WARM' ? '#F0F9FA' : '#F8FAFC' }]}>
-                      <Text style={[styles.tagBadgeText, { color: contact.tag === 'HOT' ? '#EA580C' : contact.tag === 'WARM' ? '#0BA0B2' : '#64748B' }]}>{contact.tag}</Text>
+                {/* 2. Metadata Tags Row */}
+                <View style={styles.tagsRow}>
+                  <View style={[styles.statusBadge, { backgroundColor: contact.status === 1 ? '#10B98115' : '#64748B15' }]}>
+                    <View style={[styles.statusDotSmall, { backgroundColor: contact.status === 1 ? '#10B981' : '#64748B' }]} />
+                    <Text style={[styles.statusText, { color: contact.status === 1 ? '#10B981' : '#64748B' }]}>
+                      {contact.status === 1 ? 'ACTIVE' : 'INACTIVE'}
+                    </Text>
+                  </View>
+                  <View style={styles.dataBadge}>
+                    <MaterialCommunityIcons name="account-group-outline" size={12} color={colors.textSecondary} />
+                    <Text style={styles.dataBadgeText}>{groupName}</Text>
+                  </View>
+                  <View style={[styles.dataBadge, { borderColor: tagColor, borderWidth: 0.5 }]}>
+                    <Text style={[styles.dataBadgeText, { color: tagColor }]}>{tagName}</Text>
+                  </View>
+                  {contact.pipeline_stage && (
+                    <View style={[styles.dataBadge, { backgroundColor: '#F0F9FA' }]}>
+                      <Text style={[styles.dataBadgeText, { color: '#0BA0B2' }]}>{contact.pipeline_stage}</Text>
                     </View>
-                  </View>
-                  {/* Group */}
-                  <View style={styles.infoCol}>
-                    <Text style={styles.cardLabel}>GROUP</Text>
-                    <Text style={styles.infoValue}>{contact.group}</Text>
-                  </View>
-                  {/* Status */}
-                  <View style={[styles.infoCol, { flex: 1.2 }]}>
-                    <Text style={styles.cardLabel}>STATUS</Text>
-                    <View style={styles.statusPill}>
-                      <Text style={styles.statusPillText}>{contact.status}</Text>
-                    </View>
-                  </View>
+                  )}
                 </View>
 
-                <View style={styles.cardFooter}>
-                  <View style={styles.footerLeft}>
-                    <Pressable
-                      style={styles.footerCircleBtn}
-                      onPress={() => {
-                        setSelectedContactForNote(contact);
-                        setNotesModalVisible(true);
-                      }}>
-                      <MaterialCommunityIcons name="information-variant" size={20} color="#64748B" />
-                    </Pressable>
+                {/* 3. High-Intelligence Insights Grid - Conditionally shown */}
+                {(contact.budget || contact.timeline || contact.pre_approved !== null) && (
+                  <View style={styles.insightsGrid}>
+                    {contact.budget && (
+                      <View style={styles.insightBox}>
+                        <Text style={styles.insightLabel}>BUDGET</Text>
+                        <Text style={styles.insightValue}>{formatCurrency(contact.budget)}</Text>
+                      </View>
+                    )}
+                    {contact.timeline && (
+                      <View style={styles.insightBox}>
+                        <Text style={styles.insightLabel}>TIMELINE</Text>
+                        <Text style={styles.insightValue}>{contact.timeline}</Text>
+                      </View>
+                    )}
+                    {contact.pre_approved !== null && (
+                      <View style={styles.insightBox}>
+                        <Text style={styles.insightLabel}>PRE-APPROVED</Text>
+                        <Text style={[styles.insightValue, { color: contact.pre_approved ? '#10B981' : colors.textPrimary }]}>
+                          {contact.pre_approved ? 'YES' : 'NO'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
+                )}
 
-                  <View style={styles.footerActionsGroup}>
-                    <Pressable style={styles.footerTextBtn} onPress={() => toggleArchive(contact.id)}>
-                      <Text style={[styles.footerTextBtnLabel, isArchived && styles.footerTextBtnLabelActive]}>
-                        {isArchived ? 'Unarchive' : 'Archive'}
+                {/* 4. Latest Note Section */}
+                {contact.latest_note && (
+                  <View style={styles.noteBox}>
+                    <View style={styles.noteHeader}>
+                      <MaterialCommunityIcons name="text-box-search-outline" size={14} color="#0BA0B2" />
+                      <Text style={styles.noteHeaderText}>
+                        LATEST ACTIVITY • {new Date(contact.latest_note.created_at).toLocaleDateString()}
                       </Text>
+                    </View>
+                    <Text style={styles.noteContent} numberOfLines={2}>
+                      {contact.latest_note.content}
+                    </Text>
+                  </View>
+                )}
+
+                {/* 5. Attribution & Source Row */}
+                {(contact.source || dateJoined) && (
+                  <View style={styles.attributionRow}>
+                    {contact.source && (
+                      <View style={styles.sourceInfo}>
+                        <MaterialCommunityIcons name="compass-outline" size={12} color={colors.textMuted} />
+                        <Text style={styles.sourceText}>Source: <Text style={{ color: colors.textPrimary }}>{contact.source}</Text></Text>
+                      </View>
+                    )}
+                    <Text style={styles.joinedDate}>Joined {dateJoined}</Text>
+                  </View>
+                )}
+
+                {/* 6. Redesigned Premium Action Bar */}
+                <View style={styles.cardActionRow}>
+                  <Pressable style={styles.archiveAction} onPress={() => handleToggleStatus(contact.id, contact.status)}>
+                    <MaterialCommunityIcons 
+                      name={contact.status === 1 ? "archive-arrow-down-outline" : "refresh"} 
+                      size={16} 
+                      color={colors.textSecondary} 
+                    />
+                    <Text style={styles.archiveActionText}>
+                      {contact.status === 1 ? 'Archive' : 'Restore'}
+                    </Text>
+                  </Pressable>
+
+                  <View style={styles.centerActions}>
+                    <Pressable style={styles.iconActionBtn} onPress={() => openEditModal(contact)}>
+                      <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.textSecondary} />
                     </Pressable>
-                    <Pressable style={styles.footerCircleBtn} onPress={() => openEditModal(contact)}>
-                      <MaterialCommunityIcons name="pencil-outline" size={18} color="#64748B" />
-                    </Pressable>
-                    <Pressable style={styles.footerCircleBtn} onPress={() => confirmDelete(contact.id)}>
+                    <Pressable style={[styles.iconActionBtn, { backgroundColor: '#EF444410' }]} onPress={() => confirmDelete(contact.id)}>
                       <MaterialCommunityIcons name="delete-outline" size={18} color="#EF4444" />
                     </Pressable>
-                    <Pressable style={styles.profileBadgeBtn} onPress={() => router.push('/(main)/crm/profile')}>
-                      <Text style={styles.profileBadgeText}>Profile</Text>
-                    </Pressable>
                   </View>
+
+                  <Pressable 
+                    style={styles.profileAction}
+                    onPress={() => router.push({ pathname: '/(main)/crm/profile', params: { id: contact.id } })}>
+                    <Text style={styles.profileActionText}>Profile</Text>
+                    <MaterialCommunityIcons name="chevron-right" size={18} color="#0BA0B2" />
+                  </Pressable>
                 </View>
               </View>
             );
           })}
         </View>
-        <View style={{ height: 24 }} />
       </ScrollView>
 
-      {/* Filter Bottom Sheet Modal */}
-      <Modal
+      {/* Modals */}
+      <QuickFilterModal
         visible={activeDropdown !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setActiveDropdown(null);
-          setDropdownSearch('');
-        }}>
-        <Pressable
-          style={styles.bottomSheetOverlay}
-          onPress={() => {
-            setActiveDropdown(null);
-            setDropdownSearch('');
-          }}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ width: '100%', justifyContent: 'flex-end' }}>
-            <View
-              style={[styles.bottomSheetContent, { paddingBottom: Math.max(insets.bottom, 24) }]}
-              onStartShouldSetResponder={() => true}>
-              <View style={styles.bottomSheetHandle} />
-              <Text style={styles.bottomSheetTitle}>
-                {activeDropdown === 'group' ? 'Select Group' : activeDropdown === 'status' ? 'Select Status' : 'Select Tag'}
-              </Text>
+        onClose={() => setActiveDropdown(null)}
+        type={activeDropdown}
+        options={activeDropdown === 'group' ? groupOptions : activeDropdown === 'status' ? STATUS_OPTIONS : tagOptionsShow}
+        selectedValue={activeDropdown === 'group' ? selectedGroup : activeDropdown === 'status' ? selectedStatus : selectedTag}
+        onSelect={(val: string) => {
+          if (activeDropdown === 'group') setSelectedGroup(val);
+          else if (activeDropdown === 'status') setSelectedStatus(val);
+          else if (activeDropdown === 'tag') setSelectedTag(val);
+        }}
+      />
 
-              {/* Quick Filter Search */}
-              <View style={styles.dropdownSearchContainer}>
-                <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
-                <TextInput
-                  style={styles.dropdownSearchInput}
-                  placeholder={`Search ${activeDropdown}...`}
-                  placeholderTextColor="#94A3B8"
-                  value={dropdownSearch}
-                  onChangeText={setDropdownSearch}
-                  autoFocus={false}
-                />
-                {dropdownSearch.length > 0 && (
-                  <Pressable onPress={() => setDropdownSearch('')}>
-                    <MaterialCommunityIcons name="close-circle" size={18} color="#94A3B8" />
-                  </Pressable>
-                )}
-              </View>
-
-              <ScrollView
-                style={styles.bottomSheetScroll}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled">
-                <View style={styles.bottomSheetList}>
-                  {(() => {
-                    const currentOptions = (activeDropdown === 'group' ? groupOptions : activeDropdown === 'status' ? STATUS_OPTIONS : tagOptionsShow);
-                    const filtered = currentOptions.filter(opt => opt.toLowerCase().includes(dropdownSearch.toLowerCase()));
-
-                    if (filtered.length === 0) {
-                      return (
-                        <View style={styles.noResultsContainer}>
-                          <MaterialCommunityIcons name="magnify-scan" size={40} color="#94A3B8" />
-                          <Text style={styles.noResultsText}>No matches found for "{dropdownSearch}"</Text>
-                        </View>
-                      );
-                    }
-
-                    return filtered.map(opt => {
-                      const isSelected = activeDropdown === 'group' ? selectedGroup === opt : activeDropdown === 'status' ? selectedStatus === opt : selectedTag === opt;
-                      return (
-                        <Pressable
-                          key={opt}
-                          style={[styles.bottomSheetItem, isSelected && styles.bottomSheetItemActive]}
-                          onPress={() => {
-                            if (activeDropdown === 'group') setSelectedGroup(opt);
-                            else if (activeDropdown === 'status') setSelectedStatus(opt);
-                            else if (activeDropdown === 'tag') setSelectedTag(opt);
-                            setActiveDropdown(null);
-                            setDropdownSearch('');
-                          }}>
-                          <Text style={[styles.bottomSheetItemText, isSelected && styles.bottomSheetItemTextActive]}>{opt}</Text>
-                          {isSelected && <MaterialCommunityIcons name="check-circle" size={24} color={colors.textPrimary} />}
-                        </Pressable>
-                      );
-                    });
-                  })()}
-                </View>
-              </ScrollView>
-            </View>
-          </KeyboardAvoidingView>
-        </Pressable>
-      </Modal>
-
-      {/* Latest Note Bottom Sheet Modal */}
-      <Modal
-        visible={notesModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setNotesModalVisible(false)}>
-        <Pressable style={styles.bottomSheetOverlay} onPress={() => setNotesModalVisible(false)}>
-          <View style={[styles.noteBottomSheet, { paddingBottom: Math.max(insets.bottom, 24) }]} onStartShouldSetResponder={() => true}>
-            <View style={styles.bottomSheetHandle} />
-
-            <View style={styles.noteHeader}>
-              <View style={styles.noteIconWrap}>
-                <MaterialCommunityIcons name="file-document-edit-outline" size={26} color="#0BA0B2" />
-              </View>
-              <View style={styles.noteTitleWrap}>
-                <Text style={styles.noteTitle}>Latest Lead Note</Text>
-                <Text style={styles.noteSubtitle}>Last updated {selectedContactForNote?.noteDate}</Text>
-              </View>
-            </View>
-
-            <View style={styles.noteQuoteContainer}>
-              <View style={styles.noteVerticalAccent} />
-              <Text style={styles.noteBodyText}>
-                "{selectedContactForNote?.note}"
-              </Text>
-            </View>
-
-            <Pressable
-              style={styles.premiumReadBtn}
-              onPress={() => {
-                setNotesModalVisible(false);
-                router.push('/(main)/crm/profile');
-              }}>
-              <View style={styles.premiumReadContent}>
-                <View style={styles.readIconCircle}>
-                  <MaterialCommunityIcons name="text-box-search-outline" size={20} color={colors.textPrimary} />
-                </View>
-                <Text style={styles.premiumReadText}>View all activity log</Text>
-              </View>
-              <MaterialCommunityIcons name="arrow-right" size={20} color="#64748B" />
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Add New Contact Modal */}
-      {/* Add / Edit Contact Modal */}
-      <Modal
+      <AddContactModal
         visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={closeModal}>
-        <View style={[styles.fullPageModal, { paddingTop: insets.top }]}>
-          <View style={styles.modalContent}>
-            <View style={styles.premiumModalHeader}>
-              <View>
-                <Text style={styles.premiumModalTitle}>{isEditing ? 'Edit Contact Info' : 'Add New Contact'}</Text>
-                <Text style={styles.premiumModalSubtitle}>{isEditing ? 'Update lead details and tags' : 'Register a new lead into your CRM'}</Text>
-              </View>
-              <Pressable onPress={closeModal} style={styles.premiumCloseBtn} hitSlop={12}>
-                <MaterialCommunityIcons name="close" size={20} color="#64748B" />
-              </Pressable>
-            </View>
+        onClose={closeModal}
+        onSave={handleSaveContact}
+        availableGroups={availableGroups}
+        availableTags={availableTags}
+        isEditing={isEditing}
+        initialData={selectedContact ? {
+          firstName: selectedContact.first_name,
+          lastName: selectedContact.last_name,
+          email: selectedContact.email,
+          phone: selectedContact.phone,
+          group: selectedContact.group?.name,
+          tag: selectedContact.tag?.name,
+          countryCode: selectedContact.country_code
+        } : null}
+      />
 
-            <ScrollView
-              style={styles.premiumModalBody}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}>
-
-              <View style={styles.formGrid}>
-                <View style={styles.formRow}>
-                  <View style={styles.formCol}>
-                    <Text style={styles.formLabel}>First Name</Text>
-                    <TextInput
-                      style={styles.premiumInput}
-                      value={firstName}
-                      onChangeText={setFirstName}
-                      placeholder="e.g. Jessica"
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                  <View style={styles.formCol}>
-                    <Text style={styles.formLabel}>Last Name</Text>
-                    <TextInput
-                      style={styles.premiumInput}
-                      value={lastName}
-                      onChangeText={setLastName}
-                      placeholder="e.g. Miller"
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <View style={styles.formCol}>
-                    <Text style={styles.formLabel}>Email Address</Text>
-                    <TextInput
-                      style={styles.premiumInput}
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="name@email.com"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                    />
-                  </View>
-                  <View style={styles.formCol}>
-                    <Text style={styles.formLabel}>Phone Number</Text>
-                    <TextInput
-                      style={styles.premiumInput}
-                      value={phone}
-                      onChangeText={setPhone}
-                      placeholder="(555) 000-0000"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="phone-pad"
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <View style={styles.formCol}>
-                    <Text style={styles.formLabel}>Lead Group</Text>
-                    <Pressable
-                      style={styles.premiumSelect}
-                      onPress={() => setActivePicker(activePicker === 'type' ? null : 'type')}>
-                      <Text style={styles.premiumSelectText}>{type}</Text>
-                      <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
-                    </Pressable>
-                    {activePicker === 'type' && (
-                      <View style={styles.premiumDropdown}>
-                        {TYPE_OPTIONS.map((opt) => (
-                          <Pressable
-                            key={opt}
-                            style={styles.premiumDropdownItem}
-                            onPress={() => {
-                              setType(opt);
-                              setActivePicker(null);
-                            }}>
-                            <Text style={styles.premiumDropdownText}>{opt}</Text>
-                            {type === opt && <MaterialCommunityIcons name="check" size={18} color="#0BA0B2" />}
-                          </Pressable>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.formCol}>
-                    <Text style={styles.formLabel}>Lead Tag</Text>
-                    <Pressable
-                      style={styles.premiumSelect}
-                      onPress={() => setActivePicker(activePicker === 'tag' ? null : 'tag')}>
-                      <Text style={styles.premiumSelectText}>{selectedTagInModal}</Text>
-                      <MaterialCommunityIcons name="chevron-down" size={20} color="#64748B" />
-                    </Pressable>
-                    {activePicker === 'tag' && (
-                      <View style={styles.premiumDropdown}>
-                        {availableTags.map((opt) => (
-                          <Pressable
-                            key={opt}
-                            style={styles.premiumDropdownItem}
-                            onPress={() => {
-                              setSelectedTagInModal(opt);
-                              setActivePicker(null);
-                            }}>
-                            <Text style={styles.premiumDropdownText}>{opt}</Text>
-                            {selectedTagInModal === opt && <MaterialCommunityIcons name="check" size={18} color="#0BA0B2" />}
-                          </Pressable>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                <View style={styles.fullWidthCol}>
-                  <Text style={styles.formLabel}>Tag Color Preset</Text>
-                  <View style={styles.colorPresetRow}>
-                    {PRESET_COLORS.map(color => (
-                      <Pressable
-                        key={color}
-                        style={[styles.colorCircle, { backgroundColor: color }, tagColor === color && styles.colorCircleActive]}
-                        onPress={() => setTagColor(color)}>
-                        {tagColor === color && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={styles.fullWidthCol}>
-                  <Text style={styles.formLabel}>Initial Lead Source</Text>
-                  <TextInput
-                    style={styles.premiumInput}
-                    value={leadSource}
-                    onChangeText={setLeadSource}
-                    placeholder="e.g. Instagram Ad / Referral"
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
-              </View>
-            </ScrollView>
-
-            <View style={[styles.premiumActions, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-              <Pressable style={styles.premiumCancelBtn} onPress={closeModal}>
-                <Text style={styles.premiumCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.premiumSaveBtn} onPress={handleSaveContact}>
-                <Text style={styles.premiumSaveText}>{isEditing ? 'Update Contact' : 'Save New Lead'}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        visible={deleteModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDeleteModalVisible(false)}>
-        <Pressable style={styles.alertModalOverlay} onPress={() => setDeleteModalVisible(false)}>
-          <View style={styles.alertCard} onStartShouldSetResponder={() => true}>
-            <View style={styles.alertIconZone}>
-              <View style={styles.alertIconCircle}>
-                <MaterialCommunityIcons name="alert-outline" size={32} color={colors.textPrimary} />
-              </View>
-            </View>
-
-            <Text style={styles.alertTitle}>Erase Intelligence?</Text>
-            <Text style={styles.alertDescription}>
-              This action is permanent. All historical attribution and lead scores for this contact will be lost.
-            </Text>
-
-            <View style={styles.alertActions}>
-              <Pressable style={styles.alertCancelBtn} onPress={() => setDeleteModalVisible(false)}>
-                <Text style={styles.alertCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.alertDeleteBtn} onPress={handleDeleteContact}>
-                <Text style={styles.alertDeleteText}>Delete Contact</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* AI Import Modal */}
-      <Modal
-        visible={aiImportModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setAiImportModalVisible(false)}>
-        <View style={[styles.fullPageModal, { paddingTop: insets.top }]}>
-          <View style={styles.modalContent}>
-            <View style={styles.premiumModalHeader}>
-              <View style={styles.aiImportTitleRow}>
-                <View style={styles.aiIconSquare}>
-                  <MaterialCommunityIcons name="creation" size={20} color="#FFFFFF" />
-                </View>
-                <View style={styles.aiImportHeaderText}>
-                  <Text style={styles.premiumModalTitle}>AI Import</Text>
-                  <Text style={styles.premiumModalSubtitle}>
-                    Let AI analyze your files and automatically group contacts by intent, tags, and data patterns.
-                  </Text>
-                </View>
-              </View>
-              <Pressable
-                onPress={() => {
-                  setAiImportModalVisible(false);
-                  setSelectedFile(null);
-                }}
-                style={styles.premiumCloseBtn}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <MaterialCommunityIcons name="close" size={20} color="#64748B" />
-              </Pressable>
-            </View>
-
-            <ScrollView
-              style={styles.premiumModalBody}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 40 }}>
-
-              <View style={styles.importCard}>
-                <View style={styles.importLabelRow}>
-                  <MaterialCommunityIcons name="message-outline" size={18} color={colors.textPrimary} />
-                  <Text style={styles.importSectionLabel}>Import Context & Instructions</Text>
-                </View>
-
-                <View style={styles.instructionInputContainer}>
-                  <TextInput
-                    style={styles.instructionInput}
-                    placeholder="Tell the AI how to categorize these contacts... (e.g., 'Group by industry and tag VIPs')"
-                    placeholderTextColor="#94A3B8"
-                    multiline
-                    value={importInstructions}
-                    onChangeText={setImportInstructions}
-                  />
-
-                </View>
-
-                <View style={styles.optionalCallout}>
-                  <View style={styles.infoCircleSmall}>
-                    <MaterialCommunityIcons name="lightbulb-outline" size={12} color="#FFFFFF" />
-                  </View>
-                  <Text style={styles.optionalCalloutText}>
-                    Optional: Describing your data helps the AI map ambiguous fields and group contacts by intent.
-                  </Text>
-                </View>
-
-                {!selectedFile ? (
-                  <Pressable
-                    style={styles.dropzone}
-                    onPress={() => setSelectedFile({
-                      name: 'ENTRY POST SYSTEM and TEMPLATES - simplified version.pdf',
-                      size: '107.00 KB'
-                    })}>
-                    <View style={styles.dropzoneIconCircle}>
-                      <MaterialCommunityIcons name="upload" size={24} color="#0B213E" />
-                    </View>
-                    <Text style={styles.dropzoneTitle}>Upload your contact list</Text>
-                    <Text style={styles.dropzoneSubtitle}>Drag and drop your file here, or click to browse</Text>
-                    <Text style={styles.dropzoneFormats}>CSV • XLSX • TXT • PDF</Text>
-                  </Pressable>
-                ) : (
-                  <View style={styles.fileStatusArea}>
-                    <View style={styles.fileCard}>
-                      <View style={styles.fileIconBox}>
-                        <MaterialCommunityIcons name="file-document-outline" size={24} color="#FFFFFF" />
-                      </View>
-                      <View style={styles.fileDetails}>
-                        <Text style={styles.fileName} numberOfLines={1}>{selectedFile.name}</Text>
-                        <View style={styles.fileMetaRow}>
-                          <Text style={styles.readyTag}>Ready to Process • {selectedFile.size}</Text>
-                          <Pressable onPress={() => setSelectedFile(null)}>
-                            <Text style={styles.changeFileText}>Change File</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-                    </View>
-
-                    <Pressable
-                      style={styles.mappingBtn}
-                      onPress={() => setAiImportModalVisible(false)}>
-                      <LinearGradient
-                        colors={['#0B213E', '#0BA0B2']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.mappingBtnGradient}>
-                        <MaterialCommunityIcons name="creation" size={20} color="#FFFFFF" />
-                        <Text style={styles.mappingBtnText}>Initialize AI Intelligence Mapping</Text>
-                      </LinearGradient>
-                    </Pressable>
-                  </View>
-                )}
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal >
-
-      {/* Managed Metadata Modal */}
       <ManageMetaModal
         visible={addGroupModalVisible}
         onClose={() => setAddGroupModalVisible(false)}
       />
 
-      {/* Floating Action Button */}
-      <Pressable
-        style={[styles.fab, { bottom: 30 + insets.bottom }]}
-        onPress={openAddModal}>
-        <LinearGradient
-          colors={['#0B213E', '#0BA0B2']}
-          style={styles.fabGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}>
+      {/* Dynamic Action Button */}
+      <View style={[styles.fabContainer, { bottom: insets.bottom + 16 }]}>
+        <Pressable style={styles.fab} onPress={openAddModal}>
           <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
-        </LinearGradient>
-      </Pressable>
-
-    </LinearGradient >
+        </Pressable>
+      </View>
+    </LinearGradient>
   );
 }
 
-function getStyles(colors: any) {
-  return StyleSheet.create({
-    background: { flex: 1 },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 16 },
-
-    // Top Actions
-    topActions: {
-      flexDirection: 'row',
-      gap: 12,
-      marginBottom: 20,
-    },
-    actionBtn: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      backgroundColor: colors.cardBackground,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.04,
-      shadowRadius: 8,
-      elevation: 1,
-    },
-    actionBtnText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-    primaryActionBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      backgroundColor: colors.accentTeal,
-      borderRadius: 12,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      elevation: 3,
-    },
-    primaryActionBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
-
-    // Filters
-    filterSection: { marginBottom: 24 },
-    searchContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.cardBackground,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      marginBottom: 12,
-    },
-    searchInput: { flex: 1, fontSize: 15, color: colors.textPrimary, fontWeight: '500', marginLeft: 10 },
-    filtersScroll: { gap: 10, paddingBottom: 4 },
-    filterWrap: { position: 'relative', zIndex: 10 },
-    filterBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      backgroundColor: colors.cardBackground,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-    },
-    filterBtnText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
-    filterBtnActive: { borderColor: colors.textPrimary, backgroundColor: colors.surfaceSoft },
-    filterBtnTextActive: { color: colors.textPrimary },
-
-    // Bottom Sheet Modal
-    bottomSheetOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(15, 23, 42, 0.4)',
-      justifyContent: 'flex-end',
-    },
-    bottomSheetContent: {
-      backgroundColor: colors.cardBackground,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      paddingHorizontal: 24,
-      paddingTop: 12,
-      paddingBottom: 40,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -10 },
-      shadowOpacity: 0.1,
-      shadowRadius: 20,
-      elevation: 20,
-      maxHeight: '85%',
-      minHeight: 800,
-    },
-    bottomSheetHandle: {
-      width: 40,
-      height: 4,
-      backgroundColor: '#E2E8F0',
-      borderRadius: 2,
-      alignSelf: 'center',
-      marginBottom: 20,
-    },
-    bottomSheetTitle: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: colors.textPrimary,
-      marginBottom: 16,
-      textAlign: 'center',
-    },
-    dropdownSearchContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: 14,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      marginBottom: 20,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    dropdownSearchInput: {
-      flex: 1,
-      fontSize: 15,
-      color: colors.textPrimary,
-      fontWeight: '600',
-      marginLeft: 10,
-    },
-    bottomSheetScroll: {
-      flexGrow: 0,
-    },
-    noResultsContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 32,
-      gap: 12,
-    },
-    noResultsText: {
-      fontSize: 15,
-      color: colors.textSecondary,
-      fontWeight: '700',
-      textAlign: 'center',
-    },
-    bottomSheetList: { gap: 8 },
-    bottomSheetItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: 16,
-      borderRadius: 16,
-      backgroundColor: colors.surfaceSoft,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    bottomSheetItemActive: {
-      borderColor: colors.textPrimary,
-      backgroundColor: colors.cardBackground,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      elevation: 2,
-    },
-    bottomSheetItemText: { fontSize: 16, fontWeight: '600', color: colors.textSecondary },
-    bottomSheetItemTextActive: { color: colors.textPrimary, fontWeight: '800' },
-
-    resultsCount: { fontSize: 12, color: colors.textSecondary, marginTop: 12, fontWeight: '600' },
-
-    // Contact List & Cards
-    contactList: { gap: 16 },
-    contactCard: {
-      backgroundColor: colors.cardBackground,
-      borderRadius: 28,
-      padding: 24,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: 0.08,
-      shadowRadius: 24,
-      elevation: 4,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      marginBottom: 4,
-    },
-    contactCardArchived: {
-      backgroundColor: colors.surfaceSoft,
-      opacity: 0.7,
-      borderColor: colors.cardBorder,
-      borderStyle: 'dashed',
-    },
-    cardHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    cardSection: { marginBottom: 20 },
-    avatarWrap: {
-      width: 52,
-      height: 52,
-      borderRadius: 26,
-      backgroundColor: colors.surfaceSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    avatarText: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
-    contactMain: { marginLeft: 16 },
-    contactName: { fontSize: 18, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.3 },
-    contactEmail: { fontSize: 14, color: colors.textSecondary, fontWeight: '500', marginTop: 2 },
-    labelRowWithIcon: { flexDirection: 'row', alignItems: 'center' },
-    cardLabel: { fontSize: 10, fontWeight: '800', color: colors.inputPlaceholder, letterSpacing: 1.2, marginBottom: 8, textTransform: 'uppercase' },
-
-    // Heat Bar
-    heatRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    heatBarContainer: { flex: 1, height: 6, backgroundColor: colors.surfaceSoft, borderRadius: 3, overflow: 'hidden' },
-    heatBarFill: { height: '100%', borderRadius: 3 },
-    heatValue: { fontSize: 16, fontWeight: '900', width: 30, textAlign: 'right' },
-
-    sourceTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
-    sourceSubtitle: { fontSize: 13, color: colors.textSecondary, fontWeight: '500', marginTop: 4 },
-
-    multiInfoRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
-    infoCol: { flex: 1 },
-    infoValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
-
-    tagBadge: {
-      alignSelf: 'flex-start',
-      borderWidth: 1,
-      borderRadius: 8,
-      paddingHorizontal: 10,
-      paddingVertical: 3,
-    },
-    tagBadgeText: { fontSize: 11, fontWeight: '900' },
-
-    statusPill: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    statusPillText: { fontSize: 10, fontWeight: '800', color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5 },
-
-    cardFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingTop: 20,
-      borderTopWidth: 1,
-      borderTopColor: '#F1F5F9',
-    },
-    footerLeft: { flex: 1 },
-    footerActionsGroup: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-    footerCircleBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.surfaceSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    footerTextBtn: {
-      paddingHorizontal: 8,
-    },
-    footerTextBtnLabel: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
-    footerTextBtnLabelActive: { color: colors.textPrimary },
-
-    // AI Import Styles
-    aiImportTitleRow: {
-      flex: 1,
-      flexDirection: 'row',
-      gap: 16,
-      alignItems: 'center',
-    },
-    aiImportHeaderText: {
-      flex: 1,
-      paddingRight: 10,
-    },
-    aiIconSquare: {
-      width: 44,
-      height: 44,
-      backgroundColor: '#0BA0B2',
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#0BA0B2',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    importCard: {
-      backgroundColor: colors.cardBackground,
-      borderRadius: 24,
-      padding: 24,
-      marginTop: 12,
-    },
-    importLabelRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 16,
-    },
-    importSectionLabel: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.textPrimary,
-    },
-    instructionInputContainer: {
-      backgroundColor: colors.cardBackground,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      borderRadius: 16,
-      padding: 16,
-      minHeight: 120,
-      marginBottom: 16,
-    },
-    instructionInput: {
-      flex: 1,
-      fontSize: 15,
-      color: colors.textPrimary,
-      fontWeight: '500',
-      textAlignVertical: 'top',
-      lineHeight: 22,
-    },
-    uploadBtnSmall: {
-      position: 'absolute',
-      right: 12,
-      top: 12,
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: colors.surfaceSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    optionalCallout: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: 'rgba(11, 160, 178, 0.1)',
-      borderRadius: 12,
-      padding: 12,
-      gap: 10,
-      marginBottom: 24,
-    },
-    infoCircleSmall: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      backgroundColor: '#0BA0B2',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    optionalCalloutText: {
-      flex: 1,
-      fontSize: 12,
-      fontWeight: '700',
-      color: '#0BA0B2',
-      lineHeight: 16,
-    },
-    dropzone: {
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      borderStyle: 'dashed',
-      borderRadius: 24,
-      paddingVertical: 40,
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSoft,
-    },
-    dropzoneIconCircle: {
-      width: 60,
-      height: 60,
-      borderRadius: 20,
-      backgroundColor: colors.cardBackground,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      elevation: 2,
-    },
-    dropzoneTitle: {
-      fontSize: 18,
-      fontWeight: '900',
-      color: colors.textPrimary,
-      marginBottom: 4,
-    },
-    dropzoneSubtitle: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      fontWeight: '600',
-      marginBottom: 12,
-    },
-    dropzoneFormats: {
-      fontSize: 11,
-      fontWeight: '800',
-      color: colors.inputPlaceholder,
-      letterSpacing: 0.5,
-    },
-    fileStatusArea: {
-      gap: 16,
-    },
-    fileCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.cardBackground,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      borderRadius: 20,
-      padding: 16,
-      gap: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.05,
-      shadowRadius: 20,
-      elevation: 4,
-    },
-    fileIconBox: {
-      width: 48,
-      height: 56,
-      backgroundColor: colors.textPrimary,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    fileDetails: {
-      flex: 1,
-    },
-    fileName: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.textPrimary,
-      marginBottom: 4,
-    },
-    fileMetaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    readyTag: {
-      fontSize: 11,
-      fontWeight: '800',
-      color: '#10B981',
-      backgroundColor: '#ECFDF5',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 6,
-      flexShrink: 1,
-    },
-    changeFileText: {
-      fontSize: 12,
-      fontWeight: '800',
-      color: '#EF4444',
-    },
-    mappingBtn: {
-      borderRadius: 16,
-      overflow: 'hidden',
-      shadowColor: '#0BA0B2',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.2,
-      shadowRadius: 16,
-      elevation: 8,
-    },
-    mappingBtnGradient: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 18,
-      gap: 10,
-    },
-    mappingBtnText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: '800',
-    },
-
-    // Add Group Modal Styles
-    addGroupSheet: {
-      backgroundColor: colors.cardBackground,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      padding: 24,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -10 },
-      shadowOpacity: 0.1,
-      shadowRadius: 20,
-      elevation: 20,
-      maxHeight: '80%',
-    },
-    addGroupHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 24,
-    },
-    addGroupTitle: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: colors.textPrimary,
-      letterSpacing: -0.5,
-    },
-    addGroupInputRow: {
-      flexDirection: 'row',
-      gap: 12,
-      marginTop: 8,
-      marginBottom: 24,
-    },
-    addGroupInput: {
-      flex: 1,
-      backgroundColor: colors.cardBackground,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      borderRadius: 14,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      fontSize: 15,
-      color: colors.textPrimary,
-      fontWeight: '600',
-    },
-    addGroupSubBtn: {
-      backgroundColor: colors.accentTeal,
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 14,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    addGroupSubBtnDisabled: {
-      opacity: 0.5,
-    },
-    addGroupSubBtnText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: '800',
-    },
-    groupListContainer: {
-      gap: 10,
-      paddingBottom: 40,
-    },
-    groupListItem: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 10,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    groupListItemText: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: colors.textPrimary,
-    },
-
-    profileBadgeBtn: {
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      backgroundColor: 'rgba(11, 160, 178, 0.1)',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#CCF1F3',
-    },
-    profileBadgeText: { fontSize: 14, fontWeight: '800', color: '#0BA0B2' },
-
-
-    // Full Page Modal
-    fullPageModal: {
-      flex: 1,
-      backgroundColor: colors.cardBackground,
-    },
-    modalContent: {
-      flex: 1,
-    },
-    premiumModalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 28,
-      paddingTop: 16,
-      paddingBottom: 20,
-      backgroundColor: colors.cardBackground,
-    },
-    premiumModalTitle: {
-      fontSize: 24,
-      fontWeight: '900',
-      color: colors.textPrimary,
-      letterSpacing: -0.5,
-    },
-    premiumModalSubtitle: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      fontWeight: '500',
-      marginTop: 4,
-    },
-    premiumCloseBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 14,
-      backgroundColor: colors.surfaceSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    premiumModalBody: {
-      paddingHorizontal: 28,
-    },
-    formGrid: {
-      gap: 20,
-    },
-    formRow: {
-      flexDirection: 'row',
-      gap: 16,
-    },
-    formCol: {
-      flex: 1,
-    },
-    fullWidthCol: {
-      width: '100%',
-    },
-    formLabel: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: '#334155',
-      marginBottom: 10,
-      marginLeft: 4,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    premiumInput: {
-      backgroundColor: colors.cardBackground,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      borderRadius: 18,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      fontSize: 16,
-      color: colors.textPrimary,
-      fontWeight: '600',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.02,
-      shadowRadius: 4,
-    },
-    premiumSelect: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: colors.cardBackground,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      borderRadius: 18,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-    },
-    premiumSelectText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    premiumDropdown: {
-      marginTop: 8,
-      backgroundColor: colors.cardBackground,
-      borderRadius: 20,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      position: 'absolute',
-      top: '100%',
-      left: 0,
-      right: 0,
-      zIndex: 100,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.1,
-      shadowRadius: 20,
-      elevation: 10,
-      overflow: 'hidden',
-    },
-    premiumDropdownItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: 16,
-      paddingHorizontal: 20,
-      borderBottomWidth: 1,
-      borderBottomColor: '#F8FAFC',
-    },
-    premiumDropdownText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    colorPresetRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-      marginTop: 4,
-    },
-    colorCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 2,
-      borderColor: 'transparent',
-    },
-    colorCircleActive: {
-      borderColor: '#FFFFFF',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    premiumActions: {
-      flexDirection: 'row',
-      gap: 16,
-      paddingHorizontal: 28,
-      paddingTop: 20,
-      backgroundColor: colors.cardBackground,
-      borderTopWidth: 1,
-      borderTopColor: '#F1F5F9',
-    },
-    premiumCancelBtn: {
-      flex: 1,
-      paddingVertical: 18,
-      borderRadius: 20,
-      backgroundColor: colors.cardBackground,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      alignItems: 'center',
-    },
-    premiumCancelText: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: colors.textSecondary,
-    },
-    premiumSaveBtn: {
-      flex: 2,
-      paddingVertical: 18,
-      borderRadius: 20,
-      backgroundColor: colors.accentTeal,
-      alignItems: 'center',
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 5,
-    },
-    premiumSaveText: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: '#FFFFFF',
-    },
-
-    // Alert Modal (Delete Confirmation)
-    alertModalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(15, 23, 42, 0.6)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-    },
-    alertCard: {
-      width: '100%',
-      maxWidth: 380,
-      backgroundColor: colors.cardBackground,
-      borderRadius: 32,
-      padding: 32,
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 20 },
-      shadowOpacity: 0.15,
-      shadowRadius: 30,
-      elevation: 15,
-    },
-    alertIconZone: {
-      marginBottom: 24,
-    },
-    alertIconCircle: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      backgroundColor: '#FFF1F2',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    alertTitle: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: colors.textPrimary,
-      marginBottom: 12,
-      textAlign: 'center',
-    },
-    alertDescription: {
-      fontSize: 15,
-      color: colors.textSecondary,
-      lineHeight: 22,
-      textAlign: 'center',
-      fontWeight: '500',
-      marginBottom: 32,
-    },
-    alertActions: {
-      flexDirection: 'row',
-      gap: 12,
-      width: '100%',
-    },
-    alertCancelBtn: {
-      flex: 1,
-      paddingVertical: 16,
-      borderRadius: 16,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      alignItems: 'center',
-    },
-    alertCancelText: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.textSecondary,
-    },
-    alertDeleteBtn: {
-      flex: 1.5,
-      paddingVertical: 16,
-      borderRadius: 16,
-      backgroundColor: '#E11D48',
-      alignItems: 'center',
-      shadowColor: '#E11D48',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 10,
-      elevation: 4,
-    },
-    alertDeleteText: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: '#FFFFFF',
-    },
-
-
-    // Notes Modal (Premium Bottom Sheet)
-    noteBottomSheet: {
-      backgroundColor: colors.cardBackground,
-      borderTopLeftRadius: 40,
-      borderTopRightRadius: 40,
-      padding: 24,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: -20 },
-      shadowOpacity: 0.12,
-      shadowRadius: 40,
-      elevation: 30,
-    },
-    noteHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 18,
-      marginBottom: 32,
-      marginTop: 8,
-    },
-    noteIconWrap: {
-      width: 56,
-      height: 56,
-      borderRadius: 18,
-      backgroundColor: '#F0FBFC',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: '#E0F2F1',
-    },
-    noteTitleWrap: { flex: 1 },
-    noteTitle: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: colors.textPrimary,
-      letterSpacing: -0.6,
-    },
-    noteSubtitle: {
-      fontSize: 14,
-      color: colors.inputPlaceholder,
-      fontWeight: '600',
-      marginTop: 4,
-    },
-    noteQuoteContainer: {
-      flexDirection: 'row',
-      padding: 24,
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: 24,
-      marginBottom: 32,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    noteVerticalAccent: {
-      width: 4,
-      backgroundColor: '#0BA0B2',
-      borderRadius: 2,
-      marginRight: 20,
-    },
-    noteBodyText: {
-      flex: 1,
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.textPrimary,
-      fontWeight: '600',
-      fontStyle: 'italic',
-    },
-    premiumReadBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: 16,
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: 20,
-    },
-    premiumReadContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-    },
-    readIconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.cardBackground,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 4,
-    },
-    premiumReadText: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: colors.textPrimary,
-    },
-    fab: {
-      position: 'absolute',
-      right: 20,
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: 'transparent',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.35,
-      shadowRadius: 12,
-      elevation: 10,
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 100,
-    },
-    fabGradient: {
-      width: '100%',
-      height: '100%',
-      borderRadius: 32,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-  });
-}
+const getStyles = (colors: ThemeColors) => StyleSheet.create({
+  background: { flex: 1 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 10 },
+  topActions: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.cardBackground,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  actionBtnText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+  filterSection: { marginBottom: 20 },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 15, color: colors.textPrimary, fontWeight: '600' },
+  filtersScroll: { gap: 8, marginBottom: 12 },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  filterBtnActive: { borderColor: colors.accent, backgroundColor: colors.accent + '08' },
+  filterBtnText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  filterBtnTextActive: { color: colors.accent },
+  resultsCount: { fontSize: 12, color: colors.textSecondary, fontWeight: '600', marginLeft: 4 },
+  contactList: { gap: 16 },
+  contactCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: '#0b2341',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginBottom: 16 },
+  avatarWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  statusDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarText: { fontSize: 22, fontWeight: '900', color: colors.textPrimary },
+  contactMain: { flex: 1, gap: 2 },
+  contactName: { fontSize: 19, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.4 },
+  contactSubInfo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  contactEmail: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  heatBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  heatValue: { fontSize: 16, fontWeight: '900' },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 6,
+  },
+  statusDotSmall: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  statusText: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  dataBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    gap: 6,
+    backgroundColor: 'rgba(100, 116, 139, 0.08)',
+  },
+  dataBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  insightsGrid: {
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceIcon,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 18,
+    justifyContent: 'space-between',
+  },
+  insightBox: { flex: 1, alignItems: 'center' },
+  insightLabel: { fontSize: 9, fontWeight: '800', color: colors.textMuted, marginBottom: 4 },
+  insightValue: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
+  noteBox: {
+    backgroundColor: colors.surfaceIcon,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
+  },
+  noteHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  noteHeaderText: { fontSize: 9, fontWeight: '800', color: colors.textMuted, letterSpacing: 0.5 },
+  noteContent: { fontSize: 13, color: colors.textPrimary, fontWeight: '500', lineHeight: 18 },
+  attributionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  sourceInfo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  sourceText: { fontSize: 10, fontWeight: '600', color: colors.textMuted },
+  joinedDate: { fontSize: 10, color: colors.textMuted, fontWeight: '600' },
+  cardActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 16,
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: colors.rowBorder,
+  },
+  archiveAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  archiveActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  centerActions: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+  },
+  iconActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(100, 116, 139, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  profileActionText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0BA0B2',
+  },
+  loaderContainer: { alignItems: 'center', paddingVertical: 60 },
+  loaderText: { marginTop: 12, fontSize: 15, fontWeight: '700', color: colors.textSecondary },
+  emptyContainer: { alignItems: 'center', paddingVertical: 80, opacity: 0.6 },
+  emptyText: { marginTop: 16, textAlign: 'center', color: colors.textMuted, fontWeight: '700', fontSize: 15 },
+  bottomSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  noteBottomSheet: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    minHeight: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  bottomSheetHandle: {
+    width: 44,
+    height: 5,
+    backgroundColor: colors.divider,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 24,
+  },
+  fabContainer: { position: 'absolute', right: 20 },
+  fab: {
+    width: 63,
+    height: 63,
+    borderRadius: 31.5,
+    backgroundColor: '#0BA0B2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0BA0B2',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+});

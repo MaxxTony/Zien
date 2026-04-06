@@ -770,7 +770,7 @@ export default function SoloOnboardingScreen() {
       </KeyboardAvoidingView>
 
       <Modal visible={showWebView} animationType="slide" transparent={false}>
-        <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingTop: Math.max(insets.top, 20) }}>
+        <View style={{ flex: 1, backgroundColor: colors.cardBackground, paddingTop: Math.max(insets.top, 20) }}>
           <View style={styles.webViewHeader}>
             <Text style={styles.webViewTitle}>Checkout</Text>
             <Pressable onPress={() => setShowWebView(false)} style={styles.closeWebViewButton}>
