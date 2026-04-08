@@ -151,6 +151,54 @@ export interface CRMFollowUp {
         tag_color: string;
     } | null;
 }
+export interface CRMStage {
+    id: string;
+    name: string;
+    sort_order: number;
+    pipeline_id: string;
+}
+
+export interface CRMPipeline {
+    id: string;
+    name: string;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+    stages: CRMStage[];
+}
+
+export interface AddCRMDealPayload {
+    contact_id: string;
+    pipeline_id: string;
+    stage_id: string;
+    related_property: string;
+    deal_value: number;
+}
+
+export interface CRMDeal {
+    id: string;
+    user_id: number;
+    contact_id: string | null;
+    pipeline_id: string;
+    stage_id: string;
+    related_property: string;
+    deal_value: string | number;
+    last_activity_at: string;
+    created_at: string;
+    updated_at: string;
+    contact: {
+        id: string;
+        first_name: string;
+        last_name: string | null;
+        email: string;
+    } | null;
+    stage: CRMStage;
+    pipeline: {
+        id: string;
+        name: string;
+        sort_order: number;
+    };
+}
 
 export interface AddCRMFollowUpPayload {
     subject: string;
@@ -964,6 +1012,177 @@ export const deleteCRMFollowUp = async (accessToken: string, followUpId: string)
             throw new Error('Request timed out.');
         }
         throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
+export const getCRMPipelines = async (accessToken: string): Promise<CRMPipeline[]> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(`${CRM_API_BASE_URL}/solo/crm/pipelines`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        const data = await response.json().catch(() => ([]));
+
+        if (!response.ok) {
+            throw new Error(data.message || `Server error: ${response.status}`);
+        }
+
+        return data;
+    } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            throw new Error('Request timed out.');
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
+export const getCRMDeals = async (accessToken: string, pipelineId: string): Promise<CRMDeal[]> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(`${CRM_API_BASE_URL}/solo/crm/deals?pipeline_id=${pipelineId}`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        const data = await response.json().catch(() => ([]));
+
+        if (!response.ok) {
+            throw new Error(data.message || `Server error: ${response.status}`);
+        }
+
+        return data;
+    } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            throw new Error('Request timed out.');
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
+export const addCRMPipelineStage = async (accessToken: string, pipelineId: string, name: string): Promise<CRMStage> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(`${CRM_API_BASE_URL}/solo/crm/pipelines/${pipelineId}/stages`, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ name }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(data.message || `Server error: ${response.status}`);
+        }
+
+        return data;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
+export const addCRMDeal = async (accessToken: string, payload: AddCRMDealPayload): Promise<CRMDeal> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(`${CRM_API_BASE_URL}/solo/crm/deals`, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(data.message || `Server error: ${response.status}`);
+        }
+
+        return data;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
+export const deleteCRMPipelineStage = async (accessToken: string, stageId: string): Promise<void> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(`${CRM_API_BASE_URL}/solo/crm/pipeline-stages/${stageId}`, {
+            method: 'DELETE',
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || `Server error: ${response.status}`);
+        }
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+export const updateCRMDealStage = async (accessToken: string, dealId: string, stageId: string): Promise<CRMDeal> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(`${CRM_API_BASE_URL}/solo/crm/deals/${dealId}`, {
+            method: 'PATCH',
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ stage_id: stageId }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(data.message || `Server error: ${response.status}`);
+        }
+
+        return data;
     } finally {
         clearTimeout(timeoutId);
     }

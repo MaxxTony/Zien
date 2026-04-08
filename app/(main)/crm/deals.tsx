@@ -1,10 +1,14 @@
 import { PageHeader } from '@/components/ui/PageHeader';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
+import { CRMContact, CRMDeal, CRMPipeline, CRMStage, addCRMDeal, addCRMPipelineStage, deleteCRMPipelineStage, getCRMContacts, getCRMDeals, getCRMPipelines, updateCRMDealStage } from '@/services/crmService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Dimensions,
+  ActivityIndicator,
+  Alert,
   Modal,
   Platform,
   Pressable,
@@ -17,10 +21,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const PIPELINE_TABS = ['Residential Sales', 'Commercial Pipeline', 'Property Rentals'] as const;
-const INITIAL_STAGES = ['LEAD', 'CONTACTED', 'SHOWING', 'OFFER', 'CLOSED'];
-
-const CONTACTS = ['Jessica Miller', 'Robert Chen', 'David Wilson', 'Sarah Connor'];
 const PROPERTIES = [
   '123 Business Way, Los Angeles',
   '456 Tech Lane',
@@ -28,85 +28,75 @@ const PROPERTIES = [
   '101 Cyberdyne Blvd'
 ];
 
-const formatCurrency = (value: string) => {
-  const numericValue = value.replace(/\D/g, '');
-  if (!numericValue) return '';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(numericValue));
-};
-
-interface Deal {
-  id: string;
-  name: string;
-  address: string;
-  value: string;
-  time: string;
-  expires?: string;
-}
-
-const DEALS_DATA: Record<(typeof PIPELINE_TABS)[number], Record<string, Deal[]>> = {
-  'Residential Sales': {
-    LEAD: [
-      { id: 'r1', name: 'Jessica Miller', address: '123 Business Way', value: '$1.2M', time: '2 hours ago' },
-    ],
-    CONTACTED: [
-      { id: 'r2', name: 'Robert Chen', address: '456 Tech Lane', value: '$850k', time: 'Yesterday' },
-    ],
-    SHOWING: [
-      { id: 'r3', name: 'David Wilson', address: '789 Garden St', value: '$2.1M', time: '2 days ago' },
-    ],
-    OFFER: [
-      { id: 'r4', name: 'Sarah Connor', address: '101 Cyberdyne Blvd', value: '$3.5M', time: '5 hours ago', expires: 'EXPIRES IN 24H' },
-    ],
-    CLOSED: [
-      { id: 'r5', name: 'Michael Scott', address: '1725 Slough Ave', value: '$450k', time: '3 days ago' },
-    ],
-  },
-  'Commercial Pipeline': {
-    LEAD: [
-      { id: 'c1', name: 'Dunder Mifflin', address: 'Scranton Business Park', value: '$150k/yr', time: '1 day ago' },
-    ],
-    CONTACTED: [],
-    SHOWING: [
-      { id: 'c3', name: 'Gavin Belson', address: 'Hooli HQ', value: '$50M', time: '1 week ago' },
-    ],
-    OFFER: [
-      { id: 'c4', name: 'Vance Refrigeration', address: 'Warehouse 42', value: '$2.5M', time: '3 hours ago', expires: 'EXPIRES IN 24H' },
-    ],
-    CLOSED: [],
-  },
-  'Property Rentals': {
-    LEAD: [
-      { id: 'p1', name: 'Ryan Howard', address: 'City Lofts 404', value: '$2500/mo', time: 'Today' },
-    ],
-    CONTACTED: [
-      { id: 'p2', name: 'Kelly Kapoor', address: 'Downtown Studio', value: '$1800/mo', time: 'Yesterday' },
-    ],
-    SHOWING: [],
-    OFFER: [],
-    CLOSED: [],
-  },
-};
-
 export default function DealsScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { width: screenWidth } = Dimensions.get('window');
-  const [activePipeline, setActivePipeline] = useState<(typeof PIPELINE_TABS)[number]>('Residential Sales');
+  const { accessToken } = useAuth();
+
+  // Pipeline-related state
+  const [activePipeline, setActivePipeline] = useState<CRMPipeline | null>(null);
+  const [targetPipeline, setTargetPipeline] = useState<CRMPipeline | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [transferingDealId, setTransferingDealId] = useState<string | null>(null);
+
+  const queryClient = useQueryClient();
+  const scrollRef = useRef<ScrollView>(null);
+
+  // TanStack Query for dynamic data
+  const { data: pipelines = [], isLoading: isLoadingPipelines } = useQuery({
+    queryKey: ['crmPipelines', accessToken],
+    queryFn: () => getCRMPipelines(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  // Set default active pipeline when data loads and sync it
+  useEffect(() => {
+    if (pipelines.length > 0) {
+      if (!activePipeline) {
+        setActivePipeline(pipelines[0]);
+      } else {
+        const updated = pipelines.find(p => p.id === activePipeline.id);
+        if (updated) {
+          setActivePipeline(updated);
+        }
+      }
+    }
+  }, [pipelines]);
+
+  const { data: contacts = [], isLoading: isLoadingContacts } = useQuery({
+    queryKey: ['crmContacts', accessToken],
+    queryFn: () => getCRMContacts(accessToken!),
+    enabled: !!accessToken,
+  });
+
+
+  const { data: deals = [], isLoading: isLoadingDeals } = useQuery({
+    queryKey: ['crmDeals', activePipeline?.id, accessToken],
+    queryFn: () => getCRMDeals(accessToken!, activePipeline!.id),
+    enabled: !!accessToken && !!activePipeline?.id,
+  });
+
+  // Calculate deals per stage
+  const dealsByStage = useMemo(() => {
+    const map: Record<string, CRMDeal[]> = {};
+    deals.forEach(deal => {
+      if (!map[deal.stage_id]) map[deal.stage_id] = [];
+      map[deal.stage_id].push(deal);
+    });
+    return map;
+  }, [deals]);
 
   // Form states
-  const [selectedContact, setSelectedContact] = useState(CONTACTS[0]);
-  const [selectedProperty, setSelectedProperty] = useState(PROPERTIES[0]);
-  const [dealValue, setDealValue] = useState('$ 1,200,000');
-  const [targetPipeline, setTargetPipeline] = useState<(typeof PIPELINE_TABS)[number]>('Residential Sales');
-  const [selectedStage, setSelectedStage] = useState('Lead');
+  const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<string>('');
+  const [dealValue, setDealValue] = useState('');
+  const [selectedStageId, setSelectedStageId] = useState<string>('');
+  const [customStageName, setCustomStageName] = useState('');
+  const [isCreatingDeal, setIsCreatingDeal] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   // Dropdown visibility states
   const [isContactDropdownOpen, setContactDropdownOpen] = useState(false);
@@ -116,18 +106,39 @@ export default function DealsScreen() {
 
   // Stage Management states
   const [isStagesModalVisible, setIsStagesModalVisible] = useState(false);
-  const [stages, setStages] = useState(INITIAL_STAGES);
   const [newStageInput, setNewStageInput] = useState('');
+  const [isAddingStage, setIsAddingStage] = useState(false);
+  const [deletingStageId, setDeletingStageId] = useState<string | null>(null);
 
-  const handleAddStage = () => {
-    if (newStageInput.trim()) {
-      setStages([...stages, newStageInput.trim().toUpperCase()]);
+  const currentStages = activePipeline?.stages || [];
+
+  const handleAddStage = async () => {
+    if (!newStageInput.trim() || !activePipeline?.id || !accessToken) return;
+
+    try {
+      setIsAddingStage(true);
+      await addCRMPipelineStage(accessToken, activePipeline.id, newStageInput.trim());
       setNewStageInput('');
+      await queryClient.invalidateQueries({ queryKey: ['crmPipelines'] });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to add stage');
+    } finally {
+      setIsAddingStage(false);
     }
   };
 
-  const handleRemoveStage = (stageToRemove: string) => {
-    setStages(prev => prev.filter(s => s !== stageToRemove));
+  const handleRemoveStage = async (stageId: string) => {
+    if (!accessToken) return;
+
+    try {
+      setDeletingStageId(stageId);
+      await deleteCRMPipelineStage(accessToken, stageId);
+      await queryClient.invalidateQueries({ queryKey: ['crmPipelines'] });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to delete stage');
+    } finally {
+      setDeletingStageId(null);
+    }
   };
 
   // Auto-Trigger states
@@ -139,54 +150,195 @@ export default function DealsScreen() {
     { id: 'offer', stage: 'Offer', enabled: true, action: 'Send Email' },
     { id: 'closed', stage: 'Closed', enabled: true, action: 'Send Email' },
   ]);
+  const [activeActionStageId, setActiveActionStageId] = useState<string | null>(null);
+
+  const handleSaveAutomations = () => {
+    setIsAutoTriggerModalVisible(false);
+  };
+
+
+  const resetForm = () => {
+    setCustomStageName('');
+    setTargetPipeline(null);
+    setSelectedContact(null);
+    setSelectedProperty('');
+    setDealValue('');
+    setSelectedStageId('');
+    setShowErrors(false);
+    setContactDropdownOpen(false);
+    setPropertyDropdownOpen(false);
+    setPipelineDropdownOpen(false);
+    setStageDropdownOpen(false);
+  };
+
+  const handleCreateDeal = async () => {
+    setShowErrors(true);
+    if (!accessToken || !targetPipeline || !selectedContact || !selectedProperty || !dealValue || !selectedStageId) {
+      return;
+    }
+
+    try {
+      setIsCreatingDeal(true);
+
+      let finalStageId = selectedStageId;
+
+      // Handle custom stage creation
+      if (selectedStageId === 'custom' && customStageName.trim()) {
+        const newStage = await addCRMPipelineStage(accessToken, targetPipeline.id, customStageName.trim());
+        finalStageId = newStage.id;
+        await queryClient.invalidateQueries({ queryKey: ['crmPipelines'] });
+      } else if (selectedStageId === 'custom') {
+        Alert.alert('Error', 'Please enter a name for the custom stage.');
+        return;
+      }
+
+      if (!finalStageId) {
+        Alert.alert('Error', 'Please select a stage.');
+        return;
+      }
+
+      // Convert value string like "$ 1,200,000" to number
+      const numericValue = parseInt(dealValue.replace(/[^0-9]/g, '')) || 0;
+
+      await addCRMDeal(accessToken, {
+        contact_id: selectedContact.id,
+        pipeline_id: targetPipeline.id,
+        stage_id: finalStageId,
+        related_property: selectedProperty,
+        deal_value: numericValue
+      });
+
+      setIsModalVisible(false);
+      resetForm();
+      await queryClient.invalidateQueries({ queryKey: ['crmDeals'] });
+      Alert.alert('Success', 'Deal created successfully!');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to create deal');
+    } finally {
+      setIsCreatingDeal(false);
+    }
+  };
 
   const toggleAutomation = (id: string) => {
     setAutomations(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
   };
 
-  const handleValueChange = (text: string) => {
-    setDealValue(formatCurrency(text));
+  const updateAutomationAction = (stageName: string, action: string) => {
+    setAutomations(prev => {
+      const exists = prev.find(a => a.stage === stageName);
+      if (exists) {
+        return prev.map(a => a.stage === stageName ? { ...a, action } : a);
+      }
+      return [...prev, { id: Math.random().toString(), stage: stageName, enabled: false, action }];
+    });
+    setActiveActionStageId(null);
   };
 
-  const renderDealCard = (deal: Deal, isWide = false) => (
-    <View key={deal.id} style={[styles.dealCard, isWide && styles.dealCardWide]}>
-      <View style={styles.cardHeaderRow}>
-        <View style={styles.cardTitles}>
-          <Text style={styles.dealCardName}>{deal.name}</Text>
-          <Text style={styles.dealCardAddress}>{deal.address}</Text>
-        </View>
-      </View>
+  const handleValueChange = (text: string) => {
+    // Remove all non-numeric characters
+    const cleanNumber = text.replace(/[^0-9]/g, '');
+    if (cleanNumber === '') {
+      setDealValue('');
+      return;
+    }
+    // Format with commas and $ prefix
+    const formatted = '$ ' + Number(cleanNumber).toLocaleString();
+    setDealValue(formatted);
+  };
 
-      <View style={styles.cardValueRow}>
-        <Text style={styles.dealCardValue}>{deal.value}</Text>
-        <Text style={styles.dealCardTime}>{deal.time}</Text>
-      </View>
+  const formatPrice = (value: string) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) return '$0';
+    if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
+    return `$${num}`;
+  };
 
-      {deal.expires && (
-        <View style={styles.expiresBadge}>
-          <MaterialCommunityIcons name="alert-outline" size={14} color="#EF4444" />
-          <Text style={styles.expiresText}>{deal.expires}</Text>
-        </View>
-      )}
-    </View>
-  );
+  const getTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
 
-  const renderStage = (stage: string, isFullWidth = false) => {
-    const deals = DEALS_DATA[activePipeline][stage] || [];
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    return `${diffDays} days ago`;
+  };
+
+  const handleMoveDeal = async (dealId: string, stageId: string) => {
+    try {
+      await updateCRMDealStage(accessToken!, dealId, stageId);
+      setTransferingDealId(null);
+      await queryClient.invalidateQueries({ queryKey: ['crmDeals'] });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to move deal');
+    }
+  };
+
+  const renderDealCard = (deal: CRMDeal) => {
+    const isMenuOpen = transferingDealId === deal.id;
+
     return (
-      <View key={stage} style={[styles.stageContainer, isFullWidth && styles.stageContainerFull]}>
-        <View style={styles.stageHeader}>
-          <Text style={styles.stageTitle}>{stage}</Text>
-          <View style={styles.countIndicator}>
-            <Text style={styles.countText}>{deals.length}</Text>
+      <View key={deal.id} style={styles.dealCard}>
+        <Text style={styles.dealCardName}>
+          {deal.contact ? `${deal.contact.first_name} ${deal.contact.last_name || ''}` : 'No Contact'}
+        </Text>
+        <Text style={styles.dealCardAddress}>{deal.related_property}</Text>
+        <View style={styles.dealCardBottom}>
+          <Text style={styles.dealCardValue}>
+            {typeof deal.deal_value === 'number' ? `$${deal.deal_value.toLocaleString()}` : formatPrice(deal.deal_value)}
+          </Text>
+          <View style={styles.cardActions}>
+            <Pressable
+              style={styles.transferBtn}
+              onPress={() => setTransferingDealId(isMenuOpen ? null : deal.id)}
+            >
+              <Text style={styles.transferBtnText}>Transfer</Text>
+              <MaterialCommunityIcons name={isMenuOpen ? "chevron-up" : "chevron-down"} size={14} color="#0BA0B2" />
+            </Pressable>
+            <Text style={styles.dealCardTime}>{getTimeAgo(deal.last_activity_at)}</Text>
           </View>
         </View>
-        <View style={styles.stageCards}>
+
+        {isMenuOpen && (
+          <View style={styles.transferMenu}>
+            <Text style={styles.transferMenuTitle}>Move to:</Text>
+            <View style={styles.transferOptionsRow}>
+              {currentStages.filter(s => s.id !== deal.stage_id).map((stage) => (
+                <Pressable
+                  key={stage.id}
+                  style={styles.transferOption}
+                  onPress={() => handleMoveDeal(deal.id, stage.id)}
+                >
+                  <Text style={styles.transferOptionText}>{stage.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderStage = (stage: CRMStage) => {
+    const deals = dealsByStage[stage.id] || [];
+    return (
+      <View key={stage.id} style={styles.stageColumn}>
+        <View style={styles.stageHeader}>
+          <Text style={styles.stageHeaderText}>{stage.name.toUpperCase()}</Text>
+          <View style={styles.stageCountBadge}>
+            <Text style={styles.stageCountText}>{deals.length}</Text>
+          </View>
+        </View>
+        <View style={styles.stageContent}>
           {deals.length > 0 ? (
-            deals.map(deal => renderDealCard(deal, isFullWidth))
+            deals.map(deal => renderDealCard(deal))
           ) : (
-            <View style={styles.emptyPlaceholder}>
-              <Text style={styles.emptyPlaceholderText}>Drag deal here</Text>
+            <View style={styles.dragPlaceholder}>
+              <Text style={styles.dragPlaceholderText}>No deal here</Text>
             </View>
           )}
         </View>
@@ -195,251 +347,285 @@ export default function DealsScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <PageHeader
-        title="Deals"
-        subtitle="Manage your deals from lead to closing with zero manual effort."
-        onBack={() => router.back()}
-        rightIcon="plus"
-        onRightPress={() => setIsModalVisible(true)}
-      />
+    <View style={{ flex: 1 }}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <PageHeader
+          title="Deals"
+          subtitle="Manage your deals from lead to closing with zero manual effort."
+          onBack={() => router.back()}
+        />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.mainScroll, { paddingBottom: insets.bottom + 20 }]}
-      >
-        {/* Tabs and Filters */}
-        <View style={styles.topActions}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabsList}
-            style={styles.tabsScroll}
-          >
-            {PIPELINE_TABS.map((tab) => {
-              const isActive = activePipeline === tab;
-              return (
-                <Pressable
-                  key={tab}
-                  style={[styles.tabBtn, isActive && styles.tabBtnActive]}
-                  onPress={() => setActivePipeline(tab)}
-                >
-                  <Text style={[styles.tabBtnText, isActive && styles.tabBtnTextActive]}>
-                    {tab}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <View style={styles.filterBtnsRow}>
-            <Pressable style={styles.filterBtn} onPress={() => setIsStagesModalVisible(true)}>
-              <MaterialCommunityIcons name="tune-variant" size={18} color={colors.textPrimary} />
-              <Text style={styles.filterBtnText}>Stages</Text>
-            </Pressable>
-            <Pressable style={styles.filterBtn} onPress={() => setIsAutoTriggerModalVisible(true)}>
-              <MaterialCommunityIcons name="lightning-bolt-outline" size={18} color={colors.textPrimary} />
-              <Text style={styles.filterBtnText}>Auto-Triggers</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Top Stages - Grid-like or Side-by-Side */}
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.topStagesScroll}
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.mainScroll, { paddingBottom: insets.bottom + 20 }]}
         >
-          {stages.slice(0, 4).map(stage => renderStage(stage))}
+          {/* Scrollable Tabs */}
+          <View style={styles.tabContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabsScrollContent}
+            >
+              {pipelines.map((pipeline) => {
+                const isActive = activePipeline?.id === pipeline.id;
+                return (
+                  <Pressable
+                    key={pipeline.id}
+                    style={[styles.pillBtn, isActive && styles.pillBtnActive]}
+                    onPress={() => setActivePipeline(pipeline)}
+                  >
+                    <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
+                      {pipeline.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <View style={styles.topActions}>
+            <View style={styles.filterBtnsRow}>
+              <Pressable style={styles.filterBtn} onPress={() => setIsStagesModalVisible(true)}>
+                <MaterialCommunityIcons name="tune-variant" size={18} color={colors.textPrimary} />
+                <Text style={styles.filterBtnText}>Stages</Text>
+              </Pressable>
+              <Pressable style={styles.filterBtn} onPress={() => setIsAutoTriggerModalVisible(true)}>
+                <MaterialCommunityIcons name="lightning-bolt-outline" size={18} color={colors.textPrimary} />
+                <Text style={styles.filterBtnText}>Auto-Triggers</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {isLoadingDeals ? (
+            <View style={{ paddingVertical: 100 }}>
+              <ActivityIndicator size="large" color={colors.accentTeal} />
+            </View>
+          ) : (
+            <View style={styles.stagesList}>
+              {currentStages.map(stage => renderStage(stage))}
+            </View>
+          )}
         </ScrollView>
 
-        {/* Bottom Stage - Full Width */}
-        <View style={styles.bottomStagesSection}>
-          {stages.slice(4).map(stage => renderStage(stage, true))}
-        </View>
-      </ScrollView>
-
-      {/* Add Pipeline Stage Modal */}
-      <Modal
-        visible={isStagesModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setIsStagesModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>Add Pipeline Stage</Text>
-            </View>
-            <Pressable
-              style={styles.closeBtn}
-              onPress={() => setIsStagesModalVisible(false)}
-            >
-              <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
-            </Pressable>
-          </View>
-
-          <View style={styles.addStageInputRow}>
-            <TextInput
-              style={styles.newStageTextInput}
-              placeholder="New stage name..."
-              placeholderTextColor="#94A3B8"
-              value={newStageInput}
-              onChangeText={setNewStageInput}
-            />
-            <Pressable style={styles.addStageSubmitBtn} onPress={handleAddStage}>
-              <Text style={styles.addStageSubmitBtnText}>Add</Text>
-            </Pressable>
-          </View>
-
-          <ScrollView
-            style={styles.modalScroll}
-            contentContainerStyle={styles.modalContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {stages.map((stage) => (
-              <View key={stage} style={styles.stageManagementItem}>
-                <Text style={styles.stageManagementName}>
-                  {stage.charAt(0) + stage.slice(1).toLowerCase()}
-                </Text>
-                <Pressable onPress={() => handleRemoveStage(stage)}>
-                  <MaterialCommunityIcons name="close" size={20} color="#EF4444" />
-                </Pressable>
+        {/* Add Pipeline Stage Modal */}
+        <Modal
+          visible={isStagesModalVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setIsStagesModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Add Pipeline Stage</Text>
               </View>
-            ))}
-          </ScrollView>
-
-          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
-            <Pressable
-              style={styles.saveSettingsBtn}
-              onPress={() => setIsStagesModalVisible(false)}
-            >
-              <Text style={styles.saveSettingsBtnText}>Close</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Create New Deal Modal */}
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>Create New Deal</Text>
-              <Text style={styles.modalSubtitle}>Initialize a new sales opportunity in the pipeline.</Text>
-            </View>
-            <Pressable
-              style={styles.closeBtn}
-              onPress={() => setIsModalVisible(false)}
-            >
-              <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
-            </Pressable>
-          </View>
-
-          <ScrollView
-            style={styles.modalScroll}
-            contentContainerStyle={styles.modalContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Primary Contact */}
-            <View style={[styles.inputGroup, { zIndex: 100 }]}>
-              <Text style={styles.inputLabel}>Primary Contact</Text>
               <Pressable
-                style={styles.dropdownTrigger}
+                style={styles.closeBtn}
+                onPress={() => setIsStagesModalVisible(false)}
+              >
+                <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.addStageInputRow}>
+              <TextInput
+                style={styles.newStageTextInput}
+                placeholder="New stage name..."
+                placeholderTextColor="#94A3B8"
+                value={newStageInput}
+                onChangeText={setNewStageInput}
+                editable={!isAddingStage}
+              />
+              <Pressable
+                style={[styles.addStageSubmitBtn, isAddingStage && { opacity: 0.7 }]}
+                onPress={handleAddStage}
+                disabled={isAddingStage}
+              >
+                {isAddingStage ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.addStageSubmitBtnText}>Add</Text>
+                )}
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {currentStages.map((stage) => (
+                <View key={stage.id} style={styles.stageManagementItem}>
+                  <Text style={styles.stageManagementName}>
+                    {stage.name}
+                  </Text>
+                  <Pressable
+                    onPress={() => handleRemoveStage(stage.id)}
+                    disabled={deletingStageId === stage.id}
+                  >
+                    {deletingStageId === stage.id ? (
+                      <ActivityIndicator size="small" color="#EF4444" />
+                    ) : (
+                      <MaterialCommunityIcons name="close" size={20} color="#EF4444" />
+                    )}
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
+              <Pressable
+                style={styles.saveSettingsBtn}
+                onPress={() => setIsStagesModalVisible(false)}
+              >
+                <Text style={styles.saveSettingsBtnText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Create New Deal Modal */}
+        <Modal
+          visible={isModalVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Create New Deal</Text>
+                <Text style={styles.modalSubtitle}>Initialize a new sales opportunity in the pipeline.</Text>
+              </View>
+              <Pressable
+                style={styles.closeBtn}
                 onPress={() => {
-                  setPropertyDropdownOpen(false);
-                  setPipelineDropdownOpen(false);
-                  setStageDropdownOpen(false);
-                  setContactDropdownOpen(!isContactDropdownOpen);
+                  setIsModalVisible(false);
+                  resetForm();
                 }}
               >
-                <Text style={styles.dropdownValue}>{selectedContact}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
+                <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
               </Pressable>
-              {isContactDropdownOpen && (
-                <View style={styles.formDropdownMenu}>
-                  {CONTACTS.map((opt) => (
-                    <Pressable
-                      key={opt}
-                      style={styles.formDropdownItem}
-                      onPress={() => {
-                        setSelectedContact(opt);
-                        setContactDropdownOpen(false);
-                      }}
-                    >
-                      {selectedContact === opt && (
-                        <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                      )}
-                      <Text style={[styles.formDropdownItemText, selectedContact === opt && { fontWeight: '700' }]}>{opt}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
             </View>
 
-            {/* Related Property */}
-            <View style={[styles.inputGroup, { zIndex: 90 }]}>
-              <Text style={styles.inputLabel}>Related Property</Text>
-              <Pressable
-                style={styles.dropdownTrigger}
-                onPress={() => {
-                  setContactDropdownOpen(false);
-                  setPipelineDropdownOpen(false);
-                  setStageDropdownOpen(false);
-                  setPropertyDropdownOpen(!isPropertyDropdownOpen);
-                }}
-              >
-                <Text style={styles.dropdownValue}>{selectedProperty}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
-              </Pressable>
-              {isPropertyDropdownOpen && (
-                <View style={styles.formDropdownMenu}>
-                  {PROPERTIES.map((opt) => (
-                    <Pressable
-                      key={opt}
-                      style={styles.formDropdownItem}
-                      onPress={() => {
-                        setSelectedProperty(opt);
-                        setPropertyDropdownOpen(false);
-                      }}
-                    >
-                      {selectedProperty === opt && (
-                        <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                      )}
-                      <Text style={[styles.formDropdownItemText, selectedProperty === opt && { fontWeight: '700' }]}>{opt}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </View>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Primary Contact */}
+              <View style={[styles.inputGroup, { zIndex: 100 }]}>
+                <Text style={styles.inputLabel}>Primary Contact <Text style={styles.requiredStar}>*</Text></Text>
+                <Pressable
+                  style={[styles.dropdownTrigger, showErrors && !selectedContact && styles.errorBorder]}
+                  onPress={() => {
+                    setPropertyDropdownOpen(false);
+                    setPipelineDropdownOpen(false);
+                    setStageDropdownOpen(false);
+                    setContactDropdownOpen(!isContactDropdownOpen);
+                  }}
+                >
+                  <Text style={[styles.dropdownValue, !selectedContact && { color: colors.textSecondary }]}>
+                    {selectedContact ? `${selectedContact.first_name} ${selectedContact.last_name || ''}` : 'Select Primary Contact'}
+                  </Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
+                </Pressable>
+                {showErrors && !selectedContact && (
+                  <Text style={styles.errorText}>Primary contact is required</Text>
+                )}
+                {isContactDropdownOpen && (
+                  <View style={styles.formDropdownMenu}>
+                    {contacts.map((opt) => (
+                      <Pressable
+                        key={opt.id}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setSelectedContact(opt);
+                          setContactDropdownOpen(false);
+                        }}
+                      >
+                        {selectedContact?.id === opt.id && (
+                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
+                        )}
+                        <Text style={[styles.formDropdownItemText, selectedContact?.id === opt.id && { fontWeight: '700' }]}>
+                          {opt.first_name} {opt.last_name || ''}
+                        </Text>
+                      </Pressable>
+                    ))}
+                    {contacts.length === 0 && (
+                      <View style={styles.formDropdownItem}>
+                        <Text style={styles.formDropdownItemText}>No contacts found</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
 
-            <View style={[styles.rowInputs, { zIndex: 80 }]}>
+              {/* Related Property */}
+              <View style={[styles.inputGroup, { zIndex: 90 }]}>
+                <Text style={styles.inputLabel}>Related Property <Text style={styles.requiredStar}>*</Text></Text>
+                <Pressable
+                  style={[styles.dropdownTrigger, showErrors && !selectedProperty && styles.errorBorder]}
+                  onPress={() => {
+                    setContactDropdownOpen(false);
+                    setPipelineDropdownOpen(false);
+                    setStageDropdownOpen(false);
+                    setPropertyDropdownOpen(!isPropertyDropdownOpen);
+                  }}
+                >
+                  <Text style={[styles.dropdownValue, !selectedProperty && { color: colors.textSecondary }]}>
+                    {selectedProperty || 'Select Related Property'}
+                  </Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
+                </Pressable>
+                {showErrors && !selectedProperty && (
+                  <Text style={styles.errorText}>Related property is required</Text>
+                )}
+                {isPropertyDropdownOpen && (
+                  <View style={styles.formDropdownMenu}>
+                    {PROPERTIES.map((opt) => (
+                      <Pressable
+                        key={opt}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setSelectedProperty(opt);
+                          setPropertyDropdownOpen(false);
+                        }}
+                      >
+                        {selectedProperty === opt && (
+                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
+                        )}
+                        <Text style={[styles.formDropdownItemText, selectedProperty === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+
               {/* Estimated Deal Value */}
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>Estimated Deal Value</Text>
-                <View style={styles.valueInputWrapper}>
+                <Text style={styles.inputLabel}>Estimated Deal Value <Text style={styles.requiredStar}>*</Text></Text>
+                <View style={[styles.valueInputWrapper, showErrors && !dealValue && styles.errorBorder]}>
                   <TextInput
                     style={styles.valueInput}
                     value={dealValue}
                     onChangeText={handleValueChange}
                     keyboardType="numeric"
-                    placeholder="$ 0"
+                    placeholder="$ 1,200,000"
                   />
                 </View>
+                {showErrors && !dealValue && (
+                  <Text style={styles.errorText}>Estimated deal value is required and must be a valid number</Text>
+                )}
               </View>
-
-              <View style={{ width: 16 }} />
 
               {/* Target Pipeline */}
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>Target Pipeline</Text>
+                <Text style={styles.inputLabel}>Target Pipeline <Text style={styles.requiredStar}>*</Text></Text>
                 <Pressable
-                  style={styles.dropdownTrigger}
+                  style={[styles.dropdownTrigger, showErrors && !targetPipeline && styles.errorBorder]}
                   onPress={() => {
                     setContactDropdownOpen(false);
                     setPropertyDropdownOpen(false);
@@ -447,660 +633,842 @@ export default function DealsScreen() {
                     setPipelineDropdownOpen(!isPipelineDropdownOpen);
                   }}
                 >
-                  <Text style={styles.dropdownValue}>{targetPipeline}</Text>
+                  <Text style={[styles.dropdownValue, !targetPipeline && { color: colors.textSecondary }]}>
+                    {targetPipeline?.name || 'Select Target Pipeline'}
+                  </Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
+                {showErrors && !targetPipeline && (
+                  <Text style={styles.errorText}>Target pipeline is required</Text>
+                )}
                 {isPipelineDropdownOpen && (
                   <View style={styles.formDropdownMenu}>
-                    {PIPELINE_TABS.map((opt) => (
+                    {pipelines.map((opt) => (
                       <Pressable
-                        key={opt}
+                        key={opt.id}
                         style={styles.formDropdownItem}
                         onPress={() => {
                           setTargetPipeline(opt);
+                          setSelectedStageId(opt.stages[0]?.id || '');
                           setPipelineDropdownOpen(false);
                         }}
                       >
-                        {targetPipeline === opt && (
+                        {targetPipeline?.id === opt.id && (
                           <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
                         )}
-                        <Text style={[styles.formDropdownItemText, targetPipeline === opt && { fontWeight: '700' }]}>{opt}</Text>
+                        <Text style={[styles.formDropdownItemText, targetPipeline?.id === opt.id && { fontWeight: '700' }]}>{opt.name}</Text>
                       </Pressable>
                     ))}
                   </View>
                 )}
               </View>
-            </View>
 
-            {/* Stage */}
-            <View style={[styles.inputGroup, { zIndex: 70 }]}>
-              <Text style={styles.inputLabel}>Stage</Text>
-              <Pressable
-                style={styles.dropdownTrigger}
-                onPress={() => {
-                  setContactDropdownOpen(false);
-                  setPropertyDropdownOpen(false);
-                  setPipelineDropdownOpen(false);
-                  setStageDropdownOpen(!isStageDropdownOpen);
-                }}
-              >
-                <Text style={styles.dropdownValue}>{selectedStage}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
-              </Pressable>
-              {isStageDropdownOpen && (
-                <View style={styles.formDropdownMenu}>
-                  {['Lead', 'Contacted', 'Showing', 'Offer', 'Closed', 'Custom Stage...'].map((opt) => (
+
+
+              {/* Stage */}
+              <View style={[styles.inputGroup, { zIndex: 200 }]}>
+                <Text style={styles.inputLabel}>Stage <Text style={styles.requiredStar}>*</Text></Text>
+                <View style={styles.stageSelectContainer}>
+                  <Pressable
+                    style={[styles.dropdownTrigger, { flex: 1 }, showErrors && !selectedStageId && styles.errorBorder]}
+                    onPress={() => {
+                      setContactDropdownOpen(false);
+                      setPropertyDropdownOpen(false);
+                      setPipelineDropdownOpen(false);
+                      setStageDropdownOpen(!isStageDropdownOpen);
+                    }}
+                  >
+                    <Text style={[styles.dropdownValue, !selectedStageId && { color: colors.textSecondary }]} numberOfLines={1}>
+                      {selectedStageId === 'custom' ? 'Custom Stage...' : (targetPipeline?.stages.find(s => s.id === selectedStageId)?.name || 'Select Stage')}
+                    </Text>
+                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
+                  </Pressable>
+
+
+                </View>
+                {showErrors && !selectedStageId && (
+                  <Text style={styles.errorText}>Stage is required</Text>
+                )}
+                {selectedStageId === 'custom' && (
+                  <View style={styles.customStageInputWrapper}>
+                    <Text style={styles.inputLabel}>Custom Stage Name *</Text>
+                    <TextInput
+                      style={styles.customStageInput}
+                      placeholder="e.g. Negotiation"
+                      placeholderTextColor="#94A3B8"
+                      value={customStageName}
+                      onChangeText={setCustomStageName}
+                    />
+                  </View>
+                )}
+
+                {isStageDropdownOpen && (
+                  <View style={styles.formDropdownMenuTop}>
+                    {targetPipeline?.stages.map((opt) => (
+                      <Pressable
+                        key={opt.id}
+                        style={styles.formDropdownItem}
+                        onPress={() => {
+                          setSelectedStageId(opt.id);
+                          setStageDropdownOpen(false);
+                        }}
+                      >
+                        {selectedStageId === opt.id && (
+                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
+                        )}
+                        <Text style={[styles.formDropdownItemText, selectedStageId === opt.id && { fontWeight: '700' }]}>{opt.name}</Text>
+                      </Pressable>
+                    ))}
+
                     <Pressable
-                      key={opt}
                       style={styles.formDropdownItem}
                       onPress={() => {
-                        setSelectedStage(opt);
+                        setSelectedStageId('custom');
                         setStageDropdownOpen(false);
                       }}
                     >
-                      {selectedStage === opt && (
+                      {selectedStageId === 'custom' && (
                         <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
                       )}
-                      <Text style={[styles.formDropdownItemText, selectedStage === opt && { fontWeight: '700' }]}>{opt}</Text>
+                      <Text style={[styles.formDropdownItemText, { color: colors.accentTeal, fontWeight: '700' }]}>Custom Stage...</Text>
                     </Pressable>
-                  ))}
-                </View>
-              )}
-            </View>
 
-            {/* AI Forecast Section */}
-            <View style={styles.aiForecastBox}>
-              <View style={styles.aiHeader}>
-                <MaterialCommunityIcons name="robot-outline" size={20} color="#0BA0B2" />
-                <Text style={styles.aiTitle}>AI Forecast Enabled</Text>
+                    {(!targetPipeline?.stages || targetPipeline.stages.length === 0) && (
+                      <View style={styles.formDropdownItem}>
+                        <Text style={styles.formDropdownItemText}>No stages available</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
-              <Text style={styles.aiDescription}>
-                Zien predicts a high probability of closing based on historical data for "{selectedContact}" and market demand for selected area.
-              </Text>
-            </View>
-          </ScrollView>
 
-          {/* Modal Footer */}
-          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
-            <Pressable
-              style={styles.cancelBtn}
-              onPress={() => setIsModalVisible(false)}
-            >
-              <Text style={styles.cancelBtnText}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              style={styles.createBtn}
-              onPress={() => setIsModalVisible(false)}
-            >
-              <Text style={styles.createBtnText}>Create Deal Pipeline</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+              {/* AI Forecast Section */}
+              <View style={styles.aiForecastBox}>
+                <View style={styles.aiHeader}>
+                  <MaterialCommunityIcons name="robot-outline" size={20} color="#0BA0B2" />
+                  <Text style={styles.aiTitle}>AI Forecast Enabled</Text>
+                </View>
+                <Text style={styles.aiDescription}>
+                  Zien predicts a high probability of closing based on historical data for "{selectedContact ? `${selectedContact.first_name} ${selectedContact.last_name || ''}` : 'selected contact'}" and market demand for selected area.
+                </Text>
+              </View>
+            </ScrollView>
 
-      {/* Auto-Trigger Automations Modal */}
-      <Modal
-        visible={isAutoTriggerModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setIsAutoTriggerModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>Zien Automations</Text>
-              <Text style={styles.modalSubtitle}>Tell Zien what to do when you move a deal.</Text>
-            </View>
-            <Pressable
-              style={styles.closeBtn}
-              onPress={() => setIsAutoTriggerModalVisible(false)}
-            >
-              <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
-            </Pressable>
-          </View>
-
-          <ScrollView
-            style={styles.modalScroll}
-            contentContainerStyle={styles.modalContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {automations.map((item) => (
-              <View
-                key={item.id}
-                style={[
-                  styles.automationCard,
-                  item.enabled && styles.automationCardActive
-                ]}
+            {/* Modal Footer */}
+            <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => {
+                  setIsModalVisible(false);
+                  resetForm();
+                }}
               >
-                <View style={styles.automationCardMain}>
-                  <View style={styles.automationInfo}>
-                    <View style={styles.automationTitleRow}>
-                      <View style={[styles.statusDot, { backgroundColor: item.enabled ? '#0BA0B2' : '#CBD5E1' }]} />
-                      <Text style={styles.automationStageName}>{item.stage}</Text>
-                    </View>
-                    <View style={styles.automationActionRow}>
-                      <Text style={styles.thenText}>Then </Text>
-                      <Pressable style={styles.actionSelector}>
-                        <Text style={styles.actionText}>{item.action}</Text>
-                        <MaterialCommunityIcons name="chevron-down" size={16} color="#0BA0B2" />
-                      </Pressable>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.createBtn, isCreatingDeal && { opacity: 0.7 }]}
+                onPress={handleCreateDeal}
+                disabled={isCreatingDeal}
+              >
+                {isCreatingDeal ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.createBtnText}>Create Deal Pipeline</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Auto-Trigger Automations Modal */}
+        <Modal
+          visible={isAutoTriggerModalVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setIsAutoTriggerModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Zien Automations</Text>
+                <Text style={styles.modalSubtitle}>Tell Zien what to do when you move a deal.</Text>
+              </View>
+              <Pressable
+                style={styles.closeBtn}
+                onPress={() => setIsAutoTriggerModalVisible(false)}
+              >
+                <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {(activePipeline?.stages || []).map((stage) => {
+                const item = automations.find(a => a.stage === stage.name) || {
+                  id: stage.id,
+                  stage: stage.name,
+                  enabled: false,
+                  action: 'Send Email'
+                };
+                return (
+                  <View
+                    key={stage.id}
+                    style={[
+                      styles.automationCard,
+                      item.enabled && styles.automationCardActive
+                    ]}
+                  >
+                    <View style={styles.automationCardMain}>
+                      <View style={styles.automationInfo}>
+                        <View style={styles.automationTitleRow}>
+                          <View style={[styles.statusDot, { backgroundColor: item.enabled ? '#0BA0B2' : '#CBD5E1' }]} />
+                          <Text style={styles.automationStageName}>{stage.name}</Text>
+                        </View>
+                        <View style={styles.automationActionRow}>
+                          <Text style={styles.thenText}>Then </Text>
+                          <Pressable
+                            style={styles.actionSelector}
+                            onPress={() => setActiveActionStageId(activeActionStageId === stage.id ? null : stage.id)}
+                          >
+                            <Text style={styles.actionText}>{item.action}</Text>
+                            <MaterialCommunityIcons name="chevron-down" size={16} color="#0BA0B2" />
+                          </Pressable>
+
+                          {activeActionStageId === stage.id && (
+                            <View style={styles.actionDropdownMenu}>
+                              {['Send Email', 'Create Task', 'SMS Alert', 'Internal Ping'].map((act) => (
+                                <Pressable
+                                  key={act}
+                                  style={[
+                                    styles.actionDropdownItem,
+                                    item.action === act && styles.actionDropdownItemActive
+                                  ]}
+                                  onPress={() => updateAutomationAction(stage.name, act)}
+                                >
+                                  <Text style={[
+                                    styles.actionDropdownText,
+                                    item.action === act && styles.actionDropdownTextActive
+                                  ]}>
+                                    {act}
+                                  </Text>
+                                  {item.action === act && (
+                                    <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" style={styles.actionCheck} />
+                                  )}
+                                </Pressable>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <Switch
+                        value={item.enabled}
+                        onValueChange={() => toggleAutomation(item.id)}
+                        trackColor={{ false: '#E2E8F0', true: '#0B2D3E' }}
+                        thumbColor={Platform.OS === 'ios' ? undefined : '#FFFFFF'}
+                        ios_backgroundColor="#E2E8F0"
+                      />
                     </View>
                   </View>
-                  <Switch
-                    value={item.enabled}
-                    onValueChange={() => toggleAutomation(item.id)}
-                    trackColor={{ false: '#E2E8F0', true: '#0B2D3E' }}
-                    thumbColor={Platform.OS === 'ios' ? undefined : '#FFFFFF'}
-                    ios_backgroundColor="#E2E8F0"
-                  />
-                </View>
-              </View>
-            ))}
-          </ScrollView>
+                );
+              })}
+            </ScrollView>
 
-          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
-            <Pressable
-              style={styles.saveSettingsBtn}
-              onPress={() => setIsAutoTriggerModalVisible(false)}
-            >
-              <Text style={styles.saveSettingsBtnText}>Save Settings</Text>
-            </Pressable>
+            <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
+              <Pressable
+                style={styles.saveSettingsBtn}
+                onPress={handleSaveAutomations}
+              >
+                <Text style={styles.saveSettingsBtnText}>Save Settings</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+
+
+        {/* Floating Action Button */}
+        <Pressable
+          style={[styles.fab, { bottom: 24 + insets.bottom }]}
+          onPress={() => setIsModalVisible(true)}
+        >
+          <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surfaceSoft,
-  },
-  mainScroll: {
-    paddingTop: 8,
-  },
-  topActions: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  tabsScroll: {
-    marginBottom: 16,
-  },
-  tabsList: {
-    gap: 8,
-    paddingRight: 20,
-  },
-  tabBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabBtnActive: {
-    backgroundColor: colors.accentTeal,
-    borderColor: colors.accentTeal,
-  },
-  tabBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  tabBtnTextActive: {
-    color: '#FFFFFF',
-  },
-  filterBtnsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  filterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  filterBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  topStagesScroll: {
-    paddingHorizontal: 20,
-    gap: 16,
-    marginBottom: 24,
-  },
-  stageContainer: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 24,
-    width: 280,
-    padding: 6,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  stageContainerFull: {
-    width: '100%',
-  },
-  stageHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  stageTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: 1,
-  },
-  countIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  countText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  stageCards: {
-    gap: 12,
-  },
-  dealCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  dealCardWide: {
-    // Styling for full width cards if needed
-  },
-  cardHeaderRow: {
-    marginBottom: 16,
-  },
-  cardTitles: {
-    flex: 1,
-  },
-  dealCardName: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  dealCardAddress: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  cardValueRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  dealCardValue: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0BA0B2',
-    letterSpacing: -0.5,
-  },
-  dealCardTime: {
-    fontSize: 12,
-    color: colors.inputPlaceholder,
-    fontWeight: '600',
-  },
-  expiresBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  expiresText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#EF4444',
-    letterSpacing: 0.5,
-  },
-  bottomStagesSection: {
-    paddingHorizontal: 20,
-    marginTop: 4,
-  },
-  emptyPlaceholder: {
-    height: 100,
-    marginHorizontal: 10,
-    marginBottom: 10,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.cardBorder,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceSoft,
-  },
-  emptyPlaceholderText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.inputPlaceholder,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalScroll: {
-    flex: 1,
-  },
-  modalContent: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 40,
-  },
-  inputGroup: {
-    marginBottom: 24,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 12,
-  },
-  dropdownTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    height: 54,
-  },
-  dropdownValue: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  rowInputs: {
-    flexDirection: 'row',
-  },
-  valueInputWrapper: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    height: 54,
-    justifyContent: 'center',
-  },
-  valueInput: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  aiForecastBox: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#0BA0B2',
-    borderStyle: 'dashed',
-    padding: 20,
-    marginTop: 8,
-  },
-  aiHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
-  },
-  aiTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#0BA0B2',
-  },
-  aiDescription: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    gap: 12,
-  },
-  cancelBtn: {
-    flex: 1,
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  createBtn: {
-    flex: 2,
-    height: 54,
-    backgroundColor: colors.accentTeal,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  createBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  formDropdownMenu: {
-    position: 'absolute',
-    top: 80,
-    left: 0,
-    right: 0,
-    backgroundColor: '#6A7D8C',
-    borderRadius: 12,
-    paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 8,
-    zIndex: 1000,
-  },
-  formDropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    paddingLeft: 36,
-  },
-  formDropdownItemText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  automationCard: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-  },
-  automationCardActive: {
-    borderColor: '#0BA0B2',
-  },
-  automationCardMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  automationInfo: {
-    flex: 1,
-  },
-  automationTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  automationStageName: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  automationActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  thenText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  actionSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#CBD5E1',
-    borderStyle: 'dashed',
-    paddingBottom: 2,
-  },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0BA0B2',
-  },
-  saveSettingsBtn: {
-    flex: 1,
-    height: 54,
-    backgroundColor: colors.accentTeal,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveSettingsBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  addStageInputRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    gap: 12,
-    marginBottom: 24,
-  },
-  newStageTextInput: {
-    flex: 1,
-    height: 54,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  addStageSubmitBtn: {
-    width: 80,
-    height: 54,
-    backgroundColor: colors.accentTeal,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addStageSubmitBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  stageManagementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    marginBottom: 12,
-  },
-  stageManagementName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
+    container: {
+      flex: 1,
+      backgroundColor: '#F8FAFC',
+    },
+    mainScroll: {
+      paddingTop: 8,
+    },
+    tabContainer: {
+      paddingHorizontal: 20,
+      marginBottom: 20,
+    },
+    tabsScrollContent: {
+      gap: 12,
+      paddingRight: 20,
+    },
+    pillBtn: {
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 14,
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    pillBtnActive: {
+      backgroundColor: colors.accentTeal,
+      borderColor: colors.accentTeal,
+      shadowColor: colors.accentTeal,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    pillBtnText: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    pillBtnTextActive: {
+      color: '#FFFFFF',
+    },
+    topActions: {
+      paddingHorizontal: 20,
+      marginBottom: 24,
+    },
+    filterBtnsRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    filterBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#FFFFFF',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      gap: 8,
+    },
+    filterBtnText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#0F172A',
+    },
+    stagesList: {
+      paddingHorizontal: 20,
+    },
+    stageColumn: {
+      backgroundColor: '#F8FAFC',
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      padding: 20,
+      marginBottom: 24,
+    },
+    stageHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    stageHeaderText: {
+      fontSize: 13,
+      fontWeight: '900',
+      color: '#0B2D3E',
+      letterSpacing: 0.5,
+    },
+    stageCountBadge: {
+      backgroundColor: '#E5EBF5',
+      paddingHorizontal: 10,
+      height: 22,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stageCountText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#64748B',
+    },
+    stageContent: {
+      gap: 12,
+    },
+    dealCard: {
+      backgroundColor: '#FFFFFF',
+      padding: 16,
+      borderRadius: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    dealCardName: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: '#0B2D3E',
+      marginBottom: 2,
+    },
+    dealCardAddress: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: '#94A3B8',
+      marginBottom: 12,
+    },
+    dealCardBottom: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 8,
+    },
+    dealCardValue: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#0BA0B2',
+    },
+    cardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    transferBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F0F9FA',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      gap: 4,
+    },
+    transferBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#0BA0B2',
+    },
+    dealCardTime: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: '#94A3B8',
+    },
+    transferMenu: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: '#F1F5F9',
+    },
+    transferMenuTitle: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#94A3B8',
+      textTransform: 'uppercase',
+      marginBottom: 10,
+    },
+    transferOptionsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    transferOption: {
+      backgroundColor: '#F1F5F9',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
+    transferOptionText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#475569',
+    },
+    dragPlaceholder: {
+      height: 80,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: '#CBD5E1',
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dragPlaceholderText: {
+      fontSize: 13,
+      color: '#94A3B8',
+      fontWeight: '600',
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: '#FFFFFF',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F1F5F9',
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: '#0B2D3E',
+      marginBottom: 4,
+    },
+    modalSubtitle: {
+      fontSize: 14,
+      color: '#64748B',
+      lineHeight: 20,
+    },
+    closeBtn: {
+      backgroundColor: '#F1F5F9',
+      padding: 8,
+      borderRadius: 12,
+    },
+    modalScroll: {
+      flex: 1,
+    },
+    modalContent: {
+      padding: 24,
+    },
+    inputGroup: {
+      marginBottom: 24,
+    },
+    inputLabel: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#0B2D3E',
+      marginBottom: 8,
+    },
+    requiredStar: {
+      color: '#EF4444',
+    },
+    dropdownTrigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: '#F8FAFC',
+      borderWidth: 1.5,
+      borderColor: '#E2E8F0',
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      height: 56,
+    },
+    dropdownValue: {
+      fontSize: 15,
+      color: '#0F172A',
+      fontWeight: '500',
+    },
+    errorBorder: {
+      borderColor: '#EF4444',
+    },
+    errorText: {
+      fontSize: 12,
+      color: '#EF4444',
+      marginTop: 6,
+      fontWeight: '500',
+    },
+    formDropdownMenu: {
+      marginTop: 8,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: '#E2E8F0',
+      padding: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    formDropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+    },
+    formDropdownItemText: {
+      fontSize: 14,
+      color: '#334155',
+      fontWeight: '500',
+    },
+    valueInputWrapper: {
+      backgroundColor: '#F8FAFC',
+      borderWidth: 1.5,
+      borderColor: '#E2E8F0',
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      height: 56,
+      justifyContent: 'center',
+    },
+    valueInput: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: '#0BA0B2',
+    },
+    stageSelectContainer: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    formDropdownMenuTop: {
+      position: 'absolute',
+      bottom: '100%',
+      left: 0,
+      right: 0,
+      marginBottom: 8,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: '#E2E8F0',
+      padding: 8,
+      zIndex: 1000,
+    },
+    customStageInputWrapper: {
+      marginTop: 16,
+    },
+    customStageInput: {
+      backgroundColor: '#F8FAFC',
+      borderWidth: 1.5,
+      borderColor: '#E2E8F0',
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      height: 56,
+      fontSize: 15,
+      color: '#0F172A',
+    },
+    aiForecastBox: {
+      backgroundColor: '#F0F9FA',
+      borderRadius: 20,
+      padding: 20,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: '#0BA0B220',
+    },
+    aiHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 8,
+    },
+    aiTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: '#0BA0B2',
+    },
+    aiDescription: {
+      fontSize: 13,
+      color: '#475569',
+      lineHeight: 18,
+    },
+    modalFooter: {
+      flexDirection: 'row',
+      paddingHorizontal: 24,
+      gap: 12,
+      backgroundColor: '#FFFFFF',
+      borderTopWidth: 1,
+      borderTopColor: '#F1F5F9',
+      paddingTop: 16,
+    },
+    cancelBtn: {
+      flex: 1,
+      height: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+      backgroundColor: '#F1F5F9',
+    },
+    cancelBtnText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#475569',
+    },
+    createBtn: {
+      flex: 2,
+      height: 56,
+      backgroundColor: '#0B2D3E',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+    },
+    createBtnText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    addStageInputRow: {
+      flexDirection: 'row',
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      paddingBottom: 8,
+      gap: 12,
+    },
+    newStageTextInput: {
+      flex: 1,
+      backgroundColor: '#F1F5F9',
+      height: 48,
+      borderRadius: 14,
+      paddingHorizontal: 16,
+      fontSize: 14,
+      color: '#0F172A',
+    },
+    addStageSubmitBtn: {
+      backgroundColor: '#0B2D3E',
+      paddingHorizontal: 20,
+      height: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addStageSubmitBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    stageManagementItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F1F5F9',
+    },
+    stageManagementName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: '#0F172A',
+    },
+    saveSettingsBtn: {
+      flex: 1,
+      height: 56,
+      backgroundColor: '#0B2D3E',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+    },
+    saveSettingsBtnText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    automationCard: {
+      backgroundColor: '#F8FAFC',
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1.5,
+      borderColor: '#E2E8F0',
+    },
+    automationCardActive: {
+      borderColor: '#0BA0B240',
+      backgroundColor: '#F0F9FA',
+    },
+    automationCardMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    automationInfo: {
+      flex: 1,
+    },
+    automationTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 4,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    automationStageName: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: '#0B2D3E',
+    },
+    automationActionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    thenText: {
+      fontSize: 13,
+      color: '#64748B',
+    },
+    actionSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    actionText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#0BA0B2',
+    },
+    actionDropdownMenu: {
+      position: 'absolute',
+      top: 24,
+      left: 0,
+      width: 160,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: '#E2E8F0',
+      padding: 6,
+      zIndex: 2000,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    actionDropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+    },
+    actionDropdownItemActive: {
+      backgroundColor: '#0BA0B2',
+    },
+    actionCheck: {
+      marginLeft: 4,
+    },
+    actionDropdownText: {
+      fontSize: 13,
+      color: '#334155',
+      fontWeight: '600',
+    },
+    actionDropdownTextActive: {
+      color: '#FFFFFF',
+    },
+    fab: {
+      position: 'absolute',
+      right: 24,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: '#0B2D3E',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#0B2D3E',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
+    },
   });
 }
