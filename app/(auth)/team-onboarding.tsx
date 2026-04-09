@@ -35,7 +35,7 @@ import { useAppTheme } from '@/context/ThemeContext';
 export default function TeamOnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colors } = useAppTheme();
+  const { colors, theme } = useAppTheme();
   const styles = getStyles(colors, insets);
   const { login, logout, accessToken } = useAuth();
   const { isCompleting } = useLocalSearchParams();
@@ -358,9 +358,36 @@ export default function TeamOnboardingScreen() {
                   codeTextStyle={styles.phoneCodeText}
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
+                  withDarkTheme={theme === 'dark'}
                   countryPickerProps={{
                     withFilter: true,
                     withAlphaFilter: true,
+                    theme: theme === 'dark' ? {
+                      backgroundColor: '#000000',
+                      onBackgroundTextColor: '#FFFFFF',
+                      fontSize: 16,
+                      filterPlaceholderTextColor: '#94A3B8',
+                    } : {
+                      backgroundColor: '#FFFFFF',
+                      onBackgroundTextColor: '#0F172A',
+                      fontSize: 16,
+                      filterPlaceholderTextColor: '#64748B',
+                    },
+                    modalProps: {
+                      statusBarTranslucent: true,
+                    },
+                    closeButtonStyle: {
+                      marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                    },
+                    filterProps: {
+                      placeholderTextColor: theme === 'dark' ? '#94A3B8' : '#64748B',
+                      style: {
+                        marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                        color: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+                        fontSize: 16,
+                        flex: 1,
+                      }
+                    }
                   }}
                 />
                 {errors.phone ? <Text style={styles.errorTextSmall}>{errors.phone}</Text> : null}

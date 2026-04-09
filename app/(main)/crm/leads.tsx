@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import PhoneInput from "react-native-phone-number-input";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ManageMetaModal } from './components/modals/ManageMetaModal';
@@ -29,124 +29,124 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
   const isHigh = lead.score >= 70;
   const isLow = lead.score < 40;
 
-    const isActive = lead.status === 1;
-    const badgeLabel = isActive ? 'ACTIVE' : 'INACTIVE';
-    const badgeColor = isActive ? (colors.accentGreen || '#10B981') : (colors.danger || '#EF4444');
+  const isActive = lead.status === 1;
+  const badgeLabel = isActive ? 'ACTIVE' : 'INACTIVE';
+  const badgeColor = isActive ? (colors.accentGreen || '#10B981') : (colors.danger || '#EF4444');
 
-    return (
-      <View style={[styles.leadCard, isHot && styles.leadCardHotBorder]}>
-        <View style={styles.leadCardHeader}>
-          <View style={styles.leadAvatar}>
-            <LinearGradient
-              colors={isHot ? ['#FF6B00', '#FF8E3C'] : ['#0BA0B2', '#26C7DB']}
-              style={styles.avatarCircle}
-            >
-              <Text style={styles.avatarLetter}>{lead.first_name.charAt(0).toUpperCase()}</Text>
-            </LinearGradient>
+  return (
+    <View style={[styles.leadCard, isHot && styles.leadCardHotBorder]}>
+      <View style={styles.leadCardHeader}>
+        <View style={styles.leadAvatar}>
+          <LinearGradient
+            colors={isHot ? ['#FF6B00', '#FF8E3C'] : ['#0BA0B2', '#26C7DB']}
+            style={styles.avatarCircle}
+          >
+            <Text style={styles.avatarLetter}>{lead.first_name.charAt(0).toUpperCase()}</Text>
+          </LinearGradient>
+          {isHot && (
+            <View style={styles.hotBadgeSmall}>
+              <MaterialCommunityIcons name="fire" size={10} color="#FFFFFF" />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.leadMainInfo}>
+          <View style={styles.nameRow}>
+            <Text style={styles.leadCardName} numberOfLines={1}>{fullName}</Text>
             {isHot && (
-              <View style={styles.hotBadgeSmall}>
-                <MaterialCommunityIcons name="fire" size={10} color="#FFFFFF" />
+              <View style={styles.hotTag}>
+                <Text style={styles.hotTagText}>HOT</Text>
               </View>
             )}
           </View>
-  
-          <View style={styles.leadMainInfo}>
-            <View style={styles.nameRow}>
-              <Text style={styles.leadCardName} numberOfLines={1}>{fullName}</Text>
-              {isHot && (
-                <View style={styles.hotTag}>
-                  <Text style={styles.hotTagText}>HOT</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.leadCardSub} numberOfLines={1}>{lead.email || 'No email provided'}</Text>
-          </View>
-  
-          <View style={{ alignItems: 'flex-end', gap: 8 }}>
-            <View style={[styles.statusBadge, { backgroundColor: `${badgeColor}15` }]}>
-              <Text style={[styles.statusLabel, { color: badgeColor }]}>{badgeLabel}</Text>
-            </View>
-            <View style={styles.scoreContainer}>
-              <Text style={styles.scoreTitle}>AI SCORE</Text>
-              <Text style={[styles.scoreValue, isHigh ? { color: colors.accentTeal } : isLow ? { color: colors.danger || '#E11D48' } : { color: colors.textPrimary }]}>
-                {lead.score}
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.leadCardSub} numberOfLines={1}>{lead.email || 'No email provided'}</Text>
         </View>
-  
-        <View style={styles.divider} />
-  
-        <View style={styles.leadMetaRow}>
-          <View style={styles.metaItem}>
-            <MaterialCommunityIcons name="source-branch" size={14} color={colors.textMuted} />
-            <Text style={styles.metaText}>{lead.source}</Text>
+
+        <View style={{ alignItems: 'flex-end', gap: 8 }}>
+          <View style={[styles.statusBadge, { backgroundColor: `${badgeColor}15` }]}>
+            <Text style={[styles.statusLabel, { color: badgeColor }]}>{badgeLabel}</Text>
           </View>
-          <View style={styles.metaItem}>
-            <MaterialCommunityIcons name="calendar-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.metaText}>{lead.lead_date_label}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <MaterialCommunityIcons name="account-group-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.metaText}>{lead.group?.name || 'No Group'}</Text>
-          </View>
-        </View>
-  
-        <View style={styles.tagsRow}>
-          {lead.tag && (
-            <View style={[styles.tagBadge, { backgroundColor: `${lead.tag.tag_color}15`, borderColor: `${lead.tag.tag_color}30` }]}>
-              <View style={[styles.tagDot, { backgroundColor: lead.tag.tag_color }]} />
-              <Text style={[styles.tagLabel, { color: lead.tag.tag_color }]}>{lead.tag.name}</Text>
-            </View>
-          )}
-        </View>
-  
-        <View style={styles.cardActions}>
-          {isActive ? (
-            <>
-              <Pressable style={styles.primaryAction} onPress={onConvertPress} disabled={isConverting || isArchiving}>
-                {isConverting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="account-convert" size={16} color="#FFFFFF" />
-                    <Text style={styles.primaryActionText}>Convert</Text>
-                  </>
-                )}
-              </Pressable>
-              <Pressable style={styles.whiteAction} onPress={onToggleArchive} disabled={isArchiving || isConverting}>
-                {isArchiving ? (
-                  <ActivityIndicator size="small" color={colors.textPrimary} />
-                ) : (
-                  <Text style={styles.whiteActionText}>Archive</Text>
-                )}
-              </Pressable>
-            </>
-          ) : (
-            <Pressable style={styles.darkAction} onPress={onToggleArchive} disabled={isArchiving}>
-              {isArchiving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.darkActionText}>Unarchive</Text>
-              )}
-            </Pressable>
-          )}
-  
-          <View style={styles.secondaryActions}>
-            <Pressable style={styles.iconAction} onPress={onEditPress}>
-              <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.textSecondary} />
-            </Pressable>
-            <Pressable style={[styles.iconAction, styles.deleteAction]} onPress={onDeletePress}>
-              <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.danger || "#E11D48"} />
-            </Pressable>
+          <View style={styles.scoreContainer}>
+            <Text style={styles.scoreTitle}>AI SCORE</Text>
+            <Text style={[styles.scoreValue, isHigh ? { color: colors.accentTeal } : isLow ? { color: colors.danger || '#E11D48' } : { color: colors.textPrimary }]}>
+              {lead.score}
+            </Text>
           </View>
         </View>
       </View>
-    );
+
+      <View style={styles.divider} />
+
+      <View style={styles.leadMetaRow}>
+        <View style={styles.metaItem}>
+          <MaterialCommunityIcons name="source-branch" size={14} color={colors.textMuted} />
+          <Text style={styles.metaText}>{lead.source}</Text>
+        </View>
+        <View style={styles.metaItem}>
+          <MaterialCommunityIcons name="calendar-outline" size={14} color={colors.textMuted} />
+          <Text style={styles.metaText}>{lead.lead_date_label}</Text>
+        </View>
+        <View style={styles.metaItem}>
+          <MaterialCommunityIcons name="account-group-outline" size={14} color={colors.textMuted} />
+          <Text style={styles.metaText}>{lead.group?.name || 'No Group'}</Text>
+        </View>
+      </View>
+
+      <View style={styles.tagsRow}>
+        {lead.tag && (
+          <View style={[styles.tagBadge, { backgroundColor: `${lead.tag.tag_color}15`, borderColor: `${lead.tag.tag_color}30` }]}>
+            <View style={[styles.tagDot, { backgroundColor: lead.tag.tag_color }]} />
+            <Text style={[styles.tagLabel, { color: lead.tag.tag_color }]}>{lead.tag.name}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.cardActions}>
+        {isActive ? (
+          <>
+            <Pressable style={styles.primaryAction} onPress={onConvertPress} disabled={isConverting || isArchiving}>
+              {isConverting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="account-convert" size={16} color="#FFFFFF" />
+                  <Text style={styles.primaryActionText}>Convert</Text>
+                </>
+              )}
+            </Pressable>
+            <Pressable style={styles.whiteAction} onPress={onToggleArchive} disabled={isArchiving || isConverting}>
+              {isArchiving ? (
+                <ActivityIndicator size="small" color={colors.textPrimary} />
+              ) : (
+                <Text style={styles.whiteActionText}>Archive</Text>
+              )}
+            </Pressable>
+          </>
+        ) : (
+          <Pressable style={styles.darkAction} onPress={onToggleArchive} disabled={isArchiving}>
+            {isArchiving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.darkActionText}>Unarchive</Text>
+            )}
+          </Pressable>
+        )}
+
+        <View style={styles.secondaryActions}>
+          <Pressable style={styles.iconAction} onPress={onEditPress}>
+            <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.textSecondary} />
+          </Pressable>
+          <Pressable style={[styles.iconAction, styles.deleteAction]} onPress={onDeletePress}>
+            <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.danger || "#E11D48"} />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
 }
 
 export default function LeadsScreen() {
-  const { colors } = useAppTheme();
+  const { colors, theme } = useAppTheme();
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -225,7 +225,7 @@ export default function LeadsScreen() {
   const [isSelectionModalVisible, setSelectionModalVisible] = useState(false);
   const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
   const [selectionTitle, setSelectionTitle] = useState('');
-  const [onSelectHandler, setOnSelectHandler] = useState<(opt: string) => void>(() => {});
+  const [onSelectHandler, setOnSelectHandler] = useState<(opt: string) => void>(() => { });
 
   const openSelection = (title: string, options: string[], onSelect: (opt: string) => void) => {
     setSelectionTitle(title);
@@ -321,9 +321,9 @@ export default function LeadsScreen() {
     if (!accessToken) return;
     try {
       setConvertingLeadId(lead.id);
-      await updateCRMLead(accessToken, lead.id, { 
-        status: 1, 
-        lead_date_label: 'Converted' 
+      await updateCRMLead(accessToken, lead.id, {
+        status: 1,
+        lead_date_label: 'Converted'
       });
       await refetchLeads();
       Alert.alert('Success', 'Lead converted successfully.');
@@ -479,11 +479,11 @@ export default function LeadsScreen() {
               style={[styles.hotFilterBtn, isHotFilterActive && styles.hotFilterBtnActive]}
               onPress={() => setHotFilterActive(!isHotFilterActive)}
             >
-              <MaterialCommunityIcons 
-                name="fire" 
-                size={16} 
-                color={isHotFilterActive ? "#FF6B00" : colors.textSecondary} 
-                style={{ marginRight: 4 }} 
+              <MaterialCommunityIcons
+                name="fire"
+                size={16}
+                color={isHotFilterActive ? "#FF6B00" : colors.textSecondary}
+                style={{ marginRight: 4 }}
               />
               <Text style={[styles.hotFilterText, isHotFilterActive && { color: '#FFFFFF' }]}>
                 Hot Leads
@@ -746,6 +746,37 @@ export default function LeadsScreen() {
                 onChangeText={(text) => setPhone(text)}
                 onChangeFormattedText={(text) => setFormattedPhone(text)}
                 onChangeCountry={(country) => setCountryCode(country.cca2 as any)}
+                withDarkTheme={theme === 'dark'}
+                countryPickerProps={{
+                  withFilter: true,
+                  withAlphaFilter: true,
+                  theme: theme === 'dark' ? {
+                    backgroundColor: '#000000',
+                    onBackgroundTextColor: '#FFFFFF',
+                    fontSize: 15,
+                    filterPlaceholderTextColor: '#94A3B8',
+                  } : {
+                    backgroundColor: '#FFFFFF',
+                    onBackgroundTextColor: '#0F172A',
+                    fontSize: 15,
+                    filterPlaceholderTextColor: '#64748B',
+                  },
+                  modalProps: {
+                    statusBarTranslucent: true,
+                  },
+                  closeButtonStyle: {
+                    marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                  },
+                  filterProps: {
+                    placeholderTextColor: theme === 'dark' ? '#94A3B8' : '#64748B',
+                    style: {
+                      color: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+                      fontSize: 15,
+                      flex: 1,
+                      marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                    }
+                  }
+                }}
               />
             </View>
 
@@ -784,8 +815,8 @@ export default function LeadsScreen() {
                   style={styles.convertDropdown}
                   onPress={() => {
                     openSelection(
-                      'Select Group', 
-                      ([...(crmMeta?.groups.map(g => g.name) || []), 'Custom Group...']), 
+                      'Select Group',
+                      ([...(crmMeta?.groups.map(g => g.name) || []), 'Custom Group...']),
                       (opt) => {
                         setEditGroup(opt);
                         if (opt !== 'Custom Group...') {
@@ -825,8 +856,8 @@ export default function LeadsScreen() {
                   style={styles.convertDropdown}
                   onPress={() => {
                     openSelection(
-                      'Select Tag', 
-                      ([...(crmMeta?.tags.map(t => t.name) || []), 'Custom Tag...']), 
+                      'Select Tag',
+                      ([...(crmMeta?.tags.map(t => t.name) || []), 'Custom Tag...']),
                       (opt) => {
                         setEditTag(opt);
                         if (opt !== 'Custom Tag...') {
@@ -884,8 +915,8 @@ export default function LeadsScreen() {
             <Pressable style={styles.convertCancelBtn} onPress={() => { setIsEditModalVisible(false); setLeadToEdit(null); }}>
               <Text style={styles.convertCancelBtnText}>Cancel</Text>
             </Pressable>
-            <Pressable 
-              style={[styles.convertConfirmBtn, isSavingLead && { opacity: 0.7 }]} 
+            <Pressable
+              style={[styles.convertConfirmBtn, isSavingLead && { opacity: 0.7 }]}
               onPress={handleSaveLead}
               disabled={isSavingLead}
             >
@@ -906,22 +937,22 @@ export default function LeadsScreen() {
             <Pressable style={styles.modalOverlay} onPress={() => setSelectionModalVisible(false)}>
               <View style={[styles.modalContainer, { padding: 0, overflow: 'hidden' }]} onStartShouldSetResponder={() => true} onResponderTerminationRequest={() => false} onTouchEnd={e => e.stopPropagation()}>
                 <View style={{ padding: 24, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <Text style={{ fontSize: 20, fontWeight: '900', color: colors.textPrimary }}>{selectionTitle}</Text>
-                   <Pressable onPress={() => setSelectionModalVisible(false)}>
-                     <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
-                   </Pressable>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: colors.textPrimary }}>{selectionTitle}</Text>
+                  <Pressable onPress={() => setSelectionModalVisible(false)}>
+                    <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+                  </Pressable>
                 </View>
                 <ScrollView style={{ maxHeight: 400 }}>
-                   {selectionOptions.map((opt) => (
-                      <Pressable 
-                        key={opt} 
-                        style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                        onPress={() => onSelectHandler(opt)}
-                      >
-                         <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary }}>{opt}</Text>
-                         <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
-                      </Pressable>
-                   ))}
+                  {selectionOptions.map((opt) => (
+                    <Pressable
+                      key={opt}
+                      style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                      onPress={() => onSelectHandler(opt)}
+                    >
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary }}>{opt}</Text>
+                      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+                    </Pressable>
+                  ))}
                 </ScrollView>
               </View>
             </Pressable>

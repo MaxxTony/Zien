@@ -31,8 +31,8 @@ const PROPERTIES = [
 
 export default function DealsScreen() {
   const { colors } = useAppTheme();
-  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
+  const styles = getStyles(colors, insets);
   const router = useRouter();
   const { accessToken } = useAuth();
 
@@ -433,6 +433,7 @@ export default function DealsScreen() {
           visible={isStagesModalVisible}
           animationType="slide"
           presentationStyle="pageSheet"
+          statusBarTranslucent
           onRequestClose={() => setIsStagesModalVisible(false)}
         >
           <View style={styles.modalContainer}>
@@ -510,6 +511,7 @@ export default function DealsScreen() {
           visible={isModalVisible}
           animationType="slide"
           presentationStyle="pageSheet"
+          statusBarTranslucent
           onRequestClose={() => setIsModalVisible(false)}
         >
           <View style={styles.modalContainer}>
@@ -805,6 +807,7 @@ export default function DealsScreen() {
           visible={isAutoTriggerModalVisible}
           animationType="slide"
           presentationStyle="pageSheet"
+          statusBarTranslucent
           onRequestClose={() => setIsAutoTriggerModalVisible(false)}
         >
           <View style={styles.modalContainer}>
@@ -920,7 +923,7 @@ export default function DealsScreen() {
   );
 }
 
-function getStyles(colors: any) {
+function getStyles(colors: any, insets: any) {
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -1129,6 +1132,7 @@ function getStyles(colors: any) {
     modalContainer: {
       flex: 1,
       backgroundColor: colors.cardBackground,
+      paddingTop: Platform.OS === 'android' ? insets.top : 0,
     },
     modalHeader: {
       flexDirection: 'row',
@@ -1161,6 +1165,7 @@ function getStyles(colors: any) {
     },
     modalContent: {
       padding: 24,
+      paddingBottom: insets.bottom + 100,
     },
     inputGroup: {
       marginBottom: 24,

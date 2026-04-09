@@ -182,6 +182,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
     <Modal
       visible={visible}
       transparent
+      statusBarTranslucent
       animationType="slide"
       onRequestClose={onClose}
     >
@@ -264,6 +265,36 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
                   withDarkTheme={theme === 'dark'}
+                  countryPickerProps={{
+                    withFilter: true,
+                    withAlphaFilter: true,
+                    theme: theme === 'dark' ? {
+                      backgroundColor: '#000000',
+                      onBackgroundTextColor: '#FFFFFF',
+                      fontSize: 15,
+                      filterPlaceholderTextColor: '#94A3B8',
+                    } : {
+                      backgroundColor: '#FFFFFF',
+                      onBackgroundTextColor: '#0F172A',
+                      fontSize: 15,
+                      filterPlaceholderTextColor: '#64748B',
+                    },
+                    modalProps: {
+                      statusBarTranslucent: true,
+                    },
+                    closeButtonStyle: {
+                      marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                    },
+                    filterProps: {
+                      placeholderTextColor: theme === 'dark' ? '#94A3B8' : '#64748B',
+                      style: {
+                        color: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+                        fontSize: 15,
+                        flex: 1,
+                        marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                      }
+                    }
+                  }}
                 />
                 {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
               </View>

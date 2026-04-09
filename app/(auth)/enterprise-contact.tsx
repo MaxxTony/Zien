@@ -111,9 +111,11 @@ export default function EnterpriseContactScreen() {
     <AuthScreenBackground colors={['#041c32', '#061320', '#040d16']}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top, paddingBottom: 250 }]}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior='automatic'
+        >
 
           <View style={styles.topBackButtonRow}>
             <Pressable style={styles.topBackButton} onPress={() => router.back()} hitSlop={12}>
@@ -216,7 +218,7 @@ export default function EnterpriseContactScreen() {
                       layout="second"
                       onChangeText={onChange}
                       onChangeFormattedText={onChange}
-                      withDarkTheme={false}
+                      withDarkTheme={theme === 'dark'}
                       withShadow={false}
                       autoFocus={false}
                       containerStyle={[styles.phoneContainer, !!errors.phone && { borderColor: '#ef4444' }]}
@@ -226,30 +228,43 @@ export default function EnterpriseContactScreen() {
                       flagButtonStyle={styles.phoneFlagButton}
                       placeholder="Phone number"
                       countryPickerProps={{
-                        modalProps: {
-                          statusBarTranslucent: false,
-                        },
                         withFilter: true,
                         withAlphaFilter: true,
-                        filterProps: {
-                          autoFocus: true,
-                          placeholder: 'Enter country name',
-                          style: { 
-                            flex: 1, 
-                            height: 48, 
-                            color: '#0F172A',
-                            fontSize: 15,
-                            textAlignVertical: 'center',
-                          },
-                        },
-                        theme: {
+                        theme: theme === 'dark' ? {
+                          backgroundColor: '#000000',
+                          onBackgroundTextColor: '#FFFFFF',
+                          fontSize: 15,
+                          filterPlaceholderTextColor: '#94A3B8',
+                          activeOpacity: 0.7,
+                          itemHeight: 55,
+                          flagSize: 20,
+                        } : {
                           backgroundColor: '#FFFFFF',
-                          onBackground: '#0F172A',
+                          onBackgroundTextColor: '#0F172A',
                           fontSize: 15,
                           filterPlaceholderTextColor: '#64748B',
                           activeOpacity: 0.7,
                           itemHeight: 55,
                           flagSize: 20,
+                        },
+                        modalProps: {
+                          statusBarTranslucent: true,
+                        },
+                        closeButtonStyle: {
+                          marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                        },
+                        filterProps: {
+                          autoFocus: true,
+                          placeholder: 'Enter country name',
+                          placeholderTextColor: theme === 'dark' ? '#94A3B8' : '#64748B',
+                          style: {
+                            flex: 1,
+                            height: 48,
+                            color: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+                            fontSize: 15,
+                            textAlignVertical: 'center',
+                            marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                          },
                         },
                       }}
                     />

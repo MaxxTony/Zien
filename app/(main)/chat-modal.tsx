@@ -246,8 +246,8 @@ export default function ChatModalScreen() {
             {/* ── Body ── */}
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
                 <View style={styles.body}>
 
@@ -289,7 +289,7 @@ export default function ChatModalScreen() {
                         inputFocused && styles.inputBarFocused,
                     ]}>
                         <TextInput
-                            placeholder={isAiTyping ? 'Zien is thinking…' : 'Ask Zien to find properties, create content, or manage leads...'}
+                            placeholder={isAiTyping ? 'Zien is thinking…' : 'Ask Zien to find properties'}
                             placeholderTextColor={colors.inputPlaceholder}
                             style={styles.input}
                             value={isAiTyping ? '' : inputText}

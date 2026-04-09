@@ -34,7 +34,7 @@ type PlanId = 'pro-agent' | 'starter' | 'team';
 export default function SoloOnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colors } = useAppTheme();
+  const { colors, theme } = useAppTheme();
   const styles = getStyles(colors, insets);
   const { login, logout, accessToken } = useAuth();
   const { isCompleting } = useLocalSearchParams();
@@ -72,7 +72,7 @@ export default function SoloOnboardingScreen() {
 
     if (currentStep === 1) {
       const nameRegex = /^[A-Za-z\s.-]+$/;
-      
+
       if (!formData.firstName.trim()) {
         newErrors.firstName = 'First name is required';
       } else if (!nameRegex.test(formData.firstName)) {
@@ -108,7 +108,7 @@ export default function SoloOnboardingScreen() {
       const genericRegex = /^[A-Za-z\s.-]+$/;
 
       if (!formData.licenseNumber.trim()) newErrors.licenseNumber = 'License number is required';
-      
+
       if (!formData.primaryMarket.trim()) {
         newErrors.primaryMarket = 'Primary market is required';
       } else if (!genericRegex.test(formData.primaryMarket)) {
@@ -282,7 +282,6 @@ export default function SoloOnboardingScreen() {
                   onChangeText={(text) => updateField('phone', text)}
                   onChangeFormattedText={(text) => {
                     setFormattedPhone(text);
-                    // Basic extraction of country code from formatted text (e.g. "+1 234...")
                     if (text.startsWith('+')) {
                       const code = text.split(' ')[0];
                       if (code) setCountryCode(code);
@@ -297,13 +296,36 @@ export default function SoloOnboardingScreen() {
                   codeTextStyle={styles.phoneCodeText}
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
-                  withDarkTheme={true}
+                  withDarkTheme={theme === 'dark'}
                   countryPickerProps={{
-
                     withFilter: true,
                     withAlphaFilter: true,
-
-
+                    theme: theme === 'dark' ? {
+                      backgroundColor: '#000000',
+                      onBackgroundTextColor: '#FFFFFF',
+                      fontSize: 16,
+                      filterPlaceholderTextColor: '#94A3B8',
+                    } : {
+                      backgroundColor: '#FFFFFF',
+                      onBackgroundTextColor: '#0F172A',
+                      fontSize: 16,
+                      filterPlaceholderTextColor: '#64748B',
+                    },
+                    modalProps: {
+                      statusBarTranslucent: true,
+                    },
+                    closeButtonStyle: {
+                      marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                    },
+                    filterProps: {
+                      placeholderTextColor: theme === 'dark' ? '#94A3B8' : '#64748B',
+                      style: {
+                        marginTop: Platform.OS === 'android' ? insets.top + 10 : 0,
+                        color: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+                        fontSize: 16,
+                        flex: 1,
+                      }
+                    }
                   }}
                 />
 
@@ -742,9 +764,10 @@ export default function SoloOnboardingScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            (showSuccess || isCompletingCheckout) && { justifyContent: 'center' }
+            (showSuccess || isCompletingCheckout) && { justifyContent: 'center', }
           ]}
           keyboardShouldPersistTaps="handled"
+
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
@@ -800,8 +823,8 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: colors.screenPadding,
-    paddingTop: Math.max(insets.top, 10),
-    paddingBottom: Math.max(insets.bottom, 40),
+    paddingTop: insets.top,
+    paddingBottom: insets.bottom,
   },
   topNav: {
     flexDirection: 'row',

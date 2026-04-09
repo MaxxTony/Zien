@@ -69,6 +69,7 @@ export const QuickFilterModal: React.FC<QuickFilterModalProps> = ({
     <Modal
       visible={visible}
       transparent
+      statusBarTranslucent
       animationType="slide"
       onRequestClose={onClose}
     >

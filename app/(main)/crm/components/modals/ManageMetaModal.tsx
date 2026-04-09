@@ -113,6 +113,7 @@ export const ManageMetaModal: React.FC<ManageMetaModalProps> = ({ visible, onClo
     <Modal
       visible={visible}
       transparent
+      statusBarTranslucent
       animationType="slide"
       onRequestClose={onClose}>
       <View style={[styles.fullPageModal, { paddingTop: insets.top }]}>
