@@ -1,12 +1,26 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
+import {
+  addCRMAutomation,
+  CRMAutomation,
+  deleteCRMAutomation,
+  getCRMAutomations,
+  getCRMMeta,
+  getCRMTemplates,
+  updateCRMAutomationStatus
+} from '@/services/crmService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,60 +29,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface AutomationRule {
-  id: string;
-  name: string;
-  category: string;
-  source: string;
-  timing: string;
-  status: 'ACTIVE' | 'PAUSED';
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-}
-
 interface IntelligentFlow {
   id: string;
   title: string;
   subtitle: string;
 }
-
-const RULES_DATA: AutomationRule[] = [
-  {
-    id: '1',
-    name: 'New Lead Welcome',
-    category: 'WELCOME',
-    source: 'ALL LEAD SOURCES',
-    timing: 'Immediate',
-    status: 'ACTIVE',
-    icon: 'account-plus-outline',
-  },
-  {
-    id: '2',
-    name: 'High-Value Heat Alert',
-    category: 'URGENT',
-    source: 'HIGH INTENT LEADS',
-    timing: 'Real-time',
-    status: 'ACTIVE',
-    icon: 'lightning-bolt-outline',
-  },
-  {
-    id: '3',
-    name: 'Stale Contact Nudge',
-    category: 'RETENTION',
-    source: 'COLD LEADS',
-    timing: 'After 14d',
-    status: 'PAUSED',
-    icon: 'clock-outline',
-  },
-  {
-    id: '4',
-    name: 'Open House Follow-up',
-    category: 'ENGAGEMENT',
-    source: 'OPEN HOUSE VISITORS',
-    timing: 'Within 5m',
-    status: 'ACTIVE',
-    icon: 'overscan',
-  },
-];
 
 const FLOWS_DATA: IntelligentFlow[] = [
   { id: '1', title: 'Instant SMS Follow-up on New Lead', subtitle: 'Boosts engagement by 40%' },
@@ -80,18 +45,22 @@ const FLOWS_DATA: IntelligentFlow[] = [
 
 export default function CRM_AutomationsScreen() {
   const { colors } = useAppTheme();
+  const { accessToken } = useAuth();
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const [rules, setRules] = useState<AutomationRule[]>(RULES_DATA);
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
   const [aiAssistantVisible, setAiAssistantVisible] = useState(false);
   const [ruleIdentity, setRuleIdentity] = useState('');
   const [targetSegment, setTargetSegment] = useState('All Leads');
+  const [targetSegmentId, setTargetSegmentId] = useState<string | number | null>(null);
+  const [targetSegmentType, setTargetSegmentType] = useState<'all' | 'group' | 'tag'>('all');
   const [segmentPickerVisible, setSegmentPickerVisible] = useState(false);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
 
   const [flowModalVisible, setFlowModalVisible] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<IntelligentFlow | null>(null);
@@ -101,6 +70,88 @@ export default function CRM_AutomationsScreen() {
   const [executionWhen, setExecutionWhen] = useState('Immediate');
   const [automatedAction, setAutomatedAction] = useState('Send Welcome Email');
   const [activePicker, setActivePicker] = useState<'trigger' | 'execution' | 'action' | 'segment' | null>(null);
+
+  // Proposed AI values state
+  const [proposedTrigger, setProposedTrigger] = useState('Heat Index > 85');
+  const [proposedAction, setProposedAction] = useState('Predictive Retargeting SMS');
+  const [proposedReasoning, setProposedReasoning] = useState('Analyzing lead behavior patterns for this segment suggests this trigger will maximize ROI.');
+
+  // Add Mutation
+  const addMutation = useMutation({
+    mutationFn: (newRule: Omit<CRMAutomation, 'id' | 'user_id' | 'created_at' | 'updated_at'>) =>
+      addCRMAutomation(accessToken!, newRule),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-automations'] });
+      setCreateRuleVisible(false);
+      setFlowModalVisible(false);
+      setAiAssistantVisible(false);
+      // Reset form
+      setRuleIdentity('');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to create automation');
+    }
+  });
+
+  // Fetch Automations
+  const {
+    data: automations = [],
+    isLoading,
+    refetch,
+    isRefetching
+  } = useQuery({
+    queryKey: ['crm-automations'],
+    queryFn: () => getCRMAutomations(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  const handleRefresh = async () => {
+    setManualRefreshing(true);
+    await refetch();
+    setManualRefreshing(false);
+  };
+
+  // Fetch Meta (Groups/Tags)
+  const { data: metaData } = useQuery({
+    queryKey: ['crm-meta'],
+    queryFn: () => getCRMMeta(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  // Fetch Templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ['crm-templates'],
+    queryFn: () => getCRMTemplates(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [templatePickerVisible, setTemplatePickerVisible] = useState(false);
+
+  // Toggle Status Mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: number }) =>
+      updateCRMAutomationStatus(accessToken!, id, status === 1 ? 0 : 1),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-automations'] });
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to update status');
+    }
+  });
+
+  // Delete Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteCRMAutomation(accessToken!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-automations'] });
+      setConfirmDeleteVisible(false);
+      setRuleToDelete(null);
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to delete automation');
+    }
+  });
 
   const SEGMENTS = [
     'All Leads',
@@ -112,12 +163,11 @@ export default function CRM_AutomationsScreen() {
   ];
 
   const TRIGGER_OPTIONS = [
-    'New Lead Captured',
-    'Heat Index Threshold Met',
-    'Inactivity Threshold Met',
-    'Property Status Change',
-    'Open House QR Scan',
-    'Deal Stage Updated'
+    'Contact Captured',
+    'Lead Captured',
+    'Heat Index > 85',
+    'Deal Stage Updated',
+    'No Activity for 14 Days'
   ];
 
   const EXECUTION_OPTIONS = [
@@ -129,43 +179,69 @@ export default function CRM_AutomationsScreen() {
   ];
 
   const ACTION_OPTIONS = [
-    'Send Welcome Email',
+    'Send Email from Template',
     'Send Follow-up SMS',
     'Assign Agent Task',
     'Apply Contact Tag',
-    'Update Lead Score',
-    'Assign to Luxury Team'
+    'Update Lead Score'
   ];
 
-  const filteredRules = rules.filter(rule =>
-    rule.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredRules = useMemo(() => {
+    return (automations as CRMAutomation[]).filter(rule =>
+      rule.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [automations, searchQuery]);
 
-  const toggleRuleStatus = (id: string) => {
-    setRules(prev => prev.map(rule =>
-      rule.id === id ? { ...rule, status: rule.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE' } : rule
-    ));
+  const toggleRuleStatus = (id: string, currentStatus: number) => {
+    toggleStatusMutation.mutate({ id, status: currentStatus });
   };
 
   const handleFlowPress = (flow: IntelligentFlow) => {
     setSelectedFlow(flow);
+    setRuleIdentity("Generate a workflow for: " + flow.title);
+    setTargetSegment("Cold Database");
+    // Dynamically set based on flow type if needed, or keep these common AI defaults
+    setProposedTrigger("Heat Index > 85");
+    setProposedAction("Predictive Retargeting SMS");
+    setProposedReasoning("Analyzing lead behavior patterns for this segment suggests this trigger will maximize ROI.");
     setFlowModalVisible(true);
   };
 
   const deployAutomation = () => {
-    if (selectedFlow) {
-      const newRule: AutomationRule = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: selectedFlow.title.split(' ').slice(0, 3).join(' '),
-        category: 'AI-GENERATED',
-        source: 'PREMIUM SEGMENT',
-        timing: 'Immediate',
-        status: 'ACTIVE',
-        icon: 'flare',
-      };
-      setRules([newRule, ...rules]);
-      setFlowModalVisible(false);
+    addMutation.mutate({
+      name: ruleIdentity || "Auto-assign Premium Leads to Senior Agents",
+      trigger: proposedTrigger,
+      action: proposedAction,
+      target: targetSegment,
+      execution: "Immediate",
+      reasoning: proposedReasoning,
+      category: "AI-Generated",
+      icon: "Sparkles",
+      status: 1,
+      target_id: null,
+      template_id: null
+    });
+  };
+
+  const handleCreateSave = () => {
+    if (!ruleIdentity.trim()) {
+      Alert.alert('Error', 'Please provide a rule identity (name)');
+      return;
     }
+
+    addMutation.mutate({
+      name: ruleIdentity,
+      trigger: triggerLogic,
+      action: automatedAction === 'Send Email from Template' ? `Email: ${selectedTemplateId}` : automatedAction,
+      status: 1,
+      category: 'Manual',
+      target: targetSegment,
+      // Pass ID and Type if the backend supports it, otherwise name is fine
+      target_id: targetSegmentId?.toString() || null,
+      execution: executionWhen,
+      icon: 'Lightning',
+      template_id: automatedAction === 'Send Email from Template' ? selectedTemplateId : null
+    });
   };
 
   const handleDeletePress = (id: string) => {
@@ -175,52 +251,121 @@ export default function CRM_AutomationsScreen() {
 
   const confirmDelete = () => {
     if (ruleToDelete) {
-      setRules(prev => prev.filter(r => r.id !== ruleToDelete));
-      setConfirmDeleteVisible(false);
-      setRuleToDelete(null);
+      deleteMutation.mutate(ruleToDelete);
     }
   };
 
-  const renderRuleItem = (rule: AutomationRule) => (
-    <View key={rule.id} style={styles.ruleRow}>
-      <View style={styles.ruleIconBox}>
-        <MaterialCommunityIcons name={rule.icon} size={24} color={colors.textPrimary} />
+  const renderRuleItem = (rule: CRMAutomation) => {
+    const isActive = rule.status === 1;
+    const accentColor = isActive ? '#10B981' : colors.textSecondary;
+
+    // Map icon names from API to MaterialCommunityIcons
+    const getIconName = (name: string): any => {
+      switch (name) {
+        case 'Sparkles': return 'flare';
+        case 'Bot': return 'robot-outline';
+        case 'AccountPlus': return 'account-plus-outline';
+        case 'Clock': return 'clock-outline';
+        case 'Lightning': return 'lightning-bolt-outline';
+        default: return 'lightning-bolt';
+      }
+    };
+
+    return (
+      <View key={rule.id} style={styles.premiumCard}>
+        <LinearGradient
+          colors={isActive ? ['rgba(16, 185, 129, 0.08)', 'transparent'] : ['rgba(148, 163, 184, 0.05)', 'transparent']}
+          style={styles.cardGradient}
+        >
+          <View style={styles.cardHeaderSmall}>
+            <View style={styles.cardIconBox}>
+              <MaterialCommunityIcons name={getIconName(rule.icon)} size={20} color={accentColor} />
+            </View>
+            <View style={styles.categoryBadge}>
+              <Text style={[styles.categoryText, { color: accentColor }]}>{rule.category?.toUpperCase()}</Text>
+            </View>
+            <View style={{ flex: 1 }} />
+            <Pressable
+              onPress={() => toggleRuleStatus(rule.id, rule.status)}
+              style={styles.switchWrapper}
+            >
+              <Text style={[styles.statusToggleLabel, { color: isActive ? '#10B981' : colors.textSecondary }]}>
+                {isActive ? 'ACTIVE' : 'PAUSED'}
+              </Text>
+              <View style={[
+                styles.customToggleContainer,
+                { backgroundColor: isActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.1)' }
+              ]}>
+                <View style={[
+                  styles.customToggleThumb,
+                  { 
+                    backgroundColor: isActive ? '#10B981' : '#94A3B8',
+                    transform: [{ translateX: isActive ? 20 : 2 }]
+                  }
+                ]} />
+              </View>
+              {toggleStatusMutation.isPending && toggleStatusMutation.variables?.id === rule.id && (
+                <ActivityIndicator 
+                  size="small" 
+                  color={isActive ? '#10B981' : colors.textSecondary} 
+                  style={{ marginLeft: 6 }} 
+                />
+              )}
+            </Pressable>
+          </View>
+
+          <View style={styles.cardMainContent}>
+            <Text style={styles.premiumRuleName}>{rule.name}</Text>
+
+            <View style={styles.logicFlowContainer}>
+              <View style={styles.logicStep}>
+                <View style={styles.logicIndicator}>
+                  <Text style={styles.logicLabelSmall}>IF</Text>
+                </View>
+                <View style={styles.logicContent}>
+                  <Text style={styles.logicTitle}>Trigger Condition</Text>
+                  <Text style={styles.logicValue} numberOfLines={1}>{rule.trigger}</Text>
+                </View>
+              </View>
+
+              <View style={styles.logicConnector}>
+                <View style={styles.connectorLine} />
+              </View>
+
+              <View style={styles.logicStep}>
+                <View style={[styles.logicIndicator, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                  <Text style={[styles.logicLabelSmall, { color: '#3B82F6' }]}>THEN</Text>
+                </View>
+                <View style={styles.logicContent}>
+                  <Text style={styles.logicTitle}>Automated Action</Text>
+                  <Text style={styles.logicValue} numberOfLines={1}>{rule.action}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.cardFooterPremium}>
+            <View style={styles.footerInfoBox}>
+              <MaterialCommunityIcons name="target" size={12} color={colors.textSecondary} />
+              <Text style={styles.footerInfoText} numberOfLines={1}>{rule.target}</Text>
+            </View>
+            <View style={styles.footerDivider} />
+            <View style={styles.footerInfoBox}>
+              <MaterialCommunityIcons name="timer-outline" size={12} color={colors.textSecondary} />
+              <Text style={styles.footerInfoText}>{rule.execution}</Text>
+            </View>
+            <View style={{ flex: 1 }} />
+            <Pressable
+              style={styles.trashBtn}
+              onPress={() => handleDeletePress(rule.id)}
+            >
+              <MaterialCommunityIcons name="delete-outline" size={18} color="#EF4444" />
+            </Pressable>
+          </View>
+        </LinearGradient>
       </View>
-
-      <View style={styles.ruleContent}>
-        <View style={styles.ruleMainRow}>
-          <Text style={styles.ruleName} numberOfLines={2}>{rule.name}</Text>
-          <Pressable onPress={() => handleDeletePress(rule.id)} hitSlop={12} style={styles.trashBtnSmall}>
-            <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
-          </Pressable>
-        </View>
-
-        <View style={styles.ruleSubRow}>
-          <View style={styles.ruleTimingInline}>
-            <MaterialCommunityIcons name="clock-outline" size={12} color="#94A3B8" />
-            <Text style={styles.timingTextInline}>{rule.timing}</Text>
-          </View>
-          <Pressable
-            style={[styles.statusBtnCompact, rule.status === 'PAUSED' && styles.statusBtnPausedCompact]}
-            onPress={() => toggleRuleStatus(rule.id)}
-          >
-            <Text style={[styles.statusBtnTextCompact, rule.status === 'PAUSED' && styles.statusBtnTextPausedCompact]}>
-              {rule.status}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.tagRowPremium}>
-          <View style={styles.categoryTagSoft}>
-            <Text style={styles.categoryTagTextSoft}>{rule.category}</Text>
-          </View>
-          <View style={styles.sourceTagSoft}>
-            <Text style={styles.sourceTagTextSoft}>{rule.source}</Text>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <LinearGradient
@@ -239,47 +384,71 @@ export default function CRM_AutomationsScreen() {
         style={styles.content}
         contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={manualRefreshing} onRefresh={handleRefresh} tintColor="#0BA0B2" />
+        }
       >
-        {/* Action Buttons */}
-        <View style={styles.actionHeader}>
+        {/* Floating Action Area */}
+        <View style={styles.floatingActionArea}>
           <Pressable
-            style={styles.aiRuleBtn}
+            style={styles.floatingAiBtn}
             onPress={() => setAiAssistantVisible(true)}
           >
             <LinearGradient
-              colors={['#E0F7F9', '#FFFFFF']}
+              colors={['#0BA0B2', '#0891B2']}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.aiRuleGradient}
+              end={{ x: 1, y: 1 }}
+              style={styles.floatingAiGradient}
             >
-              <Text style={styles.aiRuleText}>AI rule</Text>
+              <MaterialCommunityIcons name="robot-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.floatingAiText}>AI Rule</Text>
             </LinearGradient>
           </Pressable>
 
           <Pressable
-            style={styles.createRuleBtn}
+            style={styles.floatingCreateBtn}
             onPress={() => setCreateRuleVisible(true)}
           >
-            <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
-            <Text style={styles.createRuleText}>Create Rule</Text>
+            <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+            <Text style={styles.floatingCreateText}>Create Rule</Text>
           </Pressable>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search CRM rules..."
-            placeholderTextColor="#94A3B8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+        {/* Search Bar Modernized */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchBar}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search automation rules..."
+              placeholderTextColor="#94A3B8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery !== '' && (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <MaterialCommunityIcons name="close-circle" size={18} color="#94A3B8" />
+              </Pressable>
+            )}
+          </View>
         </View>
 
         {/* Rules List */}
         <View style={styles.rulesList}>
-          {filteredRules.map(renderRuleItem)}
+          {isLoading && !isRefetching ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#0BA0B2" />
+              <Text style={styles.loadingText}>Fetching intelligence flows...</Text>
+            </View>
+          ) : filteredRules.length === 0 ? (
+            <View style={styles.centerContainer}>
+              <MaterialCommunityIcons name="robot-off-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyText}>No automation rules found</Text>
+              <Text style={styles.emptySubtext}>Create one or use Zien Assistant to get started.</Text>
+            </View>
+          ) : (
+            filteredRules.map(renderRuleItem)
+          )}
         </View>
 
         {/* Autonomous Impact Card */}
@@ -313,7 +482,7 @@ export default function CRM_AutomationsScreen() {
               key={flow.id}
               style={styles.flowRow}
               onPress={() => handleFlowPress(flow)}
-            >0
+            >
               <View style={styles.flowIconBox}>
                 <MaterialCommunityIcons name="dots-hexagon" size={20} color="#0BA0B2" />
               </View>
@@ -418,7 +587,10 @@ export default function CRM_AutomationsScreen() {
             <View style={styles.modalFooter}>
               <Pressable
                 style={styles.generateBtn}
-                onPress={() => setAiAssistantVisible(false)}
+                onPress={() => {
+                  setAiAssistantVisible(false);
+                  setFlowModalVisible(true);
+                }}
               >
                 <LinearGradient
                   colors={['#475569', '#1E293B']}
@@ -475,12 +647,14 @@ export default function CRM_AutomationsScreen() {
                       style={styles.fieldInput}
                       placeholder="e.g. VIP Concierge Follow-up"
                       placeholderTextColor="#94A3B8"
+                      value={ruleIdentity}
+                      onChangeText={setRuleIdentity}
                     />
                   </View>
                 </View>
 
                 {/* Trigger Logic */}
-                <View style={[styles.assistantField, { zIndex: 50 }]}>
+                <View style={[styles.assistantField, { zIndex: activePicker === 'trigger' ? 9999 : 50 }]}>
                   <Text style={styles.fieldLabel}>TRIGGER LOGIC (IF)</Text>
                   <Pressable
                     style={styles.segmentPickerTrigger}
@@ -514,7 +688,7 @@ export default function CRM_AutomationsScreen() {
                 </View>
 
                 {/* Execution Timing */}
-                <View style={[styles.assistantField, { zIndex: 40 }]}>
+                <View style={[styles.assistantField, { zIndex: activePicker === 'execution' ? 9999 : 40 }]}>
                   <Text style={styles.fieldLabel}>EXECUTION (WHEN)</Text>
                   <Pressable
                     style={styles.segmentPickerTrigger}
@@ -547,42 +721,90 @@ export default function CRM_AutomationsScreen() {
                   )}
                 </View>
 
-                {/* Automated Action */}
-                <View style={[styles.assistantField, { zIndex: 30 }]}>
-                  <Text style={styles.fieldLabel}>AUTOMATED ACTION (THEN)</Text>
-                  <Pressable
-                    style={styles.segmentPickerTrigger}
-                    onPress={() => setActivePicker(activePicker === 'action' ? null : 'action')}
-                  >
-                    <Text style={styles.segmentValue}>{automatedAction}</Text>
-                    <MaterialCommunityIcons
-                      name={activePicker === 'action' ? "chevron-up" : "chevron-down"}
-                      size={20}
-                      color={colors.textPrimary}
-                    />
-                  </Pressable>
-                  {activePicker === 'action' && (
-                    <View style={[styles.segmentDropdown, { top: 90 }]}>
-                      <ScrollView style={{ maxHeight: 200 }} bounces={false}>
-                        {ACTION_OPTIONS.map(opt => (
-                          <Pressable
-                            key={opt}
-                            style={styles.segmentOption}
-                            onPress={() => { setAutomatedAction(opt); setActivePicker(null); }}
-                          >
-                            <View style={styles.optionContent}>
-                              <Text style={[styles.optionText, automatedAction === opt && styles.optionTextSelected]}>{opt}</Text>
-                              {automatedAction === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
-                            </View>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
+                {/* Action and Template Split Row */}
+                <View style={{ zIndex: (activePicker === 'action' || templatePickerVisible) ? 9999 : 30 }}>
+
+                  <View style={[styles.assistantField, { flex: 1 }]}>
+                    <Text style={styles.fieldLabel}>AUTOMATED ACTION (THEN)</Text>
+                    <Pressable
+                      style={styles.segmentPickerTrigger}
+                      onPress={() => setActivePicker(activePicker === 'action' ? null : 'action')}
+                    >
+                      <Text style={styles.segmentValue} numberOfLines={1}>{automatedAction}</Text>
+                      <MaterialCommunityIcons
+                        name={activePicker === 'action' ? "chevron-up" : "chevron-down"}
+                        size={20}
+                        color={colors.textPrimary}
+                      />
+                    </Pressable>
+                    {activePicker === 'action' && (
+                      <View style={[styles.segmentDropdown, { top: 90 }]}>
+                        <ScrollView style={{ maxHeight: 200 }} bounces={false}>
+                          {ACTION_OPTIONS.map(opt => (
+                            <Pressable
+                              key={opt}
+                              style={styles.segmentOption}
+                              onPress={() => {
+                                setAutomatedAction(opt);
+                                setActivePicker(null);
+                              }}
+                            >
+                              <View style={styles.optionContent}>
+                                <Text style={[styles.optionText, automatedAction === opt && styles.optionTextSelected]}>{opt}</Text>
+                                {automatedAction === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
+                              </View>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Template Specific Picker (if Email from Template selected) */}
+                  {automatedAction === 'Send Email from Template' && (
+                    <View style={[styles.assistantField, { flex: 1 }]}>
+                      <Text style={styles.fieldLabel}>EMAIL TEMPLATE</Text>
+                      <Pressable
+                        style={styles.segmentPickerTrigger}
+                        onPress={() => setTemplatePickerVisible(!templatePickerVisible)}
+                      >
+                        <Text style={styles.segmentValue} numberOfLines={1}>
+                          {templates.find(t => t.id === selectedTemplateId)?.name || 'Choose...'}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name={templatePickerVisible ? "chevron-up" : "chevron-down"}
+                          size={20}
+                          color={colors.textPrimary}
+                        />
+                      </Pressable>
+                      {templatePickerVisible && (
+                        <View style={[styles.segmentDropdown, { top: 90 }]}>
+                          <ScrollView style={{ maxHeight: 200 }} bounces={false}>
+                            {templates.map(t => (
+                              <Pressable
+                                key={t.id}
+                                style={styles.segmentOption}
+                                onPress={() => {
+                                  setSelectedTemplateId(t.id);
+                                  setTemplatePickerVisible(false);
+                                }}
+                              >
+                                <View style={styles.optionContent}>
+                                  <Text style={[styles.optionText, selectedTemplateId === t.id && styles.optionTextSelected]}>{t.name}</Text>
+                                  {selectedTemplateId === t.id && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
+                                </View>
+                              </Pressable>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
                     </View>
                   )}
+
                 </View>
 
                 {/* Target Segment */}
-                <View style={[styles.assistantField, { zIndex: 20 }]}>
+                <View style={[styles.assistantField, { zIndex: activePicker === 'segment' ? 9999 : 10 }]}>
                   <Text style={styles.fieldLabel}>TARGET SEGMENT</Text>
                   <Pressable
                     style={styles.segmentPickerTrigger}
@@ -596,20 +818,78 @@ export default function CRM_AutomationsScreen() {
                     />
                   </Pressable>
                   {activePicker === 'segment' && (
-                    <View style={[styles.segmentDropdown, { top: 90 }]}>
-                      <ScrollView style={{ maxHeight: 200 }} bounces={false}>
-                        {SEGMENTS.map(opt => (
-                          <Pressable
-                            key={opt}
-                            style={styles.segmentOption}
-                            onPress={() => { setTargetSegment(opt); setActivePicker(null); }}
-                          >
-                            <View style={styles.optionContent}>
-                              <Text style={[styles.optionText, targetSegment === opt && styles.optionTextSelected]}>{opt}</Text>
-                              {targetSegment === opt && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
-                            </View>
-                          </Pressable>
-                        ))}
+                    <View style={[styles.segmentDropdown, { bottom: 70 }]}>
+                      <ScrollView style={{ maxHeight: 300 }} bounces={false}>
+                        {/* Static Options */}
+                        <Pressable
+                          style={styles.segmentOption}
+                          onPress={() => {
+                            setTargetSegment('All Leads');
+                            setTargetSegmentId(null);
+                            setTargetSegmentType('all');
+                            setActivePicker(null);
+                          }}
+                        >
+                          <View style={styles.optionContent}>
+                            <Text style={[styles.optionText, targetSegment === 'All Leads' && styles.optionTextSelected]}>All Leads</Text>
+                            {targetSegment === 'All Leads' && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
+                          </View>
+                        </Pressable>
+
+                        {/* Groups */}
+                        {metaData?.groups && metaData.groups.length > 0 && (
+                          <View style={styles.dropdownCategory}>
+                            <Text style={styles.dropdownCategoryText}>Groups</Text>
+                            {metaData.groups.map(group => (
+                              <Pressable
+                                key={`group-${group.id}`}
+                                style={styles.segmentOption}
+                                onPress={() => {
+                                  setTargetSegment(`Group: ${group.name}`);
+                                  setTargetSegmentId(group.id);
+                                  setTargetSegmentType('group');
+                                  setActivePicker(null);
+                                }}
+                              >
+                                <View style={styles.optionContent}>
+                                  <Text style={[styles.optionText, targetSegmentId === group.id && targetSegmentType === 'group' && styles.optionTextSelected]}>
+                                    {group.name}
+                                  </Text>
+                                  {targetSegmentId === group.id && targetSegmentType === 'group' && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
+                                </View>
+                              </Pressable>
+                            ))}
+                          </View>
+                        )}
+
+                        {/* Tags */}
+                        {metaData?.tags && metaData.tags.length > 0 && (
+                          <View style={styles.dropdownCategory}>
+                            <Text style={styles.dropdownCategoryText}>Tags</Text>
+                            {metaData.tags.map(tag => (
+                              <Pressable
+                                key={`tag-${tag.id}`}
+                                style={styles.segmentOption}
+                                onPress={() => {
+                                  setTargetSegment(`Tag: ${tag.name}`);
+                                  setTargetSegmentId(tag.id);
+                                  setTargetSegmentType('tag');
+                                  setActivePicker(null);
+                                }}
+                              >
+                                <View style={styles.optionContent}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tag.tag_color }} />
+                                    <Text style={[styles.optionText, targetSegmentId === tag.id && targetSegmentType === 'tag' && styles.optionTextSelected]}>
+                                      {tag.name}
+                                    </Text>
+                                  </View>
+                                  {targetSegmentId === tag.id && targetSegmentType === 'tag' && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
+                                </View>
+                              </Pressable>
+                            ))}
+                          </View>
+                        )}
                       </ScrollView>
                     </View>
                   )}
@@ -627,9 +907,13 @@ export default function CRM_AutomationsScreen() {
               </Pressable>
               <Pressable
                 style={styles.saveRuleBtn}
-                onPress={() => setCreateRuleVisible(false)}
+                onPress={handleCreateSave}
               >
-                <Text style={styles.saveRuleBtnText}>Save</Text>
+                {addMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveRuleBtnText}>Save</Text>
+                )}
               </Pressable>
             </View>
           </View>
@@ -674,27 +958,32 @@ export default function CRM_AutomationsScreen() {
 
               <View style={styles.proposalDetailRow}>
                 <Text style={styles.proposalLabel}>TRIGGER:</Text>
-                <Text style={styles.proposalValue}>New Lead Captured</Text>
+                <Text style={styles.proposalValue}>{proposedTrigger}</Text>
               </View>
 
               <View style={styles.proposalDetailRow}>
                 <Text style={styles.proposalLabel}>ACTION:</Text>
-                <Text style={styles.proposalValue}>Send Follow-up SMS</Text>
+                <Text style={styles.proposalValue}>{proposedAction}</Text>
               </View>
 
               <View style={styles.proposalDetailRow}>
                 <Text style={styles.proposalLabel}>SEGMENT:</Text>
-                <Text style={styles.proposalValue}>Social Media Leads</Text>
+                <Text style={styles.proposalValue}>{targetSegment}</Text>
               </View>
 
               <View style={styles.logicDivider} />
-              <Text style={styles.logicLabel}>Logic: <Text style={{ fontStyle: 'italic', color: colors.inputPlaceholder }}>""</Text></Text>
+              <Text style={styles.logicLabel}>Logic: <Text style={{ fontStyle: 'italic', color: colors.inputPlaceholder }}>"{proposedReasoning}"</Text></Text>
             </View>
 
             <View style={styles.proposalFooter}>
               <Pressable
                 style={styles.refineBtn}
-                onPress={() => setFlowModalVisible(false)}
+                onPress={() => {
+                  setFlowModalVisible(false);
+                  setRuleIdentity("Generate a workflow for: " + (selectedFlow?.title || "Auto-assign Premium Leads to Senior Agents"));
+                  setTargetSegment("Cold Database");
+                  setAiAssistantVisible(true);
+                }}
               >
                 <Text style={styles.refineBtnText}>Refine Prompt</Text>
               </Pressable>
@@ -703,8 +992,14 @@ export default function CRM_AutomationsScreen() {
                 style={styles.deployBtn}
                 onPress={deployAutomation}
               >
-                <Text style={styles.deployBtnText}>Deploy Automation</Text>
-                <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                {addMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Text style={styles.deployBtnText}>Deploy Automation</Text>
+                    <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                  </>
+                )}
               </Pressable>
             </View>
           </Pressable>
@@ -750,21 +1045,223 @@ function getStyles(colors: any) {
     content: {
       flex: 1,
     },
-    impactCard: {
-      backgroundColor: colors.accentTeal,
-      borderRadius: 24,
-      padding: 24,
-      marginBottom: 20,
+    floatingActionArea: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 24,
+    },
+    floatingAiBtn: {
+      flex: 1,
+      height: 52,
+      borderRadius: 16,
+      overflow: 'hidden',
+      shadowColor: '#0BA0B2',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    floatingAiGradient: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    floatingAiText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    floatingCreateBtn: {
+      flex: 1,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: '#1E293B',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      elevation: 5,
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    floatingCreateText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    searchSection: {
+      marginBottom: 24,
+    },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      height: 52,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    rulesList: {
+      gap: 16,
+      marginBottom: 24,
+    },
+    modernRuleCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 20,
+      flexDirection: 'row',
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 3,
+    },
+    cardSidebar: {
+      width: 6,
+    },
+    modernCardContent: {
+      flex: 1,
+      padding: 16,
+    },
+    modernCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    ruleIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: 'rgba(100, 116, 139, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    ruleTitleContainer: {
+      flex: 1,
+    },
+    modernRuleName: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    ruleMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    ruleCategoryText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    dotSeparator: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      backgroundColor: '#CBD5E1',
+      marginHorizontal: 6,
+    },
+    ruleSourceText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    statusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+      backgroundColor: 'rgba(100, 116, 139, 0.05)',
+      gap: 6,
+    },
+    statusDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    statusPillText: {
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    ruleDetailsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 4,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+    detailItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    detailText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    ruleActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    cardActionBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: 'rgba(100, 116, 139, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    deleteActionBtn: {
+      backgroundColor: 'rgba(239, 68, 68, 0.05)',
+      borderColor: 'rgba(239, 68, 68, 0.1)',
+    },
+    impactCard: {
+      backgroundColor: '#0BA0B2',
+      borderRadius: 24,
+      padding: 24,
+      marginBottom: 24,
+      shadowColor: '#0BA0B2',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.2,
+      shadowRadius: 20,
+      elevation: 8,
     },
     impactTitle: {
       fontSize: 20,
       fontWeight: '900',
       marginBottom: 4,
+      color: '#FFFFFF',
     },
     impactScore: {
       fontSize: 13,
@@ -798,243 +1295,402 @@ function getStyles(colors: any) {
       letterSpacing: 0.5,
     },
     aiInsightBox: {
-      backgroundColor: 'rgba(11, 160, 178, 0.15)',
+      backgroundColor: 'rgba(255,255,255,0.1)',
       padding: 12,
       borderRadius: 12,
-      borderWidth: 1,
-      borderColor: 'rgba(11, 160, 178, 0.3)',
     },
     aiInsightText: {
       fontSize: 12,
       color: '#FFFFFF',
-      lineHeight: 18,
-    },
-    searchContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.cardBackground,
-      borderRadius: 14,
-      paddingHorizontal: 16,
-      height: 52,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      marginBottom: 20,
-    },
-    searchInput: {
-      flex: 1,
-      marginLeft: 10,
-      fontSize: 15,
-      color: colors.textPrimary,
-      fontWeight: '600',
-    },
-    rulesList: {
-      backgroundColor: colors.cardBackground,
-      borderRadius: 32,
-      padding: 24,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      marginBottom: 24,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.04,
-      shadowRadius: 16,
-      elevation: 2,
-    },
-    ruleRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      paddingVertical: 20,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.cardBorder,
-    },
-    ruleIconBox: {
-      width: 48,
-      height: 48,
-      borderRadius: 16,
-      backgroundColor: colors.surfaceSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-    },
-    ruleContent: {
-      flex: 1,
-      marginLeft: 16,
-    },
-    ruleMainRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 8,
-    },
-    ruleSubRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    ruleName: {
-      fontSize: 16,
-      fontWeight: '900',
-      color: colors.textPrimary,
-      flex: 1,
-      marginRight: 12,
-      lineHeight: 22,
-    },
-    trashBtnSmall: {
-      marginTop: 2,
-    },
-    ruleTimingInline: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    timingTextInline: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.inputPlaceholder,
-    },
-    statusBtnCompact: {
-      backgroundColor: colors.accentTeal,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 6,
-      minWidth: 55,
-      alignItems: 'center',
-    },
-    statusBtnPausedCompact: {
-      backgroundColor: colors.surfaceSoft,
-    },
-    statusBtnTextCompact: {
-      fontSize: 10,
-      fontWeight: '900',
-      color: '#FFFFFF',
-      letterSpacing: 0.5,
-    },
-    statusBtnTextPausedCompact: {
-      color: colors.textSecondary,
-    },
-    tagRowPremium: {
-      flexDirection: 'row',
-      gap: 8,
-      marginTop: 10,
-    },
-    categoryTagSoft: {
-      backgroundColor: colors.surfaceSoft,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 6,
-    },
-    categoryTagTextSoft: {
-      fontSize: 10,
-      fontWeight: '800',
-      color: colors.textSecondary,
-      letterSpacing: 0.2,
-    },
-    sourceTagSoft: {
-      backgroundColor: 'rgba(13, 148, 136, 0.1)',
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 6,
-    },
-    sourceTagTextSoft: {
-      fontSize: 10,
-      fontWeight: '800',
-      color: '#0D9488',
-      letterSpacing: 0.2,
+      fontWeight: '500',
     },
     flowsSection: {
-      backgroundColor: colors.cardBackground,
-      borderRadius: 24,
-      padding: 20,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
+      marginBottom: 30,
     },
     sectionTitle: {
       fontSize: 18,
       fontWeight: '900',
       color: colors.textPrimary,
-      marginBottom: 20,
+      marginBottom: 16,
+      letterSpacing: -0.5,
     },
     flowRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.cardBorder,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
     },
     flowIconBox: {
-      width: 40,
-      height: 40,
-      borderRadius: 10,
-      backgroundColor: 'rgba(11, 160, 178, 0.1)',
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: 'rgba(11, 160, 178, 0.08)',
       alignItems: 'center',
       justifyContent: 'center',
+      marginRight: 14,
     },
     flowInfo: {
       flex: 1,
-      marginLeft: 12,
     },
     flowTitle: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '800',
       color: colors.textPrimary,
+      marginBottom: 2,
     },
     flowSubtitle: {
       fontSize: 12,
       color: colors.textSecondary,
-      fontWeight: '500',
-      marginTop: 2,
+      fontWeight: '600',
     },
-    modalOverlay: {
+    fullModalContainer: {
       flex: 1,
-      backgroundColor: 'rgba(15, 23, 42, 0.4)',
-      justifyContent: 'center',
-      alignItems: 'center',
+    },
+    assistantModalContent: {
+      flex: 1,
       padding: 24,
+    },
+    assistantHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 32,
+    },
+    assistantTitle: {
+      fontSize: 28,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -1,
+    },
+    assistantSubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '600',
+      marginTop: 4,
+    },
+    closeBtnSmall: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceSoft || 'rgba(100, 116, 139, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    assistantField: {
+      marginBottom: 24,
+    },
+    fieldLabel: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: colors.textSecondary,
+      letterSpacing: 1.5,
+      marginBottom: 12,
+    },
+    inputContainer: {
+      backgroundColor: colors.surfaceSoft || 'rgba(100, 116, 139, 0.05)',
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      height: 56,
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder || 'rgba(100, 116, 139, 0.1)',
+    },
+    fieldInput: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    segmentPickerTrigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surfaceSoft || 'rgba(100, 116, 139, 0.05)',
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      height: 56,
+      borderWidth: 1,
+      borderColor: colors.cardBorder || 'rgba(100, 116, 139, 0.1)',
+    },
+    segmentValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    segmentDropdown: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 20,
+      padding: 8,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      elevation: 20,
+      zIndex: 1000,
+    },
+    segmentOption: {
+      padding: 12,
+      borderRadius: 12,
+    },
+    optionContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    optionText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    optionTextSelected: {
+      color: '#0BA0B2',
+      fontWeight: '800',
+    },
+    modalFooter: {
+      paddingTop: 16,
+    },
+    generateBtn: {
+      height: 56,
+      borderRadius: 18,
+      overflow: 'hidden',
+    },
+    generateBtnGradient: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    generateBtnText: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      letterSpacing: 1,
+    },
+    createModalFooter: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingTop: 16,
+    },
+    dropdownCategory: {
+      paddingVertical: 8,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    dropdownCategoryText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      paddingHorizontal: 16,
+      marginBottom: 4,
+    },
+    switchWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statusToggleLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+      marginRight: 8,
+    },
+    customToggleContainer: {
+      width: 44,
+      height: 24,
+      borderRadius: 12,
+      justifyContent: 'center',
+      paddingHorizontal: 2,
+    },
+    customToggleThumb: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    discardBtn: {
+      flex: 1,
+      height: 56,
+      borderRadius: 18,
+      backgroundColor: 'rgba(239, 68, 68, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.1)',
+    },
+    discardBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#EF4444',
+    },
+    saveRuleBtn: {
+      flex: 2,
+      height: 56,
+      borderRadius: 18,
+      backgroundColor: '#1E293B',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+    },
+    saveRuleBtnText: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      letterSpacing: 1,
     },
     bottomOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(15, 23, 42, 0.4)',
+      backgroundColor: 'rgba(15, 23, 42, 0.6)',
       justifyContent: 'flex-end',
+    },
+    flowProposalModal: {
+      backgroundColor: colors.cardBackground,
+      borderTopLeftRadius: 40,
+      borderTopRightRadius: 40,
+      padding: 24,
+      minHeight: 450,
+    },
+    sheetHandle: {
+      width: 40,
+      height: 5,
+      backgroundColor: '#E2E8F0',
+      borderRadius: 2.5,
+      alignSelf: 'center',
+      marginBottom: 24,
+    },
+    proposalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 24,
+    },
+    intelligenceBox: {
+      backgroundColor: 'rgba(11, 160, 178, 0.05)',
+      borderRadius: 24,
+      padding: 24,
+      marginBottom: 32,
+      borderWidth: 1,
+      borderColor: 'rgba(11, 160, 178, 0.1)',
+    },
+    proposedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 20,
+    },
+    proposedBadgeText: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: '#0BA0B2',
+      letterSpacing: 1,
+    },
+    proposalDetailRow: {
+      flexDirection: 'row',
+      marginBottom: 12,
+    },
+    proposalLabel: {
+      width: 80,
+      fontSize: 10,
+      fontWeight: '900',
+      color: colors.textSecondary,
+      letterSpacing: 0.5,
+    },
+    proposalValue: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    logicDivider: {
+      height: 1,
+      backgroundColor: 'rgba(11, 160, 178, 0.1)',
+      marginVertical: 16,
+    },
+    logicLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    proposalFooter: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    refineBtn: {
+      flex: 1,
+      height: 56,
+      borderRadius: 18,
+      backgroundColor: 'rgba(100, 116, 139, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    refineBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    deployBtn: {
+      flex: 2,
+      height: 56,
+      borderRadius: 18,
+      backgroundColor: '#0BA0B2',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deployBtnText: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: '#FFFFFF',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
     },
     confirmModal: {
       width: '100%',
       backgroundColor: colors.cardBackground,
-      borderRadius: 24,
-      padding: 24,
+      borderRadius: 32,
+      padding: 32,
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.1,
-      shadowRadius: 20,
-      elevation: 10,
     },
     trashCircle: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
+      width: 72,
+      height: 72,
+      borderRadius: 36,
       backgroundColor: 'rgba(239, 68, 68, 0.1)',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 20,
+      marginBottom: 24,
     },
     confirmTitle: {
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: '900',
       color: colors.textPrimary,
       marginBottom: 12,
       textAlign: 'center',
     },
     confirmSubtitle: {
-      fontSize: 15,
+      fontSize: 16,
       color: colors.textSecondary,
       textAlign: 'center',
-      lineHeight: 22,
+      lineHeight: 24,
       marginBottom: 32,
       fontWeight: '500',
     },
@@ -1045,360 +1701,28 @@ function getStyles(colors: any) {
     },
     cancelBtn: {
       flex: 1,
-      height: 48,
-      borderRadius: 14,
+      height: 56,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: colors.cardBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
     cancelBtnText: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '800',
       color: colors.textPrimary,
     },
     deleteBtn: {
       flex: 1,
-      height: 48,
-      borderRadius: 14,
-      backgroundColor: '#DC2626',
+      height: 56,
+      borderRadius: 18,
+      backgroundColor: '#EF4444',
       alignItems: 'center',
       justifyContent: 'center',
     },
     deleteBtnText: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: '#FFFFFF',
-    },
-    actionHeader: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      gap: 12,
-      marginBottom: 20,
-    },
-    aiRuleBtn: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#0BA0B2',
-      overflow: 'hidden',
-    },
-    aiRuleGradient: {
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    aiRuleText: {
-      fontSize: 14,
-      fontWeight: '900',
-      color: '#0BA0B2',
-    },
-    createRuleBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.accentTeal,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 12,
-      gap: 6,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    createRuleText: {
-      fontSize: 14,
-      fontWeight: '900',
-      color: '#FFFFFF',
-    },
-    fullModalContainer: {
-      flex: 1,
-    },
-    assistantModalContent: {
-      flex: 1,
-      padding: 24,
-    },
-    modalFooter: {
-      paddingTop: 12,
-    },
-    assistantHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 32,
-    },
-    assistantTitle: {
-      fontSize: 26,
-      fontWeight: '900',
-      color: colors.textPrimary,
-      letterSpacing: -0.6,
-    },
-    assistantSubtitle: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      fontWeight: '500',
-      marginTop: 4,
-    },
-    closeBtnSmall: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.surfaceSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    assistantField: {
-      marginBottom: 28,
-      zIndex: 10,
-    },
-    fieldLabel: {
-      fontSize: 11,
-      fontWeight: '900',
-      color: colors.textSecondary,
-      letterSpacing: 1.2,
-      marginBottom: 12,
-      textTransform: 'uppercase',
-    },
-    inputContainer: {
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: 18,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      height: 60,
-      justifyContent: 'center',
-      paddingHorizontal: 22,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.02,
-      shadowRadius: 4,
-    },
-    fieldInput: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
-    },
-    segmentPickerTrigger: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: 18,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      height: 60,
-      paddingHorizontal: 22,
-    },
-    segmentValue: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
-    },
-    segmentDropdown: {
-      backgroundColor: '#2D3E50',
-      borderRadius: 20,
-      marginTop: 6,
-      padding: 10,
-      position: 'absolute',
-      top: 90,
-      left: 0,
-      right: 0,
-      zIndex: 1000,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 15 },
-      shadowOpacity: 0.25,
-      shadowRadius: 20,
-      elevation: 12,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.1)',
-    },
-    segmentOption: {
-      paddingVertical: 14,
-      paddingHorizontal: 18,
-      borderRadius: 12,
-    },
-    optionContent: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    optionText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.inputPlaceholder,
-    },
-    optionTextSelected: {
-      color: '#FFFFFF',
-      fontWeight: '700',
-    },
-    generateBtn: {
-      height: 64,
-      borderRadius: 22,
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      shadowColor: '#0B2D3E',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.2,
-      shadowRadius: 12,
-      elevation: 8,
-    },
-    generateBtnGradient: {
-      flex: 1,
-      width: '100%',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    generateBtnText: {
-      fontSize: 17,
-      fontWeight: '900',
-      color: '#FFFFFF',
-      letterSpacing: 0.5,
-    },
-    createModalFooter: {
-      flexDirection: 'row',
-      gap: 12,
-      paddingTop: 12,
-    },
-    flowProposalModal: {
-      backgroundColor: colors.cardBackground,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      padding: 24,
-      width: '100%',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -10 },
-      shadowOpacity: 0.1,
-      shadowRadius: 20,
-      elevation: 20,
-    },
-    sheetHandle: {
-      width: 40,
-      height: 4,
-      backgroundColor: '#E2E8F0',
-      borderRadius: 2,
-      alignSelf: 'center',
-      marginBottom: 20,
-    },
-    proposalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 24,
-    },
-    intelligenceBox: {
-      backgroundColor: 'rgba(11, 160, 178, 0.1)',
-      borderRadius: 24,
-      padding: 24,
-      borderWidth: 1,
-      borderColor: 'rgba(11, 160, 178, 0.2)',
-      marginBottom: 24,
-    },
-    proposedBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: 16,
-    },
-    proposedBadgeText: {
-      fontSize: 11,
-      fontWeight: '900',
-      color: '#0BA0B2',
-      letterSpacing: 0.5,
-    },
-    proposalDetailRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    proposalLabel: {
-      width: 80,
-      fontSize: 10,
-      fontWeight: '900',
-      color: colors.inputPlaceholder,
-      letterSpacing: 0.5,
-    },
-    proposalValue: {
-      fontSize: 14,
-      fontWeight: '800',
-      color: colors.textPrimary,
-    },
-    logicDivider: {
-      height: 1,
-      backgroundColor: '#E2E8F0',
-      marginVertical: 16,
-      borderStyle: 'dashed',
-      borderRadius: 1,
-    },
-    logicLabel: {
-      fontSize: 12,
-      fontWeight: '800',
-      color: '#0BA0B2',
-    },
-    proposalFooter: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    refineBtn: {
-      flex: 1,
-      height: 56,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    refineBtnText: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.textPrimary,
-    },
-    deployBtn: {
-      flex: 1.5,
-      height: 56,
-      borderRadius: 16,
-      backgroundColor: colors.accentTeal,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    deployBtnText: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: '#FFFFFF',
-    },
-    discardBtn: {
-      flex: 1,
-      height: 56,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      backgroundColor: colors.cardBackground,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    discardBtnText: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.textPrimary,
-    },
-    saveRuleBtn: {
-      flex: 1,
-      height: 56,
-      borderRadius: 16,
-      backgroundColor: colors.accentTeal,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    saveRuleBtnText: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '800',
       color: '#FFFFFF',
     },
@@ -1407,6 +1731,184 @@ function getStyles(colors: any) {
       gap: 12,
       marginBottom: 4,
       zIndex: 100,
+    },
+    // Premium Card Styles
+    premiumCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.08,
+      shadowRadius: 16,
+      elevation: 4,
+      marginBottom: 16,
+    },
+    cardGradient: {
+      padding: 20,
+    },
+    cardHeaderSmall: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    cardIconBox: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: 'rgba(100, 116, 139, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    categoryBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      backgroundColor: 'rgba(100, 116, 139, 0.05)',
+    },
+    categoryText: {
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 0.8,
+    },
+    statusToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 12,
+      gap: 6,
+    },
+    statusDotSmall: {
+      width: 5,
+      height: 5,
+      borderRadius: 2.5,
+    },
+    statusTextSmall: {
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+    },
+    cardMainContent: {
+      marginBottom: 20,
+    },
+    premiumRuleName: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 16,
+      letterSpacing: -0.5,
+    },
+    logicFlowContainer: {
+      backgroundColor: 'rgba(100, 116, 139, 0.03)',
+      borderRadius: 16,
+      padding: 12,
+      gap: 4,
+    },
+    logicStep: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    logicIndicator: {
+      width: 44,
+      height: 24,
+      borderRadius: 6,
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logicLabelSmall: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: '#10B981',
+    },
+    logicContent: {
+      flex: 1,
+    },
+    logicTitle: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 2,
+    },
+    logicValue: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    logicConnector: {
+      height: 12,
+      marginLeft: 21,
+      width: 2,
+      justifyContent: 'center',
+    },
+    connectorLine: {
+      flex: 1,
+      width: 1,
+      backgroundColor: colors.cardBorder,
+      opacity: 0.5,
+    },
+    cardFooterPremium: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+      gap: 12,
+    },
+    footerInfoBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    footerInfoText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    footerDivider: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.cardBorder,
+    },
+    trashBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(239, 68, 68, 0.05)',
+    },
+    centerContainer: {
+      padding: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+    },
+    loadingText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      marginTop: 8,
+    },
+    emptyText: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginTop: 8,
+    },
+    emptySubtext: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.textSecondary,
+      textAlign: 'center',
     },
   });
 }

@@ -1,16 +1,20 @@
 import { PageHeader } from '@/components/ui/PageHeader';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
+import { createCRMCampaign, CRMCampaign, deleteCRMCampaign, getCRMCampaigns, getCRMTemplates, patchCRMCampaignStatus, updateCRMCampaign } from '@/services/crmService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Pressable,
-  ScrollView,
+  Pressable, RefreshControl, ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -19,78 +23,36 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type CampaignStatus = 'COMPLETED' | 'PAUSED' | 'SCHEDULED';
-type Channel = 'Email' | 'SMS' | 'WhatsApp';
 
-interface Campaign {
-  id: string;
-  name: string;
-  channel: Channel;
-  audience: string;
-  date: string;
-  opens: number;
-  clicks: number;
-  replies: number;
-  conv: number;
-  status: CampaignStatus;
-}
 
-const CAMPAIGNS_DATA: Campaign[] = [
-  {
-    id: '1',
-    name: 'Spring Luxury Newsletter',
-    channel: 'Email',
-    audience: 'ALL BUYERS',
-    date: 'Jan 24, 2026',
-    opens: 42,
-    clicks: 12,
-    replies: 5,
-    conv: 2,
-    status: 'COMPLETED',
-  },
-  {
-    id: '2',
-    name: 'Malibu Villa - Price Drop',
-    channel: 'SMS',
-    audience: 'HOT LEADS',
-    date: 'Jan 20, 2026',
-    opens: 95,
-    clicks: 28,
-    replies: 15,
-    conv: 8,
-    status: 'COMPLETED',
-  },
-  {
-    id: '3',
-    name: 'Open House Follow-up',
-    channel: 'WhatsApp',
-    audience: 'BUSINESS WAY LEADS',
-    date: 'Jan 15, 2026',
-    opens: 88,
-    clicks: 15,
-    replies: 22,
-    conv: 5,
-    status: 'PAUSED',
-  },
-  {
-    id: '4',
-    name: 'Exclusive Coastal Listings',
-    channel: 'Email',
-    audience: 'INVESTOR GROUP',
-    date: 'Feb 02, 2026',
-    opens: 0,
-    clicks: 0,
-    replies: 0,
-    conv: 0,
-    status: 'SCHEDULED',
-  },
-];
+interface Campaign extends CRMCampaign { }
 
 export default function CRMCampaignsScreen() {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
+  const { colors, theme } = useAppTheme();
+  const styles = getStyles(colors, theme);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { accessToken } = useAuth();
+
+  const { data: campaignList, isLoading, refetch } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: () => getCRMCampaigns(accessToken || ''),
+    enabled: !!accessToken
+  });
+
+  const { data: templateList } = useQuery({
+    queryKey: ['crmTemplates'],
+    queryFn: () => getCRMTemplates(accessToken || ''),
+    enabled: !!accessToken
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannel, setSelectedChannel] = useState('All Channels');
   const [isChannelDropdownOpen, setChannelDropdownOpen] = useState(false);
@@ -100,30 +62,36 @@ export default function CRMCampaignsScreen() {
   const [formCampaignName, setFormCampaignName] = useState('');
   const [commChannel, setCommChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL');
   const [targetSegment, setTargetSegment] = useState('All Contacts');
-  const [emailTemplate, setEmailTemplate] = useState('Open House Follow-Up');
+  const [formTemplateId, setFormTemplateId] = useState<string | null>(null);
   const [sendingAccount, setSendingAccount] = useState('SendGrid (Connected)');
   const [sendSchedule, setSendSchedule] = useState<'NOW' | 'SCHEDULE'>('NOW');
   const [abTesting, setAbTesting] = useState(false);
   const [versionA, setVersionA] = useState('');
   const [versionB, setVersionB] = useState('');
+  const [scheduledDate, setScheduledDate] = useState(new Date());
+  const [scheduledTime, setScheduledTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Dropdown states for form
   const [segmentDropdown, setSegmentDropdown] = useState(false);
   const [templateDropdown, setTemplateDropdown] = useState(false);
   const [accountDropdown, setAccountDropdown] = useState(false);
-  const [campaigns, setCampaigns] = useState<Campaign[]>(CAMPAIGNS_DATA);
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
 
   const resetForm = () => {
     setFormCampaignName('');
     setCommChannel('EMAIL');
     setTargetSegment('All Contacts');
-    setEmailTemplate('Open House Follow-Up');
+    setFormTemplateId(null);
     setSendingAccount('SendGrid (Connected)');
     setSendSchedule('NOW');
     setAbTesting(false);
     setVersionA('');
     setVersionB('');
+    setVersionB('');
+    setScheduledDate(new Date());
+    setScheduledTime(new Date());
     setEditingCampaignId(null);
   };
 
@@ -131,19 +99,82 @@ export default function CRMCampaignsScreen() {
     setEditingCampaignId(campaign.id);
     setFormCampaignName(campaign.name);
     setCommChannel(campaign.channel.toUpperCase() as any);
-    setTargetSegment(campaign.audience);
-    // Values below are static/mocked for now as they're not in the Campaign interface
-    setEmailTemplate('Open House Follow-Up');
-    setSendingAccount('SendGrid (Connected)');
-    setSendSchedule('SCHEDULE');
-    setAbTesting(true);
-    setVersionA("You won't believe this price drop...");
-    setVersionB("New Pricing: Malibu Villa is now $1.2M");
+    setTargetSegment(campaign.target_segment);
+    setFormTemplateId(campaign.template_id || null);
+    setSendingAccount(campaign.sending_account);
+    setSendSchedule(campaign.schedule_type === 0 ? 'NOW' : 'SCHEDULE');
+    if (campaign.scheduled_at) {
+      const date = new Date(campaign.scheduled_at);
+      setScheduledDate(date);
+      setScheduledTime(date);
+    }
+    setAbTesting(false);
     setNewCampaignVisible(true);
+  };
+
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  const validateForm = () => {
+    let errors: { [key: string]: string } = {};
+    if (!formCampaignName.trim()) {
+      errors.campaignName = "Campaign name is required";
+    }
+    if (!formTemplateId) {
+      errors.template = `${commChannel.toLowerCase().charAt(0).toUpperCase() + commChannel.toLowerCase().slice(1)} template is required`;
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const [isLaunching, setIsLaunching] = useState(false);
+
+  const handleLaunchCampaign = async () => {
+    if (validateForm()) {
+      setIsLaunching(true);
+      try {
+        const isNow = sendSchedule === 'NOW';
+        let scheduledAt: string | null = null;
+
+        if (!isNow) {
+          const combined = new Date(scheduledDate);
+          combined.setHours(scheduledTime.getHours());
+          combined.setMinutes(scheduledTime.getMinutes());
+          scheduledAt = combined.toISOString();
+        }
+
+        const payload = {
+          name: formCampaignName,
+          channel: commChannel.toLowerCase(),
+          target_segment: targetSegment,
+          template_id: formTemplateId,
+          sending_account: sendingAccount,
+          schedule_type: isNow ? 0 : 1,
+          scheduled_at: scheduledAt,
+          status: isNow ? 3 : 1
+        };
+
+        if (editingCampaignId) {
+          await updateCRMCampaign(accessToken || '', editingCampaignId, payload);
+        } else {
+          await createCRMCampaign(accessToken || '', payload);
+        }
+
+        setNewCampaignVisible(false);
+        setEditingCampaignId(null);
+        Alert.alert("Success", editingCampaignId ? "Campaign updated." : "Campaign pipeline launched.");
+        resetForm();
+        refetch(); // Refresh list
+      } catch (error: any) {
+        Alert.alert("Launch Failed", error.message || "Could not launch campaign pipeline.");
+      } finally {
+        setIsLaunching(false);
+      }
+    }
   };
 
   const openNewCampaignModal = () => {
     resetForm();
+    setFormErrors({});
     setNewCampaignVisible(true);
   };
 
@@ -164,18 +195,16 @@ export default function CRMCampaignsScreen() {
   const [aiSegmentDropdown, setAiSegmentDropdown] = useState(false);
   const [aiTemplateDropdown, setAiTemplateDropdown] = useState(false);
 
-  const handleToggleStatus = (id: string) => {
-    setCampaigns(prev => prev.map(c => {
-      if (c.id === id) {
-        // Toggle between PAUSED and SCHEDULED
-        const nextStatus: CampaignStatus = c.status === 'PAUSED' ? 'SCHEDULED' : 'PAUSED';
-        return { ...c, status: nextStatus };
-      }
-      return c;
-    }));
+  const handleToggleStatus = async (id: string, currentStatus: number) => {
+    try {
+      const newStatus = currentStatus === 2 ? 1 : 2;
+      await patchCRMCampaignStatus(accessToken || '', id, newStatus);
+      refetch();
+    } catch (error) {
+      Alert.alert("Error", "Failed to update campaign status.");
+    }
   };
 
-  // Deletion Logic
   const handleDeleteCampaign = (id: string) => {
     Alert.alert(
       "Delete Campaign",
@@ -185,8 +214,13 @@ export default function CRMCampaignsScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            setCampaigns(prev => prev.filter(c => c.id !== id));
+          onPress: async () => {
+            try {
+              await deleteCRMCampaign(accessToken || '', id);
+              refetch();
+            } catch (error) {
+              Alert.alert("Error", "Failed to delete campaign.");
+            }
           }
         }
       ]
@@ -194,116 +228,116 @@ export default function CRMCampaignsScreen() {
   };
 
   // Filtering Logic
-  const filteredCampaigns = campaigns.filter(campaign => {
+  const filteredCampaigns = (campaignList || []).filter(campaign => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     let matchesChannel = true;
-    if (selectedChannel === 'Email Only') matchesChannel = campaign.channel === 'Email';
-    else if (selectedChannel === 'SMS Only') matchesChannel = campaign.channel === 'SMS';
-    else if (selectedChannel === 'WhatsApp Only') matchesChannel = campaign.channel === 'WhatsApp';
+    if (selectedChannel === 'Email Only') matchesChannel = campaign.channel.toLowerCase() === 'email';
+    else if (selectedChannel === 'SMS Only') matchesChannel = campaign.channel.toLowerCase() === 'sms';
+    else if (selectedChannel === 'WhatsApp Only') matchesChannel = campaign.channel.toLowerCase() === 'whatsapp';
 
     return matchesSearch && matchesChannel;
-  });
+  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  const getChannelIcon = (channel: Channel) => {
-    switch (channel) {
-      case 'Email': return 'email-outline';
-      case 'SMS': return 'message-text-outline';
-      case 'WhatsApp': return 'whatsapp';
+  const getChannelIcon = (channel: string) => {
+    switch (channel.toLowerCase()) {
+      case 'email': return 'email-outline';
+      case 'sms': return 'message-text-outline';
+      case 'whatsapp': return 'whatsapp';
       default: return 'email-outline';
     }
   };
 
-  const getStatusStyle = (status: CampaignStatus) => {
+  const getStatusDisplay = (status: number) => {
     switch (status) {
-      case 'COMPLETED': return { bg: '#ECFDF5', text: '#10B981' };
-      case 'PAUSED': return { bg: '#FEF2F2', text: '#EF4444' };
-      case 'SCHEDULED': return { bg: '#FFF7ED', text: '#F59E0B' };
-      default: return { bg: '#F1F5F9', text: '#64748B' };
+      case 1: return { label: 'SCHEDULED', bg: '#FFF7ED', text: '#F59E0B' };
+      case 2: return { label: 'PAUSED', bg: '#FEF2F2', text: '#EF4444' };
+      case 3: return { label: 'COMPLETED', bg: '#ECFDF5', text: '#10B981' };
+      default: return { label: 'UNKNOWN', bg: '#F1F5F9', text: '#64748B' };
     }
   };
 
   const renderCampaignCard = (campaign: Campaign) => {
-    const statusStyle = getStatusStyle(campaign.status);
+    const statusInfo = getStatusDisplay(campaign.status);
+    const channelColor = campaign.channel.toLowerCase() === 'email' ? '#3B82F6' : campaign.channel.toLowerCase() === 'sms' ? '#0BA0B2' : '#25D366';
+
+    const formatDate = (dateStr: string | null) => {
+      if (!dateStr) return 'N/A';
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
 
     return (
-      <View key={campaign.id} style={styles.campaignCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.campaignName} numberOfLines={1}>{campaign.name}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-            <Text style={[styles.statusText, { color: statusStyle.text }]}>{campaign.status}</Text>
-          </View>
-        </View>
+      <View key={campaign.id} style={styles.modernCampaignCard}>
+        {/* Sidebar Channel Indicator */}
+        <View style={[styles.cardSidebar, { backgroundColor: channelColor }]} />
 
-        <View style={styles.metaRow}>
-          <View style={styles.channelInfo}>
-            <MaterialCommunityIcons name={getChannelIcon(campaign.channel)} size={16} color="#64748B" />
-            <Text style={styles.channelText}>{campaign.channel}</Text>
-          </View>
-          <View style={styles.audienceBadge}>
-            <Text style={styles.audienceText}>{campaign.audience}</Text>
-          </View>
-          <Text style={styles.dateText}>{campaign.date}</Text>
-        </View>
 
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>ENGAGEMENT</Text>
-            <View style={styles.statValueRow}>
-              <Text style={styles.statSubLabel}>Opens:</Text>
-              <Text style={styles.statValue}>{campaign.opens}%</Text>
+        <View style={styles.modernCardContent}>
+          <View style={styles.modernHeader}>
+            <View style={styles.modernTitleGroup}>
+              <Text style={styles.modernCampaignName} numberOfLines={1}>{campaign.name}</Text>
+              <View style={styles.modernMetaRow}>
+                <MaterialCommunityIcons name={getChannelIcon(campaign.channel)} size={14} color={channelColor} />
+                <Text style={[styles.modernChannelLabel, { color: channelColor }]}>{campaign.channel.toUpperCase()}</Text>
+                <View style={styles.modernDot} />
+                <Text style={styles.modernDateLabel}>{formatDate(campaign.sent_at || campaign.created_at)}</Text>
+              </View>
             </View>
-            <View style={styles.statValueRow}>
-              <Text style={styles.statSubLabel}>Clicks:</Text>
-              <Text style={[styles.statValue, { color: '#0BA0B2' }]}>{campaign.clicks}%</Text>
+
+            {/* Minimalist Status Badge */}
+            <View style={[styles.statusMinimalistBadge, { backgroundColor: `${statusInfo.text}10`, borderColor: `${statusInfo.text}30` }]}>
+              <View style={[styles.statusIndicatorDot, { backgroundColor: statusInfo.text }]} />
+              <Text style={[styles.statusMinimalistText, { color: statusInfo.text }]}>{statusInfo.label}</Text>
             </View>
           </View>
 
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>REPLIES</Text>
-            <Text style={[styles.mainStatValue, { color: '#F59E0B' }]}>{campaign.replies}%</Text>
+          <View style={styles.modernTargetBox}>
+            <MaterialCommunityIcons name="account-group-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.modernTargetText} numberOfLines={1}>{campaign.target_segment}</Text>
           </View>
 
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>CONV.</Text>
-            <Text style={styles.mainStatValue}>{campaign.conv}%</Text>
+          <View style={styles.modernStatsRow}>
+            <View style={styles.modernStatBox}>
+              <Text style={styles.modernStatLabel}>OPENS</Text>
+              <Text style={styles.modernStatValue}>{parseFloat(campaign.open_rate).toFixed(1)}%</Text>
+            </View>
+            <View style={styles.modernStatBox}>
+              <Text style={styles.modernStatLabel}>CLK.</Text>
+              <Text style={styles.modernStatValue}>{parseFloat(campaign.click_rate).toFixed(1)}%</Text>
+            </View>
+            <View style={styles.modernStatBox}>
+              <Text style={styles.modernStatLabel}>RPL.</Text>
+              <Text style={[styles.modernStatValue, { color: '#F59E0B' }]}>{parseFloat(campaign.reply_rate).toFixed(1)}%</Text>
+            </View>
+            <View style={styles.modernStatBox}>
+              <Text style={styles.modernStatLabel}>CONV.</Text>
+              <Text style={[styles.modernStatValue, { color: '#10B981' }]}>{parseFloat(campaign.conversion_rate).toFixed(1)}%</Text>
+            </View>
           </View>
-        </View>
 
-        <View style={styles.cardActions}>
-          <View style={styles.actionLeftIcons}>
-            <Pressable
-              style={styles.actionIconBtn}
-              onPress={() => handleOpenIntelligence(campaign)}
-            >
-              <MaterialCommunityIcons name="chart-timeline-variant-shimmer" size={20} color="#3B82F6" />
-            </Pressable>
-            <Pressable
-              style={[
-                styles.actionIconBtn,
-                campaign.status !== 'PAUSED' && campaign.status !== 'COMPLETED' && styles.activeStatusBtn
-              ]}
-              onPress={() => handleToggleStatus(campaign.id)}
-            >
-              <MaterialCommunityIcons
-                name={campaign.status === 'PAUSED' ? "play-outline" : "pause"}
-                size={20}
-                color={campaign.status === 'PAUSED' ? "#10B981" : "#3B82F6"}
-              />
-            </Pressable>
-            <Pressable
-              style={styles.actionIconBtn}
-              onPress={() => handleEditCampaign(campaign)}
-            >
-              <MaterialCommunityIcons name="pencil-outline" size={20} color="#64748B" />
-            </Pressable>
+          <View style={styles.modernActionRow}>
+            <View style={styles.modernActionGroup}>
+              <Pressable style={styles.compactIconBtn} onPress={() => handleOpenIntelligence(campaign)}>
+                <MaterialCommunityIcons name="chart-bar" size={20} color="#3B82F6" />
+              </Pressable>
+
+              <Pressable style={styles.compactIconBtn} onPress={() => handleToggleStatus(campaign.id, campaign.status)}>
+                <MaterialCommunityIcons
+                  name={campaign.status === 2 ? "play" : "pause"}
+                  size={20}
+                  color={campaign.status === 2 ? "#10B981" : colors.textPrimary}
+                />
+              </Pressable>
+
+              <Pressable style={styles.compactIconBtn} onPress={() => handleEditCampaign(campaign)}>
+                <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.textSecondary} />
+              </Pressable>
+
+              <Pressable style={styles.compactIconBtn} onPress={() => handleDeleteCampaign(campaign.id)}>
+                <MaterialCommunityIcons name="trash-can-outline" size={20} color="#EF4444" />
+              </Pressable>
+            </View>
           </View>
-          <Pressable
-            style={styles.actionIconBtn}
-            onPress={() => handleDeleteCampaign(campaign.id)}
-          >
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#EF4444" />
-          </Pressable>
         </View>
       </View>
     );
@@ -327,29 +361,11 @@ export default function CRMCampaignsScreen() {
           style={styles.aiCampaignBtn}
           onPress={() => setAiCampaignVisible(true)}
         >
+          <MaterialCommunityIcons name="robot-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
           <Text style={styles.aiCampaignBtnText}>AI Campaign</Text>
         </Pressable>
-        <Pressable
-          style={styles.launchBtn}
-          onPress={openNewCampaignModal}
-        >
-          <Text style={styles.launchBtnText}>Launch New Campaign</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.filterSection}>
-        <View style={styles.searchBar}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search campaigns or segments..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
 
         <View style={styles.channelFilterWrapper}>
-          <MaterialCommunityIcons name="filter-variant" size={20} color="#64748B" />
           <Pressable
             style={styles.channelSelector}
             onPress={() => setChannelDropdownOpen(!isChannelDropdownOpen)}
@@ -369,14 +385,6 @@ export default function CRMCampaignsScreen() {
                     setChannelDropdownOpen(false);
                   }}
                 >
-                  {selectedChannel === opt && (
-                    <MaterialCommunityIcons
-                      name="check"
-                      size={18}
-                      color="#FFFFFF"
-                      style={{ position: 'absolute', left: 12 }}
-                    />
-                  )}
                   <Text style={[styles.dropdownItemText, selectedChannel === opt && { fontWeight: '700' }]}>
                     {opt}
                   </Text>
@@ -387,10 +395,31 @@ export default function CRMCampaignsScreen() {
         </View>
       </View>
 
+      <View style={styles.filterSection}>
+        <View style={styles.searchBar}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#94A3B8" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search campaigns or segments..."
+            placeholderTextColor="#94A3B8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </View>
+
       <ScrollView
         style={styles.content}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentTeal}
+            colors={[colors.accentTeal]}
+          />
+        }
       >
         {filteredCampaigns.length > 0 ? (
           filteredCampaigns.map(renderCampaignCard)
@@ -401,6 +430,14 @@ export default function CRMCampaignsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <Pressable
+        style={[styles.fab, { bottom: 24 + insets.bottom }]}
+        onPress={openNewCampaignModal}
+      >
+        <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
+      </Pressable>
 
       {/* ── Launch New Campaign Modal ── */}
       <Modal
@@ -448,14 +485,22 @@ export default function CRMCampaignsScreen() {
                 <Text style={styles.sectionTitle}>Campaign Configuration</Text>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Campaign Name</Text>
+                  <Text style={styles.inputLabel}>Campaign Name <Text style={{ color: '#EF4444' }}>*</Text></Text>
                   <TextInput
-                    style={styles.formInput}
+                    style={[styles.formInput, formErrors.campaignName && styles.inputError]}
                     value={formCampaignName}
-                    onChangeText={setFormCampaignName}
+                    onChangeText={(val) => {
+                      setFormCampaignName(val);
+                      if (formErrors.campaignName) {
+                        setFormErrors(prev => ({ ...prev, campaignName: '' }));
+                      }
+                    }}
                     placeholder="e.g. Summer Listing Collection"
                     placeholderTextColor="#94A3B8"
                   />
+                  {formErrors.campaignName && (
+                    <Text style={styles.errorText}>{formErrors.campaignName}</Text>
+                  )}
                 </View>
 
                 <View style={[styles.inputGroup]}>
@@ -463,21 +508,39 @@ export default function CRMCampaignsScreen() {
                   <View style={styles.channelTabs}>
                     <Pressable
                       style={[styles.channelTab, commChannel === 'EMAIL' && styles.channelTabActive]}
-                      onPress={() => setCommChannel('EMAIL')}
+                      onPress={() => {
+                        setCommChannel('EMAIL');
+                        setFormTemplateId(null);
+                        if (formErrors.template) {
+                          setFormErrors(prev => ({ ...prev, template: '' }));
+                        }
+                      }}
                     >
                       <MaterialCommunityIcons name="email-outline" size={18} color={commChannel === 'EMAIL' ? '#FFFFFF' : '#64748B'} />
                       <Text style={[styles.channelTabText, commChannel === 'EMAIL' && styles.channelTextActive]}>EMAIL</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.channelTab, commChannel === 'SMS' && styles.channelTabActive]}
-                      onPress={() => setCommChannel('SMS')}
+                      onPress={() => {
+                        setCommChannel('SMS');
+                        setFormTemplateId(null);
+                        if (formErrors.template) {
+                          setFormErrors(prev => ({ ...prev, template: '' }));
+                        }
+                      }}
                     >
                       <MaterialCommunityIcons name="message-text-outline" size={18} color={commChannel === 'SMS' ? '#FFFFFF' : '#64748B'} />
                       <Text style={[styles.channelTabText, commChannel === 'SMS' && styles.channelTextActive]}>SMS</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.channelTab, commChannel === 'WHATSAPP' && styles.channelTabActive]}
-                      onPress={() => setCommChannel('WHATSAPP')}
+                      onPress={() => {
+                        setCommChannel('WHATSAPP');
+                        setFormTemplateId(null);
+                        if (formErrors.template) {
+                          setFormErrors(prev => ({ ...prev, template: '' }));
+                        }
+                      }}
                     >
                       <MaterialCommunityIcons name="whatsapp" size={18} color={commChannel === 'WHATSAPP' ? '#FFFFFF' : '#64748B'} />
                       <Text style={[styles.channelTabText, commChannel === 'WHATSAPP' && styles.channelTextActive]}>WHATSAPP</Text>
@@ -496,7 +559,14 @@ export default function CRMCampaignsScreen() {
                   </Pressable>
                   {segmentDropdown && (
                     <View style={styles.formDropdown}>
-                      {['All Contacts', 'Buyers', 'Leads'].map(opt => (
+                      {[
+                        'All Contacts',
+                        'Leads (New/Unqualified)',
+                        'Hot Leads (Heat Index > 70)',
+                        'Active Clients',
+                        'Buyers - Budget > $1M',
+                        'Sellers - Pending Listing'
+                      ].map(opt => (
                         <Pressable key={opt} style={styles.formDropDownItem} onPress={() => { setTargetSegment(opt); setSegmentDropdown(false); }}>
                           <Text style={styles.formDropDownItemText}>{opt}</Text>
                         </Pressable>
@@ -507,23 +577,48 @@ export default function CRMCampaignsScreen() {
 
                 <View style={styles.inputGroup}>
                   <View style={styles.labelRow}>
-                    <Text style={styles.inputLabel}>Email Template</Text>
-                    <Text style={styles.manageLink}>Manage Templates</Text>
+                    <Text style={styles.inputLabel}>{commChannel.charAt(0) + commChannel.slice(1).toLowerCase()} Template <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                    <Pressable onPress={() => { setNewCampaignVisible(false); router.push('/(main)/crm/templates'); }}>
+                      <Text style={styles.manageLink}>Manage Templates</Text>
+                    </Pressable>
                   </View>
                   <Pressable
-                    style={styles.formSelector}
+                    style={[styles.formSelector, formErrors.template && styles.inputError]}
                     onPress={() => setTemplateDropdown(!templateDropdown)}
                   >
-                    <Text style={styles.formSelectorText}>{emailTemplate}</Text>
+                    <Text style={styles.formSelectorText}>{formTemplateId ? (templateList?.find(t => t.id === formTemplateId)?.name || 'Select a template') : 'Select a template'}</Text>
                     <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                   </Pressable>
+                  {formErrors.template && (
+                    <Text style={styles.errorText}>{formErrors.template}</Text>
+                  )}
                   {templateDropdown && (
                     <View style={styles.formDropdown}>
-                      {['Open House Follow-Up', 'Monthly Newsletter', 'New Listing Alert'].map(opt => (
-                        <Pressable key={opt} style={styles.formDropDownItem} onPress={() => { setEmailTemplate(opt); setTemplateDropdown(false); }}>
-                          <Text style={styles.formDropDownItemText}>{opt}</Text>
-                        </Pressable>
-                      ))}
+                      {(templateList || [])
+                        .filter(t => t.template_type.toUpperCase() === commChannel)
+                        .map(opt => (
+                          <Pressable key={opt.id} style={styles.formDropDownItem} onPress={() => {
+                            setFormTemplateId(opt.id);
+                            setTemplateDropdown(false);
+                            if (formErrors.template) {
+                              setFormErrors(prev => ({ ...prev, template: '' }));
+                            }
+                          }}>
+                            <View style={styles.templateItemRow}>
+                              <MaterialCommunityIcons
+                                name={commChannel === 'EMAIL' ? 'email-outline' : commChannel === 'SMS' ? 'message-text-outline' : 'whatsapp'}
+                                size={16}
+                                color={colors.textSecondary}
+                              />
+                              <Text style={styles.formDropDownItemText}>{opt.name}</Text>
+                            </View>
+                          </Pressable>
+                        ))}
+                      {(templateList || []).filter(t => t.template_type.toUpperCase() === commChannel).length === 0 && (
+                        <View style={styles.dropdownEmpty}>
+                          <Text style={styles.dropdownEmptyText}>No {commChannel.toLowerCase()} templates available.</Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </View>
@@ -539,7 +634,11 @@ export default function CRMCampaignsScreen() {
                   </Pressable>
                   {accountDropdown && (
                     <View style={styles.formDropdown}>
-                      {['SendGrid (Connected)', 'Mailchimp', 'Custom SMTP'].map(opt => (
+                      {[
+                        'Select account',
+                        'WhatsApp Business API',
+                        'Default System Provider'
+                      ].map(opt => (
                         <Pressable key={opt} style={styles.formDropDownItem} onPress={() => { setSendingAccount(opt); setAccountDropdown(false); }}>
                           <Text style={styles.formDropDownItemText}>{opt}</Text>
                         </Pressable>
@@ -565,6 +664,80 @@ export default function CRMCampaignsScreen() {
                     </Pressable>
                   </View>
                 </View>
+
+                {sendSchedule === 'SCHEDULE' && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Execution Date & Time</Text>
+                    <View style={styles.dateTimeRow}>
+                      <Pressable
+                        style={styles.dateTimeField}
+                        onPress={() => setShowDatePicker(true)}
+                      >
+                        <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textSecondary} />
+                        <Text style={styles.formSelectorText}>{scheduledDate.toLocaleDateString()}</Text>
+                        <MaterialCommunityIcons name="calendar-multiselect" size={18} color={colors.textSecondary} />
+                      </Pressable>
+
+                      <Pressable
+                        style={styles.dateTimeField}
+                        onPress={() => setShowTimePicker(true)}
+                      >
+                        <MaterialCommunityIcons name="clock-outline" size={18} color={colors.textSecondary} />
+                        <Text style={styles.formSelectorText}>{scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                        <MaterialCommunityIcons name="clock-check-outline" size={18} color={colors.textSecondary} />
+                      </Pressable>
+                    </View>
+
+                    <Modal
+                      visible={showDatePicker || showTimePicker}
+                      transparent
+                      animationType="fade"
+                      onRequestClose={() => { setShowDatePicker(false); setShowTimePicker(false); }}
+                    >
+                      <Pressable
+                        style={styles.modalBackdrop}
+                        onPress={() => { setShowDatePicker(false); setShowTimePicker(false); }}
+                      >
+                        <View style={styles.centeredPickerContainer}>
+                          <View style={styles.pickerCard}>
+                            <View style={styles.pickerHeader}>
+                              <Text style={styles.pickerTitle}>{showDatePicker ? 'Select Date' : 'Select Time'}</Text>
+                              <Pressable onPress={() => { setShowDatePicker(false); setShowTimePicker(false); }}>
+                                <Text style={styles.pickerDoneBtn}>Done</Text>
+                              </Pressable>
+                            </View>
+
+                            {showDatePicker && (
+                              <DateTimePicker
+                                value={scheduledDate}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                themeVariant={theme === 'dark' ? 'dark' : 'light'}
+                                onChange={(event: any, date?: Date) => {
+                                  if (date) setScheduledDate(date);
+                                  if (Platform.OS === 'android') setShowDatePicker(false);
+                                }}
+                              />
+                            )}
+
+                            {showTimePicker && (
+                              <DateTimePicker
+                                value={scheduledTime}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                themeVariant={theme === 'dark' ? 'dark' : 'light'}
+                                onChange={(event: any, date?: Date) => {
+                                  if (date) setScheduledTime(date);
+                                  if (Platform.OS === 'android') setShowTimePicker(false);
+                                }}
+                              />
+                            )}
+                          </View>
+                        </View>
+                      </Pressable>
+                    </Modal>
+                  </View>
+                )}
 
                 {/* A/B Subject Line Testing */}
                 <View style={styles.abContainer}>
@@ -636,15 +809,17 @@ export default function CRMCampaignsScreen() {
           {/* Fixed Footer */}
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 12 }]}>
             <Pressable
-              style={styles.finalLaunchBtn}
-              onPress={() => {
-                setNewCampaignVisible(false);
-                setEditingCampaignId(null);
-              }}
+              style={[styles.finalLaunchBtn, isLaunching && { opacity: 0.7 }]}
+              onPress={handleLaunchCampaign}
+              disabled={isLaunching}
             >
-              <Text style={styles.finalLaunchBtnText}>
-                {editingCampaignId ? 'UPDATE & RESCHEDULE' : 'LAUNCH CAMPAIGN PIPELINE'}
-              </Text>
+              {isLaunching ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.finalLaunchBtnText}>
+                  {editingCampaignId ? 'UPDATE & RESCHEDULE' : 'LAUNCH CAMPAIGN PIPELINE'}
+                </Text>
+              )}
             </Pressable>
           </View>
         </LinearGradient>
@@ -957,912 +1132,1129 @@ export default function CRMCampaignsScreen() {
   );
 }
 
-function getStyles(colors: any) {
+function getStyles(colors: any, theme?: string) {
   return StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  topActionsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  aiCampaignBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#0B2D3E',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiCampaignBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  launchBtn: {
-    flex: 1.5,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  launchBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  filterSection: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    gap: 12,
-    zIndex: 10,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
-    zIndex: 2,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  channelFilterWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    zIndex: 100,
-  },
-  channelSelector: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  channelSelectorText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: 48,
-    left: 28,
-    right: 0,
-    backgroundColor: '#6A7D8C',
-    borderRadius: 12,
-    paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 8,
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    paddingLeft: 36,
-  },
-  dropdownItemText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  campaignCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  campaignName: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    flex: 1,
-    marginRight: 10,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  channelInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  channelText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  audienceBadge: {
-    backgroundColor: colors.surfaceSoft,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  audienceText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#475569',
-  },
-  dateText: {
-    fontSize: 12,
-    color: colors.inputPlaceholder,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  statItem: {
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.inputPlaceholder,
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  statValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  statSubLabel: {
-    fontSize: 10,
-    color: colors.inputPlaceholder,
-    width: 35,
-  },
-  statValue: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  mainStatValue: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  actionLeftIcons: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  actionIconBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeStatusBtn: {
-    borderWidth: 1.5,
-    borderColor: '#3B82F6',
-    borderRadius: 6,
-    backgroundColor: colors.cardBackground,
-  },
-  emptyState: {
-    paddingTop: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyStateText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: colors.inputPlaceholder,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  modalHeaderTitleBox: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  modalScroll: {
-    flex: 1,
-  },
-  formCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  formInput: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  manageLink: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0BA0B2',
-    textDecorationLine: 'underline',
-  },
-  channelTabs: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  channelTab: {
-    flex: 1,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  channelTabActive: {
-    backgroundColor: colors.accentTeal,
-    borderColor: '#0B2D3E',
-  },
-  channelTabText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.textSecondary,
-  },
-  channelTextActive: {
-    color: '#FFFFFF',
-  },
-  formSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-  },
-  formSelectorText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  scheduleTabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 10,
-    padding: 4,
-    width: 220,
-  },
-  scheduleTab: {
-    flex: 1,
-    height: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scheduleTabActive: {
-    backgroundColor: colors.accentTeal,
-  },
-  scheduleTabText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.textSecondary,
-  },
-  scheduleTextActive: {
-    color: '#FFFFFF',
-  },
-  abContainer: {
-    marginTop: 10,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: colors.cardBorder,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceSoft,
-    padding: 16,
-  },
-  abHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  abTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#EA580C',
-  },
-  abContent: {
-    gap: 12,
-  },
-  abLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#EA580C',
-    marginBottom: 8,
-  },
-  abInput: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 44,
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  complianceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  complianceTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  complianceDesc: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  activePill: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#10B981',
-  },
-  audienceBox: {
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-  },
-  audienceLabel: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: colors.textSecondary,
-    letterSpacing: 1,
-  },
-  audienceCount: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#0BA0B2',
-    marginVertical: 4,
-  },
-  audienceSubText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  modalFooter: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.cardBackground,
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  finalLaunchBtn: {
-    backgroundColor: colors.accentTeal,
-    height: 54,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.accentTeal,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  finalLaunchBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  formDropdown: {
-    marginTop: 4,
-    backgroundColor: '#6A7D8C',
-    borderRadius: 12,
-    paddingVertical: 8,
-    zIndex: 1000,
-  },
-  formDropDownItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  formDropDownItemText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 45, 62, 0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  aiModalContent: {
-    backgroundColor: colors.cardBackground,
-    width: '100%',
-    maxWidth: 500,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  aiModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  aiModalTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  aiRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
-    zIndex: 2000,
-  },
-  aiCol: {
-    flex: 1,
-  },
-  aiLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.inputPlaceholder,
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  aiSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  aiSelectorText: {
-    fontSize: 13,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    flex: 1,
-  },
-  aiDropdown: {
-    position: 'absolute',
-    top: 68, // position below the selector + label
-    left: 0,
-    right: 0,
-    backgroundColor: '#6A7D8C',
-    borderRadius: 12,
-    paddingVertical: 8,
-    zIndex: 2100,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  aiDropdownItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  aiDropdownItemText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  aiInputGroup: {
-    marginBottom: 24,
-  },
-  aiTextArea: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    padding: 16,
-    height: 120,
-    fontSize: 14,
-    color: colors.textPrimary,
-    lineHeight: 20,
-  },
-  aiModalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  aiCancelBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  aiGenerateBtn: {
-    flex: 1.5,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#5A6E7D', // Slate grey from screenshot
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiGenerateBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  headerUpdateBtn: {
-    backgroundColor: colors.accentTeal,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  headerUpdateBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  // Campaign Intelligence Dashboard Styles
-  intelStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20,
-  },
-  intelStatCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  intelStatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  intelBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  intelBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  intelStatLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  intelStatLargeValue: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  streamCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  streamHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  streamTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-  },
-  liveText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#10B981',
-  },
-  streamTable: {
-    gap: 12,
-  },
-  streamTableHead: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    paddingBottom: 8,
-  },
-  streamHeadText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.inputPlaceholder,
-  },
-  streamRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  rowName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  rowSub: {
-    fontSize: 10,
-    color: colors.textSecondary,
-  },
-  actionBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  actionBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  rowScore: {
-    fontSize: 13,
-    fontWeight: '800',
-    textAlign: 'right',
-  },
-  engagementCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 16,
-  },
-  progressItem: {
-    marginBottom: 16,
-  },
-  progressLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  progressLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  progressValue: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  optimizedWindowBox: {
-    backgroundColor: colors.accentTeal,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-  },
-  windowLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.inputPlaceholder,
-    marginBottom: 8,
-  },
-  windowTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  windowTime: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  windowSub: {
-    fontSize: 10,
-    color: colors.inputPlaceholder,
-  },
-  abOutcomeCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  winnerBox: {
-    borderWidth: 1,
-    borderColor: '#10B981',
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 12,
-    padding: 16,
-  },
-  winnerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  winnerTopic: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F766E',
-  },
-  winnerLabel: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  winnerStat: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0D9488',
-  },
+    container: {
+      flex: 1,
+    },
+    topActionsRow: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      gap: 12,
+      marginBottom: 16,
+      zIndex: 100,
+    },
+    aiCampaignBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: '#0B2D3E',
+      height: 52,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#0B2D3E',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    aiCampaignBtnText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    channelFilterWrapper: {
+      flex: 1,
+    },
+    channelSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.cardBackground,
+      height: 52,
+      paddingHorizontal: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    channelSelectorText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    dropdownMenu: {
+      position: 'absolute',
+      top: 56,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: 6,
+      zIndex: 1000,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    dropdownItem: {
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+    },
+    dropdownItemText: {
+      fontSize: 13,
+      color: colors.textPrimary,
+      fontWeight: '500',
+    },
+    filterSection: {
+      paddingHorizontal: 20,
+      marginBottom: 20,
+    },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.cardBackground,
+      height: 52,
+      paddingHorizontal: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      gap: 10,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textPrimary,
+    },
+    fab: {
+      position: 'absolute',
+      right: 24,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: '#0B2D3E',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#0B2D3E',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
+      zIndex: 1000,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+    },
+    campaignCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: 16,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.03,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    campaignName: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      flex: 1,
+      marginRight: 10,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    statusText: {
+      fontSize: 10,
+      fontWeight: '900',
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 16,
+    },
+    channelInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    channelText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '500',
+    },
+    audienceBadge: {
+      backgroundColor: colors.surfaceSoft,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    audienceText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#475569',
+    },
+    dateText: {
+      fontSize: 12,
+      color: colors.inputPlaceholder,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 16,
+    },
+    statItem: {
+      flex: 1,
+    },
+    statLabel: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: colors.inputPlaceholder,
+      marginBottom: 6,
+      letterSpacing: 0.5,
+    },
+    statValueRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 4,
+    },
+    statSubLabel: {
+      fontSize: 10,
+      color: colors.inputPlaceholder,
+      width: 35,
+    },
+    statValue: {
+      fontSize: 12,
+      fontWeight: '900',
+      color: colors.textPrimary,
+    },
+    mainStatValue: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+    },
+    cardActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+    actionLeftIcons: {
+      flexDirection: 'row',
+      gap: 16,
+    },
+    actionIconBtn: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    activeStatusBtn: {
+      borderWidth: 1.5,
+      borderColor: '#3B82F6',
+      borderRadius: 6,
+      backgroundColor: colors.cardBackground,
+    },
+    emptyState: {
+      paddingTop: 60,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emptyStateText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: colors.inputPlaceholder,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    },
+    modalHeaderTitleBox: {
+      flex: 1,
+    },
+    modalTitle: {
+      fontSize: 24,
+      fontWeight: '900',
+      color: colors.textPrimary,
+    },
+    modalSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    modalScroll: {
+      flex: 1,
+    },
+    formCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 3,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 20,
+    },
+    inputGroup: {
+      marginBottom: 20,
+    },
+    inputLabel: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    formInput: {
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      height: 48,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    manageLink: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#0BA0B2',
+      textDecorationLine: 'underline',
+    },
+    channelTabs: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    channelTab: {
+      flex: 1,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: theme === 'dark' ? colors.surfaceMuted : colors.surfaceIcon,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 6,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    channelTabActive: {
+      backgroundColor: colors.accentTeal,
+      borderColor: theme === 'dark' ? colors.surfaceMuted : colors.surfaceIcon,
+    },
+    channelTabText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    channelTextActive: {
+      color: '#FFFFFF',
+    },
+    formSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      height: 48,
+    },
+    formSelectorText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    scheduleTabs: {
+      flexDirection: 'row',
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 10,
+      padding: 4,
+      width: 220,
+    },
+    scheduleTab: {
+      flex: 1,
+      height: 36,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    scheduleTabActive: {
+      backgroundColor: colors.accentTeal,
+    },
+    scheduleTabText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    scheduleTextActive: {
+      color: '#FFFFFF',
+    },
+    abContainer: {
+      marginTop: 20,
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: theme === 'dark' ? '#EA580C' : '#FB923C',
+      borderRadius: 20,
+      backgroundColor: theme === 'dark' ? '#2A1D15' : '#FFF7ED',
+      padding: 20,
+    },
+    abHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    abTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#EA580C',
+    },
+    abContent: {
+      gap: 12,
+    },
+    abLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#EA580C',
+      marginBottom: 8,
+    },
+    abInput: {
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      height: 44,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    complianceItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    complianceTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    complianceDesc: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    activePill: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: '#10B981',
+    },
+    audienceBox: {
+      backgroundColor: colors.surfaceSoft,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      padding: 20,
+      alignItems: 'center',
+    },
+    audienceLabel: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: colors.textSecondary,
+      letterSpacing: 1,
+    },
+    audienceCount: {
+      fontSize: 32,
+      fontWeight: '900',
+      color: '#0BA0B2',
+      marginVertical: 4,
+    },
+    audienceSubText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    modalFooter: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.cardBackground,
+      padding: 20,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+    finalLaunchBtn: {
+      backgroundColor: '#0B2D3E',
+      height: 54,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#0B2D3E',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    finalLaunchBtnText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    formDropdown: {
+      marginTop: 4,
+      backgroundColor: '#6A7D8C',
+      borderRadius: 12,
+      paddingVertical: 8,
+      zIndex: 1000,
+    },
+    formDropDownItem: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    formDropDownItemText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    row: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(11, 45, 62, 0.4)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    aiModalContent: {
+      backgroundColor: colors.cardBackground,
+      width: '100%',
+      maxWidth: 500,
+      borderRadius: 24,
+      padding: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    modernCampaignCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      marginBottom: 20,
+      flexDirection: 'row',
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 8,
+      alignItems: 'stretch',
+    },
+    cardSidebar: {
+      width: 6,
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pulseDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 2,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    modernCardContent: {
+      flex: 1,
+      padding: 20,
+      paddingBottom: 16,
+    },
+    modernHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    modernTitleGroup: {
+      flex: 1,
+    },
+    modernCampaignName: {
+      fontSize: 20,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 6,
+      letterSpacing: -0.5,
+    },
+    modernMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    modernChannelLabel: {
+      fontSize: 11,
+      fontWeight: '900',
+      marginLeft: 4,
+    },
+    modernDot: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      backgroundColor: colors.textSecondary,
+      marginHorizontal: 8,
+      opacity: 0.5,
+    },
+    modernDateLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    statusMinimalistBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 30,
+      borderWidth: 1,
+      gap: 6,
+    },
+    statusIndicatorDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    statusMinimalistText: {
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    modernTargetBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSoft,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 12,
+      marginBottom: 20,
+      gap: 8,
+    },
+    modernTargetText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textSecondary,
+      flex: 1,
+    },
+    modernStatsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 24,
+    },
+    modernStatBox: {
+      alignItems: 'flex-start',
+      flex: 1,
+    },
+    modernStatLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textSecondary,
+      marginBottom: 4,
+      letterSpacing: 0.5,
+    },
+    modernStatValue: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+    },
+    modernActionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      marginTop: 8,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.surfaceSoft,
+    },
+    modernActionGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 20,
+    },
+    compactIconBtn: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    aiModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    aiModalTitle: {
+      fontSize: 20,
+      fontWeight: '900',
+      color: colors.textPrimary,
+    },
+    aiRow: {
+      flexDirection: 'row',
+      gap: 16,
+      marginBottom: 20,
+      zIndex: 2000,
+    },
+    aiCol: {
+      flex: 1,
+    },
+    aiLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.inputPlaceholder,
+      marginBottom: 8,
+      letterSpacing: 0.5,
+    },
+    aiSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      height: 44,
+    },
+    aiSelectorText: {
+      fontSize: 13,
+      color: colors.textPrimary,
+      fontWeight: '600',
+      flex: 1,
+    },
+    aiDropdown: {
+      position: 'absolute',
+      top: 68, // position below the selector + label
+      left: 0,
+      right: 0,
+      backgroundColor: '#6A7D8C',
+      borderRadius: 12,
+      paddingVertical: 8,
+      zIndex: 2100,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    aiDropdownItem: {
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+    },
+    aiDropdownItemText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    aiInputGroup: {
+      marginBottom: 24,
+    },
+    aiTextArea: {
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      padding: 16,
+      height: 120,
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+    },
+    aiModalActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    aiCancelBtn: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    aiCancelBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    aiGenerateBtn: {
+      flex: 1.5,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: '#5A6E7D', // Slate grey from screenshot
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    aiGenerateBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    headerUpdateBtn: {
+      backgroundColor: colors.accentTeal,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      marginRight: 8,
+    },
+    headerUpdateBtnText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    // Campaign Intelligence Dashboard Styles
+    intelStatsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginBottom: 20,
+    },
+    intelStatCard: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    intelStatHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    intelBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    intelBadgeText: {
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    intelStatLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    intelStatLargeValue: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: colors.textPrimary,
+    },
+    streamCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    streamHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    streamTitle: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.textPrimary,
+    },
+    liveIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    liveDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: '#10B981',
+    },
+    liveText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#10B981',
+    },
+    streamTable: {
+      gap: 12,
+    },
+    streamTableHead: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+      paddingBottom: 8,
+    },
+    streamHeadText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.inputPlaceholder,
+    },
+    streamRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    rowName: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    rowSub: {
+      fontSize: 10,
+      color: colors.textSecondary,
+    },
+    actionBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    actionBadgeText: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: '#475569',
+    },
+    rowScore: {
+      fontSize: 13,
+      fontWeight: '800',
+      textAlign: 'right',
+    },
+    engagementCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    cardTitle: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    progressItem: {
+      marginBottom: 16,
+    },
+    progressLabelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    progressLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#475569',
+    },
+    progressValue: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    progressBarBg: {
+      height: 6,
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    progressBarFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    optimizedWindowBox: {
+      backgroundColor: colors.accentTeal,
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 8,
+    },
+    windowLabel: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: colors.inputPlaceholder,
+      marginBottom: 8,
+    },
+    windowTimeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 4,
+    },
+    windowTime: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: '#FFFFFF',
+    },
+    windowSub: {
+      fontSize: 10,
+      color: colors.inputPlaceholder,
+    },
+    abOutcomeCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    winnerBox: {
+      borderWidth: 1,
+      borderColor: '#10B981',
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 12,
+      padding: 16,
+    },
+    winnerHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    winnerTopic: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#0F766E',
+    },
+    winnerLabel: {
+      fontSize: 9,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      backgroundColor: '#10B981',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    winnerStat: {
+      fontSize: 20,
+      fontWeight: '900',
+      color: '#0D9488',
+    },
+    dateTimeRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    dateTimeField: {
+      flex: 1,
+      height: 48,
+      backgroundColor: colors.surfaceSoft,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    dropdownEmpty: {
+      padding: 16,
+      alignItems: 'center',
+    },
+    dropdownEmptyText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    templateItemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    centeredPickerContainer: {
+      width: '90%',
+      maxWidth: 400,
+    },
+    pickerCard: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      overflow: 'hidden',
+      paddingBottom: 20,
+    },
+    pickerHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F1F5F9',
+    },
+    pickerTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    pickerDoneBtn: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#0BA0B2', // Using primary teal for visibility
+    },
+    errorText: {
+      color: '#EF4444',
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 6,
+    },
+    inputError: {
+      borderColor: '#EF4444',
+      borderWidth: 1.5,
+    },
   });
 }

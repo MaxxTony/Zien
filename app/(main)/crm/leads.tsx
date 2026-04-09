@@ -31,7 +31,7 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
 
     const isActive = lead.status === 1;
     const badgeLabel = isActive ? 'ACTIVE' : 'INACTIVE';
-    const badgeColor = isActive ? '#10B981' : '#EF4444';
+    const badgeColor = isActive ? (colors.accentGreen || '#10B981') : (colors.danger || '#EF4444');
 
     return (
       <View style={[styles.leadCard, isHot && styles.leadCardHotBorder]}>
@@ -68,7 +68,7 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
             </View>
             <View style={styles.scoreContainer}>
               <Text style={styles.scoreTitle}>AI SCORE</Text>
-              <Text style={[styles.scoreValue, isHigh ? { color: '#0BA0B2' } : isLow ? { color: '#E11D48' } : { color: colors.textPrimary }]}>
+              <Text style={[styles.scoreValue, isHigh ? { color: colors.accentTeal } : isLow ? { color: colors.danger || '#E11D48' } : { color: colors.textPrimary }]}>
                 {lead.score}
               </Text>
             </View>
@@ -134,10 +134,10 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
   
           <View style={styles.secondaryActions}>
             <Pressable style={styles.iconAction} onPress={onEditPress}>
-              <MaterialCommunityIcons name="pencil-outline" size={18} color="#6A7D8C" />
+              <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.textSecondary} />
             </Pressable>
             <Pressable style={[styles.iconAction, styles.deleteAction]} onPress={onDeletePress}>
-              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#E11D48" />
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.danger || "#E11D48"} />
             </Pressable>
           </View>
         </View>
@@ -427,7 +427,7 @@ export default function LeadsScreen() {
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0BA0B2']} tintColor="#0BA0B2" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.accentTeal]} tintColor={colors.accentTeal} />
         }
         showsVerticalScrollIndicator={false}>
 
@@ -446,10 +446,10 @@ export default function LeadsScreen() {
         <View style={{ zIndex: 10, marginBottom: 20 }}>
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
-              <MaterialCommunityIcons name="magnify" size={20} color="#8DA4B5" />
+              <MaterialCommunityIcons name="magnify" size={20} color={colors.textMuted || "#8DA4B5"} />
               <TextInput
                 placeholder="Find leads by name, source, or ID..."
-                placeholderTextColor="#8DA4B5"
+                placeholderTextColor={colors.textMuted || "#8DA4B5"}
                 style={styles.searchInput}
                 value={search}
                 onChangeText={setSearch}
@@ -482,7 +482,7 @@ export default function LeadsScreen() {
               <MaterialCommunityIcons 
                 name="fire" 
                 size={16} 
-                color={isHotFilterActive ? "#FF6B00" : "#6A7D8C"} 
+                color={isHotFilterActive ? "#FF6B00" : colors.textSecondary} 
                 style={{ marginRight: 4 }} 
               />
               <Text style={[styles.hotFilterText, isHotFilterActive && { color: '#FFFFFF' }]}>
@@ -491,7 +491,7 @@ export default function LeadsScreen() {
             </Pressable>
             {isHotFilterActive && (
               <Pressable style={styles.clearFilterBtn} onPress={() => setHotFilterActive(false)}>
-                <MaterialCommunityIcons name="close" size={14} color="#6A7D8C" style={{ marginRight: 4 }} />
+                <MaterialCommunityIcons name="close" size={14} color={colors.textSecondary} style={{ marginRight: 4 }} />
                 <Text style={styles.clearFilterText}>Clear</Text>
               </Pressable>
             )}
@@ -509,11 +509,11 @@ export default function LeadsScreen() {
         <View style={styles.leadList}>
           {isLoadingLeads ? (
             <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#0BA0B2" />
+              <ActivityIndicator size="large" color={colors.accentTeal} />
             </View>
           ) : filteredLeads.length === 0 ? (
             <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-              <Text style={{ color: '#6A7D8C', fontWeight: '700' }}>No leads found</Text>
+              <Text style={{ color: colors.textSecondary, fontWeight: '700' }}>No leads found</Text>
             </View>
           ) : filteredLeads.map((lead) => (
             <LeadCard
@@ -567,7 +567,7 @@ export default function LeadsScreen() {
                 style={styles.premiumCloseBtn}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
-                <MaterialCommunityIcons name="close" size={20} color="#64748B" />
+                <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
               </Pressable>
             </View>
 
@@ -587,13 +587,13 @@ export default function LeadsScreen() {
                   <TextInput
                     style={styles.instructionInput}
                     placeholder="Describe the source of these leads... (e.g., 'From the Spring Open House, interested in luxury condos')"
-                    placeholderTextColor="#8DA4B5"
+                    placeholderTextColor={colors.textMuted || "#8DA4B5"}
                     multiline
                     value={importInstructions}
                     onChangeText={setImportInstructions}
                   />
                   <View style={styles.uploadBtnSmall}>
-                    <MaterialCommunityIcons name="tray-arrow-up" size={16} color="#6A7D8C" />
+                    <MaterialCommunityIcons name="tray-arrow-up" size={16} color={colors.textSecondary} />
                   </View>
                 </View>
 
@@ -632,7 +632,7 @@ export default function LeadsScreen() {
                       onPress={() => setImportModalVisible(false)}
                     >
                       <LinearGradient
-                        colors={['#0B2D3E', '#0BA0B2']}
+                        colors={[colors.textPrimary, colors.accentTeal]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.mappingBtnGradient}
@@ -658,7 +658,7 @@ export default function LeadsScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setLeadToDelete(null)}>
           <Pressable style={[styles.modalContainer, { padding: 32 }]} onPress={e => e.stopPropagation()}>
             <View style={styles.modalDeleteIconCircle}>
-              <MaterialCommunityIcons name="alert-outline" size={32} color="#000000" />
+              <MaterialCommunityIcons name="alert-outline" size={32} color={colors.danger || "#EF4444"} />
             </View>
             <Text style={styles.modalDeleteTitle}>Erase Opportunity?</Text>
             <Text style={styles.modalDeleteSubtitle}>
@@ -706,7 +706,7 @@ export default function LeadsScreen() {
                 value={firstName}
                 onChangeText={setFirstName}
                 placeholder="John"
-                placeholderTextColor="#8DA4B5"
+                placeholderTextColor={colors.textMuted || "#8DA4B5"}
               />
             </View>
             <View style={styles.convertCol}>
@@ -716,7 +716,7 @@ export default function LeadsScreen() {
                 value={lastName}
                 onChangeText={setLastName}
                 placeholder="Doe"
-                placeholderTextColor="#8DA4B5"
+                placeholderTextColor={colors.textMuted || "#8DA4B5"}
               />
             </View>
 
@@ -729,7 +729,7 @@ export default function LeadsScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="john@example.com"
-                placeholderTextColor="#8DA4B5"
+                placeholderTextColor={colors.textMuted || "#8DA4B5"}
               />
             </View>
             <View style={styles.convertCol}>
@@ -811,7 +811,7 @@ export default function LeadsScreen() {
                 <TextInput
                   style={styles.convertInput}
                   placeholder="Enter custom group"
-                  placeholderTextColor="#8DA4B5"
+                  placeholderTextColor={colors.textMuted || "#8DA4B5"}
                   value={customGroup}
                   onChangeText={setCustomGroup}
                 />
@@ -852,7 +852,7 @@ export default function LeadsScreen() {
                 <TextInput
                   style={styles.convertInput}
                   placeholder="Enter custom tag"
-                  placeholderTextColor="#8DA4B5"
+                  placeholderTextColor={colors.textMuted || "#8DA4B5"}
                   value={customTag}
                   onChangeText={setCustomTag}
                 />
@@ -1068,7 +1068,7 @@ function getStyles(colors: any) {
       position: 'absolute',
       top: 54, // just below the filter button
       left: 0,
-      backgroundColor: '#616E7C',
+      backgroundColor: colors.cardBackground,
       borderRadius: 10,
       paddingVertical: 8,
       minWidth: 160,
@@ -1078,6 +1078,8 @@ function getStyles(colors: any) {
       shadowRadius: 14,
       elevation: 8,
       zIndex: 1000,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
     },
     dropdownItem: {
       flexDirection: 'row',
@@ -1087,7 +1089,7 @@ function getStyles(colors: any) {
       paddingLeft: 36,
     },
     dropdownItemText: {
-      color: '#FFFFFF',
+      color: colors.textPrimary,
       fontSize: 14,
       fontWeight: '500',
     },
@@ -1097,18 +1099,18 @@ function getStyles(colors: any) {
       paddingHorizontal: 18,
       paddingVertical: 10,
       borderRadius: 100,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.surfaceSoft,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: colors.cardBorder,
     },
     hotFilterText: {
       fontSize: 13,
       fontWeight: '600',
-      color: '#475569',
+      color: colors.textSecondary,
     },
     hotFilterBtnActive: {
-      backgroundColor: '#0F172A',
-      borderColor: '#0F172A',
+      backgroundColor: colors.accentTeal,
+      borderColor: colors.accentTeal,
     },
     clearFilterBtn: {
       flexDirection: 'row',
@@ -1123,7 +1125,7 @@ function getStyles(colors: any) {
     clearFilterText: {
       fontSize: 13,
       fontWeight: '600',
-      color: '#6A7D8C',
+      color: colors.textSecondary,
     },
     tabsScroll: {
       paddingLeft: 20,
@@ -1139,18 +1141,18 @@ function getStyles(colors: any) {
       paddingHorizontal: 18,
       paddingVertical: 10,
       borderRadius: 100,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: colors.cardBorder,
     },
     tabButtonActive: {
-      backgroundColor: '#0F172A',
-      borderColor: '#0F172A',
+      backgroundColor: colors.accentTeal,
+      borderColor: colors.accentTeal,
     },
     tabText: {
       fontSize: 13,
       fontWeight: '600',
-      color: '#475569',
+      color: colors.textSecondary,
     },
     tabTextActive: {
       color: '#FFFFFF',
@@ -1176,7 +1178,7 @@ function getStyles(colors: any) {
       elevation: 2,
       alignItems: 'center',
     },
-    summaryLabel: { fontSize: 11, fontWeight: '700', color: '#8DA4B5', letterSpacing: 0.8, marginBottom: 8 },
+    summaryLabel: { fontSize: 11, fontWeight: '700', color: colors.textMuted || '#8DA4B5', letterSpacing: 0.8, marginBottom: 8 },
     summaryCount: { fontSize: 32, fontWeight: '800', color: colors.textPrimary },
 
     listHeaderRow: {
@@ -1186,7 +1188,7 @@ function getStyles(colors: any) {
     sectionTitle: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#6A7D8C',
+      color: colors.textSecondary,
     },
     leadList: {
       paddingHorizontal: 20,
@@ -1339,7 +1341,7 @@ function getStyles(colors: any) {
       borderRadius: 10,
     },
     statusBadgeConverted: {
-      backgroundColor: '#0BA0B215',
+      backgroundColor: `${colors.accentTeal}15`,
     },
     statusLabel: {
       fontSize: 10,
@@ -1352,14 +1354,14 @@ function getStyles(colors: any) {
       justifyContent: 'space-between',
     },
     primaryAction: {
-      backgroundColor: '#0BA0B2',
+      backgroundColor: colors.accentTeal,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       paddingHorizontal: 16,
       paddingVertical: 10,
       borderRadius: 14,
-      shadowColor: '#0BA0B2',
+      shadowColor: colors.accentTeal,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.2,
       shadowRadius: 8,
@@ -1375,7 +1377,7 @@ function getStyles(colors: any) {
       gap: 10,
     },
     darkAction: {
-      backgroundColor: '#0F172A',
+      backgroundColor: colors.accentTeal,
       paddingHorizontal: 20,
       paddingVertical: 10,
       borderRadius: 12,
@@ -1388,7 +1390,7 @@ function getStyles(colors: any) {
       fontWeight: '700',
     },
     whiteAction: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       paddingHorizontal: 20,
       paddingVertical: 10,
       borderRadius: 12,
@@ -1413,7 +1415,7 @@ function getStyles(colors: any) {
       borderColor: colors.cardBorder,
     },
     deleteAction: {
-      borderColor: '#E11D4820',
+      borderColor: `${colors.danger || '#E11D48'}20`,
     },
     modalOverlay: {
       flex: 1,
@@ -1440,7 +1442,7 @@ function getStyles(colors: any) {
       marginBottom: 24,
     },
     modalTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
-    modalSubtitle: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginTop: 6, maxWidth: '90%' },
+    modalSubtitle: { fontSize: 13, color: colors.textSecondary, fontWeight: '500', marginTop: 6, maxWidth: '90%' },
     modalDashedArea: {
       borderWidth: 1.5,
       borderColor: colors.cardBorder,
@@ -1461,7 +1463,7 @@ function getStyles(colors: any) {
       marginBottom: 16,
     },
     modalDragText: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
-    modalBrowseText: { fontSize: 13, color: '#6A7D8C', fontWeight: '500', marginBottom: 24 },
+    modalBrowseText: { fontSize: 13, color: colors.textSecondary, fontWeight: '500', marginBottom: 24 },
     modalSelectBtn: {
       backgroundColor: colors.cardBackground,
       paddingHorizontal: 24,
@@ -1477,12 +1479,12 @@ function getStyles(colors: any) {
       marginBottom: 24,
     },
     modalSelectBtnText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
-    modalSupportText: { fontSize: 12, color: '#8DA4B5', fontWeight: '500' },
+    modalSupportText: { fontSize: 12, color: colors.textMuted || '#8DA4B5', fontWeight: '500' },
     modalDeleteIconCircle: {
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor: '#FFF1F2',
+      backgroundColor: (colors.danger || '#EF4444') + '15',
       alignItems: 'center',
       justifyContent: 'center',
       alignSelf: 'center',
@@ -1498,7 +1500,7 @@ function getStyles(colors: any) {
     },
     modalDeleteSubtitle: {
       fontSize: 14,
-      color: '#6A7D8C',
+      color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: 28,
       lineHeight: 20,
@@ -1527,7 +1529,7 @@ function getStyles(colors: any) {
       flex: 1,
       paddingVertical: 14,
       borderRadius: 12,
-      backgroundColor: '#DE3B49',
+      backgroundColor: colors.danger || '#DE3B49',
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -1537,7 +1539,7 @@ function getStyles(colors: any) {
       color: '#FFFFFF',
     },
     convertedStateContainer: {
-      backgroundColor: '#0BA0B210',
+      backgroundColor: `${colors.accentTeal}10`,
       padding: 12,
       borderRadius: 12,
       alignItems: 'center',
@@ -1546,7 +1548,7 @@ function getStyles(colors: any) {
     convertedStateText: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#0BA0B2',
+      color: colors.accentTeal,
     },
     fullScreenModalContainer: {
       flex: 1,
@@ -1739,7 +1741,7 @@ function getStyles(colors: any) {
     },
     premiumModalSubtitle: {
       fontSize: 14,
-      color: '#6A7D8C',
+      color: colors.textSecondary,
       fontWeight: '500',
       marginTop: 4,
     },
@@ -1769,11 +1771,11 @@ function getStyles(colors: any) {
     aiIconSquare: {
       width: 44,
       height: 44,
-      backgroundColor: '#0BA0B2',
+      backgroundColor: colors.accentTeal,
       borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#0BA0B2',
+      shadowColor: colors.accentTeal,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 8,
@@ -1849,7 +1851,7 @@ function getStyles(colors: any) {
       shadowRadius: 10,
       elevation: 2,
       borderWidth: 1,
-      borderColor: '#f0f4f8',
+      borderColor: colors.cardBorder,
     },
     dropzoneTitle: {
       fontSize: 18,
@@ -1859,7 +1861,7 @@ function getStyles(colors: any) {
     },
     dropzoneSubtitle: {
       fontSize: 13,
-      color: '#6A7D8C',
+      color: colors.textSecondary,
       fontWeight: '600',
     },
     fileStatusArea: {
@@ -1868,7 +1870,7 @@ function getStyles(colors: any) {
       borderRadius: 20,
       borderWidth: 1,
       borderColor: colors.cardBorder,
-      backgroundColor: '#f6f9fc',
+      backgroundColor: colors.surfaceSoft,
     },
     fileCard: {
       flexDirection: 'row',
@@ -1910,12 +1912,12 @@ function getStyles(colors: any) {
     readyTag: {
       fontSize: 11,
       fontWeight: '800',
-      color: '#10B981',
+      color: colors.accentGreen || '#10B981',
     },
     changeFileText: {
       fontSize: 12,
       fontWeight: '800',
-      color: '#E11D48',
+      color: colors.danger || '#E11D48',
     },
     mappingBtn: {
       borderRadius: 16,

@@ -69,7 +69,7 @@ function TaskCard({
           <MaterialCommunityIcons
             name={isCompleted ? "check-circle" : (isOverdue ? "alert-circle" : "calendar-clock")}
             size={24}
-            color={isCompleted ? "#10B981" : (isOverdue ? "#EF4444" : "#8DA4B5")}
+            color={isCompleted ? colors.accentGreen || "#10B981" : (isOverdue ? colors.danger || "#EF4444" : colors.textMuted || "#8DA4B5")}
           />
         </View>
 
@@ -80,11 +80,11 @@ function TaskCard({
             </Text>
             <View style={[
               styles.priorityBadge,
-              { backgroundColor: task.priority === 'High' ? 'rgba(239, 68, 68, 0.1)' : (task.priority === 'Medium' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)') }
+              { backgroundColor: task.priority === 'High' ? `${colors.danger || '#EF4444'}15` : (task.priority === 'Medium' ? 'rgba(245, 158, 11, 0.1)' : `${colors.accentGreen || '#10B981'}15`) }
             ]}>
               <Text style={[
                 styles.priorityText,
-                { color: task.priority === 'High' ? '#EF4444' : (task.priority === 'Medium' ? '#F59E0B' : '#10B981') }
+                { color: task.priority === 'High' ? colors.danger || '#EF4444' : (task.priority === 'Medium' ? '#F59E0B' : colors.accentGreen || '#10B981') }
               ]}>{task.priority}</Text>
             </View>
           </View>
@@ -110,11 +110,11 @@ function TaskCard({
 
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
-              <MaterialCommunityIcons name="calendar" size={14} color="#8DA4B5" />
+              <MaterialCommunityIcons name="calendar" size={14} color={colors.textMuted || "#8DA4B5"} />
               <Text style={styles.infoText}>{dueDateFormatted}</Text>
             </View>
             <View style={styles.infoItem}>
-              <MaterialCommunityIcons name="clock-outline" size={14} color="#8DA4B5" />
+              <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textMuted || "#8DA4B5"} />
               <Text style={styles.infoText}>{dueTimeFormatted}</Text>
             </View>
           </View>
@@ -126,18 +126,18 @@ function TaskCard({
           <>
             <View style={styles.actionIcons}>
               <Pressable style={styles.actionIconBtn} onPress={onEdit}>
-                <MaterialCommunityIcons name="pencil-outline" size={20} color="#64748B" />
+                <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.textSecondary} />
               </Pressable>
               <Pressable style={styles.actionIconBtn} onPress={onDelete}>
-                <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" />
+                <MaterialCommunityIcons name="delete-outline" size={20} color={colors.danger || "#EF4444"} />
               </Pressable>
-              <Pressable style={[styles.actionIconBtn, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]} onPress={onDone}>
-                <MaterialCommunityIcons name="check" size={20} color="#10B981" />
+              <Pressable style={[styles.actionIconBtn, { backgroundColor: `${colors.accentGreen || '#10B981'}15` }]} onPress={onDone}>
+                <MaterialCommunityIcons name="check" size={20} color={colors.accentGreen || "#10B981"} />
               </Pressable>
             </View>
 
             <Pressable style={styles.rescheduleBtn} onPress={onReschedule}>
-              <MaterialCommunityIcons name="calendar-refresh" size={18} color="#0F172A" />
+              <MaterialCommunityIcons name="calendar-refresh" size={18} color={colors.textPrimary} />
               <Text style={styles.rescheduleText}>Reschedule</Text>
             </Pressable>
           </>
@@ -418,10 +418,10 @@ export default function FollowUpsScreen() {
 
       <View style={styles.searchBarContainer}>
         <View style={styles.searchInputWrapper}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#8DA4B5" />
+          <MaterialCommunityIcons name="magnify" size={20} color={colors.textMuted || "#8DA4B5"} />
           <TextInput
             placeholder="Search by contact or subject..."
-            placeholderTextColor="#8DA4B5"
+            placeholderTextColor={colors.textMuted || "#8DA4B5"}
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
@@ -436,7 +436,7 @@ export default function FollowUpsScreen() {
             onPress={() => setActiveDropdown('group')}
           >
             <Text style={[styles.filterBtnText, groupFilter !== 'All Groups' && styles.filterBtnTextActive]}>{groupFilter}</Text>
-            <MaterialCommunityIcons name="chevron-down" size={16} color={groupFilter !== 'All Groups' ? colors.textPrimary : '#64748B'} />
+            <MaterialCommunityIcons name="chevron-down" size={16} color={groupFilter !== 'All Groups' ? colors.textPrimary : colors.textMuted || '#64748B'} />
           </Pressable>
 
           <Pressable
@@ -444,7 +444,7 @@ export default function FollowUpsScreen() {
             onPress={() => setActiveDropdown('tag')}
           >
             <Text style={[styles.filterBtnText, tagFilter !== 'All Tags' && styles.filterBtnTextActive]}>{tagFilter}</Text>
-            <MaterialCommunityIcons name="chevron-down" size={16} color={tagFilter !== 'All Tags' ? colors.textPrimary : '#64748B'} />
+            <MaterialCommunityIcons name="chevron-down" size={16} color={tagFilter !== 'All Tags' ? colors.textPrimary : colors.textMuted || '#64748B'} />
           </Pressable>
         </ScrollView>
       </View>
@@ -474,13 +474,13 @@ export default function FollowUpsScreen() {
         contentContainerStyle={[styles.listContainer, { paddingBottom: 100 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0BA0B2']} tintColor="#0BA0B2" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.accentTeal]} tintColor={colors.accentTeal} />
         }
       >
         {isLoadingTasks ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 100 }}>
-            <ActivityIndicator size="large" color="#0BA0B2" />
-            <Text style={{ marginTop: 12, color: '#6A7D8C', fontWeight: '700' }}>Syncing Follow-Ups...</Text>
+            <ActivityIndicator size="large" color={colors.accentTeal} />
+            <Text style={{ marginTop: 12, color: colors.textSecondary, fontWeight: '700' }}>Syncing Follow-Ups...</Text>
           </View>
         ) : (
           <>
@@ -496,7 +496,7 @@ export default function FollowUpsScreen() {
             ))}
             {filteredTasks.length === 0 && (
               <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                <Text style={{ color: '#8DA4B5', fontWeight: 'bold' }}>No tasks found matching these filters.</Text>
+                <Text style={{ color: colors.textMuted || '#8DA4B5', fontWeight: 'bold' }}>No tasks found matching these filters.</Text>
               </View>
             )}
           </>
@@ -540,12 +540,12 @@ export default function FollowUpsScreen() {
                 >
                   <Text style={[
                     styles.dropdownOptionText,
-                    (activeDropdown === 'group' ? groupFilter : tagFilter) === opt && { color: '#0BA0B2', fontWeight: '800' }
+                    (activeDropdown === 'group' ? groupFilter : tagFilter) === opt && { color: colors.accentTeal, fontWeight: '800' }
                   ]}>
                     {opt}
                   </Text>
                   {(activeDropdown === 'group' ? groupFilter : tagFilter) === opt && (
-                    <MaterialCommunityIcons name="check" size={20} color="#0BA0B2" />
+                    <MaterialCommunityIcons name="check" size={20} color={colors.accentTeal} />
                   )}
                 </Pressable>
               ))}
@@ -585,7 +585,7 @@ export default function FollowUpsScreen() {
                 <TextInput
                   style={styles.modalInput}
                   placeholder="e.g. Call to discuss pricing"
-                  placeholderTextColor="#8DA4B5"
+                  placeholderTextColor={colors.textMuted || "#8DA4B5"}
                   value={modalSubject}
                   onChangeText={setModalSubject}
                 />
@@ -596,7 +596,7 @@ export default function FollowUpsScreen() {
                 <TextInput
                   style={styles.modalInput}
                   placeholder="e.g. John Doe (Fresh Insert)"
-                  placeholderTextColor="#8DA4B5"
+                  placeholderTextColor={colors.textMuted || "#8DA4B5"}
                   value={modalManualContact}
                   onChangeText={setModalManualContact}
                 />
@@ -640,10 +640,10 @@ export default function FollowUpsScreen() {
                             ]}
                             onPress={() => { setModalGroupId(g.id); setModalGroupDropdownOpen(false); }}
                           >
-                            <Text style={[styles.selectionModalItemText, modalGroupId === g.id && styles.selectionModalItemTextActive]}>{g.name}</Text>
-                            {modalGroupId === g.id && (
-                              <MaterialCommunityIcons name="check-circle" size={22} color="#0BA0B2" />
-                            )}
+                              <Text style={[styles.selectionModalItemText, modalGroupId === g.id && styles.selectionModalItemTextActive]}>{g.name}</Text>
+                              {modalGroupId === g.id && (
+                                <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                              )}
                           </Pressable>
                         ))}
                       </ScrollView>
@@ -680,10 +680,10 @@ export default function FollowUpsScreen() {
                             ]}
                             onPress={() => { setModalTagId(t.id); setModalTagDropdownOpen(false); }}
                           >
-                            <Text style={[styles.selectionModalItemText, modalTagId === t.id && styles.selectionModalItemTextActive]}>{t.name}</Text>
-                            {modalTagId === t.id && (
-                              <MaterialCommunityIcons name="check-circle" size={22} color="#0BA0B2" />
-                            )}
+                              <Text style={[styles.selectionModalItemText, modalTagId === t.id && styles.selectionModalItemTextActive]}>{t.name}</Text>
+                              {modalTagId === t.id && (
+                                <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                              )}
                           </Pressable>
                         ))}
                       </ScrollView>
@@ -847,7 +847,7 @@ export default function FollowUpsScreen() {
         <Pressable style={styles.alertOverlay} onPress={() => setDeletingTask(null)}>
           <View style={styles.alertContainer} onStartShouldSetResponder={() => true}>
             <View style={styles.alertIconCircle}>
-              <MaterialCommunityIcons name="alert-outline" size={32} color="#EF4444" />
+              <MaterialCommunityIcons name="alert-outline" size={32} color={colors.danger || "#EF4444"} />
             </View>
 
             <Text style={styles.alertTitle}>Delete Follow-Up?</Text>
@@ -887,7 +887,7 @@ function getStyles(colors: any) {
     searchInputWrapper: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F1F5F9',
+      backgroundColor: colors.surfaceSoft,
       height: 52,
       borderRadius: 26,
       paddingHorizontal: 20,
@@ -941,7 +941,7 @@ function getStyles(colors: any) {
       color: colors.textSecondary,
     },
     selectionModalItemTextActive: {
-      color: '#0BA0B2',
+      color: colors.accentTeal,
       fontWeight: '800',
     },
     searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: colors.textPrimary, fontWeight: '500' },
@@ -951,17 +951,17 @@ function getStyles(colors: any) {
     filterBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F1F5F9',
+      backgroundColor: colors.surfaceSoft,
       paddingHorizontal: 16,
       paddingVertical: 10,
       borderRadius: 12,
       gap: 8,
       borderWidth: 1,
-      borderColor: 'transparent',
+      borderColor: colors.cardBorder,
     },
-    filterBtnActive: { borderColor: '#0BA0B2', backgroundColor: '#0BA0B208' },
-    filterBtnText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
-    filterBtnTextActive: { color: '#0BA0B2' },
+    filterBtnActive: { borderColor: colors.accentTeal, backgroundColor: colors.accentTeal + '10' },
+    filterBtnText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+    filterBtnTextActive: { color: colors.accentTeal },
 
     dropdownOption: {
       flexDirection: 'row',
@@ -970,12 +970,12 @@ function getStyles(colors: any) {
       paddingVertical: 16,
       paddingHorizontal: 4,
       borderBottomWidth: 1,
-      borderBottomColor: '#F1F5F9',
+      borderBottomColor: colors.divider,
     },
     dropdownOptionText: {
       fontSize: 15,
       fontWeight: '600',
-      color: '#334155',
+      color: colors.textPrimary,
     },
 
     tabsContainer: { marginBottom: 20 },
@@ -984,15 +984,15 @@ function getStyles(colors: any) {
       paddingHorizontal: 20,
       paddingVertical: 10,
       borderRadius: 100,
-      backgroundColor: '#F0F9FA',
+      backgroundColor: colors.surfaceSoft,
       borderWidth: 1,
-      borderColor: 'transparent',
+      borderColor: colors.cardBorder,
     },
     tabItemActive: {
-      backgroundColor: '#0BA0B2',
-      borderColor: '#0BA0B2',
+      backgroundColor: colors.accentTeal,
+      borderColor: colors.accentTeal,
     },
-    tabText: { fontSize: 14, fontWeight: '700', color: '#64748B' },
+    tabText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
     tabTextActive: { color: '#FFFFFF' },
 
     fab: {
@@ -1051,7 +1051,7 @@ function getStyles(colors: any) {
       marginBottom: 6
     },
     cardTitle: { fontSize: 17, fontWeight: '900', color: colors.textPrimary, flex: 1, marginRight: 8 },
-    cardTitleCompleted: { color: '#8DA4B5', textDecorationLine: 'line-through' },
+    cardTitleCompleted: { color: colors.textMuted, textDecorationLine: 'line-through' },
 
     priorityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     priorityText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
@@ -1114,7 +1114,7 @@ function getStyles(colors: any) {
       height: 36,
       borderRadius: 10,
     },
-    completedLabel: { fontSize: 13, fontWeight: '900', color: '#10B981' },
+    completedLabel: { fontSize: 13, fontWeight: '900', color: colors.accentGreen || '#10B981' },
 
     modalOverlay: {
       flex: 1,
@@ -1186,7 +1186,7 @@ function getStyles(colors: any) {
     },
     modalSubtitle: {
       fontSize: 13,
-      color: '#6A7D8C',
+      color: colors.textSecondary,
       fontWeight: '500',
       marginTop: 4,
     },
@@ -1208,7 +1208,7 @@ function getStyles(colors: any) {
     modalLabel: {
       fontSize: 12,
       fontWeight: '800',
-      color: '#334155',
+      color: colors.textPrimary,
       marginBottom: 8,
       textTransform: 'uppercase',
       letterSpacing: 1,
@@ -1415,7 +1415,7 @@ function getStyles(colors: any) {
     pickerDoneBtn: {
       fontSize: 16,
       fontWeight: '700',
-      color: '#0BA0B2',
+      color: colors.accentTeal,
     },
     bottomFixModal: {
       backgroundColor: colors.cardBackground,
@@ -1467,7 +1467,7 @@ function getStyles(colors: any) {
     },
     alertDescription: {
       fontSize: 15,
-      color: '#6A7D8C',
+      color: colors.textSecondary,
       textAlign: 'center',
       lineHeight: 22,
       marginBottom: 32,
@@ -1497,10 +1497,10 @@ function getStyles(colors: any) {
       flex: 1,
       height: 52,
       borderRadius: 16,
-      backgroundColor: '#EF4444',
+      backgroundColor: colors.danger || '#EF4444',
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#EF4444',
+      shadowColor: colors.danger || '#EF4444',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.2,
       shadowRadius: 8,

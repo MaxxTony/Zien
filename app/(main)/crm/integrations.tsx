@@ -12,10 +12,24 @@ import {
   Text,
   TextInput,
   View,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const INTEGRATIONS = [
+type IntegrationStatus = 'AVAILABLE' | 'CONNECTED' | 'COMING SOON';
+
+interface Integration {
+  id: string;
+  name: string;
+  category: string;
+  desc: string;
+  status: IntegrationStatus;
+  icon: any;
+  buttonLabel: string;
+}
+
+const INITIAL_INTEGRATIONS: Integration[] = [
   { id: 'salesforce', name: 'Salesforce', category: 'CRM', desc: 'Deep bi-directional sync with Salesforce CRM for enterprise teams.', status: 'AVAILABLE' as const, icon: 'cloud-outline' as const, buttonLabel: 'Connect Now' },
   { id: 'hubspot', name: 'HubSpot', category: 'CRM', desc: 'Automatically push leads and track marketing activity in HubSpot.', status: 'AVAILABLE' as const, icon: 'database-outline' as const, buttonLabel: 'Connect Now' },
   { id: 'mailchimp', name: 'Mailchimp', category: 'Email Marketing', desc: 'Sync your contact segments directly to Mailchimp audiences.', status: 'CONNECTED' as const, icon: 'email-outline' as const, buttonLabel: 'Manage Connection' },
@@ -35,7 +49,24 @@ export default function IntegrationsScreen() {
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [integrations, setIntegrations] = useState<Integration[]>(INITIAL_INTEGRATIONS);
   const [requestModalVisible, setRequestModalVisible] = useState(false);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
+
+  const handleConnect = (id: string, name: string) => {
+    setConnectingId(id);
+    
+    // Simulate connection delay
+    setTimeout(() => {
+      setIntegrations(prev => prev.map(int => 
+        int.id === id 
+          ? { ...int, status: 'CONNECTED', buttonLabel: 'Manage Connection' }
+          : int
+      ));
+      setConnectingId(null);
+      Alert.alert('Success', `${name} has been connected successfully.`);
+    }, 2000);
+  };
 
   return (
     <LinearGradient
@@ -54,63 +85,90 @@ export default function IntegrationsScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
         showsVerticalScrollIndicator={false}>
 
-        <View style={styles.topActionsRow}>
-          <Pressable
-            style={({ pressed }) => [styles.requestBtn, pressed && { opacity: 0.8 }]}
-            onPress={() => setRequestModalVisible(true)}
-          >
-            <Text style={styles.requestBtnText}>Request Integration</Text>
-          </Pressable>
-        </View>
 
-        <View style={styles.cardsWrap}>
-          {INTEGRATIONS.map((int) => (
-            <View key={int.id} style={styles.intCard}>
-              <View style={styles.intCardTop}>
-                <View style={styles.intIconWrap}>
-                  <MaterialCommunityIcons name={int.icon} size={22} color={colors.textPrimary} />
-                </View>
-                <View style={[
-                  styles.statusPill,
-                  int.status === 'CONNECTED' && styles.statusPillConnected,
-                  int.status === 'COMING SOON' && styles.statusPillComingSoon
-                ]}>
-                  <Text style={[
-                    styles.statusPillText,
-                    int.status === 'CONNECTED' && styles.statusPillTextConnected,
-                    int.status === 'COMING SOON' && styles.statusPillTextComingSoon
+        <View style={styles.cardsGrid}>
+          {integrations.map((int) => {
+            const isComingSoon = int.status === 'COMING SOON';
+            const isConnected = int.status === 'CONNECTED';
+            const isConnecting = connectingId === int.id;
+            
+            return (
+              <View key={int.id} style={styles.intCard}>
+                <View style={styles.intCardHeader}>
+                  <View style={styles.intIconWrap}>
+                    <MaterialCommunityIcons name={int.icon} size={24} color={colors.textPrimary} />
+                  </View>
+                  <View style={[
+                    styles.statusBadge,
+                    isConnected && styles.statusBadgeConnected,
+                    isComingSoon && styles.statusBadgeComingSoon
                   ]}>
-                    {int.status}
-                  </Text>
+                    <Text style={[
+                      styles.statusBadgeText,
+                      isConnected && styles.statusBadgeTextConnected,
+                      isComingSoon && styles.statusBadgeTextComingSoon
+                    ]}>
+                      {int.status}
+                    </Text>
+                  </View>
                 </View>
+
+                <View style={styles.intMetaGroup}>
+                  <Text style={styles.intName} numberOfLines={1}>{int.name}</Text>
+                  <Text style={styles.intCategory}>{int.category}</Text>
+                </View>
+
+                <Text style={styles.intDesc} numberOfLines={2}>{int.desc}</Text>
+
+                <Pressable
+                  onPress={() => {
+                    if (int.status === 'AVAILABLE') {
+                      handleConnect(int.id, int.name);
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.intActionBtn,
+                    isConnected && styles.intActionBtnConnected,
+                    isComingSoon && styles.intActionBtnDisabled,
+                    pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+                  ]}>
+                  {isConnecting ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      {isConnected && <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />}
+                      <Text style={[
+                        styles.intActionBtnText,
+                        isComingSoon && styles.intActionBtnTextDisabled,
+                      ]}>
+                        {int.buttonLabel}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
               </View>
-
-              <View style={styles.labelGroup}>
-                <Text style={styles.intName}>{int.name}</Text>
-                <Text style={styles.intCategory}>{int.category}</Text>
-              </View>
-
-              <Text style={styles.intDesc} numberOfLines={3}>{int.desc}</Text>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.intActionBtn,
-                  int.status === 'CONNECTED' && styles.intActionBtnConnected,
-                  int.status === 'COMING SOON' && styles.intActionBtnDisabled,
-                  pressed && { opacity: 0.9 },
-                ]}>
-                {int.status === 'CONNECTED' && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />}
-                <Text style={[
-                  styles.intActionBtnText,
-                  int.status === 'COMING SOON' && styles.intActionBtnTextDisabled,
-                ]}>
-                  {int.buttonLabel}
-                </Text>
-              </Pressable>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.fab,
+          pressed && { transform: [{ scale: 0.95 }] }
+        ]}
+        onPress={() => setRequestModalVisible(true)}
+      >
+        <LinearGradient
+          colors={['#0BA0B2', '#0891B2']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <MaterialCommunityIcons name="plus" size={28} color="#FFFFFF" />
+        </LinearGradient>
+      </Pressable>
 
       {/* Request Integration Modal - Full Page */}
       <Modal
@@ -247,134 +305,127 @@ function getStyles(colors: any) {
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 10 },
-  topActionsRow: {
+  cardsGrid: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 16,
-  },
-  requestBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: colors.accentTeal,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  requestBtnText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  cardsWrap: {
-    flexDirection: 'column',
-    gap: 16,
+    flexWrap: 'wrap',
+    gap: 12,
     paddingBottom: 24,
   },
   intCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 20,
+    padding: 16,
     width: '100%',
     borderWidth: 1,
     borderColor: colors.cardBorder,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    marginBottom: 8,
   },
-  intCardTop: {
+  intCardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   intIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
-    backgroundColor: colors.surfaceSoft,
+    backgroundColor: 'rgba(148, 163, 184, 0.1)',
   },
-  statusPillConnected: {
+  statusBadgeConnected: {
     backgroundColor: 'rgba(11, 160, 178, 0.1)',
   },
-  statusPillComingSoon: {
-    backgroundColor: colors.surfaceSoft,
+  statusBadgeComingSoon: {
+    backgroundColor: 'rgba(148, 163, 184, 0.05)',
   },
-  statusPillText: {
-    fontSize: 9,
+  statusBadgeText: {
+    fontSize: 7.5,
     fontWeight: '900',
     color: colors.textSecondary,
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
-  statusPillTextConnected: { color: '#0BA0B2' },
-  statusPillTextComingSoon: { color: colors.inputPlaceholder },
-  labelGroup: {
-    marginBottom: 8,
+  statusBadgeTextConnected: { color: '#0BA0B2' },
+  statusBadgeTextComingSoon: { color: colors.inputPlaceholder },
+  intMetaGroup: {
+    marginBottom: 6,
   },
   intName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '900',
     color: colors.textPrimary,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   intCategory: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: colors.inputPlaceholder,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 2,
+    letterSpacing: 0.8,
+    marginTop: 1,
   },
   intDesc: {
-    fontSize: 14,
+    fontSize: 11.5,
     color: colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 24,
+    lineHeight: 16,
+    marginBottom: 16,
     fontWeight: '500',
+    height: 32, // Fixed height for 2 lines
   },
   intActionBtn: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: colors.accentTeal,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#0F172A', // Dark premium blue/black from screenshot
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
   },
   intActionBtnConnected: {
     backgroundColor: '#0BA0B2',
   },
   intActionBtnDisabled: {
-    backgroundColor: colors.surfaceSoft,
-    elevation: 0,
-    shadowOpacity: 0,
+    backgroundColor: 'rgba(148, 163, 184, 0.15)',
   },
   intActionBtnText: {
-    fontSize: 15,
+    fontSize: 11,
     fontWeight: '800',
     color: '#FFFFFF'
   },
   intActionBtnTextDisabled: { color: colors.inputPlaceholder },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    shadowColor: '#0BA0B2',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 999,
+  },
+  fabGradient: {
+    flex: 1,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   // Modal Styles
   modalContent: {
     flex: 1,

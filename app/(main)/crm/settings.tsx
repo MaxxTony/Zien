@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const TABS = ['General', 'Email Delivery', 'Automation Rules', 'Zien Extension'] as const;
 type Tab = (typeof TABS)[number];
 
-const LEAD_DISTRIBUTION_OPTIONS = ['Round Robin (Team)', 'First Available', 'Manual Assign'] as const;
+const LEAD_DISTRIBUTION_OPTIONS = ['Round Robin (Team)', 'First to Claim', 'Priority (Broker Selection)'] as const;
 const AUTOMATED_ACTION_OPTIONS = ["Send 'Just Checking In' Email", 'Create Follow-Up Task', 'Send SMS Reminder'] as const;
 
 const EMAIL_PROVIDERS = [
@@ -137,38 +137,62 @@ export default function CRMSettingsScreen() {
         keyboardShouldPersistTaps="handled">
         {activeTab === 'General' && (
           <View style={styles.tabPanel}>
-            <Text style={styles.cardTitle}>Lead Routing & Duplicate Detection</Text>
-            <View style={styles.card}>
-              <View style={styles.field}>
-                <Text style={styles.label}>Default Lead Distribution</Text>
+            <Text style={styles.premiumCardTitle}>Lead Routing & Duplicate Detection</Text>
+            
+            <View style={styles.premiumCard}>
+              <View style={[styles.premiumField, { zIndex: 100 }]}>
+                <Text style={styles.premiumLabelText}>DEFAULT LEAD DISTRIBUTION</Text>
                 <Pressable
-                  style={styles.select}
-                  onPress={() => setLeadDistOpen((v) => !v)}>
-                  <Text style={styles.selectText}>{leadDistribution}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textSecondary} />
+                  style={styles.premiumTrigger}
+                  onPress={() => setLeadDistOpen(!leadDistOpen)}>
+                  <Text style={styles.premiumTriggerText}>{leadDistribution}</Text>
+                  <MaterialCommunityIcons 
+                    name={leadDistOpen ? "chevron-up" : "chevron-down"} 
+                    size={22} 
+                    color={colors.textPrimary} 
+                  />
                 </Pressable>
+                
                 {leadDistOpen && (
-                  <View style={styles.dropdown}>
-                    {LEAD_DISTRIBUTION_OPTIONS.map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={styles.dropdownItem}
-                        onPress={() => { setLeadDistribution(opt); setLeadDistOpen(false); }}>
-                        <Text style={styles.dropdownItemText}>{opt}</Text>
-                      </Pressable>
-                    ))}
+                  <View style={styles.premiumDropdownFloating}>
+                    <ScrollView bounces={false} style={{ maxHeight: 200 }}>
+                      {LEAD_DISTRIBUTION_OPTIONS.map((opt) => {
+                        const isSelected = leadDistribution === opt;
+                        return (
+                          <Pressable
+                            key={opt}
+                            style={styles.premiumDropdownOption}
+                            onPress={() => {
+                              setLeadDistribution(opt);
+                              setLeadDistOpen(false);
+                            }}>
+                            <View style={styles.optionInner}>
+                              {isSelected && (
+                                <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
+                              )}
+                              <Text style={[styles.optionLabelText, isSelected && styles.optionLabelTextActive]}>
+                                {opt}
+                              </Text>
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
                   </View>
                 )}
               </View>
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleLabelWrap}>
-                  <Text style={styles.label}>Auto-Merge Duplicates</Text>
-                  <Text style={styles.toggleDesc}>Automatically merge leads with matching email/phone.</Text>
+
+              <View style={styles.premiumToggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.premiumToggleTitle}>Auto-Merge Duplicates</Text>
+                  <Text style={styles.premiumToggleSubtitle}>
+                    Automatically merge leads with matching email or phone numbers to maintain database hygiene.
+                  </Text>
                 </View>
                 <Switch
                   value={autoMergeDuplicates}
                   onValueChange={setAutoMergeDuplicates}
-                  trackColor={{ false: colors.cardBorder, true: colors.accentTeal }}
+                  trackColor={{ false: colors.cardBorder, true: '#10B981' }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -207,8 +231,8 @@ export default function CRMSettingsScreen() {
                   Automatically re-engage leads who have shown no activity for a set period.
                 </Text>
 
-                <View style={styles.premiumFieldRow}>
-                  <View style={[styles.premiumField, { flex: 1, zIndex: 100 }]}>
+                <View style={[styles.premiumFieldRow, { zIndex: 100 }]}>
+                  <View style={[styles.premiumField, { flex: 1 }]}>
                     <Text style={styles.premiumLabel}>Inactivity Threshold</Text>
                     <Pressable
                       style={styles.premiumSelect}
@@ -237,7 +261,7 @@ export default function CRMSettingsScreen() {
                       </View>
                     )}
                   </View>
-                  <View style={[styles.premiumField, { flex: 1, zIndex: 100 }]}>
+                  <View style={[styles.premiumField, { flex: 1 }]}>
                     <Text style={styles.premiumLabel}>Safety Limit</Text>
                     <Pressable
                       style={styles.premiumSelect}
@@ -307,23 +331,30 @@ export default function CRMSettingsScreen() {
                       <MaterialCommunityIcons name="chevron-down" size={16} color="#475569" />
                     </Pressable>
                     {protocolIdentityOpen && (
-                      <View style={styles.premiumDropdown}>
-                        {SENDER_IDENTITY_OPTIONS.map((opt) => (
-                          <Pressable
-                            key={opt}
-                            style={styles.premiumDropdownItem}
-                            onPress={() => {
-                              setProtocolIdentity(opt);
-                              setProtocolIdentityOpen(false);
-                            }}>
-                            <View style={styles.premiumDropdownCheck}>
-                              {protocolIdentity === opt && (
-                                <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
-                              )}
-                            </View>
-                            <Text style={styles.premiumDropdownText}>{opt}</Text>
-                          </Pressable>
-                        ))}
+                      <View style={styles.premiumDropdownFloating}>
+                        <ScrollView bounces={false} style={{ maxHeight: 200 }}>
+                          {SENDER_IDENTITY_OPTIONS.map((opt) => {
+                            const isSelected = protocolIdentity === opt;
+                            return (
+                              <Pressable
+                                key={opt}
+                                style={styles.premiumDropdownOption}
+                                onPress={() => {
+                                  setProtocolIdentity(opt);
+                                  setProtocolIdentityOpen(false);
+                                }}>
+                                <View style={styles.optionInner}>
+                                  {isSelected && (
+                                    <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
+                                  )}
+                                  <Text style={[styles.optionLabelText, isSelected && styles.optionLabelTextActive]}>
+                                    {opt}
+                                  </Text>
+                                </View>
+                              </Pressable>
+                            );
+                          })}
+                        </ScrollView>
                       </View>
                     )}
                   </View>
@@ -332,27 +363,39 @@ export default function CRMSettingsScreen() {
 
                 <View style={styles.premiumField}>
                   <Text style={styles.premiumLabel}>Re-engagement Channel</Text>
-                  <View style={styles.segmentedControl}>
+                  <View style={styles.premiumSegmentedControl}>
                     <Pressable
-                      style={[styles.segmentBtn, reEngagementChannel === 'EMAIL' && styles.segmentBtnActive]}
+                      style={[styles.premiumSegmentBtn, reEngagementChannel === 'EMAIL' && styles.premiumSegmentBtnActive]}
                       onPress={() => setReEngagementChannel('EMAIL')}
                     >
-                      <MaterialCommunityIcons name="email-outline" size={16} color={reEngagementChannel === 'EMAIL' ? '#FFFFFF' : colors.textPrimary} />
-                      <Text style={[styles.segmentBtnText, reEngagementChannel === 'EMAIL' && styles.segmentBtnTextActive]}>EMAIL</Text>
+                      <MaterialCommunityIcons 
+                        name="email" 
+                        size={20} 
+                        color={reEngagementChannel === 'EMAIL' ? '#FFFFFF' : '#94A3B8'} 
+                      />
+                      <Text style={[styles.premiumSegmentBtnText, reEngagementChannel === 'EMAIL' && styles.premiumSegmentBtnTextActive]}>EMAIL</Text>
                     </Pressable>
                     <Pressable
-                      style={[styles.segmentBtn, reEngagementChannel === 'SMS' && styles.segmentBtnActive]}
+                      style={[styles.premiumSegmentBtn, reEngagementChannel === 'SMS' && styles.premiumSegmentBtnActive]}
                       onPress={() => setReEngagementChannel('SMS')}
                     >
-                      <MaterialCommunityIcons name="cellphone-text" size={16} color={reEngagementChannel === 'SMS' ? '#FFFFFF' : colors.textPrimary} />
-                      <Text style={[styles.segmentBtnText, reEngagementChannel === 'SMS' && styles.segmentBtnTextActive]}>SMS</Text>
+                      <MaterialCommunityIcons 
+                        name="cellphone" 
+                        size={20} 
+                        color={reEngagementChannel === 'SMS' ? '#FFFFFF' : '#94A3B8'} 
+                      />
+                      <Text style={[styles.premiumSegmentBtnText, reEngagementChannel === 'SMS' && styles.premiumSegmentBtnTextActive]}>SMS</Text>
                     </Pressable>
                     <Pressable
-                      style={[styles.segmentBtn, reEngagementChannel === 'WHATSAPP' && styles.segmentBtnActive]}
+                      style={[styles.premiumSegmentBtn, reEngagementChannel === 'WHATSAPP' && styles.premiumSegmentBtnActive]}
                       onPress={() => setReEngagementChannel('WHATSAPP')}
                     >
-                      <MaterialCommunityIcons name="whatsapp" size={16} color={reEngagementChannel === 'WHATSAPP' ? '#FFFFFF' : colors.textPrimary} />
-                      <Text style={[styles.segmentBtnText, reEngagementChannel === 'WHATSAPP' && styles.segmentBtnTextActive]}>WHATSAPP</Text>
+                      <MaterialCommunityIcons 
+                        name="whatsapp" 
+                        size={20} 
+                        color={reEngagementChannel === 'WHATSAPP' ? '#FFFFFF' : '#94A3B8'} 
+                      />
+                      <Text style={[styles.premiumSegmentBtnText, reEngagementChannel === 'WHATSAPP' && styles.premiumSegmentBtnTextActive]}>WHATSAPP</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -445,35 +488,60 @@ export default function CRMSettingsScreen() {
 
         {activeTab === 'Zien Extension' && (
           <View style={styles.tabPanel}>
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionCardTitle}>ZIEN AI Chrome Extension</Text>
-              <View style={styles.extensionBlock}>
-                <View style={styles.extensionIconWrap}>
-                  <MaterialCommunityIcons name="link-variant" size={32} color={colors.textPrimary} />
-                </View>
-                <View style={styles.extensionTextWrap}>
-                  <Text style={styles.extensionPhase}>The Extension (Phase 3 Completed)</Text>
-                  <Text style={styles.extensionDesc}>
-                    Import listings from Zillow, Redfin, and Realtor directly into your CRM with one click.
-                  </Text>
-                  <Pressable style={styles.downloadBtn}>
-                    <Text style={styles.downloadBtnText}>Download Extension</Text>
-                  </Pressable>
+            <View style={styles.premiumCard}>
+              <View style={styles.extensionHero}>
+                <LinearGradient
+                  colors={['rgba(11, 160, 178, 0.2)', 'rgba(11, 160, 178, 0.05)']}
+                  style={styles.extensionIconLarge}
+                >
+                  <MaterialCommunityIcons name="google-chrome" size={40} color="#0BA0B2" />
+                </LinearGradient>
+                <View style={styles.extensionHeaderInfo}>
+                  <Text style={styles.extensionTitlePremium}>ZIEN AI Chrome Extension</Text>
+                  <View style={styles.phaseBadge}>
+                    <Text style={styles.phaseBadgeText}>PHASE 3 COMPLETED</Text>
+                  </View>
                 </View>
               </View>
-              <Text style={styles.howItWorksTitle}>HOW IT WORKS</Text>
-              <View style={styles.bulletList}>
-                <View style={styles.bulletRow}>
-                  <Text style={styles.bullet}>•</Text>
-                  <Text style={styles.bulletText}>Search any listing on Zillow or Redfin.</Text>
+
+              <Text style={styles.extensionDescriptionPremium}>
+                Bridge the gap between public listing portals and your private CRM. Import leads and listings with a single click.
+              </Text>
+
+              <Pressable style={({ pressed }) => [styles.downloadBtnPremium, pressed && { opacity: 0.9 }]}>
+                <LinearGradient
+                  colors={['#0BA0B2', '#0891B2']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.downloadGradiant}
+                >
+                  <MaterialCommunityIcons name="download" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.downloadBtnTextPremium}>Download Extension</Text>
+                </LinearGradient>
+              </Pressable>
+
+              <View style={styles.howItWorksPremium}>
+                <Text style={styles.howTitlePremium}>How it Works</Text>
+                
+                <View style={styles.stepRowPremium}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <Text style={styles.stepTextPremium}>Search any listing on Zillow or Redfin.</Text>
                 </View>
-                <View style={styles.bulletRow}>
-                  <Text style={styles.bullet}>•</Text>
-                  <Text style={styles.bulletText}>Click "Add to Zien" in the Extension panel.</Text>
+                
+                <View style={styles.stepRowPremium}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <Text style={styles.stepTextPremium}>Click "Add to Zien" in the Extension panel.</Text>
                 </View>
-                <View style={styles.bulletRow}>
-                  <Text style={styles.bullet}>•</Text>
-                  <Text style={styles.bulletText}>Zien dynamically reads the browser tab for you for effortless, one-click integration.</Text>
+                
+                <View style={styles.stepRowPremium}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <Text style={styles.stepTextPremium}>Zien dynamically reads the browser tab for effortless integration.</Text>
                 </View>
               </View>
             </View>
@@ -1083,6 +1151,236 @@ function getStyles(colors: any) {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  premiumCardTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    marginBottom: 16,
+    letterSpacing: -0.5,
+  },
+  premiumCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 2,
+  },
+  premiumLabelText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  premiumTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  premiumTriggerText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  premiumDropdownFloating: {
+    position: 'absolute',
+    top: 90,
+    left: 0,
+    right: 0,
+    backgroundColor: '#4B5563', // Dark grey from screenshot
+    borderRadius: 18,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 10,
+    zIndex: 1000,
+  },
+  premiumDropdownOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  optionInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  optionLabelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  optionLabelTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  premiumToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  premiumToggleTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  premiumToggleSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  premiumSegmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#0F172A', // Dark navy/black pill background
+    borderRadius: 18,
+    padding: 6,
+    gap: 4,
+  },
+  premiumSegmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    borderRadius: 14,
+    gap: 10,
+  },
+  premiumSegmentBtnActive: {
+    backgroundColor: '#0BA0B2', // Teal active state
+  },
+  premiumSegmentBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  premiumSegmentBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  extensionHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 20,
+  },
+  extensionIconLarge: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(11, 160, 178, 0.2)',
+  },
+  extensionHeaderInfo: {
+    flex: 1,
+  },
+  extensionTitlePremium: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    letterSpacing: -0.4,
+  },
+  phaseBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(11, 160, 178, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  phaseBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0BA0B2',
+    letterSpacing: 0.5,
+  },
+  extensionDescriptionPremium: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: 24,
+    fontWeight: '500',
+  },
+  downloadBtnPremium: {
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 32,
+    shadowColor: '#0BA0B2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  downloadGradiant: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  downloadBtnTextPremium: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  howItWorksPremium: {
+    backgroundColor: 'rgba(148, 163, 184, 0.05)',
+    borderRadius: 20,
+    padding: 20,
+  },
+  howTitlePremium: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 20,
+  },
+  stepRowPremium: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#0BA0B2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumberText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  stepTextPremium: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    lineHeight: 20,
   },
   });
 }

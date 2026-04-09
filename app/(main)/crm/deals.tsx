@@ -5,13 +5,14 @@ import { CRMContact, CRMDeal, CRMPipeline, CRMStage, addCRMDeal, addCRMPipelineS
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -108,6 +109,17 @@ export default function DealsScreen() {
   const [isStagesModalVisible, setIsStagesModalVisible] = useState(false);
   const [newStageInput, setNewStageInput] = useState('');
   const [isAddingStage, setIsAddingStage] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['crmPipelines'] }),
+      queryClient.invalidateQueries({ queryKey: ['crmContacts'] }),
+      queryClient.invalidateQueries({ queryKey: ['crmDeals'] })
+    ]);
+    setRefreshing(false);
+  }, [queryClient]);
   const [deletingStageId, setDeletingStageId] = useState<string | null>(null);
 
   const currentStages = activePipeline?.stages || [];
@@ -297,7 +309,7 @@ export default function DealsScreen() {
               onPress={() => setTransferingDealId(isMenuOpen ? null : deal.id)}
             >
               <Text style={styles.transferBtnText}>Transfer</Text>
-              <MaterialCommunityIcons name={isMenuOpen ? "chevron-up" : "chevron-down"} size={14} color="#0BA0B2" />
+              <MaterialCommunityIcons name={isMenuOpen ? "chevron-up" : "chevron-down"} size={14} color={colors.accentTeal} />
             </Pressable>
             <Text style={styles.dealCardTime}>{getTimeAgo(deal.last_activity_at)}</Text>
           </View>
@@ -359,6 +371,14 @@ export default function DealsScreen() {
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.mainScroll, { paddingBottom: insets.bottom + 20 }]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.accentTeal}
+              colors={[colors.accentTeal]}
+            />
+          }
         >
           {/* Scrollable Tabs */}
           <View style={styles.tabContainer}>
@@ -432,7 +452,7 @@ export default function DealsScreen() {
               <TextInput
                 style={styles.newStageTextInput}
                 placeholder="New stage name..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={newStageInput}
                 onChangeText={setNewStageInput}
                 editable={!isAddingStage}
@@ -465,9 +485,9 @@ export default function DealsScreen() {
                     disabled={deletingStageId === stage.id}
                   >
                     {deletingStageId === stage.id ? (
-                      <ActivityIndicator size="small" color="#EF4444" />
+                      <ActivityIndicator size="small" color={colors.danger} />
                     ) : (
-                      <MaterialCommunityIcons name="close" size={20} color="#EF4444" />
+                      <MaterialCommunityIcons name="close" size={20} color={colors.danger} />
                     )}
                   </Pressable>
                 </View>
@@ -695,7 +715,7 @@ export default function DealsScreen() {
                     <TextInput
                       style={styles.customStageInput}
                       placeholder="e.g. Negotiation"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.textMuted}
                       value={customStageName}
                       onChangeText={setCustomStageName}
                     />
@@ -745,7 +765,7 @@ export default function DealsScreen() {
               {/* AI Forecast Section */}
               <View style={styles.aiForecastBox}>
                 <View style={styles.aiHeader}>
-                  <MaterialCommunityIcons name="robot-outline" size={20} color="#0BA0B2" />
+                  <MaterialCommunityIcons name="robot-outline" size={20} color={colors.accentTeal} />
                   <Text style={styles.aiTitle}>AI Forecast Enabled</Text>
                 </View>
                 <Text style={styles.aiDescription}>
@@ -824,7 +844,7 @@ export default function DealsScreen() {
                     <View style={styles.automationCardMain}>
                       <View style={styles.automationInfo}>
                         <View style={styles.automationTitleRow}>
-                          <View style={[styles.statusDot, { backgroundColor: item.enabled ? '#0BA0B2' : '#CBD5E1' }]} />
+                          <View style={[styles.statusDot, { backgroundColor: item.enabled ? colors.accentTeal : colors.iconMuted }]} />
                           <Text style={styles.automationStageName}>{stage.name}</Text>
                         </View>
                         <View style={styles.automationActionRow}>
@@ -834,7 +854,7 @@ export default function DealsScreen() {
                             onPress={() => setActiveActionStageId(activeActionStageId === stage.id ? null : stage.id)}
                           >
                             <Text style={styles.actionText}>{item.action}</Text>
-                            <MaterialCommunityIcons name="chevron-down" size={16} color="#0BA0B2" />
+                            <MaterialCommunityIcons name="chevron-down" size={16} color={colors.accentTeal} />
                           </Pressable>
 
                           {activeActionStageId === stage.id && (
@@ -866,9 +886,9 @@ export default function DealsScreen() {
                       <Switch
                         value={item.enabled}
                         onValueChange={() => toggleAutomation(item.id)}
-                        trackColor={{ false: '#E2E8F0', true: '#0B2D3E' }}
+                        trackColor={{ false: colors.borderLight, true: colors.accentTeal }}
                         thumbColor={Platform.OS === 'ios' ? undefined : '#FFFFFF'}
-                        ios_backgroundColor="#E2E8F0"
+                        ios_backgroundColor={colors.borderLight}
                       />
                     </View>
                   </View>
@@ -904,7 +924,7 @@ function getStyles(colors: any) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#F8FAFC',
+      backgroundColor: colors.surfaceSoft,
     },
     mainScroll: {
       paddingTop: 8,
@@ -953,27 +973,27 @@ function getStyles(colors: any) {
     filterBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       paddingHorizontal: 16,
       paddingVertical: 10,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: colors.cardBorder,
       gap: 8,
     },
     filterBtnText: {
       fontSize: 14,
       fontWeight: '600',
-      color: '#0F172A',
+      color: colors.textPrimary,
     },
     stagesList: {
       paddingHorizontal: 20,
     },
     stageColumn: {
-      backgroundColor: '#F8FAFC',
+      backgroundColor: colors.surfaceSoft,
       borderRadius: 24,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: colors.cardBorder,
       padding: 20,
       marginBottom: 24,
     },
@@ -986,11 +1006,11 @@ function getStyles(colors: any) {
     stageHeaderText: {
       fontSize: 13,
       fontWeight: '900',
-      color: '#0B2D3E',
+      color: colors.textPrimary,
       letterSpacing: 0.5,
     },
     stageCountBadge: {
-      backgroundColor: '#E5EBF5',
+      backgroundColor: colors.surfaceMuted,
       paddingHorizontal: 10,
       height: 22,
       borderRadius: 11,
@@ -1000,31 +1020,31 @@ function getStyles(colors: any) {
     stageCountText: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#64748B',
+      color: colors.textSecondary,
     },
     stageContent: {
       gap: 12,
     },
     dealCard: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       padding: 16,
       borderRadius: 20,
-      shadowColor: '#000',
+      shadowColor: colors.cardShadowColor,
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.04,
+      shadowOpacity: colors.cardShadowOpacity,
       shadowRadius: 8,
       elevation: 2,
     },
     dealCardName: {
       fontSize: 16,
       fontWeight: '800',
-      color: '#0B2D3E',
+      color: colors.textPrimary,
       marginBottom: 2,
     },
     dealCardAddress: {
       fontSize: 13,
       fontWeight: '500',
-      color: '#94A3B8',
+      color: colors.textMuted,
       marginBottom: 12,
     },
     dealCardBottom: {
@@ -1036,7 +1056,7 @@ function getStyles(colors: any) {
     dealCardValue: {
       fontSize: 15,
       fontWeight: '800',
-      color: '#0BA0B2',
+      color: colors.accentTeal,
     },
     cardActions: {
       flexDirection: 'row',
@@ -1046,7 +1066,7 @@ function getStyles(colors: any) {
     transferBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F0F9FA',
+      backgroundColor: colors.badgeNewBg,
       paddingHorizontal: 10,
       paddingVertical: 5,
       borderRadius: 8,
@@ -1055,23 +1075,23 @@ function getStyles(colors: any) {
     transferBtnText: {
       fontSize: 12,
       fontWeight: '700',
-      color: '#0BA0B2',
+      color: colors.accentTeal,
     },
     dealCardTime: {
       fontSize: 11,
       fontWeight: '500',
-      color: '#94A3B8',
+      color: colors.textMuted,
     },
     transferMenu: {
       marginTop: 16,
       paddingTop: 16,
       borderTopWidth: 1,
-      borderTopColor: '#F1F5F9',
+      borderTopColor: colors.divider,
     },
     transferMenuTitle: {
       fontSize: 11,
       fontWeight: '800',
-      color: '#94A3B8',
+      color: colors.textMuted,
       textTransform: 'uppercase',
       marginBottom: 10,
     },
@@ -1081,7 +1101,7 @@ function getStyles(colors: any) {
       gap: 8,
     },
     transferOption: {
-      backgroundColor: '#F1F5F9',
+      backgroundColor: colors.surfaceMuted,
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 10,
@@ -1089,26 +1109,26 @@ function getStyles(colors: any) {
     transferOptionText: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#475569',
+      color: colors.textSecondary,
     },
     dragPlaceholder: {
       height: 80,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       borderWidth: 1.5,
       borderStyle: 'dashed',
-      borderColor: '#CBD5E1',
+      borderColor: colors.borderLight,
       borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
     },
     dragPlaceholderText: {
       fontSize: 13,
-      color: '#94A3B8',
+      color: colors.textMuted,
       fontWeight: '600',
     },
     modalContainer: {
       flex: 1,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
     },
     modalHeader: {
       flexDirection: 'row',
@@ -1118,21 +1138,21 @@ function getStyles(colors: any) {
       paddingTop: 24,
       paddingBottom: 16,
       borderBottomWidth: 1,
-      borderBottomColor: '#F1F5F9',
+      borderBottomColor: colors.divider,
     },
     modalTitle: {
       fontSize: 20,
       fontWeight: '800',
-      color: '#0B2D3E',
+      color: colors.textPrimary,
       marginBottom: 4,
     },
     modalSubtitle: {
       fontSize: 14,
-      color: '#64748B',
+      color: colors.textSecondary,
       lineHeight: 20,
     },
     closeBtn: {
-      backgroundColor: '#F1F5F9',
+      backgroundColor: colors.surfaceIcon,
       padding: 8,
       borderRadius: 12,
     },
@@ -1148,47 +1168,47 @@ function getStyles(colors: any) {
     inputLabel: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#0B2D3E',
+      color: colors.textPrimary,
       marginBottom: 8,
     },
     requiredStar: {
-      color: '#EF4444',
+      color: colors.danger,
     },
     dropdownTrigger: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: '#F8FAFC',
+      backgroundColor: colors.inputBackground,
       borderWidth: 1.5,
-      borderColor: '#E2E8F0',
+      borderColor: colors.borderInput,
       borderRadius: 16,
       paddingHorizontal: 16,
       height: 56,
     },
     dropdownValue: {
       fontSize: 15,
-      color: '#0F172A',
+      color: colors.textPrimary,
       fontWeight: '500',
     },
     errorBorder: {
-      borderColor: '#EF4444',
+      borderColor: colors.danger,
     },
     errorText: {
       fontSize: 12,
-      color: '#EF4444',
+      color: colors.danger,
       marginTop: 6,
       fontWeight: '500',
     },
     formDropdownMenu: {
       marginTop: 8,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       borderRadius: 16,
       borderWidth: 1.5,
-      borderColor: '#E2E8F0',
+      borderColor: colors.cardBorder,
       padding: 8,
-      shadowColor: '#000',
+      shadowColor: colors.cardShadowColor,
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
+      shadowOpacity: colors.cardShadowOpacity,
       shadowRadius: 12,
       elevation: 5,
     },
@@ -1201,13 +1221,13 @@ function getStyles(colors: any) {
     },
     formDropdownItemText: {
       fontSize: 14,
-      color: '#334155',
+      color: colors.textSecondary,
       fontWeight: '500',
     },
     valueInputWrapper: {
-      backgroundColor: '#F8FAFC',
+      backgroundColor: colors.inputBackground,
       borderWidth: 1.5,
-      borderColor: '#E2E8F0',
+      borderColor: colors.borderInput,
       borderRadius: 16,
       paddingHorizontal: 16,
       height: 56,
@@ -1216,7 +1236,7 @@ function getStyles(colors: any) {
     valueInput: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#0BA0B2',
+      color: colors.accentTeal,
     },
     stageSelectContainer: {
       flexDirection: 'row',
@@ -1228,10 +1248,10 @@ function getStyles(colors: any) {
       left: 0,
       right: 0,
       marginBottom: 8,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       borderRadius: 16,
       borderWidth: 1.5,
-      borderColor: '#E2E8F0',
+      borderColor: colors.cardBorder,
       padding: 8,
       zIndex: 1000,
     },
@@ -1239,22 +1259,22 @@ function getStyles(colors: any) {
       marginTop: 16,
     },
     customStageInput: {
-      backgroundColor: '#F8FAFC',
+      backgroundColor: colors.inputBackground,
       borderWidth: 1.5,
-      borderColor: '#E2E8F0',
+      borderColor: colors.borderInput,
       borderRadius: 16,
       paddingHorizontal: 16,
       height: 56,
       fontSize: 15,
-      color: '#0F172A',
+      color: colors.textPrimary,
     },
     aiForecastBox: {
-      backgroundColor: '#F0F9FA',
+      backgroundColor: colors.badgeNewBg,
       borderRadius: 20,
       padding: 20,
       marginTop: 8,
       borderWidth: 1,
-      borderColor: '#0BA0B220',
+      borderColor: colors.badgeNewBorder,
     },
     aiHeader: {
       flexDirection: 'row',
@@ -1265,20 +1285,20 @@ function getStyles(colors: any) {
     aiTitle: {
       fontSize: 14,
       fontWeight: '800',
-      color: '#0BA0B2',
+      color: colors.accentTeal,
     },
     aiDescription: {
       fontSize: 13,
-      color: '#475569',
+      color: colors.textSecondary,
       lineHeight: 18,
     },
     modalFooter: {
       flexDirection: 'row',
       paddingHorizontal: 24,
       gap: 12,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       borderTopWidth: 1,
-      borderTopColor: '#F1F5F9',
+      borderTopColor: colors.divider,
       paddingTop: 16,
     },
     cancelBtn: {
@@ -1287,17 +1307,17 @@ function getStyles(colors: any) {
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 16,
-      backgroundColor: '#F1F5F9',
+      backgroundColor: colors.surfaceMuted,
     },
     cancelBtnText: {
       fontSize: 15,
       fontWeight: '700',
-      color: '#475569',
+      color: colors.textSecondary,
     },
     createBtn: {
       flex: 2,
       height: 56,
-      backgroundColor: '#0B2D3E',
+      backgroundColor: colors.accentTeal,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 16,
@@ -1305,7 +1325,7 @@ function getStyles(colors: any) {
     createBtnText: {
       fontSize: 15,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
     },
     addStageInputRow: {
       flexDirection: 'row',
@@ -1316,15 +1336,15 @@ function getStyles(colors: any) {
     },
     newStageTextInput: {
       flex: 1,
-      backgroundColor: '#F1F5F9',
+      backgroundColor: colors.inputBackground,
       height: 48,
       borderRadius: 14,
       paddingHorizontal: 16,
       fontSize: 14,
-      color: '#0F172A',
+      color: colors.textPrimary,
     },
     addStageSubmitBtn: {
-      backgroundColor: '#0B2D3E',
+      backgroundColor: colors.accentTeal,
       paddingHorizontal: 20,
       height: 48,
       borderRadius: 14,
@@ -1334,7 +1354,7 @@ function getStyles(colors: any) {
     addStageSubmitBtnText: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
     },
     stageManagementItem: {
       flexDirection: 'row',
@@ -1342,17 +1362,17 @@ function getStyles(colors: any) {
       justifyContent: 'space-between',
       paddingVertical: 14,
       borderBottomWidth: 1,
-      borderBottomColor: '#F1F5F9',
+      borderBottomColor: colors.divider,
     },
     stageManagementName: {
       fontSize: 15,
       fontWeight: '600',
-      color: '#0F172A',
+      color: colors.textPrimary,
     },
     saveSettingsBtn: {
       flex: 1,
       height: 56,
-      backgroundColor: '#0B2D3E',
+      backgroundColor: colors.accentTeal,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 16,
@@ -1360,19 +1380,19 @@ function getStyles(colors: any) {
     saveSettingsBtnText: {
       fontSize: 15,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
     },
     automationCard: {
-      backgroundColor: '#F8FAFC',
+      backgroundColor: colors.cardBackground,
       borderRadius: 16,
       padding: 16,
       marginBottom: 12,
       borderWidth: 1.5,
-      borderColor: '#E2E8F0',
+      borderColor: colors.cardBorder,
     },
     automationCardActive: {
-      borderColor: '#0BA0B240',
-      backgroundColor: '#F0F9FA',
+      borderColor: colors.badgeNewBorder,
+      backgroundColor: colors.badgeNewBg,
     },
     automationCardMain: {
       flexDirection: 'row',
@@ -1396,7 +1416,7 @@ function getStyles(colors: any) {
     automationStageName: {
       fontSize: 14,
       fontWeight: '800',
-      color: '#0B2D3E',
+      color: colors.textPrimary,
     },
     automationActionRow: {
       flexDirection: 'row',
@@ -1404,7 +1424,7 @@ function getStyles(colors: any) {
     },
     thenText: {
       fontSize: 13,
-      color: '#64748B',
+      color: colors.textMuted,
     },
     actionSelector: {
       flexDirection: 'row',
@@ -1414,20 +1434,20 @@ function getStyles(colors: any) {
     actionText: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#0BA0B2',
+      color: colors.accentTeal,
     },
     actionDropdownMenu: {
       position: 'absolute',
       top: 24,
       left: 0,
       width: 160,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.cardBackground,
       borderRadius: 12,
       borderWidth: 1.5,
-      borderColor: '#E2E8F0',
+      borderColor: colors.cardBorder,
       padding: 6,
       zIndex: 2000,
-      shadowColor: '#000',
+      shadowColor: colors.cardShadowColor,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1,
       shadowRadius: 10,
@@ -1442,14 +1462,14 @@ function getStyles(colors: any) {
       borderRadius: 8,
     },
     actionDropdownItemActive: {
-      backgroundColor: '#0BA0B2',
+      backgroundColor: colors.accentTeal,
     },
     actionCheck: {
       marginLeft: 4,
     },
     actionDropdownText: {
       fontSize: 13,
-      color: '#334155',
+      color: colors.textSecondary,
       fontWeight: '600',
     },
     actionDropdownTextActive: {
@@ -1461,10 +1481,10 @@ function getStyles(colors: any) {
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor: '#0B2D3E',
+      backgroundColor: colors.accentTeal,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#0B2D3E',
+      shadowColor: colors.accentTeal,
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.3,
       shadowRadius: 12,
