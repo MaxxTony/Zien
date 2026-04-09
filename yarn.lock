@@ -1201,6 +1201,11 @@
   resolved "https://registry.npmjs.org/@expo/schema-utils/-/schema-utils-0.1.8.tgz"
   integrity sha512-9I6ZqvnAvKKDiO+ZF8BpQQFYWXOJvTAL5L/227RUbWG1OVZDInFifzCBiqAZ3b67NRfeAgpgvbA7rejsqhY62A==
 
+"@expo/schema-utils@^55.0.3":
+  version "55.0.3"
+  resolved "https://registry.yarnpkg.com/@expo/schema-utils/-/schema-utils-55.0.3.tgz#4d976417bb659b6185a28e6174192f5b006a1056"
+  integrity sha512-l9KHVjTo6MvoeyvwNr6AjckGJm8NIcqZ3QSAh51cWozXW9v2AUjyCyqYtFtyntLWRZ0x/ByYJishpQo4ZQq45Q==
+
 "@expo/sdk-runtime-versions@^1.0.0":
   version "1.0.0"
   resolved "https://registry.npmjs.org/@expo/sdk-runtime-versions/-/sdk-runtime-versions-1.0.0.tgz"
@@ -3640,6 +3645,15 @@ expo-asset@~12.0.12:
   dependencies:
     "@expo/image-utils" "^0.8.8"
     expo-constants "~18.0.12"
+
+expo-build-properties@^55.0.12:
+  version "55.0.12"
+  resolved "https://registry.yarnpkg.com/expo-build-properties/-/expo-build-properties-55.0.12.tgz#9a589ab7609fa2c3da66b30409c5426e2e5963e4"
+  integrity sha512-PUK0uPxFESZTegqFk+v3V9HWRhjIgvkImoHAgXU22xAyzfrdPnWKCwesyd88rdhGdSc/7lGFmIB7bOYKi2vjkQ==
+  dependencies:
+    "@expo/schema-utils" "^55.0.3"
+    resolve-from "^5.0.0"
+    semver "^7.6.0"
 
 expo-calendar@~15.0.8:
   version "15.0.8"
