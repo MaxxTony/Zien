@@ -1,4 +1,5 @@
 import { ExternalLink } from '@/components/external-link';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRef, useState } from 'react';
@@ -12,12 +13,10 @@ import {
   View,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { useAppTheme } from '@/context/ThemeContext';
 
 const CARD_PROFILE_URL = 'https://zien.codesmile.in/card/card-default-01/';
 
-const DEFAULT_AVATAR_URI =
-  'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=600&h=600&q=80&crop=faces';
+
 
 export type ProfileCardData = {
   fullName: string;
@@ -31,6 +30,8 @@ export type ProfileCardData = {
   website: string;
   instagram: string;
   linkedin: string;
+  facebook: string;
+  tiktok: string;
 };
 
 export const DEFAULT_PROFILE_CARD: ProfileCardData = {
@@ -45,6 +46,8 @@ export const DEFAULT_PROFILE_CARD: ProfileCardData = {
   website: 'https://homesmart.com',
   instagram: 'https://instagram.com/becker_homesmart',
   linkedin: 'https://linkedin.com/in/becker-samarraie',
+  facebook: '',
+  tiktok: '',
 };
 
 export type CardFontPairing = 'inter' | 'playfair';
@@ -86,6 +89,8 @@ export function ProfileCard({
   const { colors, theme } = useAppTheme();
   const styles = getStyles(colors);
   const isDark = theme === 'dark';
+
+
 
   const DEFAULT_SHADOWS = ['#0B2D3E', '#0B2341', '#0F172A'];
   const activeAccent = (accentColor === DEFAULT_ACCENT || DEFAULT_SHADOWS.includes(accentColor)) && isDark ? '#FFFFFF' : accentColor;
@@ -135,8 +140,32 @@ export function ProfileCard({
   const isMinimal = template === 'minimal';
   const isBold = template === 'bold';
 
-  const [firstName, ...rest] = (card.fullName || '').split(' ');
+  const [firstName, ...rest] = (card.fullName || 'Anonymous').split(' ');
   const lastName = rest.join(' ') || '';
+  const initials = ((firstName?.charAt(0) || '') + (lastName?.charAt(0) || '')).toUpperCase() || '?';
+
+  const renderAvatar = (style: any, isBoldTemplate = false) => {
+    if (avatarUri?.trim()) {
+      return (
+        <Image
+          source={{ uri: avatarUri.trim() }}
+          style={style}
+          contentFit="cover"
+        />
+      );
+    }
+    return (
+      <View style={[style, styles.initialsAvatar, { backgroundColor: isBoldTemplate ? 'rgba(255,255,255,0.2)' : activeAccent + '20' }]}>
+        <Text style={[styles.initialsText, { color: isBoldTemplate ? '#FFFFFF' : activeAccent }]}>
+          {initials}
+        </Text>
+      </View>
+    );
+  };
+
+  const infoPlaceholder = 'Not Provided';
+  const getVal = (val?: string) => (val?.trim() ? val : infoPlaceholder);
+  const isAlt = (val?: string) => !val?.trim();
 
   return (
     <View style={styles.container}>
@@ -172,22 +201,18 @@ export function ProfileCard({
             </View>
             <View style={styles.classicBody}>
               <View style={styles.classicAvatarWrap}>
-                <Image
-                  source={{ uri: avatarUri ?? DEFAULT_AVATAR_URI }}
-                  style={styles.avatar}
-                  contentFit="cover"
-                />
+                {renderAvatar(styles.avatar)}
               </View>
-              <Text style={[styles.classicName, headingFont ? { fontFamily: headingFont } : undefined]} numberOfLines={1}>{card.fullName}</Text>
-              <Text style={[styles.classicTitle, headingFont ? { fontFamily: headingFont } : undefined]}>{card.title.toUpperCase()}</Text>
+              <Text style={[styles.classicName, headingFont ? { fontFamily: headingFont } : undefined]} numberOfLines={1}>{getVal(card.fullName)}</Text>
+              <Text style={[styles.classicTitle, headingFont ? { fontFamily: headingFont } : undefined]}>{getVal(card.title).toUpperCase()}</Text>
               <View style={styles.classicLine} />
-              <Pressable style={styles.classicContactRow} onPress={openPhone}>
+              <Pressable style={styles.classicContactRow} onPress={openPhone} disabled={isAlt(card.phone)}>
                 <MaterialCommunityIcons name="phone-outline" size={18} color="#FFFFFF" />
-                <Text style={[styles.classicContactText, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.phone}</Text>
+                <Text style={[styles.classicContactText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.phone) && { opacity: 0.6 }]}>{getVal(card.phone)}</Text>
               </Pressable>
-              <Pressable style={styles.classicContactRow} onPress={openEmail}>
+              <Pressable style={styles.classicContactRow} onPress={openEmail} disabled={isAlt(card.email)}>
                 <MaterialCommunityIcons name="email-outline" size={18} color="#FFFFFF" />
-                <Text style={[styles.classicContactText, bodyFont ? { fontFamily: bodyFont } : undefined]} numberOfLines={1}>{card.email}</Text>
+                <Text style={[styles.classicContactText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.email) && { opacity: 0.6 }]} numberOfLines={1}>{getVal(card.email)}</Text>
               </Pressable>
             </View>
           </View>
@@ -196,28 +221,24 @@ export function ProfileCard({
             <View style={styles.luxuryCurveOverlay} />
             <View style={styles.luxuryTopRow}>
               <View style={styles.luxuryAvatarWrap}>
-                <Image
-                  source={{ uri: avatarUri ?? DEFAULT_AVATAR_URI }}
-                  style={styles.avatar}
-                  contentFit="cover"
-                />
+                {renderAvatar(styles.avatar)}
               </View>
               <Pressable style={styles.luxuryFlipBtn} onPress={flipToBack} hitSlop={12}>
                 <MaterialCommunityIcons name="arrow-right" size={20} color="rgba(255,255,255,0.9)" />
               </Pressable>
             </View>
             <View style={styles.luxuryNameBlock}>
-              <Text style={[styles.luxuryName, headingFont ? { fontFamily: headingFont } : undefined]} numberOfLines={1}>{card.fullName}</Text>
-              <Text style={[styles.luxuryTitle, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.title}</Text>
+              <Text style={[styles.luxuryName, headingFont ? { fontFamily: headingFont } : undefined]} numberOfLines={1}>{getVal(card.fullName)}</Text>
+              <Text style={[styles.luxuryTitle, bodyFont ? { fontFamily: bodyFont } : undefined]}>{getVal(card.title)}</Text>
             </View>
             <View style={styles.luxuryContactBlock}>
-              <Pressable style={styles.luxuryContactBtn} onPress={openPhone}>
+              <Pressable style={styles.luxuryContactBtn} onPress={openPhone} disabled={isAlt(card.phone)}>
                 <MaterialCommunityIcons name="phone-outline" size={18} color="rgba(255,255,255,0.8)" />
-                <Text style={[styles.luxuryContactText, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.phone}</Text>
+                <Text style={[styles.luxuryContactText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.phone) && { opacity: 0.6 }]}>{getVal(card.phone)}</Text>
               </Pressable>
-              <Pressable style={styles.luxuryContactBtn} onPress={openEmail}>
+              <Pressable style={styles.luxuryContactBtn} onPress={openEmail} disabled={isAlt(card.email)}>
                 <MaterialCommunityIcons name="email-outline" size={18} color="rgba(255,255,255,0.8)" />
-                <Text style={[styles.luxuryContactText, bodyFont ? { fontFamily: bodyFont } : undefined]} numberOfLines={1}>{card.email}</Text>
+                <Text style={[styles.luxuryContactText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.email) && { opacity: 0.6 }]} numberOfLines={1}>{getVal(card.email)}</Text>
               </Pressable>
             </View>
             <View style={styles.luxuryFooter}>
@@ -236,27 +257,23 @@ export function ProfileCard({
             </Pressable>
             <View style={styles.minimalBody}>
               <View style={[styles.minimalAvatarWrap, { borderColor: accentColor }]}>
-                <Image
-                  source={{ uri: avatarUri ?? DEFAULT_AVATAR_URI }}
-                  style={styles.avatar}
-                  contentFit="cover"
-                />
+                {renderAvatar(styles.avatar)}
               </View>
               <View style={[styles.minimalNameBlock, { borderColor: activeAccent }]}>
-                <Text style={[styles.minimalFirstName, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>{firstName}</Text>
+                <Text style={[styles.minimalFirstName, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>{firstName || 'User'}</Text>
                 <Text style={[styles.minimalLastName, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>{lastName}</Text>
               </View>
-              <Text style={[styles.minimalTitle, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.title.toUpperCase()}</Text>
+              <Text style={[styles.minimalTitle, bodyFont ? { fontFamily: bodyFont } : undefined]}>{getVal(card.title).toUpperCase()}</Text>
               <View style={styles.minimalLine} />
               <View style={styles.minimalIconRow}>
-                <Pressable onPress={openPhone} style={styles.minimalIconBtn}>
-                  <MaterialCommunityIcons name="phone-outline" size={22} color="#9AA7B6" />
+                <Pressable onPress={openPhone} style={styles.minimalIconBtn} disabled={isAlt(card.phone)}>
+                  <MaterialCommunityIcons name="phone-outline" size={22} color={isAlt(card.phone) ? "#9AA7B640" : "#9AA7B6"} />
                 </Pressable>
-                <Pressable onPress={openEmail} style={styles.minimalIconBtn}>
-                  <MaterialCommunityIcons name="email-outline" size={22} color="#9AA7B6" />
+                <Pressable onPress={openEmail} style={styles.minimalIconBtn} disabled={isAlt(card.email)}>
+                  <MaterialCommunityIcons name="email-outline" size={22} color={isAlt(card.email) ? "#9AA7B640" : "#9AA7B6"} />
                 </Pressable>
-                <ExternalLink href={card.website as any} style={styles.minimalIconBtn}>
-                  <MaterialCommunityIcons name="web" size={22} color="#9AA7B6" />
+                <ExternalLink href={card.website as any} style={styles.minimalIconBtn} disabled={isAlt(card.website)}>
+                  <MaterialCommunityIcons name="web" size={22} color={isAlt(card.website) ? "#9AA7B640" : "#9AA7B6"} />
                 </ExternalLink>
               </View>
             </View>
@@ -272,23 +289,19 @@ export function ProfileCard({
                 <Text style={[styles.boldLastName, headingFont ? { fontFamily: headingFont } : undefined]}>{lastName}</Text>
               </View>
               <View style={[styles.boldAvatarWrap, { borderColor: 'rgba(255,255,255,0.9)' }]}>
-                <Image
-                  source={{ uri: avatarUri ?? DEFAULT_AVATAR_URI }}
-                  style={styles.boldAvatar}
-                  contentFit="cover"
-                />
+                {renderAvatar(styles.boldAvatar, true)}
               </View>
             </View>
             <View style={styles.boldBottom}>
-              <Text style={[styles.boldTitle, headingFont ? { fontFamily: headingFont } : undefined]}>{card.title.toUpperCase()}</Text>
+              <Text style={[styles.boldTitle, headingFont ? { fontFamily: headingFont } : undefined]}>{getVal(card.title).toUpperCase()}</Text>
               <View style={styles.boldLine} />
-              <Pressable onPress={openPhone}>
-                <Text style={[styles.boldContactText, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.phone}</Text>
+              <Pressable onPress={openPhone} disabled={isAlt(card.phone)}>
+                <Text style={[styles.boldContactText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.phone) && { opacity: 0.5 }]}>{getVal(card.phone)}</Text>
               </Pressable>
-              <Pressable onPress={openEmail}>
-                <Text style={[styles.boldContactText, bodyFont ? { fontFamily: bodyFont } : undefined]} numberOfLines={1}>{card.email}</Text>
+              <Pressable onPress={openEmail} disabled={isAlt(card.email)}>
+                <Text style={[styles.boldContactText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.email) && { opacity: 0.5 }]} numberOfLines={1}>{getVal(card.email)}</Text>
               </Pressable>
-              <Text style={[styles.boldContactText, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.company}</Text>
+              <Text style={[styles.boldContactText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.company) && { opacity: 0.5 }]}>{getVal(card.company)}</Text>
             </View>
           </View>
         ) : (
@@ -307,39 +320,67 @@ export function ProfileCard({
             </View>
             <View style={styles.frontBody}>
               <View style={styles.avatarWrap}>
-                <Image source={{ uri: avatarUri ?? DEFAULT_AVATAR_URI }} style={styles.avatar} contentFit="cover" />
+                {renderAvatar(styles.avatar)}
               </View>
-              <Text style={[styles.name, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]} numberOfLines={1}>{card.fullName}</Text>
-              <Text style={[styles.role, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>{card.title}</Text>
-              <Text style={[styles.license, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.legalRole} • {card.license}</Text>
-              <Pressable style={styles.contactField} onPress={openPhone}>
+              <Text style={[styles.name, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]} numberOfLines={1}>{getVal(card.fullName)}</Text>
+              <Text style={[styles.role, { color: activeAccent }, headingFont ? { fontFamily: headingFont } : undefined]}>{getVal(card.title)}</Text>
+              <Text style={[styles.license, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.legalRole) && isAlt(card.license) && { opacity: 0.6 }]}>
+                {card.legalRole || 'Solo'} • {card.license || infoPlaceholder}
+              </Text>
+              <Pressable style={styles.contactField} onPress={openPhone} disabled={isAlt(card.phone)}>
                 <MaterialCommunityIcons name="phone-outline" size={18} color="#7B8794" />
-                <Text style={[styles.contactFieldText, { color: activeAccent }, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.phone}</Text>
+                <Text style={[styles.contactFieldText, { color: activeAccent }, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.phone) && { opacity: 0.6 }]}>{getVal(card.phone)}</Text>
               </Pressable>
-              <Pressable style={styles.contactField} onPress={openEmail}>
+              <Pressable style={styles.contactField} onPress={openEmail} disabled={isAlt(card.email)}>
                 <MaterialCommunityIcons name="email-outline" size={18} color="#7B8794" />
-                <Text style={[styles.contactFieldText, { color: activeAccent }, bodyFont ? { fontFamily: bodyFont } : undefined]} numberOfLines={1}>{card.email}</Text>
+                <Text style={[styles.contactFieldText, { color: activeAccent }, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.email) && { opacity: 0.6 }]} numberOfLines={1}>{getVal(card.email)}</Text>
               </Pressable>
               <View style={styles.socialRow}>
-                <ExternalLink href={card.website as any} style={styles.socialLink}>
+                <ExternalLink
+                  href={card.website as any}
+                  style={[styles.socialLink, isAlt(card.website) && { opacity: 0.3 }]}
+                  disabled={isAlt(card.website)}
+                >
                   <MaterialCommunityIcons name="web" size={20} color="#7B8794" />
                 </ExternalLink>
-                <ExternalLink href={card.instagram as any} style={styles.socialLink}>
+                <ExternalLink
+                  href={card.instagram as any}
+                  style={[styles.socialLink, isAlt(card.instagram) && { opacity: 0.3 }]}
+                  disabled={isAlt(card.instagram)}
+                >
                   <MaterialCommunityIcons name="instagram" size={20} color="#7B8794" />
                 </ExternalLink>
-                <ExternalLink href={card.linkedin as any} style={styles.socialLink}>
+                <ExternalLink
+                  href={card.linkedin as any}
+                  style={[styles.socialLink, isAlt(card.linkedin) && { opacity: 0.3 }]}
+                  disabled={isAlt(card.linkedin)}
+                >
                   <MaterialCommunityIcons name="linkedin" size={20} color="#7B8794" />
+                </ExternalLink>
+                <ExternalLink
+                  href={card.facebook as any}
+                  style={[styles.socialLink, isAlt(card.facebook) && { opacity: 0.3 }]}
+                  disabled={isAlt(card.facebook)}
+                >
+                  <MaterialCommunityIcons name="facebook" size={20} color="#7B8794" />
+                </ExternalLink>
+                <ExternalLink
+                  href={card.tiktok as any}
+                  style={[styles.socialLink, isAlt(card.tiktok) && { opacity: 0.3 }]}
+                  disabled={isAlt(card.tiktok)}
+                >
+                  <MaterialCommunityIcons name="music-note" size={20} color="#7B8794" />
                 </ExternalLink>
               </View>
               <View style={styles.frontBottom}>
                 <View style={styles.metaCol}>
                   <View style={styles.metaRow}>
                     <MaterialCommunityIcons name="home-outline" size={14} color="#5B6B7A" />
-                    <Text style={[styles.metaText, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.company}</Text>
+                    <Text style={[styles.metaText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.company) && { opacity: 0.6 }]}>{getVal(card.company)}</Text>
                   </View>
                   <View style={styles.metaRow}>
                     <MaterialCommunityIcons name="map-marker-outline" size={14} color="#5B6B7A" />
-                    <Text style={[styles.metaText, bodyFont ? { fontFamily: bodyFont } : undefined]}>{card.address}</Text>
+                    <Text style={[styles.metaText, bodyFont ? { fontFamily: bodyFont } : undefined, isAlt(card.address) && { opacity: 0.6 }]}>{getVal(card.address)}</Text>
                   </View>
                 </View>
                 <View style={styles.smallQrBox}>
@@ -392,16 +433,16 @@ const getStyles = (colors: any) => StyleSheet.create({
     backfaceVisibility: 'hidden',
   },
   front: {
-    borderRadius: 22,
+    borderRadius: 28,
     overflow: 'hidden',
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: colors.cardShadowColor || '#000',
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowRadius: 20,
+    elevation: 8,
   },
   frontInner: {
     flex: 1,
@@ -457,6 +498,14 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.cardBorder,
     marginTop: -30,
     backgroundColor: colors.cardBackground,
+  },
+  initialsAvatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  initialsText: {
+    fontSize: 24,
+    fontWeight: '900',
   },
   avatar: {
     width: '100%',
@@ -638,8 +687,8 @@ const getStyles = (colors: any) => StyleSheet.create({
   classicBody: {
     flex: 1,
     paddingTop: 12,
-    justifyContent:"flex-end",
-    alignItems:"flex-start",
+    justifyContent: "flex-end",
+    alignItems: "flex-start",
   },
   classicAvatarWrap: {
     width: 88,

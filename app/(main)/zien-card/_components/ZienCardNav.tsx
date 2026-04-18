@@ -16,20 +16,15 @@ const SECTIONS: Array<{
   { route: '/(main)/zien-card/analytics', label: 'Analytics', icon: 'chart-bar' },
 ];
 
-export function ZienCardNav() {
-  const router = useRouter();
-  const pathname = usePathname();
+interface ZienCardNavProps {
+  activeSection: string;
+  onSectionChange: (route: string) => void;
+}
+
+export function ZienCardNav({ activeSection, onSectionChange }: ZienCardNavProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-
-  const normalizedPath = pathname.replace(/\/$/, '') || '';
-  const isDashboard =
-    !normalizedPath ||
-    normalizedPath === '/(main)/zien-card' ||
-    normalizedPath === 'zien-card' ||
-    normalizedPath.endsWith('/zien-card');
-  const basePath = normalizedPath.startsWith('/(main)') ? normalizedPath : `/(main)${normalizedPath.startsWith('/') ? normalizedPath : '/' + normalizedPath}`;
 
   return (
     <View style={[styles.wrap, { paddingBottom: insets.bottom }]}>
@@ -38,15 +33,12 @@ export function ZienCardNav() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
         {SECTIONS.map(({ route, label, icon }) => {
-          const isActive =
-            route === '/(main)/zien-card'
-              ? isDashboard
-              : basePath === route;
+          const isActive = route === activeSection;
           return (
             <Pressable
               key={route}
               style={[styles.pill, isActive && styles.pillActive]}
-              onPress={() => router.push(route as any)}>
+              onPress={() => onSectionChange(route)}>
               <MaterialCommunityIcons
                 name={icon}
                 size={18}
@@ -66,37 +58,45 @@ export function ZienCardNav() {
 const getStyles = (colors: any) => StyleSheet.create({
   wrap: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    backgroundColor: colors.cardBackground,
+    paddingTop: 16,
+    paddingBottom: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   scrollContent: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
+    paddingBottom: 8,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   pillActive: {
     backgroundColor: '#0BA0B2',
     borderColor: '#0BA0B2',
+    elevation: 4,
+    shadowColor: '#0BA0B2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   pillText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.textSecondary,
-    maxWidth: 100,
+    maxWidth: 110,
   },
   pillTextActive: {
     color: '#FFFFFF',
+    fontWeight: '800',
   },
 });

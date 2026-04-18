@@ -1,18 +1,16 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ZienCardNav } from './ZienCardNav';
-import { useAppTheme } from '@/context/ThemeContext';
 
 type ZienCardScreenShellProps = {
   title: string;
   subtitle?: string;
   showBack?: boolean;
   children: ReactNode;
-  showNav?: boolean;
   /** Optional element shown on the right side of the header (e.g. save icon). */
   headerRight?: ReactNode;
 };
@@ -22,7 +20,6 @@ export function ZienCardScreenShell({
   subtitle,
   showBack = true,
   children,
-  showNav = true,
   headerRight,
 }: ZienCardScreenShellProps) {
   const insets = useSafeAreaInsets();
@@ -40,7 +37,7 @@ export function ZienCardScreenShell({
         <View style={styles.header}>
           {showBack && (
             <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
+              <MaterialCommunityIcons name="arrow-left" size={20} color={colors.textPrimary} />
             </Pressable>
           )}
           <View style={[styles.headerText, !showBack && styles.headerTextFull]}>
@@ -51,27 +48,47 @@ export function ZienCardScreenShell({
         </View>
       </View>
       {children}
-      {showNav && <ZienCardNav />}
     </LinearGradient>
   );
 }
 
 const getStyles = (colors: any) => StyleSheet.create({
   background: { flex: 1 },
-  headerWrap: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 10 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerWrap: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: colors.cardBackground,
+    width: 35,
+    height: 35,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   headerText: { flex: 1 },
   headerTextFull: { marginLeft: 0 },
-  title: { fontSize: 20, fontWeight: '900', color: colors.textPrimary },
-  subtitle: { fontSize: 12.5, color: colors.textSecondary, marginTop: 4, fontWeight: '700' },
+  title: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
 });

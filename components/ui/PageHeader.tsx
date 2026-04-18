@@ -44,10 +44,10 @@ export const PageHeader = memo(function PageHeader({
                 onPress={onBack}
                 hitSlop={12}
             >
-                <MaterialCommunityIcons 
-                    name="arrow-left" 
-                    size={20} 
-                    color={light ? '#FFFFFF' : colors.textPrimary} 
+                <MaterialCommunityIcons
+                    name="arrow-left"
+                    size={20}
+                    color={light ? '#FFFFFF' : colors.textPrimary}
                 />
             </Pressable>
 
@@ -91,9 +91,9 @@ const getStyles = (colors: any) => StyleSheet.create({
         gap: 12,
     },
     backBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 13,
+        width: 35,
+        height: 35,
+        borderRadius: 10,
         backgroundColor: colors.cardBackgroundSemi,
         alignItems: 'center',
         justifyContent: 'center',
@@ -114,7 +114,7 @@ const getStyles = (colors: any) => StyleSheet.create({
         gap: 8,
     },
     title: {
-        fontSize: 22,
+        fontSize: 16,
         fontWeight: '900',
         color: colors.textPrimary,
         letterSpacing: -0.3,
