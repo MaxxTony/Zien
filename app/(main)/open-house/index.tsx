@@ -1,14 +1,18 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAuth } from '@/context/AuthContext';
+import { useAppTheme } from '@/context/ThemeContext';
+import { getOpenHouses, OpenHouseEvent } from '@/services/openHouseService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAppTheme } from '@/context/ThemeContext';
-import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,57 +21,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const H_PADDING = 20;
-
-const LIVE_EVENTS = [
-  {
-    id: 'oh-001',
-    tag: 'OH-001',
-    address: '123 Business Way, LA',
-    date: 'Today',
-    time: '1:00 PM - 4:00 PM',
-    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
-    visitors: 12,
-    hotLeads: 3,
-    isLive: true,
-  },
-];
-
-const UPCOMING_EVENTS = [
-  {
-    id: 'oh-002',
-    tag: 'OH-002',
-    address: '88 Gold Coast, Malibu',
-    date: 'Jan 25, 2026',
-    time: '12:00 PM - 3:00 PM',
-    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800', // Reusing for demo match
-    visitors: 0,
-    hotLeads: 0,
-  },
-  {
-    id: 'oh-003',
-    tag: 'OH-003',
-    address: '900 Ocean Blvd, Santa Monica',
-    date: 'Feb 01, 2026',
-    time: '2:00 PM - 5:00 PM',
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
-    visitors: 0,
-    hotLeads: 0,
-  },
-];
-
-const COMPLETED_EVENTS = [
-  {
-    id: 'oh-004',
-    tag: 'OH-004',
-    address: '45 Pine St, Pasadena', // Not visible in screenshot but good to have
-    date: 'Jan 12, 2026',
-    time: '2:00 PM - 5:00 PM',
-    image: 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800',
-    visitors: 28,
-    hotLeads: 9,
-  },
-];
 
 function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' | 'upcoming' | 'completed'; onDelete: () => void }) {
   const { colors } = useAppTheme();
@@ -80,35 +33,46 @@ function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' |
     <View style={styles.card}>
       <View style={styles.cardImageContainer}>
         <Image source={{ uri: event.image }} style={styles.cardImage} contentFit="cover" />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.6)']}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.tagBadge}>
           <Text style={styles.tagText}>{event.tag}</Text>
         </View>
+        {isLive && (
+          <View style={styles.liveBadgeFloating}>
+            <View style={styles.pulseDot} />
+            <Text style={[styles.liveBadgeText, { color: "#fff" }]}>LIVE</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle} numberOfLines={1}>{event.address}</Text>
 
         <View style={styles.metaRow}>
-          <MaterialCommunityIcons name="calendar-blank" size={14} color={colors.textSecondary} />
+          <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textSecondary} />
           <Text style={styles.metaText}>{event.date} • {event.time}</Text>
         </View>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <MaterialCommunityIcons name="account-group" size={16} color={colors.textSecondary} />
-            <Text style={styles.statValue}>{event.visitors}</Text>
-            <Text style={styles.statLabel}>VISITORS</Text>
+        <View style={styles.statsRowRefined}>
+          <View style={styles.statItemRefined}>
+            <MaterialCommunityIcons name="account-group-outline" size={16} color={colors.accentTeal} />
+            <Text style={styles.statValueRefined}>{event.visitors}</Text>
+            <Text style={styles.statLabelRefined}>Visitors</Text>
           </View>
-          <View style={styles.statItem}>
-            <MaterialCommunityIcons name="fire" size={16} color={colors.textSecondary} />
-            <Text style={styles.statValue}>{event.hotLeads}</Text>
-            <Text style={styles.statLabel}>HOT LEADS</Text>
+          <View style={styles.dividerDot} />
+          <View style={styles.statItemRefined}>
+            <MaterialCommunityIcons name="fire" size={16} color="#EA580C" />
+            <Text style={styles.statValueRefined}>{event.hotLeads}</Text>
+            <Text style={styles.statLabelRefined}>Hot Leads</Text>
           </View>
         </View>
 
         <View style={styles.cardActions}>
           <Pressable
-            style={styles.primaryBtn}
+            style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.8 }]}
             onPress={() => {
               router.push({
                 pathname: '/(main)/open-house/[id]',
@@ -116,21 +80,19 @@ function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' |
               });
             }}
           >
-            {isLive ? (
-              <MaterialCommunityIcons name="play-outline" size={14} color="#FFF" style={{ marginRight: 6 }} />
-            ) : (
-              <MaterialCommunityIcons name="eye-outline" size={14} color="#FFF" style={{ marginRight: 6 }} />
-            )}
-            <Text style={styles.primaryBtnText}>{isLive ? 'Manage' : 'View'}</Text>
+            <MaterialCommunityIcons name={isLive ? "chart-timeline-variant" : "eye-outline"} size={16} color="#FFF" style={{ marginRight: 8 }} />
+            <Text style={styles.primaryBtnText}>{isLive ? 'Manage Live' : 'View Report'}</Text>
           </Pressable>
 
-          <Pressable style={styles.iconBtn} onPress={() => router.push(`/(main)/open-house/edit/${event.id}` as any)}>
-            <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.accentTeal} />
-          </Pressable>
+          <View style={styles.secondaryActions}>
+            <Pressable style={styles.iconBtn} onPress={() => router.push(`/(main)/open-house/edit/${event.id}` as any)}>
+              <MaterialCommunityIcons name="square-edit-outline" size={18} color={colors.textPrimary} />
+            </Pressable>
 
-          <Pressable style={styles.iconBtnDanger} onPress={onDelete}>
-            <MaterialCommunityIcons name="trash-can-outline" size={16} color={colors.danger} />
-          </Pressable>
+            <Pressable style={styles.iconBtnDanger} onPress={onDelete}>
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
+            </Pressable>
+          </View>
         </View>
       </View>
     </View>
@@ -140,15 +102,17 @@ function EventCard({ event, variant, onDelete }: { event: any; variant: 'live' |
 export default function OpenHouseScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { accessToken } = useAuth();
 
-  const [liveEvents, setLiveEvents] = useState(LIVE_EVENTS);
-  const [upcomingEvents, setUpcomingEvents] = useState(UPCOMING_EVENTS);
-  const [completedEvents, setCompletedEvents] = useState(COMPLETED_EVENTS);
+  const { data, isLoading, refetch, isRefetching } = useQuery({
+    queryKey: ['open-houses'],
+    queryFn: () => getOpenHouses(accessToken || ''),
+    enabled: !!accessToken,
+  });
 
-  const handleDelete = (id: string, variant: 'live' | 'upcoming' | 'completed') => {
+  const handleDelete = (id: string | number) => {
     Alert.alert(
       '',
       'Are you sure you want to delete this open house event? This action cannot be undone.',
@@ -157,18 +121,32 @@ export default function OpenHouseScreen() {
         {
           text: 'OK',
           onPress: () => {
-            if (variant === 'live') {
-              setLiveEvents(prev => prev.filter(e => e.id !== id));
-            } else if (variant === 'upcoming') {
-              setUpcomingEvents(prev => prev.filter(e => e.id !== id));
-            } else {
-              setCompletedEvents(prev => prev.filter(e => e.id !== id));
-            }
+            // Delete logic would go here
+            console.log('Delete', id);
           }
         },
       ]
     );
   };
+
+  const mapApiToUi = (event: OpenHouseEvent) => ({
+    id: event.id,
+    tag: `OH-${event.id.toString().padStart(3, '0')}`,
+    address: event.property?.address || 'Unnamed Property',
+    date: event.date || 'No Date',
+    time: `${event.start_time} - ${event.end_time}`,
+    image: event.gallery_images?.[0] || 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
+    visitors: event.visitors_count || 0,
+    hotLeads: event.hot_leads_count || 0,
+    isLive: event.status === 'live',
+  });
+
+  const liveEvents = data?.filter(e => e.status === 'live').map(mapApiToUi) || [];
+  const upcomingEvents = data?.filter(e => e.status === 'upcoming').map(mapApiToUi) || [];
+  const completedEvents = data?.filter(e => e.status === 'completed').map(mapApiToUi) || [];
+
+  const totalLeads = data?.reduce((acc, curr) => acc + (curr.visitors_count || 0), 0) || 0;
+  const avgHotScore = data?.length ? Math.round((data.reduce((acc, curr) => acc + (curr.hot_leads_count || 0), 0) / (totalLeads || 1)) * 100) || 0 : 0;
 
   return (
     <LinearGradient
@@ -183,63 +161,104 @@ export default function OpenHouseScreen() {
         onBack={() => router.back()}
       />
 
-
-
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accentTeal} />
+        }
+      >
         <View style={styles.headerControls}>
           <View style={styles.kpiCard}>
             <View style={styles.kpiItem}>
-              <Text style={styles.kpiValue}>124</Text>
+              <Text style={styles.kpiValue}>{totalLeads}</Text>
               <Text style={styles.kpiLabel}>TOTAL LEADS</Text>
             </View>
             <View style={styles.kpiDivider} />
             <View style={styles.kpiItem}>
-              <Text style={[styles.kpiValue, { color: colors.accentTeal }]}>84%</Text>
+              <Text style={[styles.kpiValue, { color: colors.accentTeal }]}>{avgHotScore}%</Text>
               <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>HOT SCORE</Text>
             </View>
           </View>
-
-          <Pressable style={styles.createBtn} onPress={() => router.push('/(main)/open-house/create')}>
-            <MaterialCommunityIcons name="plus" size={16} color="#FFF" />
-            <Text style={styles.createBtnText}>Create New Event</Text>
-          </Pressable>
         </View>
 
-        <View style={styles.contentSection}>
-          {/* Live Today */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Live Today</Text>
-            <View style={styles.liveBadge}>
-              <MaterialCommunityIcons name="play" size={10} color={colors.danger} />
-              <Text style={styles.liveBadgeText}>LIVE NOW</Text>
-            </View>
+        {isLoading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }}>
+            <ActivityIndicator size="large" color={colors.accentTeal} />
+            <Text style={{ marginTop: 16, color: colors.textSecondary, fontWeight: '600' }}>Loading your events...</Text>
           </View>
-          {liveEvents.map(event => (
-            <EventCard key={event.id} event={event} variant="live" onDelete={() => handleDelete(event.id, 'live')} />
-          ))}
+        ) : data?.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconCircle}>
+              <MaterialCommunityIcons name="calendar-search" size={40} color={colors.accentTeal} />
+            </View>
+            <Text style={styles.emptyTitle}>No Open Houses Found</Text>
+            <Text style={styles.emptySubtitle}>You haven't created any open house events yet. Tap the + button to get started.</Text>
+            <Pressable style={styles.emptyBtn} onPress={() => router.push('/(main)/open-house/create')}>
+              <Text style={styles.emptyBtnText}>Create Your First Event</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.contentSection}>
+            {/* Live Today */}
+            {liveEvents.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Live Today</Text>
+                  <View style={styles.liveBadge}>
+                    <MaterialCommunityIcons name="play" size={10} color="#EF4444" />
+                    <Text style={styles.liveBadgeText}>LIVE NOW</Text>
+                  </View>
+                </View>
+                {liveEvents.map(event => (
+                  <EventCard key={event.id} event={event} variant="live" onDelete={() => handleDelete(event.id)} />
+                ))}
+              </>
+            )}
 
-          {/* Upcoming */}
-          <Text style={[styles.sectionTitle, { marginVertical: 20 }]}>Upcoming</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
-            {upcomingEvents.map(event => (
-              <View key={event.id} style={{ width: 300 }}>
-                <EventCard event={event} variant="upcoming" onDelete={() => handleDelete(event.id, 'upcoming')} />
-              </View>
-            ))}
-          </ScrollView>
+            {/* Upcoming */}
+            {upcomingEvents.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { marginVertical: 20 }]}>Upcoming</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}>
+                  {upcomingEvents.map(event => (
+                    <View key={event.id} style={{ width: SCREEN_WIDTH * 0.85 }}>
+                      <EventCard event={event} variant="upcoming" onDelete={() => handleDelete(event.id)} />
+                    </View>
+                  ))}
+                </ScrollView>
+              </>
+            )}
 
-          {/* Completed */}
-          <Text style={[styles.sectionTitle, { marginVertical: 20 }]}>Completed</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}>
-            {completedEvents.map(event => (
-              <View key={event.id} style={{ width: 300, marginRight: 16 }}>
-                <EventCard event={event} variant="completed" onDelete={() => handleDelete(event.id, 'completed')} />
-              </View>
-            ))}
-          </ScrollView>
-        </View>
+            {/* Completed */}
+            {completedEvents.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { marginVertical: 20 }]}>Completed</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}>
+                  {completedEvents.map(event => (
+                    <View key={event.id} style={{ width: SCREEN_WIDTH * 0.85, marginRight: 16 }}>
+                      <EventCard event={event} variant="completed" onDelete={() => handleDelete(event.id)} />
+                    </View>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+          </View>
+        )}
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <Pressable
+        style={({ pressed }) => [styles.fab, pressed && { opacity: 0.9, scale: 0.98 }]}
+        onPress={() => router.push('/(main)/open-house/create')}
+      >
+        <LinearGradient
+          colors={[colors.accentTeal, '#0D9488']}
+          style={styles.fabGradient}
+        >
+          <MaterialCommunityIcons name="plus" size={28} color="#FFF" />
+        </LinearGradient>
+      </Pressable>
 
     </LinearGradient>
   );
@@ -247,220 +266,301 @@ export default function OpenHouseScreen() {
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  background: {
-    flex: 1,
-  },
-  header: {
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
-  headerControls: {
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20
-  },
-  kpiCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    shadowColor: colors.cardShadowColor,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    flex: 1,
-    justifyContent: 'space-around'
-  },
-  kpiItem: {
-    alignItems: 'flex-start',
-  },
-  kpiValue: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  kpiLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: colors.textMuted,
-    marginTop: 2,
-    letterSpacing: 0.5,
-  },
-  kpiDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: colors.cardBorder,
-    marginHorizontal: 12,
-  },
-  createBtn: {
-    backgroundColor: colors.accentTeal,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 6,
-  },
-  createBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
+    background: {
+      flex: 1,
+    },
+    header: {
+      paddingTop: 20,
+      paddingBottom: 20,
+    },
+    headerControls: {
+      paddingHorizontal: 20,
+      marginBottom: 20
+    },
+    kpiCard: {
+      flexDirection: 'row',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 20,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      justifyContent: 'space-around'
+    },
+    kpiItem: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    kpiValue: {
+      fontSize: 24,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.5
+    },
+    kpiLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textMuted,
+      marginTop: 4,
+      letterSpacing: 1,
+    },
+    kpiDivider: {
+      width: 1,
+      height: 30,
+      backgroundColor: colors.cardBorder,
+    },
 
-  contentSection: {
-    paddingHorizontal: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    contentSection: {
+      paddingHorizontal: 20,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.5
+    },
+    liveBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#FEE2E2',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 20,
+      gap: 4,
+    },
+    liveBadgeText: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: '#EF4444',
+      letterSpacing: 0.5,
+    },
 
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.dangerBg,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  liveBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.danger,
-    letterSpacing: 0.5,
-  },
+    // Card
+    card: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 20,
+      overflow: 'hidden',
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: '#000',
+      shadowOpacity: 0.04,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    cardImageContainer: {
+      height: 140,
+      backgroundColor: colors.surfaceSoft,
+      position: 'relative',
+    },
+    cardImage: {
+      width: '100%',
+      height: '100%',
+    },
+    tagBadge: {
+      position: 'absolute',
+      top: 12,
+      left: 12,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    tagText: {
+      color: '#FFFFFF',
+      fontSize: 9,
+      fontWeight: '800',
+    },
+    liveBadgeFloating: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      backgroundColor: '#EF4444',
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      gap: 4,
+    },
+    pulseDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: '#FFF',
+    },
 
-  // Card
-  card: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 8,
-    shadowColor: colors.cardShadowColor,
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  cardImageContainer: {
-    height: 180,
-    backgroundColor: colors.surfaceSoft,
-    position: 'relative',
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  tagBadge: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    backgroundColor: colors.surfaceIcon,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  tagText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
+    cardContent: {
+      padding: 16,
+    },
+    cardTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 4,
+      letterSpacing: -0.3
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 12,
+    },
+    metaText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '500',
+    },
 
-  cardContent: {
-    padding: 16,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 16,
-  },
-  metaText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
+    statsRowRefined: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+      backgroundColor: colors.surfaceIcon + '08',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 12,
+      alignSelf: 'flex-start',
+    },
+    statItemRefined: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    statValueRefined: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    statLabelRefined: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.textSecondary,
+    },
+    dividerDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.cardBorder,
+      marginHorizontal: 12,
+    },
 
-  statsRow: {
-    flexDirection: 'row',
-    gap: 24,
-    marginBottom: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  statItem: {
-    flexDirection: 'row', // icon next to number then label below? No, design shows: Icon Number \n Label
-    alignItems: 'center', // Design: Icon, Number (Big), Label (Small)
-    gap: 6,
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.textMuted,
-    marginTop: 2,
-    marginLeft: 2, // fine tune
-  },
+    cardActions: {
+      flexDirection: 'row',
+      gap: 10,
+      alignItems: 'center',
+    },
+    primaryBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.accentTeal,
+      paddingVertical: 10,
+      borderRadius: 10,
+    },
+    primaryBtnText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    secondaryActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    iconBtn: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 10,
+    },
+    iconBtnDanger: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#FEF2F2',
+      borderWidth: 1,
+      borderColor: '#FECACA',
+      borderRadius: 10,
+    },
 
-  cardActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  primaryBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.accentTeal,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  primaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  iconBtn: {
-    width: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 8,
-  },
-  iconBtnDanger: {
-    width: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder, // Soft red pinkish border
-    borderRadius: 8,
-  },
+    fab: {
+      position: 'absolute',
+      bottom: 80,
+      right: 10,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+    },
+    fabGradient: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 30,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 40,
+      marginTop: 60,
+    },
+    emptyIconCircle: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: colors.accentTeal + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 32,
+    },
+    emptyBtn: {
+      backgroundColor: colors.accentTeal,
+      paddingVertical: 14,
+      paddingHorizontal: 28,
+      borderRadius: 16,
+    },
+    emptyBtnText: {
+      color: '#FFF',
+      fontSize: 14,
+      fontWeight: '800',
+    },
   });
 }

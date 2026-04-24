@@ -9,7 +9,7 @@ import {
 import type { NavMenuItem } from '@/components/main';
 import { DashboardLayout } from '@/components/main';
 import { useAppTheme } from '@/context/ThemeContext';
-import { Theme } from '@/constants/theme';
+import { useProfile } from '@/hooks/useProfile';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
@@ -104,203 +104,203 @@ const CARD_GAP = 14;
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  content: {
-    paddingHorizontal: CONTENT_PADDING_H,
-    paddingTop: 8,
-  },
+    content: {
+      paddingHorizontal: CONTENT_PADDING_H,
+      paddingTop: 8,
+    },
 
-  // ── Greeting ───────────────────────────────────────
-  greetingCard: {
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#0A2F48',
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
-  },
-  greetingTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  greetingTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  greetingTagText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.9)',
-    letterSpacing: 0.5,
-  },
-  greetingDateText: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: 'rgba(190,220,240,0.8)',
-  },
-  greetingTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-    marginBottom: 4,
-  },
-  greetingName: {
-    color: '#0ECFDF',
-  },
-  greetingSubtitle: {
-    fontSize: 13,
-    color: 'rgba(190,220,240,0.85)',
-    fontWeight: '500',
-    lineHeight: 18,
-  },
+    // ── Greeting ───────────────────────────────────────
+    greetingCard: {
+      borderRadius: 24,
+      padding: 18,
+      marginBottom: 16,
+      overflow: 'hidden',
+      shadowColor: '#0A2F48',
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 4,
+    },
+    greetingTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10,
+    },
+    greetingTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+    },
+    greetingTagText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: 'rgba(255,255,255,0.9)',
+      letterSpacing: 0.5,
+    },
+    greetingDateText: {
+      fontSize: 11.5,
+      fontWeight: '600',
+      color: 'rgba(190,220,240,0.8)',
+    },
+    greetingTitle: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      letterSpacing: -0.3,
+      marginBottom: 4,
+    },
+    greetingName: {
+      color: '#0ECFDF',
+    },
+    greetingSubtitle: {
+      fontSize: 13,
+      color: 'rgba(190,220,240,0.85)',
+      fontWeight: '500',
+      lineHeight: 18,
+    },
 
-  // ── Stats ───────────────────────────────────────────
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    borderRadius: 22,
-    padding: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-  },
-  statCardInner: {
-    flex: 1,
-  },
-  statCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  statIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-  },
-  statBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.2,
-  },
-  statValue: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  statTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.75)',
-    letterSpacing: 0.2,
-  },
+    // ── Stats ───────────────────────────────────────────
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginBottom: 20,
+    },
+    statCard: {
+      flex: 1,
+      minWidth: '45%',
+      borderRadius: 22,
+      padding: 16,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 3,
+    },
+    statCardInner: {
+      flex: 1,
+    },
+    statCardTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    statIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    statBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderRadius: 999,
+      paddingHorizontal: 7,
+      paddingVertical: 4,
+    },
+    statBadgeText: {
+      fontSize: 9.5,
+      fontWeight: '800',
+      color: '#fff',
+      letterSpacing: 0.2,
+    },
+    statValue: {
+      fontSize: 26,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      letterSpacing: -0.5,
+      marginBottom: 4,
+    },
+    statTitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: 'rgba(255,255,255,0.75)',
+      letterSpacing: 0.2,
+    },
 
-  // ── Two-col layout ──────────────────────────────────
-  twoCol: {
-    gap: CARD_GAP,
-    marginBottom: CARD_GAP,
-  },
-  twoColRow: { flexDirection: 'row' },
-  twoColCol: { flexDirection: 'column' },
+    // ── Two-col layout ──────────────────────────────────
+    twoCol: {
+      gap: CARD_GAP,
+      marginBottom: CARD_GAP,
+    },
+    twoColRow: { flexDirection: 'row' },
+    twoColCol: { flexDirection: 'column' },
 
-  // ── Segment control ─────────────────────────────────
-  segment: {
-    flexDirection: 'row',
-    padding: 3,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.surfaceSoft,
-    alignSelf: 'flex-end',
-    gap: 4,
-  },
-  segmentItem: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-  },
-  segmentItemActive: {
-    backgroundColor: colors.accentTeal,
-    shadowColor: colors.accentTeal,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  segmentText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textSecondary,
-  },
-  segmentTextActive: {
-    color: '#fff',
-  },
+    // ── Segment control ─────────────────────────────────
+    segment: {
+      flexDirection: 'row',
+      padding: 3,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.surfaceSoft,
+      alignSelf: 'flex-end',
+      gap: 4,
+    },
+    segmentItem: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+    },
+    segmentItemActive: {
+      backgroundColor: colors.accentTeal,
+      shadowColor: colors.accentTeal,
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    segmentText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    segmentTextActive: {
+      color: '#fff',
+    },
 
-  // ── Chart ───────────────────────────────────────────
-  chartWrap: {
-    marginTop: 10,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
+    // ── Chart ───────────────────────────────────────────
+    chartWrap: {
+      marginTop: 10,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
 
-  // ── View all button ─────────────────────────────────
-  viewAllButton: {
-    marginTop: 14,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  viewAllGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: `${colors.accentTeal}30`,
-    backgroundColor: `${colors.accentTeal}08`,
-  },
-  viewAllButtonText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.accentTeal,
-  },
+    // ── View all button ─────────────────────────────────
+    viewAllButton: {
+      marginTop: 14,
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
+    viewAllGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: `${colors.accentTeal}30`,
+      backgroundColor: `${colors.accentTeal}08`,
+    },
+    viewAllButtonText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.accentTeal,
+    },
   });
 }
 
@@ -309,6 +309,18 @@ export default function DashboardScreen() {
   const styles = getStyles(colors);
   const router = useRouter();
   const [velocityRange, setVelocityRange] = useState<'7d' | '30d'>('30d');
+
+  const { data: profile } = useProfile();
+  console.log(profile)
+
+  const userInitials = useMemo(() => {
+    if (!profile) return 'VP';
+    const first = profile.first_name?.[0] || '';
+    const last = profile.last_name?.[0] || '';
+    return (first + last).toUpperCase() || 'VP';
+  }, [profile]);
+
+  const firstName = profile?.first_name || 'John';
 
   const windowWidth = Dimensions.get('window').width;
   const isTablet = windowWidth >= 768;
@@ -353,7 +365,7 @@ export default function DashboardScreen() {
   const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
-    <DashboardLayout menuItems={MENU_ITEMS} userInitials="VP">
+    <DashboardLayout menuItems={MENU_ITEMS} userInitials={userInitials}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[styles.content, { paddingBottom: 32 }]}
@@ -379,7 +391,7 @@ export default function DashboardScreen() {
           </View>
 
           <Text style={styles.greetingTitle}>
-            Hi <Text style={styles.greetingName}>John</Text> 👋
+            Hi <Text style={styles.greetingName}>{firstName}</Text> 👋
           </Text>
           <Text style={styles.greetingSubtitle}>
             Your pipeline is healthy. 3 new leads need follow-up today.

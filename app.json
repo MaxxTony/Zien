@@ -31,6 +31,9 @@
         "NSRemindersUsageDescription": "This app needs access to reminders to help you manage follow-ups and tasks.",
         "NSMicrophoneUsageDescription": "This app needs access to your microphone to record property videos and use voice commands.",
         "NSSpeechRecognitionUsageDescription": "This app needs speech recognition to allow you to command Zien with your voice."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyBxs1NkCMn1ny24-4fGnBVsbwMyTSWBDr8"
       }
     },
     "android": {
@@ -57,7 +60,12 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAZM9Ef3yGGfgAX12z0Hv5CZkft2lRyFSQ"
+        }
+      }
     },
     "web": {
       "output": "static",

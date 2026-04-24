@@ -1,95 +1,66 @@
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Theme } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { useAppTheme } from '@/context/ThemeContext';
+import { finalizeProperty, getPropertyDetails, uploadPropertyImage } from '@/services/propertyService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAppTheme } from '@/context/ThemeContext';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// --- Constants ---
-const PROPERTY_TYPES = ['Residential SFH', 'Condo', 'Townhouse', 'Multi-Family', 'Luxury Villa'];
-const BEDS_OPTIONS = ['1', '2', '3', '4', '5+'];
-const BATHS_OPTIONS = ['1', '2', '3', '4', '4.5', '5+'];
-const GARAGE_OPTIONS = ['None', '1 Car', '2 Car', '3 Car', '4+ Car'];
-const ROOF_MATERIALS = ['Asphalt Shingle', 'Tile', 'Metal', 'Slate'];
-const FOUNDATIONS = ['Concrete Slab', 'Crawl Space', 'Basement', 'Pier & Beam'];
-const HEATING_OPTIONS = ['Forced Air', 'Radiant', 'Heat Pump', 'None'];
-const COOLING_OPTIONS = ['Central Air', 'Window Unit', 'Evaporative', 'None'];
-const BASEMENT_OPTIONS = ['Fully Finished', 'Partially Finished', 'Unfinished', 'None'];
-
-const FLOORING_OPTIONS = ['Hardwood', 'Tile', 'Carpet', 'Laminate', 'Vinyl', 'Concrete'];
-const APPLIANCE_OPTIONS = ['Refrigerator', 'Oven', 'Dishwasher', 'Microwave', 'Washer', 'Dryer'];
-const SMART_HOME_OPTIONS = ['Thermostat', 'Security', 'Lighting', 'Audio', 'Locks'];
-
-// --- Helper Components ---
-
-function PremiumDropdown({ label, value, options, onSelect }: { label: string, value: string, options: string[], onSelect: (v: string) => void }) {
-  const { colors } = useAppTheme();
+// --- Step Indicator Component (Copied from Create) ---
+function StepIndicator({ activeStep, steps }: { activeStep: number; steps: { label: string }[] }) {
+  const { colors, theme } = useAppTheme();
   const styles = getStyles(colors);
-
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <View style={styles.inputGroup}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <Pressable style={styles.dropdownTrigger} onPress={() => setIsOpen(!isOpen)}>
-        <Text style={styles.dropdownValue}>{value}</Text>
-        <MaterialCommunityIcons name={isOpen ? "chevron-up" : "chevron-down"} size={18} color={colors.textPrimary} />
-      </Pressable>
-      {isOpen && (
-        <View style={styles.dropdownMenu}>
-          {options.map((opt) => (
-            <Pressable
-              key={opt}
-              style={styles.dropdownItem}
-              onPress={() => {
-                onSelect(opt);
-                setIsOpen(false);
-              }}
-            >
-              <Text style={[styles.dropdownItemText, value === opt && styles.dropdownItemTextActive]}>{opt}</Text>
-              {value === opt && <MaterialCommunityIcons name="check" size={16} color={colors.accentTeal} />}
-            </Pressable>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
-
-function MultiSelectChips({ label, options, selected, onToggle }: { label: string, options: string[], selected: string[], onToggle: (v: string) => void }) {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
+  const isDark = theme === 'dark';
 
   return (
-    <View style={styles.chipSection}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <View style={styles.chipGrid}>
-        {options.map(opt => {
-          const isActive = selected.includes(opt);
+    <View style={styles.indicatorWrapper}>
+      <View style={styles.indicatorRow}>
+        {steps.map((step, idx) => {
+          const isActive = activeStep === idx;
+          const isPast = activeStep > idx;
+          const activeNumColor = isDark ? colors.cardBackground : '#FFF';
+
           return (
-            <Pressable
-              key={opt}
-              onPress={() => onToggle(opt)}
-              style={[styles.chip, isActive && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{opt}</Text>
-            </Pressable>
+            <React.Fragment key={idx}>
+              <View style={styles.indicatorStepItem}>
+                <View style={[
+                  styles.indicatorCircle,
+                  isActive && styles.indicatorCircleActive,
+                  isPast && styles.indicatorCirclePast
+                ]}>
+                  {isPast ? (
+                    <MaterialCommunityIcons name="check" size={14} color="#FFF" />
+                  ) : (
+                    <Text style={[
+                      styles.indicatorNumber,
+                      isActive && { color: activeNumColor }
+                    ]}>{idx + 1}</Text>
+                  )}
+                </View>
+                <Text style={[styles.indicatorLabel, isActive && styles.indicatorLabelActive]}>{step.label}</Text>
+              </View>
+              {idx < steps.length - 1 && (
+                <View style={[styles.indicatorLine, isPast && styles.indicatorLineActive]} />
+              )}
+            </React.Fragment>
           );
         })}
       </View>
@@ -97,338 +68,277 @@ function MultiSelectChips({ label, options, selected, onToggle }: { label: strin
   );
 }
 
-// --- Step Components ---
-
-function StepAddress({ onNext }: { onNext: () => void }) {
+// --- Helper Components ---
+function PropertyStatCard({ icon, label, value }: { icon: string, label: string, value: string }) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-
   return (
-    <View style={styles.stepContainer}>
-      <View style={styles.premiumCard}>
-        <Text style={styles.cardHeaderTitle}>Provide Property Address</Text>
-        <Text style={styles.cardHeaderSubtitle}>Enter the address and we'll fetch legal specs.</Text>
-
-        <View style={styles.addressBoxMobile}>
-          <TextInput
-            style={styles.addressInputMobile}
-            placeholder="Start typing address..."
-            placeholderTextColor={colors.textMuted}
-          />
-        </View>
-
-        <View style={styles.enrichmentSources}>
-          <View style={styles.sourceItem}>
-            <View style={styles.sourceIconBox}>
-              <MaterialCommunityIcons name="office-building" size={20} color={colors.accentTeal} />
-            </View>
-            <Text style={styles.sourceLabel}>County</Text>
-          </View>
-          <View style={styles.sourceItem}>
-            <View style={styles.sourceIconBox}>
-              <MaterialCommunityIcons name="map" size={20} color={colors.accentTeal} />
-            </View>
-            <Text style={styles.sourceLabel}>Zoning</Text>
-          </View>
-          <View style={styles.sourceItem}>
-            <View style={styles.sourceIconBox}>
-              <MaterialCommunityIcons name="file-document" size={20} color={colors.accentTeal} />
-            </View>
-            <Text style={styles.sourceLabel}>Tax</Text>
-          </View>
-        </View>
+    <View style={styles.statCardPremium}>
+      <View style={styles.statIconBoxPremium}>
+        <MaterialCommunityIcons name={icon as any} size={20} color={colors.accentTeal} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.statLabelPremium}>{label}</Text>
+        <Text style={styles.statValuePremium}>{value || '—'}</Text>
       </View>
     </View>
   );
 }
 
-function StepDetails({ onNext, onBack }: { onNext: () => void, onBack: () => void }) {
+function PropertyDetailItem({ icon, label, value, isPill }: { icon: string, label: string, value: string | string[] | undefined, isPill?: boolean }) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-
-  const [formData, setFormData] = useState({
-    type: 'Residential SFH',
-    beds: '5',
-    baths: '4.5',
-    garage: 'None',
-    roof: 'Asphalt Shingle',
-    foundation: 'Concrete Slab',
-    year: '1995',
-    sqft: '3,250 Sq Ft',
-    heating: 'Forced Air',
-    cooling: 'Central Air',
-    basement: 'Fully Finished',
-    flooring: ['Hardwood', 'Tile'],
-    appliances: ['Refrigerator', 'Oven', 'Dishwasher'],
-    smartHome: ['Thermostat']
-  });
-
-  const toggleItem = (list: string[], item: string) =>
-    list.includes(item) ? list.filter(i => i !== item) : [...list, item];
-
-  return (
-    <View style={styles.stepContainer}>
-      <View style={styles.premiumCard}>
-        <View style={styles.cardHeaderRow}>
-          <View style={styles.headerIconBox}>
-            <MaterialCommunityIcons name="home-analytics" size={24} color={colors.textPrimary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardHeaderTitle}>Property Details</Text>
-            <Text style={styles.cardHeaderSubtitle}>Review synchronized property attributes.</Text>
-          </View>
-        </View>
-
-        <Text style={styles.groupLabel}>STRUCTURAL SPECS</Text>
-        <View style={styles.formGrid}>
-          <PremiumDropdown label="Property Type" value={formData.type} options={PROPERTY_TYPES} onSelect={(v) => setFormData({ ...formData, type: v })} />
-          <View style={styles.formRow}>
-            <View style={{ flex: 1 }}><PremiumDropdown label="Beds" value={formData.beds} options={BEDS_OPTIONS} onSelect={(v) => setFormData({ ...formData, beds: v })} /></View>
-            <View style={{ width: 12 }} />
-            <View style={{ flex: 1 }}><PremiumDropdown label="Baths" value={formData.baths} options={BATHS_OPTIONS} onSelect={(v) => setFormData({ ...formData, baths: v })} /></View>
-          </View>
-          <PremiumDropdown label="Garage Spaces" value={formData.garage} options={GARAGE_OPTIONS} onSelect={(v) => setFormData({ ...formData, garage: v })} />
-          <PremiumDropdown label="Roof Material" value={formData.roof} options={ROOF_MATERIALS} onSelect={(v) => setFormData({ ...formData, roof: v })} />
-
-          <View style={styles.formRow}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Year Built</Text>
-              <TextInput style={styles.textInput} value={formData.year} onChangeText={(v) => setFormData({ ...formData, year: v })} />
-            </View>
-            <View style={{ width: 12 }} />
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Living Area</Text>
-              <TextInput style={styles.textInput} value={formData.sqft} onChangeText={(v) => setFormData({ ...formData, sqft: v })} />
-            </View>
-          </View>
-        </View>
-
-        <Text style={styles.groupLabel}>INTERIOR & ENERGY</Text>
-        <View style={styles.formGrid}>
-          <PremiumDropdown label="Heating" value={formData.heating} options={HEATING_OPTIONS} onSelect={(v) => setFormData({ ...formData, heating: v })} />
-          <PremiumDropdown label="Cooling" value={formData.cooling} options={COOLING_OPTIONS} onSelect={(v) => setFormData({ ...formData, cooling: v })} />
-        </View>
-
-        <MultiSelectChips label="Flooring" options={FLOORING_OPTIONS} selected={formData.flooring} onToggle={(v) => setFormData({ ...formData, flooring: toggleItem(formData.flooring, v) })} />
-
-      </View>
-    </View>
-  );
-}
-
-function StepMedia({ onNext, onBack, uploadedImages, setUploadedImages }: {
-  onNext: () => void,
-  onBack: () => void,
-  uploadedImages: string[],
-  setUploadedImages: React.Dispatch<React.SetStateAction<string[]>>
-}) {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
-
-  const [prompt, setPrompt] = useState('');
-  const [showOptions, setShowOptions] = useState(false);
-
-  const handleSelect = (type: 'library' | 'camera') => {
-    // Simulating upload with placeholders
-    const mockImages = [
-      'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
-      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'
-    ];
-    setUploadedImages([...uploadedImages, ...mockImages]);
-    setShowOptions(false);
-  };
-
-  return (
-    <View style={styles.stepContainer}>
-      <View style={styles.premiumCard}>
-        <Text style={styles.contentTitle}>AI Media Studio</Text>
-        <Text style={styles.contentSubtitle}>Upload photos or generate high-end visuals with Zien AI.</Text>
-
-        <View style={styles.mediaStack}>
-          {/* Upload Box */}
-          <View style={styles.mediaUploadBox}>
-            <View style={styles.uploadIconCircle}>
-              <MaterialCommunityIcons name="cloud-upload-outline" size={24} color={colors.textSecondary} />
-            </View>
-            <View style={{ alignItems: 'center' }}>
-              <Text style={styles.uploadTitle}>Upload Photos</Text>
-              <Text style={styles.uploadSubtitle}>Add multiple property images</Text>
-            </View>
-
-            <View style={{ gap: 8, width: '100%', alignItems: 'center' }}>
-              <TouchableOpacity
-                style={styles.selectPhotosBtn}
-                onPress={() => setShowOptions(!showOptions)}
-              >
-                <MaterialCommunityIcons name="plus" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
-                <Text style={styles.selectPhotosBtnText}>Add Media</Text>
-              </TouchableOpacity>
-
-              {showOptions && (
-                <View style={styles.uploadOptions}>
-                  <Pressable style={styles.uploadOptionItem} onPress={() => handleSelect('library')}>
-                    <MaterialCommunityIcons name="image-multiple-outline" size={18} color={colors.textPrimary} />
-                    <Text style={styles.uploadOptionText}>Photo Library</Text>
-                  </Pressable>
-                  <View style={styles.optionDivider} />
-                  <Pressable style={styles.uploadOptionItem} onPress={() => handleSelect('camera')}>
-                    <MaterialCommunityIcons name="camera-outline" size={18} color={colors.textPrimary} />
-                    <Text style={styles.uploadOptionText}>Take Photo</Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Uploaded Gallery */}
-          {uploadedImages.length > 0 && (
-            <View style={styles.galleryContainer}>
-              <Text style={styles.groupLabel}>UPLOADED SCENES ({uploadedImages.length})</Text>
-              <View style={styles.galleryGrid}>
-                {uploadedImages.map((uri, idx) => (
-                  <View key={idx} style={styles.galleryCard}>
-                    <View style={styles.galleryImageWrap}>
-                      <Image source={{ uri }} style={styles.galleryImg} contentFit="cover" />
-                      <Pressable style={styles.removeImgBtn} onPress={() => setUploadedImages(prev => prev.filter((_, i) => i !== idx))}>
-                        <MaterialCommunityIcons name="close" size={14} color="#FFF" />
-                      </Pressable>
-                    </View>
-                    <View style={styles.galleryCardFooter}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.sceneLabel}>ORIGINAL MEDIA</Text>
-                        <Text style={styles.sceneTitle}>Scene {idx + 1}</Text>
-                      </View>
-                      <TouchableOpacity style={styles.enhanceBtn}>
-                        <MaterialCommunityIcons name="creation" size={14} color={colors.accentTeal} />
-                        <Text style={styles.enhanceBtnText}>Magic Enhance</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* AI Generator Box */}
-          <View style={styles.aiStudioBoxMobile}>
-            <View style={styles.aiHeader}>
-              <View style={styles.aiIconBox}>
-                <MaterialCommunityIcons name="creation" size={18} color="#FFF" />
-              </View>
-              <View>
-                <Text style={styles.aiTitle}>AI Studio Generator</Text>
-                <Text style={styles.aiSubtitle}>Describe the scene to synthesize</Text>
-              </View>
-            </View>
-
-            <View style={styles.promptWrapper}>
-              <Text style={styles.inputLabelSmall}>GENERATION PROMPT</Text>
-              <TextInput
-                style={styles.promptInputMobile}
-                placeholder="e.g. Modern living room, golden hour..."
-                placeholderTextColor={colors.textMuted}
-                multiline
-                value={prompt}
-                onChangeText={setPrompt}
-              />
-            </View>
-
-            <TouchableOpacity style={styles.generateBtn}>
-              <Text style={styles.generateBtnText}>Generate with AI</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-      </View>
-    </View>
-  );
-}
-
-function StepReview({ onNext, onBack, uploadedImages }: {
-  onNext: () => void,
-  onBack: () => void,
-  uploadedImages: string[]
-}) {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
-
-  return (
-    <View style={styles.stepContainer}>
-      <View style={styles.premiumCard}>
-        <View style={styles.cardHeaderRow}>
-          <View style={styles.headerIconBox}>
-            <MaterialCommunityIcons name="file-certificate-outline" size={24} color={colors.textPrimary} />
-          </View>
-          <View>
-            <Text style={styles.cardHeaderTitle}>Final Review</Text>
-            <Text style={styles.cardHeaderSubtitle}>Overview of your optimized listing.</Text>
-          </View>
-        </View>
-
-        <View style={styles.reviewList}>
-          <Text style={styles.groupLabel}>DATA PROFILE</Text>
-          {[
-            { l: 'Type', v: 'Residential SFH' },
-            { l: 'Beds', v: '5' },
-            { l: 'Baths', v: '4.5' },
-            { l: 'Garage', v: '3 Car' },
-            { l: 'Roof', v: 'Asphalt' }
-          ].map((it, i) => (
-            <View key={i} style={styles.reviewItem}>
-              <Text style={styles.reviewLabel}>{it.l}</Text>
-              <Text style={styles.reviewValue}>{it.v}</Text>
+  const renderValue = () => {
+    if (!value) return <Text style={{ fontSize: 16, fontWeight: '900', color: colors.textPrimary }}>—</Text>;
+    if (Array.isArray(value) || isPill) {
+      const items = Array.isArray(value) ? value : [value];
+      return (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {items.map((item, idx) => (
+            <View key={idx} style={styles.pillContainer}>
+              <Text style={styles.pillText}>{item}</Text>
             </View>
           ))}
+        </View>
+      );
+    }
+    return <Text style={{ fontSize: 16, fontWeight: '900', color: colors.textPrimary }} numberOfLines={2}>{value}</Text>;
+  };
+  return (
+    <View style={styles.structuralDetailCard}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <MaterialCommunityIcons name={icon as any} size={18} color={colors.textSecondary} />
+        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>{label}</Text>
+      </View>
+      {renderValue()}
+    </View>
+  );
+}
 
-          {uploadedImages.length > 0 && (
-            <>
-              <Text style={styles.groupLabel}>MEDIA GALLERY ({uploadedImages.length})</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalGallery}>
-                {uploadedImages.map((uri, idx) => (
-                  <View key={idx} style={styles.reviewGalleryItem}>
-                    <Image source={{ uri }} style={styles.reviewGalleryImg} contentFit="cover" />
-                  </View>
-                ))}
-              </ScrollView>
-            </>
-          )}
+// --- Steps (Copied and adapted from Create) ---
+
+function StepDetails({ formData }: { formData: any }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const totalBaths = parseFloat(formData.bathsFull || '0') + (parseFloat(formData.bathsHalf || '0') * 0.5);
+
+  return (
+    <View style={[styles.stepContainer, { paddingHorizontal: 0, paddingTop: 24 }]}>
+      <View style={styles.intelHeaderBox}>
+        <View style={styles.intelIconOuter}>
+          <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={28} color={colors.textPrimary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+            <Text style={styles.intelTitle}>Property Intelligence</Text>
+            <View style={styles.verifiedPill}><Text style={styles.verifiedPillText}>{formData.confidence || 90}% VERIFIED</Text></View>
+          </View>
+          <Text style={styles.intelSubtitle}>Institutional data successfully mapped to your vault.</Text>
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 20, gap: 12 }}>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <PropertyStatCard icon="bed-outline" label="BEDROOMS" value={formData.beds} />
+          <PropertyStatCard icon="shower" label="BATHROOMS" value={totalBaths > 0 ? totalBaths.toString() : ''} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <PropertyStatCard icon="ruler-square" label="LIVING AREA" value={formData.sqft ? `${formData.sqft} Sq Ft` : ''} />
+          <PropertyStatCard icon="currency-usd" label="LIST PRICE" value={formData.price} />
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+        <Text style={styles.premiumGroupLabel}>STRUCTURAL</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          <PropertyDetailItem icon="office-building-outline" label="Property Type" value={formData.type} />
+          <PropertyDetailItem icon="map-marker-outline" label="Address" value={formData.address} />
+          <PropertyDetailItem icon="calendar-blank-outline" label="Year Built" value={formData.year} />
+          <PropertyDetailItem icon="layers-outline" label="Stories" value={formData.stories} />
+          <PropertyDetailItem icon="home-roof" label="Roof Material" value={formData.roof} isPill />
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
+        <Text style={styles.premiumGroupLabel}>EXTERIOR</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          <PropertyDetailItem icon="arrow-expand-all" label="Lot Size" value={formData.lotSize} />
+          <PropertyDetailItem icon="earth" label="Lot Features" value={formData.lotFeatures} />
+          <PropertyDetailItem icon="shield-outline" label="Fencing" value={formData.fencing} isPill />
+          <PropertyDetailItem icon="car-outline" label="Parking" value={formData.parkingFeatures} />
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
+        <Text style={styles.premiumGroupLabel}>INTERIOR</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          <PropertyDetailItem icon="view-grid-outline" label="Flooring" value={formData.flooring} />
+          <PropertyDetailItem icon="lightning-bolt-outline" label="Appliances" value={formData.appliances} />
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
+        <Text style={styles.premiumGroupLabel}>UTILITIES & LOCATION</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          <PropertyDetailItem icon="thermometer" label="Heating" value={formData.heating} />
+          <PropertyDetailItem icon="snowflake" label="Cooling" value={formData.cooling} />
+          <PropertyDetailItem icon="water-outline" label="Sewer" value={formData.sewer} isPill />
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
+        <Text style={styles.premiumGroupLabel}>LEGAL & COMMUNITY</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          <PropertyDetailItem icon="pound" label="ListingId" value={formData.listingId} />
+          <PropertyDetailItem icon="pulse" label="Status" value={formData.standardStatus} />
+          <PropertyDetailItem icon="file-document-outline" label="Listing Terms" value={formData.listingTerms} />
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
+        <Text style={styles.premiumGroupLabel}>REMARKS</Text>
+        <View style={styles.inputGroup}>
+          <Text style={[styles.inputLabel, { marginBottom: 12 }]}>Public Remarks</Text>
+          <View style={styles.remarkCard}><Text style={styles.remarkText}>{formData.publicRemarks || 'No public remarks.'}</Text></View>
+        </View>
+      </View>
+      <View style={{ height: 160 }} />
+    </View>
+  );
+}
+
+function StepMedia({ mlsPhotos, setMlsPhotos, userPhotos, setUserPhotos, onPickerOpen, isUploading }: any) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+
+  return (
+    <View style={styles.stepContainer}>
+      <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+        <Text style={styles.intelTitle}>Media & Assets</Text>
+        <Text style={styles.intelSubtitle}>Review MLS shots or add your own enhancements.</Text>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.mediaSection}>
+          <Text style={styles.mediaSectionTitle}>MLS PHOTOS</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+            {mlsPhotos.map((url: string, idx: number) => (
+              <View key={idx} style={styles.premiumPhotoCard}>
+                <View style={styles.photoContainerLarge}>
+                  <Image source={{ uri: url }} style={styles.photoCard} contentFit="cover" />
+                  <TouchableOpacity style={styles.deletePhotoBtn} onPress={() => setMlsPhotos((prev: string[]) => prev.filter(p => p !== url))}>
+                    <MaterialCommunityIcons name="close" size={16} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.photoCardFooter}>
+                  <Text style={styles.photoFooterLabel}>VERIFIED MLS</Text>
+                  <Text style={styles.photoFooterTitle}>Scene {idx + 1}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
+        <View style={[styles.mediaSection, { marginTop: 32 }]}>
+          <View style={styles.mediaSectionHeader}>
+            <Text style={styles.mediaSectionTitle}>MY UPLOADS</Text>
+            <TouchableOpacity style={styles.addMediaBtnSmall} onPress={onPickerOpen}>
+              <MaterialCommunityIcons name="plus" size={20} color={colors.accentTeal} />
+              <Text style={styles.addMediaBtnText}>Add Media</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+            {userPhotos.map((url: string, idx: number) => (
+              <View key={idx} style={styles.premiumPhotoCard}>
+                <View style={styles.photoContainerLarge}>
+                  <Image source={{ uri: url }} style={styles.photoCard} contentFit="cover" />
+                  <TouchableOpacity style={styles.deletePhotoBtn} onPress={() => setUserPhotos((prev: string[]) => prev.filter(p => p !== url))}>
+                    <MaterialCommunityIcons name="close" size={16} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.photoCardFooter}>
+                  <Text style={styles.photoFooterLabel}>AI OPTIMIZED</Text>
+                  <Text style={styles.photoFooterTitle}>Scene {idx + 1}</Text>
+                </View>
+              </View>
+            ))}
+            {isUploading && (
+              <View style={[styles.premiumPhotoCard, styles.uploadPlaceholderCard, { height: 260, justifyContent: 'center' }]}>
+                <ActivityIndicator color={colors.accentTeal} />
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function StepReview({ mlsPhotos, userPhotos, formData }: any) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const allImages = [...mlsPhotos, ...userPhotos];
+
+  return (
+    <View style={styles.stepContainer}>
+      <View style={styles.premiumCardLarge}>
+        <Text style={styles.premiumGroupLabel}>READY TO FINALIZE</Text>
+        <Text style={styles.cardHeaderTitle}>Review Updates</Text>
+        <Text style={styles.cardHeaderSubtitle}>Everything is set to be broadcasted to the network.</Text>
+
+        <View style={{ marginTop: 24, padding: 16, backgroundColor: colors.surfaceIcon, borderRadius: 16 }}>
+          <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 16 }}>{formData.address}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
+            <Text style={{ color: colors.textSecondary }}>Photos Count</Text>
+            <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{allImages.length}</Text>
+          </View>
+        </View>
+
+        {allImages.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 20 }}>
+            {allImages.map((uri, i) => (
+              <Image key={i} source={{ uri }} style={{ width: 120, height: 80, borderRadius: 12, marginRight: 8 }} contentFit="cover" />
+            ))}
+          </ScrollView>
+        )}
       </View>
     </View>
   );
 }
 
-function StepSuccess() {
+function StepSuccess({ propertyId, address }: { propertyId: string, address: string }) {
   const { colors } = useAppTheme();
-  const styles = getStyles(colors);
-
   const router = useRouter();
-  const options = [
-    { icon: 'bank', title: 'Inventory', route: '/(main)/properties' },
-    { icon: 'calendar-check', title: 'Open House', route: '/(main)/open-house' },
-    { icon: 'share-variant', title: 'Social Hub', route: '/(main)/social-hub' },
-    { icon: 'bullhorn', title: 'Campaigns', route: '/(main)/crm/campaigns' },
+
+  const cards = [
+    { id: 'inventory', title: 'Property Inventory', subtitle: 'Return to your vault and manage all listings.', icon: 'bank' },
+    { id: 'openhouse', title: 'Schedule Open House', subtitle: 'Activate digital check-in and visitor tracking.', icon: 'calendar-clock-outline' },
+    { id: 'social', title: 'Add to Social Media', subtitle: 'Broadcast this listing to Instagram and LinkedIn.', icon: 'share-variant-outline' },
+    { id: 'campaign', title: 'Add to Campaign', subtitle: 'Connect to active marketing and drip flows.', icon: 'bullhorn-outline' },
   ];
 
   return (
-    <View style={styles.stepContainer}>
-      <View style={styles.premiumCard}>
-        <View style={styles.successIconOuter}>
-          <MaterialCommunityIcons name="check-decagram" size={40} color={colors.accentTeal} />
+    <View style={{ alignItems: 'center', paddingTop: 20 }}>
+      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceIcon, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+        <MaterialCommunityIcons name="check-bold" size={32} color={colors.accentTeal} />
+      </View>
+      <Text style={{ fontSize: 28, fontWeight: '900', color: colors.textPrimary, marginBottom: 8 }}>Updates Saved!</Text>
+      <Text style={{ fontSize: 15, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 40 }}>
+        Your property at <Text style={{ fontWeight: '800', color: colors.textPrimary }}>{address}</Text> has been successfully updated.
+      </Text>
+      <View style={{ width: '100%', marginTop: 40 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+          <Text style={{ fontSize: 10, fontWeight: '900', color: colors.textMuted }}>NEXT PHASE</Text>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: colors.textMuted }}>ID: {propertyId}</Text>
         </View>
-        <Text style={styles.successTitle}>Property Updated</Text>
-        <Text style={styles.successSubtitle}>Your property details have been saved and broadcasted.</Text>
-
-        <Text style={styles.groupLabel}>NEXT STEPS</Text>
-        <View style={styles.nextStepsList}>
-          {options.map((opt, i) => (
-            <TouchableOpacity key={i} style={styles.nextStepMobileBtn} onPress={() => router.push(opt.route as any)}>
-              <View style={styles.nextStepIconCircle}>
-                <MaterialCommunityIcons name={opt.icon as any} size={18} color="#FFF" />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {cards.map(card => (
+            <TouchableOpacity key={card.id} style={{ width: (SCREEN_WIDTH - 44) / 2, backgroundColor: colors.cardBackground, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: colors.cardBorder, minHeight: 140 }} onPress={() => card.id === 'inventory' ? router.replace('/(main)/properties') : null}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.surfaceSoft, justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                <MaterialCommunityIcons name={card.icon as any} size={20} color={colors.textPrimary} />
               </View>
-              <Text style={styles.nextStepBtnText}>{opt.title}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textMuted} />
+              <Text style={{ fontSize: 13, fontWeight: '800', color: colors.textPrimary, marginBottom: 6 }}>{card.title}</Text>
+              <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15 }}>{card.subtitle}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -438,766 +348,234 @@ function StepSuccess() {
 }
 
 // --- Main Screen ---
-
-export default function EditPropertyScreen() {
+export default function EditListingScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const [activeStep, setActiveStep] = useState(1);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const { accessToken } = useAuth();
+
+  const [activeStep, setActiveStep] = useState(1); // Default to Step 2 (Index 1)
+  const [formData, setFormData] = useState<any>(null);
+  const [mlsPhotos, setMlsPhotos] = useState<string[]>([]);
+  const [userPhotos, setUserPhotos] = useState<string[]>([]);
+  const [isPickingMedia, setIsPickingMedia] = useState(false);
+
+  // Fetch Logic
+  const { isLoading: isFetching } = useQuery({
+    queryKey: ['property-edit', id],
+    queryFn: async () => {
+      const res = await getPropertyDetails(id as string, accessToken!);
+      if (res.success) {
+        const d = res.data.data;
+
+
+        // Map backend fields to the keys used in StepDetails/StepReview
+        const mappedData = {
+          ...d,
+          beds: d.BedroomsTotal?.toString() || '',
+          bathsFull: d.BathroomsFull?.toString() || '',
+          bathsHalf: d.BathroomsHalf?.toString() || '',
+          sqft: d.BuildingAreaTotal?.toString() || d.LivingArea?.toString() || '',
+          price: d.ListPrice ? `$${d.ListPrice.toLocaleString()}` : '',
+          year: d.YearBuilt?.toString() || '',
+          address: d.address || d.UnparsedAddress || '',
+          type: d.PropertySubType || d.PropertyType || '',
+          stories: d.Stories?.toString() || d.StoriesTotal?.toString() || '',
+          roof: d.Roof || [],
+          flooring: d.Flooring || [],
+          appliances: d.Appliances || [],
+          publicRemarks: d.PublicRemarks || '',
+          privateRemarks: d.PrivateRemarks || '',
+          listingId: d.ListingId || '',
+          cooling: d.Cooling || [],
+          heating: d.Heating || [],
+          lotSize: d.LotSizeArea?.toString() || '',
+          fencing: d.Fencing || [],
+        };
+
+        setFormData(mappedData);
+        setUserPhotos(d.user_images || []);
+        setMlsPhotos((d.Media || []).map((m: any) => m.MediaURL));
+      }
+      return res.data;
+    },
+    enabled: !!id && !!accessToken
+  });
+
+  const { mutate: uploadMutation, isPending: isUploading } = useMutation({
+    mutationFn: (uri: string) => uploadPropertyImage(uri, accessToken!),
+    onSuccess: (resData) => setUserPhotos(prev => [...prev, resData.url]),
+    onError: (err: any) => alert(err.message || "Upload Failed")
+  });
+
+  const { mutate: finalizeMutation, isPending: isFinalizing } = useMutation({
+    mutationFn: () => finalizeProperty({ id: id as string, address: formData.address, data: formData, userImages: userPhotos }, accessToken!),
+    onSuccess: () => setActiveStep(4), // Success Step
+    onError: (err: any) => alert(err.message || "Finalize Failed")
+  });
 
   const steps = [
-    { icon: 'map-marker', label: 'Address' },
     { icon: 'home-edit', label: 'Details' },
     { icon: 'auto-fix', label: 'AI Media' },
-    { icon: 'publish', label: 'Publish' }
+    { icon: 'publish', label: 'Review' }
   ];
 
   const renderStep = () => {
+    if (!formData) return null;
     switch (activeStep) {
-      case 0: return <StepAddress onNext={() => setActiveStep(1)} />;
-      case 1: return <StepDetails onNext={() => setActiveStep(2)} onBack={() => setActiveStep(0)} />;
-      case 2: return (
-        <StepMedia
-          onNext={() => setActiveStep(3)}
-          onBack={() => setActiveStep(1)}
-          uploadedImages={uploadedImages}
-          setUploadedImages={setUploadedImages}
-        />
-      );
-      case 3: return (
-        <StepReview
-          onNext={() => setActiveStep(4)}
-          onBack={() => setActiveStep(2)}
-          uploadedImages={uploadedImages}
-        />
-      );
-      case 4: return <StepSuccess />;
+      case 1: return <StepDetails formData={formData} />;
+      case 2: return <StepMedia mlsPhotos={mlsPhotos} setMlsPhotos={setMlsPhotos} userPhotos={userPhotos} setUserPhotos={setUserPhotos} onPickerOpen={() => setIsPickingMedia(true)} isUploading={isUploading} />;
+      case 3: return <StepReview mlsPhotos={mlsPhotos} userPhotos={userPhotos} formData={formData} />;
+      case 4: return <StepSuccess propertyId={id as string} address={formData.address} />;
       default: return null;
     }
   };
 
-  const renderFooter = () => {
-    if (activeStep >= 4) return null;
-
-    let nextLabel = "Continue";
-    if (activeStep === 0) nextLabel = "Start AI Enrichment";
-    if (activeStep === 1) nextLabel = "Continue to Media";
-    if (activeStep === 2) nextLabel = "Finalize Property";
-    if (activeStep === 3) nextLabel = "Save Changes";
-
-    return (
-      <View style={[styles.fixedFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <View style={styles.actionRowFixed}>
-          {activeStep > 1 && (
-            <TouchableOpacity style={styles.backBtnFixed} onPress={() => setActiveStep(activeStep - 1)}>
-              <Text style={styles.backBtnText}>Back</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.continueBtnFixed, activeStep === 1 && { flex: 1 }]}
-            onPress={() => setActiveStep(activeStep + 1)}
-          >
-            <Text style={styles.continueBtnText}>{nextLabel}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+  if (isFetching || !formData) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color={colors.accentTeal} /></View>;
+  }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <LinearGradient
-        colors={colors.backgroundGradient as any}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
-
+    <View style={{ flex: 1 }}>
+      <LinearGradient colors={colors.backgroundGradient as any} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <View style={{ paddingTop: insets.top }}>
-        <PageHeader
-          title={`Edit Property: ${id}`}
-          subtitle="Modify property details and media."
-          onBack={() => {
-            if (activeStep > 1 && activeStep < 4) setActiveStep(activeStep - 1);
-            else router.back();
-          }}
-        />
+        <PageHeader title="Edit Listing" subtitle={formData.address} onBack={() => router.back()} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: activeStep < 4 ? 120 : insets.bottom + 40 }
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* MOBILE OPTIMIZED PROGRESS BAR */}
-        {activeStep < 4 && (
-          <View style={styles.mobileProgressContainer}>
-            <View style={styles.progressRow}>
-              {steps.map((_, i) => (
-                <React.Fragment key={i}>
-                  <View style={[styles.progressDot, activeStep >= i && styles.progressDotActive]} />
-                  {i < steps.length - 1 && <View style={[styles.progressLine, activeStep > i && styles.progressLineActive]} />}
-                </React.Fragment>
-              ))}
-            </View>
-            <View style={styles.activeStepLabelRow}>
-              <Text style={styles.activeStepText}>{steps[activeStep].label}</Text>
-              <Text style={styles.stepCounterText}>Step {activeStep + 1} of 4</Text>
-            </View>
-          </View>
-        )}
-
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: activeStep < 4 ? 120 : 40 }]} showsVerticalScrollIndicator={false}>
+        {activeStep < 4 && <StepIndicator activeStep={activeStep - 1} steps={steps} />}
         {renderStep()}
       </ScrollView>
-      {renderFooter()}
-    </KeyboardAvoidingView>
+
+      {activeStep < 4 && (
+        <View style={[styles.fixedFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={styles.actionRowFixed}>
+            {activeStep > 1 && (
+              <TouchableOpacity style={styles.backBtnFixed} onPress={() => setActiveStep(prev => prev - 1)}>
+                <Text style={styles.backBtnText}>Back</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.continueBtnFixed, activeStep === 1 && { flex: 1 }]}
+              onPress={() => activeStep === 3 ? finalizeMutation() : setActiveStep(prev => prev + 1)}
+              disabled={isFinalizing}
+            >
+              {isFinalizing ? <ActivityIndicator color="#FFF" /> : <Text style={styles.continueBtnText}>{activeStep === 3 ? "Save Changes" : "Continue"}</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Media Picker Modal */}
+      <Modal visible={isPickingMedia} transparent animationType="slide" onRequestClose={() => setIsPickingMedia(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setIsPickingMedia(false)}>
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHeader}><View style={styles.sheetDragHandle} /><Text style={styles.sheetTitle}>Add Media</Text></View>
+            <TouchableOpacity style={styles.sheetActionItem} onPress={async () => {
+              setIsPickingMedia(false);
+              const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+              if (!res.canceled && res.assets[0]) uploadMutation(res.assets[0].uri);
+            }}>
+              <MaterialCommunityIcons name="image-multiple" size={24} color={colors.accentTeal} style={{ marginRight: 15 }} />
+              <Text style={styles.sheetActionText}>Photo Library</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sheetActionItem} onPress={async () => {
+              setIsPickingMedia(false);
+              const res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+              if (!res.canceled && res.assets[0]) uploadMutation(res.assets[0].uri);
+            }}>
+              <MaterialCommunityIcons name="camera" size={24} color="#EC4899" style={{ marginRight: 15 }} />
+              <Text style={styles.sheetActionText}>Take Photo</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-  },
-
-  // Mobile Progress Bar
-  mobileProgressContainer: {
-    paddingVertical: 12,
-    marginBottom: 12,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    gap: 4,
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.cardBorder,
-  },
-  progressDotActive: {
-    backgroundColor: colors.accentTeal,
-    width: 12,
-    height: 8,
-  },
-  progressLine: {
-    width: 24,
-    height: 2,
-    backgroundColor: colors.cardBorder,
-  },
-  progressLineActive: {
-    backgroundColor: colors.accentTeal,
-  },
-  activeStepLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  activeStepText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  stepCounterText: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '600',
-  },
-
-  stepContainer: {
-    width: '100%',
-  },
-  premiumCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 15,
-    elevation: 4,
-  },
-
-  // Form elements
-  groupLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: colors.textMuted,
-    letterSpacing: 1.2,
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  formGrid: {
-    gap: 12,
-  },
-  formRow: {
-    flexDirection: 'row',
-  },
-  inputGroup: {
-    flex: 1,
-    gap: 6,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  inputLabelSmall: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  dropdownTrigger: {
-    height: 44,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  dropdownValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  dropdownMenu: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    marginTop: 4,
-    padding: 4,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-  },
-  dropdownItemText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  dropdownItemTextActive: {
-    color: colors.accentTeal,
-    fontWeight: '700',
-  },
-  textInput: {
-    height: 44,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-
-  // Chip Grid
-  chipSection: {
-    marginTop: 20,
-    gap: 10,
-  },
-  chipGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  chipActive: {
-    borderColor: colors.accentTeal,
-    backgroundColor: colors.surfaceIcon,
-  },
-  chipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  chipTextActive: {
-    color: colors.textPrimary,
-  },
-
-  // Step 1: Mobile Address
-  addressBoxMobile: {
-    gap: 12,
-    marginVertical: 20,
-  },
-  addressInputMobile: {
-    height: 48,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  enrichBtnFull: {
-    height: 48,
-    backgroundColor: colors.accentTeal,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  enrichBtnText: {
-    color: '#FFF',
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  enrichmentSources: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-  },
-  sourceItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  sourceIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceIcon,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  sourceLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.textMuted,
-  },
-
-  // Step 3: Mobile Media Stack
-  mediaStack: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  mediaUploadBox: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    borderStyle: 'dashed',
-    borderWidth: 1.5,
-    borderColor: colors.borderLight,
-    gap: 12,
-  },
-  uploadOptions: {
-    width: '100%',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
-  uploadOptionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  uploadOptionText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  optionDivider: {
-    height: 1,
-    backgroundColor: colors.borderLight,
-    marginHorizontal: 12,
-  },
-  galleryContainer: {
-    marginTop: 8,
-  },
-  galleryGrid: {
-    gap: 12,
-  },
-  galleryCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  galleryImageWrap: {
-    width: '100%',
-    height: 160,
-    backgroundColor: colors.surfaceIcon,
-  },
-  galleryImg: {
-    width: '100%',
-    height: '100%',
-  },
-  removeImgBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  galleryCardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    gap: 12,
-  },
-  sceneLabel: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  sceneTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  enhanceBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.surfaceIcon,
-  },
-  enhanceBtnText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.accentTeal,
-  },
-  uploadIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.surfaceIcon,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  horizontalGallery: {
-    gap: 12,
-    paddingRight: 20,
-  },
-  reviewGalleryItem: {
-    width: SCREEN_WIDTH * 0.6,
-    height: 140,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  reviewGalleryImg: {
-    width: '100%',
-    height: '100%',
-  },
-  uploadTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  uploadSubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  selectPhotosBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  selectPhotosBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  aiStudioBoxMobile: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  aiHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-  },
-  aiIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  aiSubtitle: {
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  promptWrapper: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
-  },
-  promptInputMobile: {
-    height: 60,
-    fontSize: 13,
-    color: colors.textPrimary,
-    textAlignVertical: 'top',
-  },
-  generateBtn: {
-    backgroundColor: colors.accentTeal,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generateBtnText: {
-    color: '#FFF',
-    fontWeight: '800',
-    fontSize: 13,
-  },
-
-  // Review
-  reviewList: {
-    gap: 4,
-    marginBottom: 20,
-  },
-  reviewItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  reviewLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  reviewValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-
-  // Success Mobile
-  nextStepsList: {
-    gap: 10,
-  },
-  nextStepMobileBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    padding: 14,
-    borderRadius: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  nextStepIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nextStepBtnText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-
-  // Common titles
-  cardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  headerIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceIcon,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  cardHeaderSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  contentTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  contentSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    fontWeight: '500',
-    paddingHorizontal: 20,
-  },
-  successTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  successSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  successIconOuter: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: colors.surfaceIcon,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-
-  // Action Buttons
-  fixedFooter: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  actionRowFixed: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  backBtnFixed: {
-    flex: 0.8,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueBtnFixed: {
-    flex: 1.2,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  backBtn: {
-    flex: 0.8,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  continueBtn: {
-    flex: 1.2,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.accentTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFF',
-  },
+    scrollContent: { paddingHorizontal: 16 },
+    indicatorWrapper: { paddingVertical: 20 },
+    indicatorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    indicatorStepItem: { alignItems: 'center', gap: 6, width: 80 },
+    indicatorCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surfaceIcon, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.cardBorder },
+    indicatorCircleActive: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
+    indicatorCirclePast: { backgroundColor: colors.accentTeal, borderColor: colors.accentTeal },
+    indicatorNumber: { fontSize: 14, fontWeight: '800', color: colors.textSecondary },
+    indicatorLabel: { fontSize: 10, fontWeight: '700', color: colors.textMuted, textAlign: 'center' },
+    indicatorLabelActive: { color: colors.textPrimary, fontWeight: '900' },
+    indicatorLine: { width: 40, height: 2, backgroundColor: colors.cardBorder, marginTop: -16 },
+    indicatorLineActive: { backgroundColor: colors.accentTeal },
+    stepContainer: { width: '100%' },
+    premiumCardLarge: { backgroundColor: colors.cardBackground, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: colors.cardBorder, marginBottom: 24 },
+    cardHeaderCentric: { alignItems: 'center', marginBottom: 24 },
+    premiumCardTitle: { fontSize: 20, fontWeight: '900', color: colors.textPrimary, textAlign: 'center', marginBottom: 4 },
+    premiumCardSubtitle: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', fontWeight: '500' },
+    cardHeaderTitle: { fontSize: 16, fontWeight: '900', color: colors.textPrimary },
+    cardHeaderSubtitle: { fontSize: 13, color: colors.textSecondary, fontWeight: '500', marginTop: 2 },
+    premiumSearchBox: { backgroundColor: colors.surfaceIcon, borderRadius: 16, padding: 4, marginBottom: 20 },
+    searchInner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 48 },
+    premiumSearchInput: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+    resultsList: { backgroundColor: colors.cardBackground, borderRadius: 16, borderWidth: 1, borderColor: colors.cardBorder, marginBottom: 20, overflow: 'hidden' },
+    resultItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, gap: 10 },
+    resultText: { fontSize: 13, color: colors.textPrimary, fontWeight: '600' },
+    recordIconsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
+    recordItem: { alignItems: 'center', gap: 6 },
+    recordIconInner: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.surfaceIcon, alignItems: 'center', justifyContent: 'center' },
+    recordText: { fontSize: 10, fontWeight: '800', color: colors.textMuted },
+    intelHeaderBox: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, marginBottom: 24 },
+    intelIconOuter: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.surfaceIcon, alignItems: 'center', justifyContent: 'center' },
+    intelTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
+    intelSubtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+    verifiedPill: { backgroundColor: colors.accentTeal + '20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+    verifiedPillText: { fontSize: 9, fontWeight: '900', color: colors.accentTeal },
+    statCardPremium: { flex: 1, backgroundColor: colors.cardBackground, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: colors.cardBorder, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    statIconBoxPremium: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.surfaceIcon, alignItems: 'center', justifyContent: 'center' },
+    statLabelPremium: { fontSize: 10, fontWeight: '800', color: colors.textMuted },
+    statValuePremium: { fontSize: 14, fontWeight: '900', color: colors.textPrimary },
+    structuralDetailCard: { minWidth: '45%', flex: 1, backgroundColor: colors.cardBackground, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: colors.cardBorder },
+    pillContainer: { backgroundColor: colors.surfaceIcon, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    pillText: { fontSize: 12, fontWeight: '700', color: colors.textPrimary },
+    premiumGroupLabel: { fontSize: 10, fontWeight: '900', color: colors.textMuted, letterSpacing: 1.2, marginBottom: 12 },
+    inputGroup: { gap: 6 },
+    inputLabel: { fontSize: 12, fontWeight: '800', color: colors.textPrimary },
+    remarkCard: { backgroundColor: colors.surfaceIcon, borderRadius: 16, padding: 16 },
+    remarkText: { fontSize: 13, color: colors.textPrimary, lineHeight: 20 },
+    reviewItemPremium: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+    reviewIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.surfaceIcon, alignItems: 'center', justifyContent: 'center' },
+    reviewLabel: { fontSize: 11, fontWeight: '800', color: colors.textMuted },
+    reviewValue: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
+    mediaSection: { gap: 12 },
+    mediaSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 },
+    mediaSectionTitle: { fontSize: 12, fontWeight: '900', color: colors.textMuted, letterSpacing: 1.2 },
+    galleryScroll: { paddingLeft: 20, gap: 12, paddingBottom: 10 },
+    premiumPhotoCard: { width: 220, backgroundColor: colors.cardBackground, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.cardBorder, marginRight: 12 },
+    photoContainerLarge: { width: '100%', height: 180 },
+    photoCard: { width: '100%', height: '100%' },
+    deletePhotoBtn: { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+    photoCardFooter: { padding: 12, gap: 4 },
+    photoFooterLabel: { fontSize: 9, fontWeight: '900', color: colors.accentTeal },
+    photoFooterTitle: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
+    addMediaBtnSmall: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    addMediaBtnText: { fontSize: 13, fontWeight: '800', color: colors.accentTeal },
+    uploadPlaceholderCard: { borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+    placeholderTitleSmall: { fontSize: 13, fontWeight: '700', color: colors.textMuted, marginTop: 8 },
+    fixedFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.cardBackground, padding: 20, borderTopWidth: 1, borderTopColor: colors.cardBorder },
+    actionRowFixed: { flexDirection: 'row', gap: 12 },
+    backBtnFixed: { flex: 0.8, height: 52, borderRadius: 16, backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder, alignItems: 'center', justifyContent: 'center' },
+    backBtnText: { color: colors.textPrimary, fontWeight: '700' },
+    continueBtnFixed: { flex: 1.2, height: 52, borderRadius: 16, backgroundColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center' },
+    continueBtnText: { color: '#FFF', fontWeight: '800', fontSize: 16 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    bottomSheet: { backgroundColor: colors.cardBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+    sheetHeader: { alignItems: 'center', marginBottom: 20 },
+    sheetDragHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.cardBorder, marginBottom: 16 },
+    sheetTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
+    sheetActionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
+    sheetActionText: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
   });
 }

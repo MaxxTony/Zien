@@ -32,6 +32,19 @@ export interface ResetPasswordResponse {
   reset: boolean;
 }
 
+export interface UserProfile {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  country_code: string;
+  phone: string;
+  role_id: number;
+  complete_profile: boolean;
+  address: string;
+  license_number: string;
+}
+
 export const loginAgent = async (payload: LoginRequest): Promise<LoginResponse> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -121,6 +134,38 @@ export const resetPassword = async (payload: ResetPasswordRequest): Promise<Rese
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Request timed out. Please check your connection and try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+export const getProfile = async (accessToken: string): Promise<UserProfile> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/website/user/me`, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || `Server error: ${response.status} ${response.statusText}`);
+    }
+
+    return data;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Profile request timed out. Please check your connection and try again.');
     }
     throw error;
   } finally {

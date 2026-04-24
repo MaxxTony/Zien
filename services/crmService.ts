@@ -921,7 +921,6 @@ export const createCRMFollowUp = async (accessToken: string, payload: AddCRMFoll
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-        // Using port 3000 as explicitly requested by the user for follow-ups
         const response = await fetch(`${CRM_API_BASE_URL}/solo/crm/follow-ups`, {
             method: 'POST',
             signal: controller.signal,

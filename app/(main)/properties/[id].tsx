@@ -1,483 +1,57 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAuth } from '@/context/AuthContext';
+import { useAppTheme } from '@/context/ThemeContext';
+import { getPropertyDetails } from '@/services/propertyService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAppTheme } from '@/context/ThemeContext';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
-  Linking,
   Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
+
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const H_PADDING = 16;
+const TABS = ['Structural', 'Exterior', 'Interior', 'Utilities', 'Legal', 'Remarks', 'Media'];
 
-const MOCK_IMAGES = [
-  'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
-  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800',
-  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
-];
-
-type PropertyStatus = 'Ready' | 'REVIEW NEEDED' | 'DRAFT';
-
-type School = { name: string; rating: string; info: string; distance: string };
-
-type PropertyDetail = {
-  id: string;
-  address: string;
-  cityState: string;
-  type: string;
-  status: PropertyStatus;
-  value: string;
-  avmEst?: string;
-  confidence: number;
-  image: string;
-  photoCount: number;
-  beds: number;
-  baths: number;
-  sqft: string;
-  acres: string;
-  lastSync: string;
-  lotSize: string;
-  stories: number;
-  yearBuilt: number;
-  garage: string;
-  roof: string;
-  foundation: string;
-  basement: string;
-  heating: string;
-  cooling: string;
-  parking: string;
-  mlsListPrice: string;
-  zienAvmEst: string;
-  pricingConflict: boolean;
-  walkScore: number;
-  walkLabel: string;
-  transitScore: number;
-  bikeScore: number;
-  coordinates: { latitude: number; longitude: number };
-  nearbySchools: School[];
-  neighborhoodDesc: string;
-  aiInsight: string;
-};
-
-const PROPERTIES_DETAIL: Record<string, PropertyDetail> = {
-  'ZN-94021-LA': {
-    id: 'ZN-94021-LA',
-    address: '123 Business Way',
-    cityState: 'Los Angeles, CA',
-    type: 'Residential SFH',
-    status: 'Ready',
-    value: '$4,250,000',
-    avmEst: '$4,185,200',
-    confidence: 98,
-    image: MOCK_IMAGES[0],
-    photoCount: 5,
-    beds: 5,
-    baths: 4.5,
-    sqft: '4,200',
-    acres: '0.4',
-    lastSync: '2 min ago',
-    lotSize: '18,500 sqft',
-    stories: 2,
-    yearBuilt: 2004,
-    garage: '3 Car Attached',
-    roof: 'Asphalt Shingle',
-    foundation: 'Concrete Slab',
-    basement: 'Fully Finished',
-    heating: 'Forced Air',
-    cooling: 'Central Air',
-    parking: '4 Garage',
-    mlsListPrice: '$4,250,000',
-    zienAvmEst: '$4,185,200',
-    pricingConflict: true,
-    walkScore: 88,
-    walkLabel: 'EXTREMELY WALKABLE',
-    transitScore: 72,
-    bikeScore: 65,
-    coordinates: { latitude: 34.0989, longitude: -118.4662 },
-    nearbySchools: [
-      { name: 'Bel-Air Elementary', rating: '9/10', info: 'Public • Serving K-5', distance: '0.4 mi' },
-      { name: 'Westside Academy', rating: '10/10', info: 'Public • Serving K-5', distance: '1.2 mi' },
-      { name: 'Roscomare Road', rating: '8/10', info: 'Public • Serving K-5', distance: '1.5 mi' },
-    ],
-    neighborhoodDesc:
-      'Prime location in the heart of Bel-Air with private entrance and gated security.',
-    aiInsight:
-      'Our AI suggests this property is priced 2% below market based on recent Bel-Air luxury comps.',
-  },
-  'ZN-90210-BH': {
-    id: 'ZN-90210-BH',
-    address: '88 Gold Coast Dr',
-    cityState: 'Malibu, CA',
-    type: 'Luxury Villa',
-    status: 'REVIEW NEEDED',
-    value: '$12,800,000',
-    avmEst: '$12,600,000',
-    confidence: 72,
-    image: MOCK_IMAGES[1],
-    photoCount: 5,
-    beds: 6,
-    baths: 7,
-    sqft: '6,500',
-    acres: '1.2',
-    lastSync: '5 min ago',
-    lotSize: '52,272 sqft',
-    stories: 2,
-    yearBuilt: 2018,
-    garage: '6 Car Attached',
-    roof: 'Flat / TPO',
-    foundation: 'Concrete Slab',
-    basement: 'None',
-    heating: 'Radiant Floor',
-    cooling: 'Central Air',
-    parking: '6 Garage',
-    mlsListPrice: '$12,800,000',
-    zienAvmEst: '$12,600,000',
-    pricingConflict: true,
-    walkScore: 45,
-    walkLabel: 'CAR-DEPENDENT',
-    transitScore: 30,
-    bikeScore: 28,
-    coordinates: { latitude: 34.0259, longitude: -118.7798 },
-    nearbySchools: [
-      { name: 'Malibu High School', rating: '8/10', info: 'Public • Serving 9-12', distance: '1.8 mi' },
-      { name: 'Webster Elementary', rating: '9/10', info: 'Public • Serving K-5', distance: '2.1 mi' },
-      { name: 'Malibu Middle School', rating: '7/10', info: 'Public • Serving 6-8', distance: '2.3 mi' },
-    ],
-    neighborhoodDesc: 'Oceanfront Malibu estate with private beach access.',
-    aiInsight:
-      'Luxury coastal comps suggest strong demand; consider highlighting views and beach access in marketing.',
-  },
-  'ZN-91101-PA': {
-    id: 'ZN-91101-PA',
-    address: '45 Pine St',
-    cityState: 'Pasadena, CA',
-    type: 'Condo',
-    status: 'Ready',
-    value: '$1,150,000',
-    avmEst: '$1,115,000',
-    confidence: 95,
-    image: MOCK_IMAGES[2],
-    photoCount: 5,
-    beds: 3,
-    baths: 3,
-    sqft: '2,100',
-    acres: '—',
-    lastSync: '1 hr ago',
-    lotSize: '—',
-    stories: 1,
-    yearBuilt: 2010,
-    garage: '2 Car Attached',
-    roof: 'Flat',
-    foundation: 'Slab',
-    basement: 'None',
-    heating: 'Forced Air',
-    cooling: 'Central Air',
-    parking: '2 Garage',
-    mlsListPrice: '$1,150,000',
-    zienAvmEst: '$1,115,000',
-    pricingConflict: false,
-    walkScore: 95,
-    walkLabel: "WALKER'S PARADISE",
-    transitScore: 91,
-    bikeScore: 88,
-    coordinates: { latitude: 34.1478, longitude: -118.1445 },
-    nearbySchools: [
-      { name: 'Pasadena Prep', rating: '10/10', info: 'Private • Serving K-12', distance: '0.3 mi' },
-      { name: 'McKinley School', rating: '8/10', info: 'Public • Serving K-8', distance: '0.7 mi' },
-      { name: 'Blair High School', rating: '7/10', info: 'Public • Serving 9-12', distance: '1.1 mi' },
-    ],
-    neighborhoodDesc: 'Walk to beach, pier, and downtown Santa Monica.',
-    aiInsight:
-      'Walk Score and transit scores are excellent; emphasize urban lifestyle in listings.',
-  },
-  'ZN-90401-SM': {
-    id: 'ZN-90401-SM',
-    address: '900 Ocean Blvd',
-    cityState: 'Santa Monica, CA',
-    type: 'Apartment',
-    status: 'DRAFT',
-    value: '$3,400,000',
-    avmEst: '$3,280,000',
-    confidence: 45,
-    image: MOCK_IMAGES[3],
-    photoCount: 5,
-    beds: 4,
-    baths: 3,
-    sqft: '3,400',
-    acres: '—',
-    lastSync: '10 min ago',
-    lotSize: '—',
-    stories: 1,
-    yearBuilt: 1995,
-    garage: '1 Car',
-    roof: 'Flat',
-    foundation: 'Slab',
-    basement: 'None',
-    heating: 'Forced Air',
-    cooling: 'Window Units',
-    parking: '1 Garage',
-    mlsListPrice: '$3,400,000',
-    zienAvmEst: '$3,280,000',
-    pricingConflict: false,
-    walkScore: 78,
-    walkLabel: 'VERY WALKABLE',
-    transitScore: 85,
-    bikeScore: 76,
-    coordinates: { latitude: 34.0195, longitude: -118.4912 },
-    nearbySchools: [
-      { name: 'Santa Monica Elem.', rating: '8/10', info: 'Public • Serving K-5', distance: '0.5 mi' },
-      { name: 'Lincoln Middle School', rating: '7/10', info: 'Public • Serving 6-8', distance: '0.9 mi' },
-      { name: 'Santa Monica High', rating: '9/10', info: 'Public • Serving 9-12', distance: '1.4 mi' },
-    ],
-    neighborhoodDesc: 'Quiet Pasadena neighborhood near parks and schools.',
-    aiInsight: 'Data integrity needs improvement. Please review and complete missing fields.',
-  },
-};
-
-function getPropertyById(id: string | undefined): PropertyDetail | null {
-  if (!id) return null;
-  return PROPERTIES_DETAIL[id] ?? null;
-}
-
-// ── Score Bar ──────────────────────────────────────────────────────────────────
-function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
+// --- Helper Components ---
+function PropertyStatItem({ label, value, icon }: { label: string; value: string | number; icon?: string }) {
   const { colors } = useAppTheme();
-  const mapStyles = getMapStyles(colors);
-
   return (
-    <View style={mapStyles.scoreRow}>
-      <Text style={mapStyles.scoreLabel}>{label}</Text>
-      <View style={mapStyles.scoreTrack}>
-        <View style={[mapStyles.scoreFill, { width: `${value}%`, backgroundColor: color }]} />
+    <View style={{ width: '48%', marginBottom: 20, backgroundColor: colors.surfaceIcon + '50', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.cardBorder }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        {icon && <MaterialCommunityIcons name={icon as any} size={12} color={colors.textMuted} />}
+        <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</Text>
       </View>
-      <Text style={[mapStyles.scoreValue, { color }]}>{value}/100</Text>
+      <Text style={{ fontSize: 15, fontWeight: '900', color: colors.textPrimary }}>{value || '—'}</Text>
     </View>
   );
 }
 
-// ── Neighborhood Map Modal ─────────────────────────────────────────────────────
-function NeighborhoodMapModal({
-  visible,
-  onClose,
-  property,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  property: PropertyDetail;
-}) {
+function FeaturePillSection({ title, data }: { title: string; data: string[] | undefined }) {
   const { colors } = useAppTheme();
-  const mapStyles = getMapStyles(colors);
-
-  const MapComponent = Platform.OS === 'ios' ? AppleMaps.View : GoogleMaps.View;
-  const { latitude, longitude } = property.coordinates;
-
-  const openInMaps = () => {
-    const label = encodeURIComponent(property.address);
-    const url = Platform.OS === 'ios'
-      ? `maps://0,0?q=${label}&ll=${latitude},${longitude}`
-      : `geo:${latitude},${longitude}?q=${latitude},${longitude}(${label})`;
-    Linking.openURL(url).catch(() =>
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`)
-    );
-  };
-
+  if (!data || data.length === 0) return null;
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={mapStyles.modal}>
-        {/* Header */}
-        <View style={mapStyles.header}>
-          <View style={mapStyles.headerText}>
-            <Text style={mapStyles.title}>Neighborhood Intelligence</Text>
-            <Text style={mapStyles.subtitle}>Satellite visualization and spatial points of interest</Text>
+    <View style={{ width: '100%', marginBottom: 24 }}>
+      <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 12 }}>{title}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {data.map((item, idx) => (
+          <View key={idx} style={{ backgroundColor: colors.accentTeal + '15', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: colors.accentTeal + '20' }}>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.accentTeal }}>{item}</Text>
           </View>
-          <Pressable onPress={onClose} style={mapStyles.closeBtn} hitSlop={12}>
-            <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
-          </Pressable>
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Map */}
-          <View style={mapStyles.mapWrap}>
-            <MapComponent
-              style={mapStyles.map}
-              cameraPosition={{
-                coordinates: property.coordinates,
-                zoom: 15,
-              }}
-              markers={[
-                {
-                  id: 'property',
-                  coordinates: property.coordinates,
-                  title: property.address,
-                },
-              ]}
-            />
-          </View>
-
-          {/* Open in Maps button */}
-          <Pressable
-            style={({ pressed }) => [mapStyles.openMapsBtn, pressed && { opacity: 0.8 }]}
-            onPress={openInMaps}
-          >
-            <MaterialCommunityIcons name="navigation" size={16} color='#FFFFFF' />
-            <Text style={mapStyles.openMapsBtnText}>Open in Maps</Text>
-          </Pressable>
-
-          <View style={mapStyles.body}>
-            {/* Grade Scores */}
-            <Text style={mapStyles.sectionLabel}>INSTITUTIONAL GRADE SCORES</Text>
-            <ScoreBar label="Walk Score" value={property.walkScore} color={colors.accentTeal} />
-            <ScoreBar label="Transit Score" value={property.transitScore} color={colors.accentTeal} />
-            <ScoreBar label="Bike Score" value={property.bikeScore} color="#8B5CF6" />
-
-            {/* Schools */}
-            <Text style={[mapStyles.sectionLabel, { marginTop: 20 }]}>NEARBY SCHOOLS (TOP RATED)</Text>
-            {property.nearbySchools.map((school, i) => (
-              <View key={i} style={mapStyles.schoolCard}>
-                <View style={mapStyles.schoolLeft}>
-                  <Text style={mapStyles.schoolName}>{school.name}</Text>
-                  <Text style={mapStyles.schoolInfo}>{school.info} • {school.distance}</Text>
-                </View>
-                <Text style={mapStyles.schoolRating}>{school.rating}</Text>
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-}
-
-function getMapStyles(colors: any) {
-  return StyleSheet.create({
-  modal: { flex: 1, backgroundColor: colors.cardBackground },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.cardBorder,
-  },
-  headerText: { flex: 1, marginRight: 12 },
-  title: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.3 },
-  subtitle: { fontSize: 12, color: colors.textSecondary, marginTop: 3, lineHeight: 17 },
-  closeBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  mapWrap: {
-    height: 280,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: colors.surfaceSoft,
-  },
-  map: { flex: 1 },
-  openMapsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    marginHorizontal: 16,
-    marginTop: 10,
-    marginBottom: 4,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: colors.accentTeal,
-  },
-  openMapsBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  body: { padding: 16 },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.inputPlaceholder,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  scoreLabel: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, width: 100 },
-  scoreTrack: {
-    flex: 1,
-    height: 6,
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  scoreFill: { height: '100%', borderRadius: 3 },
-  scoreValue: { fontSize: 12, fontWeight: '800', width: 46, textAlign: 'right' },
-  schoolCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 8,
-    backgroundColor: colors.surfaceSoft,
-  },
-  schoolLeft: { flex: 1, marginRight: 12 },
-  schoolName: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
-  schoolInfo: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
-  schoolRating: { fontSize: 14, fontWeight: '800', color: colors.accentTeal },
-  });
-}
-
-
-// ── Spec Cell ─────────────────────────────────────────────────────────────────
-function SpecCell({
-  label,
-  value,
-  dot,
-}: {
-  label: string;
-  value: string | number;
-  dot?: boolean;
-}) {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
-
-  return (
-    <View style={styles.specCell}>
-      <Text style={styles.specCellLabel}>{label}</Text>
-      <View style={styles.specCellValueRow}>
-        <Text style={styles.specCellValue}>{value}</Text>
-        {dot && <View style={styles.specDot} />}
+        ))}
       </View>
     </View>
   );
@@ -486,789 +60,537 @@ function SpecCell({
 export default function PropertyDetailScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { accessToken } = useAuth();
+
+  const [activeTab, setActiveTab] = useState('Structural');
   const [currImageIndex, setCurrImageIndex] = useState(0);
-  const [showGallery, setShowGallery] = useState(false);
-  const [showMapModal, setShowMapModal] = useState(false);
-  const carouselRef = React.useRef<ScrollView>(null);
+  const [showMap, setShowMap] = useState(false);
+  const carouselRef = useRef<ScrollView>(null);
+  const mainScrollRef = useRef<ScrollView>(null);
 
-  const jumpToImage = (index: number) => {
-    carouselRef.current?.scrollTo({
-      x: index * (SCREEN_WIDTH - 2 * H_PADDING),
-      animated: true,
-    });
-    setCurrImageIndex(index);
-    setShowGallery(false);
-  };
+  // Fetch Real Data
+  const { data: property, isLoading } = useQuery({
+    queryKey: ['property-detail', id],
+    queryFn: async () => {
+      const res = await getPropertyDetails(id as string, accessToken!);
 
-  const handleNext = () => {
-    if (currImageIndex < MOCK_IMAGES.length - 1) {
-      const nextIndex = currImageIndex + 1;
-      carouselRef.current?.scrollTo({
-        x: nextIndex * (SCREEN_WIDTH - 2 * H_PADDING),
-        animated: true,
-      });
-      setCurrImageIndex(nextIndex);
-    }
-  };
+      if (res.success) {
+        const d = res.data.data;
+        const coords = d.Coordinates || [-95.399529, 29.74878];
+        return {
+          id: id,
+          address: d.UnparsedAddress || d.address || 'Unknown Address',
+          price: d.ListPrice ? `$${d.ListPrice.toLocaleString()}` : (d.price || '—'),
+          beds: d.BedroomsTotal || d.beds || '0',
+          baths: (parseFloat(d.BathroomsFull || d.bathsFull || '0')) + (d.BathroomsHalf || d.bathsHalf ? 0.5 : 0),
+          sqft: d.BuildingAreaTotal || d.sqft || '—',
+          year: d.YearBuilt || d.year || '—',
+          type: d.PropertySubType || d.type || 'Residential',
+          mlsImages: (d.Media || []).map((m: any) => (typeof m === 'string' ? m : m.MediaURL || m.MediaUrl || m.url || m.URL)).filter(Boolean),
+          userImages: (d.user_images || []).map((m: any) => (typeof m === 'string' ? m : m.url || m.uri || m.MediaURL)).filter(Boolean),
+          remarks: d.PublicRemarks || d.publicRemarks || '',
+          stories: d.Stories || d.stories || '—',
+          lotSize: d.LotSizeArea || d.lotSize || '—',
+          roof: d.Roof || d.roof || '—',
+          cooling: d.Cooling || d.cooling || '—',
+          heating: d.Heating || d.heating || '—',
+          flooring: d.Flooring || d.flooring || [],
+          status: d.StandardStatus || 'Ready for Use',
+          confidence: 98,
+          lastSync: '2 min ago',
+          listingId: d.ListingId || d.listingId || '—',
+          parking: d.ParkingTotal || '2',
+          foundation: d.FoundationDetails || 'Slab',
+          lotFeatures: d.LotFeatures || 'On Street',
+          zienAvm: '$734,020',
+          walkScore: 88,
+          walkLabel: 'EXTREMELY WALKABLE',
+          coordinates: { latitude: coords[1], longitude: coords[0] },
+          // Nested Data
+          appliances: d.Appliances || d.appliances || [],
+          interiorFeatures: d.InteriorFeatures || d.interiorFeatures || [],
+          kitchenFeatures: d.RoomKitchenFeatures || [],
+          bathroomFeatures: d.RoomMasterBathroomFeatures || [],
+          laundryFeatures: d.LaundryFeatures || [],
+          listingTerms: d.ListingTerms || [],
+          exemptions: d.TaxExemptions || [],
+          fencing: d.Fencing || d.fencing || [],
+          exteriorFeatures: d.ExteriorFeatures || d.exteriorFeatures || []
+        };
+      }
+      throw new Error("Failed to fetch");
+    },
+    enabled: !!id && !!accessToken
+  });
 
-  const handlePrev = () => {
-    if (currImageIndex > 0) {
-      const prevIndex = currImageIndex - 1;
-      carouselRef.current?.scrollTo({
-        x: prevIndex * (SCREEN_WIDTH - 2 * H_PADDING),
-        animated: true,
-      });
-      setCurrImageIndex(prevIndex);
-    }
-  };
+  const allImages = useMemo(() => {
+    if (!property) return [];
+    return [...property.userImages, ...property.mlsImages];
+  }, [property]);
 
-  const property = useMemo(() => getPropertyById(id), [id]);
 
-  if (!property) {
-    return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.notFoundText}>Property not found</Text>
-        <Pressable
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
-        </Pressable>
-      </View>
-    );
+  if (isLoading || !property) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.cardBackground }}><ActivityIndicator size="large" color={colors.accentTeal} /></View>;
   }
 
-  const fullAddress = `${property.address}, ${property.cityState}`;
-  const isReady = property.status === 'Ready';
-  const statusColor = isReady ? '#0D9488' : property.status === 'REVIEW NEEDED' ? '#C2410C' : '#64748B';
-  const statusBg = isReady ? 'rgba(13,148,136,0.12)' : property.status === 'REVIEW NEEDED' ? 'rgba(234,88,12,0.12)' : 'rgba(100,116,139,0.10)';
-  const statusLabel = isReady ? 'Ready for Use' : property.status === 'REVIEW NEEDED' ? 'Review Needed' : 'Draft';
-
-  const confColor = property.confidence >= 85 ? '#0D9488' : property.confidence >= 60 ? '#EA580C' : '#DC2626';
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'Structural':
+        return (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 20 }}>
+            <PropertyStatItem label="PROPERTY TYPE" value={property.type} icon="home-outline" />
+            <PropertyStatItem label="YEAR BUILT" value={property.year} icon="calendar-outline" />
+            <PropertyStatItem label="STORIES" value={property.stories} icon="layers-outline" />
+            <PropertyStatItem label="LIVING AREA" value={`${property.sqft} sqft`} icon="arrow-expand-all" />
+            <PropertyStatItem label="LOT SIZE" value={`${property.lotSize} sqft`} icon="texture-box" />
+            <PropertyStatItem label="ROOF MATERIAL" value={Array.isArray(property.roof) ? property.roof[0] : (property.roof || 'Composition')} icon="home-roof" />
+            <PropertyStatItem label="FOUNDATION" value={property.foundation} icon="floor-plan" />
+          </View>
+        );
+      case 'Exterior':
+        return (
+          <View style={{ marginTop: 20 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              <PropertyStatItem label="PARKING" value={property.parking} icon="car-outline" />
+              <PropertyStatItem label="LOT FEATURES" value={Array.isArray(property.lotFeatures) ? property.lotFeatures[0] : property.lotFeatures} icon="sprout-outline" />
+            </View>
+            <FeaturePillSection title="EXTERIOR FEATURES" data={property.exteriorFeatures} />
+            <FeaturePillSection title="FENCING" data={property.fencing} />
+          </View>
+        );
+      case 'Interior':
+        return (
+          <View style={{ marginTop: 20 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              <PropertyStatItem label="BEDS" value={property.beds} icon="bed-outline" />
+              <PropertyStatItem label="BATHS" value={property.baths} icon="bathtub-outline" />
+            </View>
+            <FeaturePillSection title="FLOORING" data={property.flooring} />
+            <FeaturePillSection title="APPLIANCES" data={property.appliances} />
+            <FeaturePillSection title="INTERIOR" data={property.interiorFeatures} />
+            <FeaturePillSection title="KITCHEN" data={property.kitchenFeatures} />
+            <FeaturePillSection title="BATHROOM" data={property.bathroomFeatures} />
+            <FeaturePillSection title="LAUNDRY" data={property.laundryFeatures} />
+          </View>
+        );
+      case 'Utilities':
+        return (
+          <View style={{ marginTop: 20 }}>
+            <FeaturePillSection title="HEATING" data={Array.isArray(property.heating) ? property.heating : [property.heating]} />
+            <FeaturePillSection title="COOLING" data={Array.isArray(property.cooling) ? property.cooling : [property.cooling]} />
+            <PropertyStatItem label="SEWER" value="Public Sewer" icon="water-outline" />
+          </View>
+        )
+      case 'Legal':
+        return (
+          <View style={{ marginTop: 20 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              <PropertyStatItem label="LISTING ID" value={property.listingId} icon="tag-outline" />
+              <PropertyStatItem label="STATUS" value={property.status} icon="check-circle-outline" />
+            </View>
+            <FeaturePillSection title="TERMS" data={property.listingTerms} />
+            <FeaturePillSection title="EXEMPTIONS" data={property.exemptions} />
+          </View>
+        )
+      case 'Remarks':
+        return (
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.neighborhoodLabel}>NEIGHBORHOOD CONTEXT</Text>
+            <Text style={styles.remarksText}>{property.remarks || 'No remarks available.'}</Text>
+          </View>
+        );
+      case 'Media':
+        return (
+          <View style={{ marginTop: 20 }}>
+            {property.userImages.length > 0 && (
+              <View style={{ marginBottom: 24 }}>
+                <Text style={styles.mediaLabel}>USER UPLOADED ASSETS ({property.userImages.length})</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+                  {property.userImages.map((img: string, i: number) => {
+                    const isSingle = property.userImages.length === 1;
+                    const itemWidth = isSingle ? (SCREEN_WIDTH - 80) : (SCREEN_WIDTH - 90) / 2;
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          mainScrollRef.current?.scrollTo({ y: 0, animated: true });
+                          carouselRef.current?.scrollTo({ x: i * (SCREEN_WIDTH - 40), animated: true });
+                        }}
+                      >
+                        <Image source={{ uri: img }} style={{ width: itemWidth, height: 200, borderRadius: 16 }} contentFit="cover" />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+            <View>
+              <Text style={styles.mediaLabel}>MLS SYNCHRONIZATION ({property.mlsImages.length})</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+                {property.mlsImages.map((img: string, i: number) => {
+                  const isSingle = property.mlsImages.length === 1;
+                  const itemWidth = isSingle ? (SCREEN_WIDTH - 80) : (SCREEN_WIDTH - 100) / 2;
+                  const globalIndex = property.userImages.length + i;
+                  return (
+                    <TouchableOpacity
+                      key={i}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        mainScrollRef.current?.scrollTo({ y: 0, animated: true });
+                        carouselRef.current?.scrollTo({ x: globalIndex * (SCREEN_WIDTH - 40), animated: true });
+                      }}
+                    >
+                      <Image source={{ uri: img }} style={{ width: itemWidth, height: 160, borderRadius: 16, backgroundColor: colors.surfaceIcon }} contentFit="cover" />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        )
+      default:
+        return null;
+    }
+  };
 
   return (
-    <LinearGradient
-      colors={colors.backgroundGradient as any}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.container, { paddingTop: insets.top }]}
-    >
-      {/* ── PREMIUM MOBILE HEADER ── */}
-      <PageHeader
-        title={property.id}
-        onBack={() => router.back()}
-        rightIcon="pencil"
-        onRightPress={() => router.push(`/(main)/properties/edit/${property.id}`)}
-      />
+    <View style={{ flex: 1 }}>
+      <LinearGradient colors={colors.backgroundGradient as any} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.headerTopArea}>
-          <View style={styles.headerTitleBox}>
-            <Text style={styles.headerAddress} numberOfLines={2}>
-              {fullAddress}
-            </Text>
-          </View>
+      <View style={{ paddingTop: insets.top }}>
+        <PageHeader title="Property Details" onBack={() => router.back()} />
+      </View>
 
-          <View style={styles.headerMetaRow}>
-            <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
-              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-              <Text style={[styles.statusLabel, { color: statusColor }]}>{statusLabel}</Text>
-            </View>
-            <Text style={styles.headerSubtitle} numberOfLines={1}>
-              {property.type} • Last sync: {property.lastSync}
-            </Text>
-          </View>
-
-          <View style={styles.headerActionsRow}>
-            <View style={styles.confidenceBadgePremium}>
-              <View style={styles.confBarSmall}>
-                <View style={[styles.confBarFill, { width: `${property.confidence}%`, backgroundColor: confColor }]} />
-              </View>
-              <Text style={styles.confBadgeTextPremium}>
-                <Text style={{ fontWeight: '900', color: colors.textPrimary }}>{property.confidence}% </Text>
-                <Text style={{ fontWeight: '500', color: colors.textPrimary }}>Confidence</Text>
-              </Text>
-            </View>
+      <ScrollView ref={mainScrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Header Info */}
+        <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
+          <Text style={styles.bigTitle}>{property.address}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
+            <View style={styles.statusBadge}><View style={styles.statusDot} /><Text style={styles.statusText}>{property.status}</Text></View>
+            <Text style={styles.metaText}>{property.type} • Last sync: {property.lastSync}</Text>
           </View>
         </View>
 
-        {/* ── HERO CAROUSEL ── */}
-        <Pressable onPress={() => setShowGallery(true)} style={styles.heroWrap}>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 12, marginTop: 16, paddingHorizontal: 20 }}>
+          <View style={styles.confidenceBarContainer}>
+            <View style={styles.confidenceTrack}><View style={[styles.confidenceFill, { width: '98%' }]} /></View>
+            <Text style={styles.confidenceText}>98% Confidence</Text>
+          </View>
+          <TouchableOpacity style={styles.shareBtn}><MaterialCommunityIcons name="share-variant" size={16} color={colors.textPrimary} /><Text style={styles.shareBtnText}>Share</Text></TouchableOpacity>
+        </View>
+
+        {/* Carousel */}
+        <View style={styles.carouselWrap}>
           <ScrollView
             ref={carouselRef}
-            style={{ flex: 1 }}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(e) => {
-              const newIndex = Math.round(
-                e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width
-              );
-              setCurrImageIndex(newIndex);
-            }}
-            scrollEventThrottle={16}
+            onMomentumScrollEnd={(e) => setCurrImageIndex(Math.round(e.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 40)))}
           >
-            {MOCK_IMAGES.map((img, i) => (
-              <View key={i} style={{ width: SCREEN_WIDTH - 2 * H_PADDING, height: '100%' }}>
-                <Image source={{ uri: img }} style={styles.heroImage} contentFit="cover" />
-              </View>
+            {allImages.map((img: string, i: number) => (
+              <Image key={i} source={{ uri: img }} style={{ width: SCREEN_WIDTH - 40, height: 320, borderRadius: 16 }} contentFit="cover" />
             ))}
           </ScrollView>
 
-          {/* Left/Right arrows */}
-          <View style={styles.carouselArrows} pointerEvents="box-none">
-            <Pressable style={styles.arrowBtn} onPress={(e) => { e.stopPropagation(); handlePrev(); }}>
-              <MaterialCommunityIcons name="chevron-left" size={22} color='#FFFFFF' />
-            </Pressable>
-            <Pressable style={styles.arrowBtn} onPress={(e) => { e.stopPropagation(); handleNext(); }}>
-              <MaterialCommunityIcons name="chevron-right" size={22} color='#FFFFFF' />
-            </Pressable>
+          <View style={styles.carouselNav}>
+            <TouchableOpacity onPress={() => carouselRef.current?.scrollTo({ x: (currImageIndex - 1) * (SCREEN_WIDTH - 40), animated: true })} style={styles.navCirc}><MaterialCommunityIcons name="chevron-left" size={24} color="#FFF" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => carouselRef.current?.scrollTo({ x: (currImageIndex + 1) * (SCREEN_WIDTH - 40), animated: true })} style={styles.navCirc}><MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" /></TouchableOpacity>
           </View>
-
-          {/* Top-right phase badge */}
-          <View style={styles.phaseBadge}>
-            <Text style={styles.phaseBadgeText}>
-              {currImageIndex + 1}/{MOCK_IMAGES.length} HIGH-RES PHASES
-            </Text>
-          </View>
-
-          {/* Tap-to-expand hint */}
-          <View style={styles.expandHint}>
-            <MaterialCommunityIcons name="image-multiple-outline" size={14} color='#FFFFFF' />
-            <Text style={styles.expandHintText}>Tap to view all</Text>
-          </View>
-        </Pressable>
-
-        {/* ── PROPERTY PROFILE CARD ── */}
-        <View style={styles.card}>
-          {/* Card header */}
-          <View style={styles.profileHeaderRow}>
-            <View style={styles.profileTitleBlock}>
-              <Text style={styles.profileTitle}>Property Profile</Text>
-              <Text style={styles.profileSubtitle}>Comprehensive structural and interior assessment</Text>
-            </View>
-            <View style={styles.autoScanBadge}>
-              <Text style={styles.autoScanText}>ARCHITECTURAL{`\n`}AUTO-SCAN</Text>
-            </View>
-          </View>
-
-          <View style={styles.cardDivider} />
-
-          {/* 2-column spec grid */}
-          <View style={styles.specGrid}>
-            <SpecCell label="PROPERTY TYPE" value={property.type} dot />
-            <SpecCell label="YEAR BUILT" value={property.yearBuilt} dot />
-          </View>
-
-          <View style={styles.specRowDivider} />
-
-          <View style={styles.specGrid}>
-            <SpecCell label="LOT SIZE" value={property.lotSize} dot />
-            <SpecCell label="SQ FT" value={`${property.sqft} sqft`} dot />
-          </View>
-
-          <View style={styles.specRowDivider} />
-
-          <View style={styles.specGrid}>
-            <SpecCell label="BEDS" value={`${property.beds}`} dot />
-            <SpecCell label="BATHS" value={`${property.baths}`} dot />
-          </View>
-
-          <View style={styles.specRowDivider} />
-
-          <View style={styles.specGrid}>
-            <SpecCell label="GARAGE" value={property.garage} dot />
-            <SpecCell label="ROOF" value={property.roof} dot />
-          </View>
-
-          <View style={styles.specRowDivider} />
-
-          <View style={styles.specGrid}>
-            <SpecCell label="FOUNDATION" value={property.foundation} />
-            <SpecCell label="BASEMENT" value={property.basement} />
-          </View>
-
-          <View style={styles.specRowDivider} />
-
-          <View style={[styles.specGrid, { marginBottom: 0 }]}>
-            <SpecCell label="HEATING" value={property.heating} />
-            <SpecCell label="COOLING" value={property.cooling} />
-          </View>
-
-          <View style={styles.cardDivider} />
-
-          {/* Neighborhood context */}
-          <Text style={styles.neighborhoodContextLabel}>NEIGHBORHOOD CONTEXT</Text>
-          <Text style={styles.neighborhoodContextText}>{property.neighborhoodDesc}</Text>
+          <View style={styles.phaseBadge}><Text style={styles.phaseBadgeText}>{currImageIndex + 1} / {allImages.length} ASSETS READY</Text></View>
         </View>
 
-        {/* ── AI VALUATION CARD ── */}
-        <View style={styles.card}>
-          {/* AI Valuation badge */}
-          <View style={styles.aiValuationBadge}>
-            <Text style={styles.aiValuationBadgeText}>AI VALUATION</Text>
-          </View>
-
-          <Text style={styles.valuationPrice}>{property.value}</Text>
-          <Text style={styles.valuationLabel}>Current Estimated Market Value</Text>
-
-          <View style={styles.cardDivider} />
-
-          {/* MLS List Price row */}
-          <View style={styles.valuationRow}>
-            <Text style={styles.valuationRowLabel}>MLS List Price</Text>
-            <Text style={styles.valuationRowValue}>{property.mlsListPrice}</Text>
-          </View>
-
-          {/* Zien AVM row */}
-          <View style={[styles.valuationRow, styles.avmRow]}>
-            <Text style={styles.avmLabel}>Zien AVM Est.</Text>
-            <Text style={styles.avmValue}>{property.zienAvmEst}</Text>
-          </View>
-
-          <View style={styles.cardDivider} />
-
-          {/* Automated Insight */}
-          <View style={styles.insightRow}>
-            <MaterialCommunityIcons name="information-outline" size={16} color={colors.accentTeal} />
-            <Text style={styles.insightHeading}>AUTOMATED INSIGHT</Text>
-          </View>
-          <Text style={styles.insightText}>{property.aiInsight}</Text>
-        </View>
-
-        {/* ── LOCATION ANALYSIS CARD ── */}
-        <View style={styles.card}>
-          <Text style={styles.sectionHeading}>LOCATION ANALYSIS</Text>
-
-          <View style={styles.walkScoreRow}>
-            <View style={styles.walkScoreLeft}>
-              <MaterialCommunityIcons name="map-marker-outline" size={22} color={colors.textPrimary} />
-              <View>
-                <Text style={styles.walkScoreNum}>{property.walkScore}</Text>
-                <Text style={styles.walkScoreSmall}>WALK SCORE</Text>
+        <View style={{ paddingHorizontal: 20 }}>
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <View style={{ flex: 1, minWidth: 140 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <View style={styles.cardIconBox}>
+                    <MaterialCommunityIcons name="office-building-cog" size={18} color={colors.accentTeal} />
+                  </View>
+                  <Text style={styles.cardTitle}>Property Profile</Text>
+                </View>
+                <Text style={styles.cardSubtitle}>Comprehensive assessment</Text>
+              </View>
+              <View style={styles.autoScanBadge}>
+                <LinearGradient
+                  colors={[colors.accentTeal + '15', colors.accentTeal + '05']}
+                  style={StyleSheet.absoluteFill}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+                <View style={styles.badgeTopRow}>
+                  <MaterialCommunityIcons name="shimmer" size={10} color={colors.accentTeal} />
+                  <Text style={styles.autoScanText}>ARCHITECTURAL</Text>
+                </View>
+                <Text style={styles.autoScanTextBold}>AUTO-SCAN</Text>
               </View>
             </View>
-            <Text style={styles.walkLabel}>{property.walkLabel}</Text>
+            <View style={styles.tabOuterContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabContainer} contentContainerStyle={{ gap: 8 }}>
+                {TABS.map(t => (
+                  <TouchableOpacity key={t} onPress={() => setActiveTab(t)} style={[styles.tabItem, activeTab === t && styles.activeTabItem]}>
+                    <Text style={[styles.tabText, activeTab === t && styles.activeTabText]}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={{ marginTop: 8 }}>
+              {renderTabContent()}
+            </View>
           </View>
 
-          <Pressable style={styles.mapBtn} onPress={() => setShowMapModal(true)}>
-            <Text style={styles.mapBtnText}>View Neighborhood Map</Text>
-          </Pressable>
-        </View>
-
-        {/* ── DATA INTEGRITY SCORE CARD ── */}
-        <View style={styles.card}>
-          <View style={styles.integrityHeaderRow}>
-            <Text style={styles.sectionHeading}>DATA INTEGRITY SCORE</Text>
-            <Text style={[styles.integrityPct, { color: confColor }]}>
-              {property.confidence}%
-            </Text>
-          </View>
-          <View style={styles.integrityTrack}>
-            <View
-              style={[
-                styles.integrityFill,
-                {
-                  width: `${property.confidence}%`,
-                  backgroundColor: confColor,
-                },
-              ]}
+          <View style={styles.valuationCard}>
+            <LinearGradient
+              colors={[colors.textPrimary + '05', 'transparent']}
+              style={StyleSheet.absoluteFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
             />
+            <View style={styles.valHeader}>
+              <View style={styles.valPill}>
+                <MaterialCommunityIcons name="robot" size={10} color="#FFF" />
+                <Text style={styles.valPillText}>AI VALUATION</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+              <Text style={styles.valPrice}>{property.price}</Text>
+              <MaterialCommunityIcons name="trending-up" size={20} color={colors.accentTeal} />
+            </View>
+            <Text style={styles.valSubLabel}>Current Estimated Market Value</Text>
+
+            <View style={styles.valStatsGrid}>
+              <View style={styles.valRow}>
+                <Text style={styles.valKey}>MLS List Price</Text>
+                <Text style={styles.valVal}>{property.price}</Text>
+              </View>
+              <View style={styles.avmRow}>
+                <Text style={styles.avmKey}>Zien AVM Est.</Text>
+                <Text style={styles.avmVal}>{property.zienAvm}</Text>
+              </View>
+            </View>
+            <View style={styles.insightBox}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <MaterialCommunityIcons name="information-outline" size={16} color={colors.accentTeal} />
+                <Text style={styles.insightTitle}>AUTOMATED INSIGHT</Text>
+              </View>
+              <Text style={styles.insightText}>Our AI suggests this property is priced 2% below market based on recent Houston luxury comps.</Text>
+            </View>
+          </View>
+
+          <View style={styles.locationCard}>
+            <Text style={styles.sectionHead}>LOCATION ANALYSIS</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <MaterialCommunityIcons name="map-marker-outline" size={24} color={colors.textPrimary} />
+                <View>
+                  <Text style={{ fontSize: 24, fontWeight: '900', color: colors.textPrimary }}>88</Text>
+                  <Text style={{ fontSize: 8, fontWeight: '800', color: colors.textMuted }}>WALK SCORE</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 10, fontWeight: '900', color: colors.accentTeal }}>{property.walkLabel}</Text>
+            </View>
+            <TouchableOpacity style={styles.mapBtn} onPress={() => setShowMap(true)}><Text style={styles.mapBtnText}>View Neighborhood Map</Text></TouchableOpacity>
+          </View>
+
+          <View style={styles.integrityCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+              <Text style={styles.sectionHead}>DATA INTEGRITY SCORE</Text>
+              <Text style={{ fontSize: 14, fontWeight: '900', color: colors.accentTeal }}>98%</Text>
+            </View>
+            <View style={styles.integrityTrack}><View style={[styles.integrityFill, { width: '98%' }]} /></View>
           </View>
         </View>
       </ScrollView>
 
-      {/* ── GALLERY MODAL ── */}
-      <Modal
-        visible={showGallery}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowGallery(false)}
-      >
-        <View style={styles.galleryModal}>
-          {/* Modal header */}
-          <View style={styles.galleryHeader}>
-            <View>
-              <Text style={styles.galleryTitle}>
-                Property Images ({MOCK_IMAGES.length})
-              </Text>
-              <Text style={styles.gallerySubtitle}>Manage all property photos and media</Text>
-            </View>
-            <Pressable
-              onPress={() => setShowGallery(false)}
-              style={styles.galleryCloseX}
-              hitSlop={10}
-            >
-              <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
-            </Pressable>
-          </View>
+      {/* FAB */}
+      <TouchableOpacity style={styles.floatingEditBtn} onPress={() => router.push(`/(main)/properties/edit/${id}`)}>
+        <LinearGradient colors={[colors.accentTeal, '#0D9488']} style={styles.fabGradient}>
+          <MaterialCommunityIcons name="pencil" size={24} color="#FFF" />
+        </LinearGradient>
+      </TouchableOpacity>
 
-          {/* Image grid */}
-          <ScrollView
-            contentContainerStyle={styles.galleryGrid}
-            showsVerticalScrollIndicator={false}
-          >
-            {MOCK_IMAGES.map((img, i) => {
-              const isCurrent = i === currImageIndex;
-              return (
-                <Pressable
-                  key={i}
-                  style={({ pressed }) => [
-                    styles.galleryThumbWrap,
-                    isCurrent && styles.galleryThumbActive,
-                    pressed && { opacity: 0.85 },
-                  ]}
-                  onPress={() => jumpToImage(i)}
-                >
-                  <Image
-                    source={{ uri: img }}
-                    style={styles.galleryThumb}
-                    contentFit="cover"
-                  />
-                  {/* Badges for current image */}
-                  {isCurrent && (
-                    <View style={styles.galleryBadgeRow}>
-                      <View style={styles.galleryBadgeCurrent}>
-                        <Text style={styles.galleryBadgeText}>CURRENT</Text>
-                      </View>
-                      <View style={styles.galleryBadgeMain}>
-                        <Text style={styles.galleryBadgeText}>MAIN</Text>
-                      </View>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+      <NeighborhoodMapModal visible={showMap} onClose={() => setShowMap(false)} property={property as any} />
+    </View>
+  );
+}
+
+// --- Map Modal Component ---
+function NeighborhoodMapModal({ visible, onClose, property }: { visible: boolean; onClose: () => void; property: any }) {
+  const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
+
+  const initialRegion = {
+    latitude: property?.coordinates?.latitude || 29.74878,
+    longitude: property?.coordinates?.longitude || -95.399529,
+    latitudeDelta: 0.005,
+    longitudeDelta: 0.005,
+  };
+
+
+  const styles = StyleSheet.create({
+    modal: { flex: 1, backgroundColor: colors.cardBackground },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+      paddingTop: insets.top + (Platform.OS === 'ios' ? 0 : 10)
+    },
+    title: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
+    backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceIcon, justifyContent: 'center', alignItems: 'center' },
+    map: { width: "100%", height: 380 },
+    infoBox: { padding: 20 },
+    addressText: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
+    coordsText: { fontSize: 12, color: colors.textMuted, marginTop: 4 }
+  });
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <View style={styles.modal}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Neighborhood View</Text>
+          <TouchableOpacity onPress={onClose} style={styles.backBtn}><MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} /></TouchableOpacity>
         </View>
-      </Modal>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <MapView
+            scrollEnabled
+            showsCompass
+            followsUserLocation
+            showsScale
+            provider={
+              Platform.OS === 'android'
+                ? PROVIDER_GOOGLE
+                : PROVIDER_DEFAULT
+            }
+            style={styles.map}
+            initialRegion={initialRegion}
+            mapType="standard"
+            showsUserLocation={true}
+            onMapReady={() => console.log('Map is ready and initialized')}
+            onRegionChangeComplete={(reg) => console.log('Region change complete:', reg)}
+          >
+            <Marker
+              key={`marker-${property?.id}`}
+              coordinate={{
+                latitude: property?.coordinates?.latitude || 29.74878,
+                longitude: property?.coordinates?.longitude || -95.399529,
+              }}
+              title={property?.address}
+              tracksViewChanges={false}
+            >
+              <View style={{ padding: 5 }}>
+                <View style={{ backgroundColor: colors.accentTeal, padding: 5, borderRadius: 20, borderWidth: 2, borderColor: '#FFF', elevation: 5 }}>
+                  <MaterialCommunityIcons name="home" size={15} color="#FFF" />
+                </View>
+              </View>
+            </Marker>
+          </MapView>
 
-      {/* ── NEIGHBORHOOD MAP MODAL ── */}
-      <NeighborhoodMapModal
-        visible={showMapModal}
-        onClose={() => setShowMapModal(false)}
-        property={property}
-      />
-    </LinearGradient>
+          <View style={styles.infoBox}>
+            <Text style={styles.addressText}>{property?.address}</Text>
+            <Text style={styles.coordsText}>LAT: {property?.coordinates?.latitude} / LONG: {property?.coordinates?.longitude}</Text>
+
+            <View style={{ marginTop: 24 }}>
+              <ScoreRow label="Walk Score" value={property?.walkScore || 88} color={colors.accentTeal} />
+              <ScoreRow label="Transit Score" value={property?.transitScore || 72} color="#8B5CF6" />
+              <ScoreRow label="Bike Score" value={property?.bikeScore || 65} color="#EC4899" />
+            </View>
+
+            <View style={{ marginTop: 24, padding: 16, backgroundColor: colors.surfaceIcon, borderRadius: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.textPrimary, marginBottom: 8 }}>LOCATION INSIGHT</Text>
+              <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
+                This property is located in the Montrose district, known for its mix of new developments and historic charm. With an 88 walk score, most errands can be accomplished on foot.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+function ScoreRow({ label, value, color }: { label: string; value: number; color: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>{label}</Text>
+        <View style={{ width: '100%', height: 6, backgroundColor: colors.surfaceIcon, borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
+          <View style={{ width: `${value}%`, height: '100%', backgroundColor: color }} />
+        </View>
+      </View>
+      <Text style={{ fontSize: 14, fontWeight: '900', color, marginLeft: 16 }}>{value}</Text>
+    </View>
   );
 }
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  container: { flex: 1 },
-  centered: { justifyContent: 'center', alignItems: 'center' },
-  notFoundText: { fontSize: 16, color: colors.textSecondary, marginBottom: 16 },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-
-  // ── Premium Header ──
-  headerTopArea: {
-    paddingHorizontal: H_PADDING,
-    paddingTop: 8,
-    paddingBottom: 20,
-  },
-  headerTitleBox: {
-    marginBottom: 10,
-  },
-  headerAddress: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-    lineHeight: 30,
-  },
-  headerMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-    flexWrap: 'wrap',
-  },
-  metaRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: colors.inputPlaceholder,
-    fontWeight: '600',
-  },
-  headerActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  confidenceBadgePremium: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 12,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6 },
-      android: { elevation: 2 },
-    }),
-  },
-  confBadgeTextPremium: {
-    fontSize: 13,
-  },
-
-  // ── Scroll ──
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: H_PADDING, paddingBottom: 24 },
-
-  // ── Status ──
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
-  confBarSmall: {
-    width: 30,
-    height: 4,
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  confBarFill: { height: '100%', borderRadius: 2 },
-
-  // ── Hero ──
-  heroWrap: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 16,
-    backgroundColor: colors.surfaceSoft,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
-      android: { elevation: 3 },
-    }),
-  },
-  heroImage: { width: '100%', height: '100%' },
-  carouselArrows: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  arrowBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  phaseBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(13,148,136,0.85)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  phaseBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-
-  // ── Shared card ──
-  card: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
-      android: { elevation: 2 },
-    }),
-  },
-  cardDivider: { height: 1, backgroundColor: colors.surfaceSoft, marginVertical: 14 },
-
-  // ── Property Profile card ──
-  profileHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 4,
-  },
-  profileTitleBlock: { flex: 1 },
-  profileTitle: { fontSize: 17, fontWeight: '800', color: colors.textPrimary },
-  profileSubtitle: { fontSize: 11, color: colors.inputPlaceholder, marginTop: 3, lineHeight: 16 },
-  autoScanBadge: {
-    backgroundColor: 'rgba(13,148,136,0.10)',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    alignItems: 'center',
-  },
-  autoScanText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.accentTeal,
-    letterSpacing: 0.4,
-    textAlign: 'center',
-    lineHeight: 13,
-  },
-
-  // Spec grid — 2-column
-  specGrid: {
-    flexDirection: 'row',
-    gap: 0,
-    marginBottom: 0,
-    paddingVertical: 12,
-  },
-  specRowDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.surfaceSoft,
-  },
-  specCell: { flex: 1, paddingHorizontal: 4 },
-  specCellLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: colors.inputPlaceholder,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 5,
-  },
-  specCellValueRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  specCellValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary, flexShrink: 1 },
-  specDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accentTeal },
-
-  neighborhoodContextLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.inputPlaceholder,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  neighborhoodContextText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 19,
-  },
-
-  // ── Gallery modal ──
-  galleryModal: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-  },
-  galleryHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.cardBorder,
-  },
-  galleryTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    letterSpacing: -0.3,
-  },
-  gallerySubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 3,
-  },
-  galleryCloseX: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  galleryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 12,
-  },
-  galleryThumbWrap: {
-    width: (SCREEN_WIDTH - 16 * 2 - 12) / 2,
-    aspectRatio: 4 / 3,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: colors.surfaceSoft,
-    position: 'relative',
-  },
-  galleryThumbActive: {
-    borderWidth: 2.5,
-    borderColor: colors.accentTeal,
-  },
-  galleryThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  galleryBadgeRow: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    right: 8,
-    flexDirection: 'row',
-    gap: 6,
-  },
-  galleryBadgeCurrent: {
-    backgroundColor: colors.accentTeal,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 5,
-  },
-  galleryBadgeMain: {
-    backgroundColor: colors.textPrimary,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 5,
-  },
-  galleryBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-
-  // ── Carousel expand hint ──
-  expandHint: {
-    position: 'absolute',
-    bottom: 10,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  expandHintText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
-  // ── AI Valuation card ──
-  aiValuationBadge: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.accentTeal,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  aiValuationBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '800', letterSpacing: 0.6 },
-  valuationPrice: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  valuationLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2, marginBottom: 4 },
-  valuationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  avmRow: {
-    backgroundColor: 'rgba(234,88,12,0.06)',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#EA580C',
-    marginBottom: 0,
-  },
-  valuationRowLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
-  valuationRowValue: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
-  avmLabel: { fontSize: 13, color: '#C2410C', fontWeight: '700' },
-  avmValue: { fontSize: 15, fontWeight: '800', color: '#C2410C' },
-  insightRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  insightHeading: { fontSize: 11, fontWeight: '800', color: colors.accentTeal, letterSpacing: 0.5 },
-  insightText: { fontSize: 13, color: colors.textPrimary, lineHeight: 19 },
-
-  // ── Location Analysis card ──
-  sectionHeading: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.textSecondary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 14,
-  },
-  walkScoreRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  walkScoreLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  walkScoreNum: { fontSize: 28, fontWeight: '900', color: colors.textPrimary, lineHeight: 30 },
-  walkScoreSmall: { fontSize: 9, fontWeight: '700', color: colors.inputPlaceholder, letterSpacing: 0.5 },
-  walkLabel: { fontSize: 11, fontWeight: '800', color: colors.accentTeal, letterSpacing: 0.3 },
-  mapBtn: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 10,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  mapBtnText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-
-  // ── Data Integrity Score card ──
-  integrityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  integrityPct: { fontSize: 15, fontWeight: '800' },
-  integrityTrack: {
-    height: 8,
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  integrityFill: { height: '100%', borderRadius: 4 },
-
-
+    bigTitle: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
+    statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.accentTeal + '20', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+    statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accentTeal },
+    statusText: { fontSize: 10, fontWeight: '800', color: colors.accentTeal },
+    metaText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
+    confidenceBarContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.cardBackground, padding: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder },
+    confidenceTrack: { width: 40, height: 4, backgroundColor: colors.surfaceIcon, borderRadius: 2, overflow: 'hidden' },
+    confidenceFill: { height: '100%', backgroundColor: colors.accentTeal },
+    confidenceText: { fontSize: 11, fontWeight: '800', color: colors.textPrimary },
+    shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder },
+    shareBtnText: { fontSize: 12, fontWeight: '800', color: colors.textPrimary },
+    carouselWrap: { margin: 20, position: 'relative' },
+    carouselNav: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 10 },
+    navCirc: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
+    phaseBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: colors.accentTeal, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    phaseBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+    profileCard: { backgroundColor: colors.cardBackground, borderRadius: 28, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: colors.cardBorder, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
+    cardIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.accentTeal + '10', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.accentTeal + '20' },
+    cardTitle: { fontSize: 20, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
+    cardSubtitle: { fontSize: 12, color: colors.textMuted, lineHeight: 18, fontWeight: '500' },
+    autoScanBadge: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: colors.accentTeal + '30', overflow: 'hidden', alignItems: 'center' },
+    badgeTopRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
+    autoScanText: { fontSize: 8, fontWeight: '800', color: colors.accentTeal, letterSpacing: 0.5 },
+    autoScanTextBold: { fontSize: 10, fontWeight: '900', color: colors.accentTeal, letterSpacing: 0.5 },
+    tabOuterContainer: { marginTop: 24, paddingBottom: 8 },
+    tabContainer: { flexDirection: 'row' },
+    tabItem: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, marginRight: 4 },
+    activeTabItem: { backgroundColor: colors.accentTeal },
+    tabText: { fontSize: 13, fontWeight: '700', color: colors.textMuted },
+    activeTabText: { color: '#FFF' },
+    neighborhoodLabel: { fontSize: 10, fontWeight: '800', color: colors.textMuted, letterSpacing: 1 },
+    remarksText: { fontSize: 14, color: colors.textPrimary, lineHeight: 22, marginTop: 12 },
+    mediaLabel: { fontSize: 10, fontWeight: '900', color: colors.textMuted, letterSpacing: 1 },
+    valuationCard: { backgroundColor: colors.cardBackground, borderRadius: 28, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: colors.cardBorder, overflow: 'hidden' },
+    valHeader: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 16 },
+    valPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.textPrimary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+    valPillText: { color: '#FFF', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+    valPrice: { fontSize: 36, fontWeight: '900', color: colors.textPrimary, letterSpacing: -1 },
+    valSubLabel: { fontSize: 12, color: colors.textMuted, marginTop: 4, fontWeight: '500' },
+    valStatsGrid: { marginTop: 24, gap: 12 },
+    valRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, backgroundColor: colors.surfaceIcon + '80', borderRadius: 16, borderWidth: 1, borderColor: colors.cardBorder },
+    valKey: { fontSize: 13, color: colors.textMuted, fontWeight: '700' },
+    valVal: { fontSize: 15, color: colors.textPrimary, fontWeight: '900' },
+    avmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, backgroundColor: '#FFF7ED', borderRadius: 16, borderWidth: 1.5, borderColor: '#FED7AA', borderStyle: 'dashed' },
+    avmKey: { fontSize: 13, color: '#C2410C', fontWeight: '800' },
+    avmVal: { fontSize: 15, color: '#C2410C', fontWeight: '900' },
+    insightBox: { marginTop: 20, padding: 16, backgroundColor: colors.accentTeal + '10', borderRadius: 16, borderWidth: 1, borderColor: colors.accentTeal + '20' },
+    insightTitle: { fontSize: 10, fontWeight: '900', color: colors.accentTeal, letterSpacing: 1 },
+    insightText: { fontSize: 13, color: colors.textPrimary, lineHeight: 18, marginTop: 4 },
+    locationCard: { backgroundColor: colors.cardBackground, borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: colors.cardBorder },
+    sectionHead: { fontSize: 10, fontWeight: '900', color: colors.textMuted, letterSpacing: 1 },
+    mapBtn: { marginTop: 16, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.cardBorder, alignItems: 'center' },
+    mapBtnText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
+    integrityCard: { backgroundColor: colors.cardBackground, borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: colors.cardBorder },
+    integrityTrack: { width: '100%', height: 8, backgroundColor: colors.surfaceIcon, borderRadius: 4, overflow: 'hidden' },
+    integrityFill: { height: '100%', backgroundColor: colors.accentTeal },
+    floatingEditBtn: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accentTeal, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6 },
+    fabGradient: { width: '100%', height: '100%', borderRadius: 28, justifyContent: 'center', alignItems: 'center' }
   });
 }

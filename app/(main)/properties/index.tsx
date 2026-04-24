@@ -16,6 +16,10 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/context/AuthContext';
+import { getProperties, RawPropertyItem, deleteProperty } from '@/services/propertyService';
+import { ActivityIndicator } from 'react-native';
+import { useEffect } from 'react';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const H_PADDING = 16;
@@ -43,73 +47,58 @@ type Property = {
   syncStatus: string;
 };
 
-const PROPERTIES: Property[] = [
-  {
-    id: 'ZN-94021-LA',
-    address: '123 Business Way',
-    cityState: 'Los Angeles, CA',
-    type: 'Single Family',
-    status: 'Ready',
-    value: '$4,250,000',
-    confidence: 98,
-    image: PLACEHOLDER_HOUSE,
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'ZN-90210-BH',
-    address: '88 Gold Coast Dr',
-    cityState: 'Malibu, CA',
-    type: 'Luxury Villa',
-    status: 'REVIEW NEEDED',
-    value: '$12,800,000',
-    confidence: 72,
-    image: PLACEHOLDER_VILLA,
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'ZN-91101-PA',
-    address: '45 Pine St',
-    cityState: 'Pasadena, CA',
-    type: 'Condo',
-    status: 'Ready',
-    value: '$1,150,000',
-    confidence: 95,
-    image: PLACEHOLDER_CONDO,
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'ZN-90401-SM',
-    address: '900 Ocean Blvd',
-    cityState: 'Santa Monica, CA',
-    type: 'Apartment',
-    status: 'DRAFT',
-    value: '$3,400,000',
-    confidence: 45,
-    image: PLACEHOLDER_APARTMENT,
-    syncStatus: 'SYNCED',
-  },
-];
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({
   icon,
   value,
   label,
+  accentColor,
 }: {
   icon: string;
   value: string;
   label: string;
+  accentColor: string;
 }) {
-  const { colors } = useAppTheme();
+  const { colors, theme } = useAppTheme();
   const styles = getStyles(colors);
+  const isDark = theme === 'dark';
 
   return (
-    <View style={styles.statCard}>
-      <View style={styles.statIconBox}>
-        <MaterialCommunityIcons name={icon as any} size={22} color={colors.textPrimary} />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={styles.statCardContainer}>
+      <LinearGradient
+        colors={isDark
+          ? [accentColor + '15', accentColor + '05']
+          : [accentColor + '10', '#FFFFFF']
+        }
+        style={[styles.statCard, { borderColor: accentColor + (isDark ? '25' : '15') }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={[styles.statHeader]}>
+          <View style={[styles.statIconBox, { backgroundColor: accentColor + '15' }]}>
+            <MaterialCommunityIcons name={icon as any} size={20} color={accentColor} />
+          </View>
+          <View style={[styles.statTrend, { backgroundColor: accentColor + '10' }]}>
+            <MaterialCommunityIcons name="trending-up" size={12} color={accentColor} />
+          </View>
+        </View>
+
+        <View style={styles.statContent}>
+          <Text style={styles.statValue}>{value}</Text>
+          <View style={styles.statLabelRow}>
+            <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
+            {label === 'Data Confidence' && (
+               <View style={styles.tinyDotWrap}>
+                  <View style={[styles.tinyDot, { backgroundColor: accentColor }]} />
+               </View>
+            )}
+          </View>
+        </View>
+
+        {/* Subtle decorative element */}
+        <View style={[styles.statDecoration, { backgroundColor: accentColor + '08' }]} />
+      </LinearGradient>
     </View>
   );
 }
@@ -165,10 +154,12 @@ function DeleteConfirmModal({
   property,
   onCancel,
   onConfirm,
+  isDeleting,
 }: {
   property: Property | null;
   onCancel: () => void;
   onConfirm: () => void;
+  isDeleting?: boolean;
 }) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
@@ -208,11 +199,16 @@ function DeleteConfirmModal({
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.modalDeleteBtn}
+              style={[styles.modalDeleteBtn, isDeleting && { opacity: 0.7 }]}
               onPress={onConfirm}
               activeOpacity={0.8}
+              disabled={isDeleting}
             >
-              <Text style={styles.modalDeleteText}>Delete</Text>
+              {isDeleting ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.modalDeleteText}>Delete</Text>
+              )}
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -313,9 +309,71 @@ export default function PropertyInventoryScreen() {
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { accessToken } = useAuth();
 
-  const [properties, setProperties] = useState<Property[]>(PROPERTIES);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Property | null>(null);
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchData();
+    }
+  }, [accessToken]);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await getProperties(accessToken!);
+      if (res.success) {
+        const mapped = res.properties.map(mapRawToProperty);
+        setProperties(mapped);
+      } else {
+        setError('Failed to load properties');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const mapRawToProperty = (raw: RawPropertyItem): Property => {
+    const d = raw.data;
+    const price = d.ListPrice || 0;
+    const formattedPrice = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(price);
+
+    return {
+      id: raw.id.toString(),
+      address: d.StreetNumber ? `${d.StreetNumber} ${d.StreetName} ${d.StreetSuffix || ''}`.trim() : raw.address,
+      cityState: d.City ? `${d.City}, ${d.StateOrProvince || ''}` : '',
+      type: d.PropertyType || 'Residential',
+      status: 'Ready', // Default to Ready as per user request
+      value: formattedPrice,
+      confidence: 94,
+      image: (d.user_images && d.user_images.length > 0) ? d.user_images[0] : PLACEHOLDER_HOUSE,
+      syncStatus: 'SYNCED',
+    };
+  };
+
+  // ── Stats Calculations ──
+  const totalValueNum = properties.reduce((acc, p) => {
+    const val = parseFloat(p.value.replace(/[$,]/g, '')) || 0;
+    return acc + val;
+  }, 0);
+
+  const formattedPortfolioValue = totalValueNum >= 1000000 
+    ? `$${(totalValueNum / 1000000).toFixed(1)}M`
+    : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalValueNum);
+
+  const activeCount = properties.length;
+  const draftCount = 0; // Everything is "Ready" for now
 
   const handleCreateListing = () => {
     router.push('/(main)/properties/create');
@@ -339,10 +397,24 @@ export default function PropertyInventoryScreen() {
     setDeleteTarget(property);
   };
 
-  const handleDeleteConfirm = () => {
-    if (deleteTarget) {
-      setProperties((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-      setDeleteTarget(null);
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget || !accessToken) return;
+
+    try {
+      setIsLoading(true);
+      const res = await deleteProperty(parseInt(deleteTarget.id), accessToken);
+      
+      if (res.success) {
+        setProperties((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+        setDeleteTarget(null);
+      } else {
+        alert(res.message || "Failed to delete property");
+      }
+    } catch (err: any) {
+      console.error("Delete Error:", err);
+      alert(err.message || "An error occurred during deletion");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -373,19 +445,68 @@ export default function PropertyInventoryScreen() {
       >
         {/* ── 4 STAT CARDS (2×2 grid) ── */}
         <View style={styles.statsGrid}>
-          <StatCard icon="currency-usd" value="$21.6M" label="Portfolio Value" />
-          <StatCard icon="home-outline" value="12 Active" label="Total Properties" />
-          <StatCard icon="chart-bell-curve-cumulative" value="94% Avg." label="Data Confidence" />
-          <StatCard icon="file-document-edit-outline" value="3 Drafts" label="Need Review" />
+          <StatCard
+            icon="currency-usd"
+            value={formattedPortfolioValue}
+            label="Portfolio Value"
+            accentColor={colors.accentTeal}
+          />
+          <StatCard
+            icon="home-outline"
+            value={`${activeCount} Active`}
+            label="Total Properties"
+            accentColor={colors.accentBlue}
+          />
+          <StatCard
+            icon="chart-bell-curve-cumulative"
+            value="94% Avg."
+            label="Data Confidence"
+            accentColor={colors.accentGreen}
+          />
+          <StatCard
+            icon="file-document-edit-outline"
+            value={`${draftCount} Drafts`}
+            label="Need Review"
+            accentColor="#EA580C"
+          />
         </View>
 
+        {isLoading && (
+          <View style={styles.centerBox}>
+            <ActivityIndicator size="large" color={colors.accentTeal} />
+            <Text style={styles.statusInfoText}>Loading properties...</Text>
+          </View>
+        )}
+
+        {error && !isLoading && (
+          <View style={styles.centerBox}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={40} color={colors.danger} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={fetchData}>
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {!isLoading && !error && properties.length === 0 && (
+          <View style={styles.centerBox}>
+            <MaterialCommunityIcons name="home-city-outline" size={48} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>No properties found.</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={handleCreateListing}>
+              <Text style={styles.retryBtnText}>Add Your First Property</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
 
-        {/* ── LIST HEADER ── */}
-        <View style={styles.tableHeaderRow}>
-          <Text style={styles.tableHeaderText}>PROPERTY IDENTITY</Text>
-          <Text style={styles.tableHeaderText}>STATUS</Text>
-        </View>
+
+        {/* ── LIST HEADER (Only show if properties exist) ── */}
+        {properties.length > 0 && (
+          <View style={styles.tableHeaderRow}>
+            <Text style={styles.tableHeaderText}>PROPERTY IDENTITY</Text>
+            <Text style={styles.tableHeaderText}>STATUS</Text>
+          </View>
+        )}
 
         {/* ── PROPERTY LIST ── */}
         <View style={styles.listContainer}>
@@ -405,6 +526,7 @@ export default function PropertyInventoryScreen() {
           property={deleteTarget}
           onCancel={handleDeleteCancel}
           onConfirm={handleDeleteConfirm}
+          isDeleting={isLoading}
         />
 
         <View style={{ height: 40 }} />
@@ -440,38 +562,74 @@ function getStyles(colors: any) {
     gap: CARD_GAP,
     marginBottom: 20,
   },
-  statCard: {
+  statCardContainer: {
     width: CARD_W,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  statCard: {
     padding: 16,
-    alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    height: 120, // fixed height for consistency
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+  },
+  statHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   statIconBox: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 12,
-    backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+  },
+  statTrend: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statContent: {
+    marginTop: 8,
   },
   statValue: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  statLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 9,
     color: colors.textSecondary,
-    fontWeight: '500',
-    lineHeight: 14,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  tinyDotWrap: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  tinyDot: {
+    flex: 1,
+  },
+  statDecoration: {
+    position: 'absolute',
+    right: -10,
+    bottom: -10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    zIndex: -1,
   },
 
 
@@ -735,6 +893,44 @@ function getStyles(colors: any) {
     fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  // ── Status States ──
+  centerBox: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  statusInfoText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 14,
+    color: colors.danger,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  retryBtn: {
+    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  retryBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.accentTeal,
   },
   });
 }

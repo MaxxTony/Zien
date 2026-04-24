@@ -240,8 +240,7 @@ export const getCardAnalytics = async (accessToken: string, cardId: string): Pro
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  // Note: Analytics API is on port 3000 as per user instructions
-  const ANALYTICS_API_URL = `http://18.219.170.119:3000/api/solo/digital-cards/stats/analytics?digital_card_id=${cardId}`;
+  const ANALYTICS_API_URL = `http://18.219.170.119:4000/api/solo/digital-cards/stats/analytics?digital_card_id=${cardId}`;
 
   try {
     const response = await fetch(ANALYTICS_API_URL, {
