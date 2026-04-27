@@ -4,8 +4,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { getOpenHouseById } from '@/services/openHouseService';
+import { useQuery } from '@tanstack/react-query';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Animated,
     Dimensions,
     Modal,
@@ -25,28 +29,21 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const TABS = ['Overview', 'Visitors', 'Automation', 'Assets & Design', 'Settings', 'Seller Report'];
 
-// Mock Data
-const EVENT_DATA = {
-    address: '123 Business Way, LA',
-    id: 'OH-001',
-    visitors: 12,
-    hotLeads: 3,
-    avgDwell: '8.2m',
-    price: '$4,250,000',
-    status: 'ACTIVE LISTING',
-    description: 'Modern architectural masterpiece with floor-to-ceiling glass and panoramic canyon views.',
-    beds: 5,
-    baths: 6,
-    sqft: '6.4k',
-    scheduledDate: 'Jan 15, 2026',
-    sessionTime: '1:00 PM - 4:00 PM',
-    agent: {
-        name: 'John Smith',
-        title: 'Zien Estates | DRE# 094021',
-        email: 'john@zienestates.com',
-        phone: '(555) 094-0211'
-    }
-};
+const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800';
+
+function formatDate(dateStr: string): string {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatTime12(timeStr: string): string {
+    if (!timeStr) return '—';
+    const [h, m] = timeStr.split(':').map(Number);
+    const am = h < 12;
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${am ? 'AM' : 'PM'}`;
+}
 
 const TIMELINE_EVENTS = [
     { title: 'New Lead: Jessica Miller', time: '1:20 PM' },
@@ -76,6 +73,38 @@ export default function EventDashboardScreen() {
     const isLiveMode = mode !== 'view';
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { accessToken } = useAuth();
+
+    const { data: openHouseData, isLoading } = useQuery({
+        queryKey: ['open-house', id],
+        queryFn: () => getOpenHouseById(accessToken || '', id as string),
+        enabled: !!accessToken && !!id,
+    });
+
+    // Derived display values
+    const eventAddress = openHouseData?.property?.address || '—';
+    const eventId = openHouseData?.id ? `OH-${String(openHouseData.id).padStart(3, '0')}` : '—';
+    const eventVisitors = openHouseData?.visitors_count ?? 0;
+    const eventHotLeads = openHouseData?.hot_leads_count ?? 0;
+    const eventPrice = openHouseData?.property?.data?.ListPrice
+        ? `$${Number(openHouseData.property.data.ListPrice).toLocaleString()}`
+        : '—';
+    const eventStatus = openHouseData?.status?.toUpperCase() || 'UPCOMING';
+    const eventDescription = openHouseData?.ai_description || '—';
+    const eventBeds = openHouseData?.property?.data?.BedroomsTotal || openHouseData?.property?.data?.beds || '—';
+    const eventBaths = openHouseData?.property?.data?.BathroomsFull || openHouseData?.property?.data?.baths || '—';
+    const eventSqft = openHouseData?.property?.data?.LivingArea || openHouseData?.property?.data?.sqft || '—';
+    const eventDate = openHouseData?.date ? formatDate(openHouseData.date) : '—';
+    const eventTime = openHouseData?.start_time && openHouseData?.end_time
+        ? `${formatTime12(openHouseData.start_time)} - ${formatTime12(openHouseData.end_time)}`
+        : '—';
+    const agentName = openHouseData?.agent_details?.name || '—';
+    const agentTitle = [openHouseData?.agent_details?.brokerage, openHouseData?.agent_details?.license ? `DRE# ${openHouseData.agent_details.license}` : ''].filter(Boolean).join(' | ') || '—';
+    const agentEmail = openHouseData?.agent_details?.email || '—';
+    const agentPhone = openHouseData?.agent_details?.phone || '—';
+    const propertyImage = openHouseData?.gallery_images?.[0] || PLACEHOLDER_IMAGE;
+    const checkInUrl = `https://zien.codesmile.in/check-in/${eventId}/`;
+
     const [activeTab, setActiveTab] = useState('Overview');
     const [selectedVisitor, setSelectedVisitor] = useState<any>(null);
     const [anonymizeLeads, setAnonymizeLeads] = useState(true);
@@ -98,11 +127,13 @@ export default function EventDashboardScreen() {
         'None (Manual Follow-up Only)'
     ];
 
-    const [propertyPhotos, setPropertyPhotos] = useState([
-        "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1600585154340-be6199f7d009?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&q=80&w=800",
-    ]);
+    const [propertyPhotos, setPropertyPhotos] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (openHouseData?.gallery_images?.length) {
+            setPropertyPhotos(openHouseData.gallery_images);
+        }
+    }, [openHouseData]);
     const [showPickerOptions, setShowPickerOptions] = useState(false);
 
     const handleAddPhoto = async (type: 'camera' | 'library') => {
@@ -159,7 +190,7 @@ export default function EventDashboardScreen() {
                 <View style={styles.ovPropertyCard}>
                     <View style={styles.ovPropertyImageContainer}>
                         <Image
-                            source="file:///Users/macbook/.gemini/antigravity/brain/2a5bd784-7535-43e5-ba0b-d8a9548397a0/modern_house_overview_1772521651338.png"
+                            source={{ uri: propertyImage }}
                             style={styles.ovPropertyImage}
                             contentFit="cover"
                         />
@@ -169,11 +200,11 @@ export default function EventDashboardScreen() {
                     </View>
                     <View style={styles.ovPropertyDetails}>
                         <View style={styles.ovMainInfo}>
-                            <Text style={styles.ovAddress}>{EVENT_DATA.address}</Text>
+                            <Text style={styles.ovAddress}>{eventAddress}</Text>
                             <View style={styles.ovStatusRow}>
-                                <Text style={styles.ovPrice}>{EVENT_DATA.price}</Text>
+                                <Text style={styles.ovPrice}>{eventPrice}</Text>
                                 <View style={styles.ovStatusBadge}>
-                                    <Text style={styles.ovStatusText}>{EVENT_DATA.status}</Text>
+                                    <Text style={styles.ovStatusText}>{eventStatus}</Text>
                                 </View>
                             </View>
                         </View>
@@ -181,17 +212,17 @@ export default function EventDashboardScreen() {
                         <View style={styles.ovFeaturesGrid}>
                             <View style={styles.ovFeatureItem}>
                                 <MaterialCommunityIcons name="bed-outline" size={24} color={colors.accentTeal} />
-                                <Text style={styles.ovFeatureVal}>{EVENT_DATA.beds}</Text>
+                                <Text style={styles.ovFeatureVal}>{eventBeds}</Text>
                                 <Text style={styles.ovFeatureLabel}>Beds</Text>
                             </View>
                             <View style={styles.ovFeatureItem}>
                                 <MaterialCommunityIcons name="bathtub-outline" size={24} color={colors.accentTeal} />
-                                <Text style={styles.ovFeatureVal}>{EVENT_DATA.baths}</Text>
+                                <Text style={styles.ovFeatureVal}>{eventBaths}</Text>
                                 <Text style={styles.ovFeatureLabel}>Baths</Text>
                             </View>
                             <View style={styles.ovFeatureItem}>
                                 <MaterialCommunityIcons name="selection" size={24} color={colors.accentTeal} />
-                                <Text style={styles.ovFeatureVal}>{EVENT_DATA.sqft}</Text>
+                                <Text style={styles.ovFeatureVal}>{eventSqft}</Text>
                                 <Text style={styles.ovFeatureLabel}>Sq Ft</Text>
                             </View>
                         </View>
@@ -199,12 +230,12 @@ export default function EventDashboardScreen() {
                         <View style={styles.ovScheduleStrip}>
                             <View style={styles.ovScheduleItem}>
                                 <MaterialCommunityIcons name="calendar-outline" size={20} color={colors.textSecondary} />
-                                <Text style={styles.ovScheduleText}>{EVENT_DATA.scheduledDate}</Text>
+                                <Text style={styles.ovScheduleText}>{eventDate}</Text>
                             </View>
                             <View style={styles.ovScheduleDivider} />
                             <View style={styles.ovScheduleItem}>
                                 <MaterialCommunityIcons name="clock-outline" size={20} color={colors.textSecondary} />
-                                <Text style={styles.ovScheduleText}>{EVENT_DATA.sessionTime}</Text>
+                                <Text style={styles.ovScheduleText}>{eventTime}</Text>
                             </View>
                         </View>
                     </View>
@@ -231,7 +262,7 @@ export default function EventDashboardScreen() {
                 <View style={styles.ovQrCard}>
                     <View style={styles.ovQrBox}>
                         <QRCode
-                            value="https://google.com"
+                            value={checkInUrl}
                             size={70}
                             color="#FFFFFF"
                             backgroundColor="transparent"
@@ -247,28 +278,27 @@ export default function EventDashboardScreen() {
                 <View style={styles.ovAgentCard}>
                     <Text style={styles.ovAgentSectionTitle}>Agent & Brokerage</Text>
                     <View style={styles.ovAgentMain}>
-                        <Image
-                            source="file:///Users/macbook/.gemini/antigravity/brain/2a5bd784-7535-43e5-ba0b-d8a9548397a0/agent_headshot_premium_zien_1772521795671.png"
-                            style={styles.ovAgentAvatar}
-                        />
+                        <View style={[styles.ovAgentAvatar, { backgroundColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center' }]}>
+                            <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF' }}>{agentName.charAt(0).toUpperCase()}</Text>
+                        </View>
                         <View style={{ flex: 1 }}>
                             <View style={styles.ovAgentNameRow}>
-                                <Text style={styles.ovAgentName}>{EVENT_DATA.agent.name}</Text>
+                                <Text style={styles.ovAgentName}>{agentName}</Text>
                                 <View style={styles.verifiedBadge}>
                                     <Text style={styles.verifiedBadgeText}>VERIFIED</Text>
                                 </View>
                             </View>
-                            <Text style={styles.ovAgentTitle}>{EVENT_DATA.agent.title}</Text>
+                            <Text style={styles.ovAgentTitle}>{agentTitle}</Text>
                         </View>
                     </View>
                     <View style={styles.ovAgentContact}>
                         <View style={styles.ovContactItem}>
                             <MaterialCommunityIcons name="email-outline" size={14} color={colors.textSecondary} />
-                            <Text style={styles.ovContactText}>{EVENT_DATA.agent.email}</Text>
+                            <Text style={styles.ovContactText}>{agentEmail}</Text>
                         </View>
                         <View style={styles.ovContactItem}>
                             <MaterialCommunityIcons name="phone-outline" size={14} color={colors.textSecondary} />
-                            <Text style={styles.ovContactText}>{EVENT_DATA.agent.phone}</Text>
+                            <Text style={styles.ovContactText}>{agentPhone}</Text>
                         </View>
                     </View>
                 </View>
@@ -395,7 +425,7 @@ export default function EventDashboardScreen() {
                             <Text style={styles.editLink}>EDIT IN BUILDER</Text>
                         </Pressable>
                     </View>
-                    <Text style={styles.templateTitle}>"Thank you for visiting {EVENT_DATA.address}!"</Text>
+                    <Text style={styles.templateTitle}>"Thank you for visiting {eventAddress}!"</Text>
                     <Text style={styles.templateBody} numberOfLines={3}>
                         Hi {"{{first_name}}"}, it was great meeting you today. I've attached the property dossier including the virtual tour and local market report we discussed...
                     </Text>
@@ -498,10 +528,10 @@ export default function EventDashboardScreen() {
                 <Text style={styles.premiumCardHeader}>Property Specs</Text>
                 <View style={styles.specsContainer}>
                     {[
-                        { label: 'Listing Price', value: EVENT_DATA.price, icon: 'currency-usd' },
-                        { label: 'Square Footage', value: `${EVENT_DATA.sqft} sqft`, icon: 'square-edit-outline' },
-                        { label: 'Bedrooms', value: `${EVENT_DATA.beds} Bedrooms`, icon: 'bed-outline' },
-                        { label: 'Bathrooms', value: `${EVENT_DATA.baths} Bathrooms`, icon: 'bathtub-outline' },
+                        { label: 'Listing Price', value: eventPrice, icon: 'currency-usd' },
+                        { label: 'Square Footage', value: eventSqft !== '—' ? `${eventSqft} sqft` : '—', icon: 'square-edit-outline' },
+                        { label: 'Bedrooms', value: eventBeds !== '—' ? `${eventBeds} Bedrooms` : '—', icon: 'bed-outline' },
+                        { label: 'Bathrooms', value: eventBaths !== '—' ? `${eventBaths} Bathrooms` : '—', icon: 'bathtub-outline' },
                         { label: 'Lot Size', value: '0.45 Acres', icon: 'earth' },
                         { label: 'Year Built', value: '2025', icon: 'calendar-outline' },
                     ].map((spec, idx) => (
@@ -518,9 +548,7 @@ export default function EventDashboardScreen() {
                 {/* AI Description */}
                 <View style={styles.aiDescriptionBox}>
                     <Text style={styles.aiDescriptionTitle}>AI DESCRIPTION SUMMARY</Text>
-                    <Text style={styles.aiDescriptionText}>
-                        "Architectural canyon-side estate featuring a floating glass staircase, smart-home automation, and an infinity pool overlooking LA."
-                    </Text>
+                    <Text style={styles.aiDescriptionText}>"{eventDescription}"</Text>
                 </View>
 
                 <Pressable style={styles.exportPdfBtn}>
@@ -543,7 +571,7 @@ export default function EventDashboardScreen() {
                 <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Event Name</Text>
                     <View style={styles.inputBox}>
-                        <Text style={styles.inputValue}>123 Business Way Open House</Text>
+                        <Text style={styles.inputValue}>{eventAddress} Open House</Text>
                     </View>
                 </View>
 
@@ -553,14 +581,14 @@ export default function EventDashboardScreen() {
                         <Text style={styles.inputLabel}>Date</Text>
                         <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}>
                             <MaterialCommunityIcons name="calendar" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                            <Text style={styles.inputValue}>15/01/2026</Text>
+                            <Text style={styles.inputValue}>{eventDate}</Text>
                         </View>
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
                         <Text style={styles.inputLabel}>Time</Text>
                         <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}>
                             <MaterialCommunityIcons name="clock-outline" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                            <Text style={styles.inputValue}>1:00 PM - 4:00 PM</Text>
+                            <Text style={styles.inputValue}>{eventTime}</Text>
                         </View>
                     </View>
                 </View>
@@ -569,7 +597,7 @@ export default function EventDashboardScreen() {
                 <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Property Address</Text>
                     <View style={styles.inputBox}>
-                        <Text style={styles.inputValue}>123 Business Way, Los Angeles, CA 90210</Text>
+                        <Text style={styles.inputValue}>{eventAddress}</Text>
                     </View>
                 </View>
 
@@ -577,7 +605,7 @@ export default function EventDashboardScreen() {
                 <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Agent Name</Text>
                     <View style={styles.inputBox}>
-                        <Text style={styles.inputValue}>John Smith</Text>
+                        <Text style={styles.inputValue}>{agentName}</Text>
                     </View>
                 </View>
             </View>
@@ -694,7 +722,7 @@ export default function EventDashboardScreen() {
 
                 <View style={styles.statsContainer}>
                     <View style={styles.statBox}>
-                        <Text style={[styles.statValue, { fontSize: 24 }]}>{EVENT_DATA.visitors}</Text>
+                        <Text style={[styles.statValue, { fontSize: 24 }]}>{eventVisitors}</Text>
                         <Text style={styles.statLabel}>CURR. VISITORS</Text>
                     </View>
                     <View style={styles.statBox}>
@@ -764,6 +792,15 @@ export default function EventDashboardScreen() {
         </View>
     )
 
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.cardBackground }}>
+                <ActivityIndicator size="large" color={colors.accentTeal} />
+                <Text style={{ marginTop: 16, color: colors.textSecondary, fontWeight: '600' }}>Loading event...</Text>
+            </View>
+        );
+    }
+
     return (
         <LinearGradient
             colors={colors.backgroundGradient as any}
@@ -779,14 +816,14 @@ export default function EventDashboardScreen() {
                 <View style={{ flex: 1 }}>
                     <Text style={styles.headerMainTitle} numberOfLines={1}>
                         <Text style={{ fontWeight: '500', color: colors.textSecondary }}>Back / </Text>
-                        {EVENT_DATA.address} ({EVENT_DATA.id})
+                        {eventAddress} ({eventId})
                     </Text>
                 </View>
             </View>
 
             {/* Action Buttons */}
             <View style={styles.actionRow}>
-                <ExternalLink href="https://zien.codesmile.in/check-in/OH-001/" asChild>
+                <ExternalLink href={checkInUrl} asChild>
                     <Pressable style={styles.actionBtnOutline}>
                         <MaterialCommunityIcons name="open-in-new" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
                         <Text style={styles.actionBtnOutlineText}>Open Public Check-In</Text>

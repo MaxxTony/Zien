@@ -9,12 +9,14 @@ import {
 import type { NavMenuItem } from '@/components/main';
 import { DashboardLayout } from '@/components/main';
 import { useAppTheme } from '@/context/ThemeContext';
+import { useDashboard } from '@/hooks/useDashboard';
 import { useProfile } from '@/hooks/useProfile';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Pressable,
   ScrollView,
@@ -51,36 +53,28 @@ const QUICK_ACTIONS = [
   { label: 'Zien Card', icon: 'card-text-outline', route: '/(main)/zien-card' as Href },
 ];
 
-const STATS = [
+const STATS_CONFIG = [
   {
+    key: 'totalLeads',
     title: 'Total Leads',
-    value: '1,284',
-    meta: '+12% vs last month',
-    metaTone: 'positive' as const,
     icon: 'account-group-outline',
     gradient: ['#0BA0B2', '#1B5E9A'] as [string, string],
   },
   {
+    key: 'activeListings',
     title: 'Active Listings',
-    value: '42',
-    meta: '3 new this week',
-    metaTone: 'positive' as const,
     icon: 'home-city-outline',
     gradient: ['#6B4EFF', '#9A7BFF'] as [string, string],
   },
   {
+    key: 'estRevenue',
     title: 'Est. Revenue',
-    value: '$420k',
-    meta: '+8% pipeline growth',
-    metaTone: 'positive' as const,
     icon: 'cash-multiple',
     gradient: ['#10B981', '#059669'] as [string, string],
   },
   {
+    key: 'guardianAlerts',
     title: 'Guardian Alerts',
-    value: '0',
-    meta: 'Safe · No threats',
-    metaTone: 'neutral' as const,
     icon: 'shield-check-outline',
     gradient: ['#F59E0B', '#D97706'] as [string, string],
   },
@@ -311,7 +305,6 @@ export default function DashboardScreen() {
   const [velocityRange, setVelocityRange] = useState<'7d' | '30d'>('30d');
 
   const { data: profile } = useProfile();
-  console.log(profile)
 
   const userInitials = useMemo(() => {
     if (!profile) return 'VP';
@@ -322,6 +315,26 @@ export default function DashboardScreen() {
 
   const firstName = profile?.first_name || 'John';
 
+  const { data: dashboardData, isLoading: isDashboardLoading } = useDashboard();
+
+  const STATS = useMemo(() => {
+    if (!dashboardData) return [];
+
+    return STATS_CONFIG.map(config => {
+      const apiStat = (dashboardData.stats as any)[config.key];
+      return {
+        ...config,
+        value: apiStat?.value || '0',
+        meta: apiStat?.trend || '',
+        metaTone: (apiStat?.trend?.includes('+') || apiStat?.trend === 'Safe') ? 'positive' : 'neutral',
+      };
+    });
+  }, [dashboardData]);
+
+  const ACTIVE_LEADS = useMemo(() => {
+    return dashboardData?.activeLeads || [];
+  }, [dashboardData]);
+
   const windowWidth = Dimensions.get('window').width;
   const isTablet = windowWidth >= 768;
   const sectionColumnWidth = Math.floor(
@@ -329,9 +342,19 @@ export default function DashboardScreen() {
       ? (windowWidth - CONTENT_PADDING_H * 2 - CARD_GAP) / 2
       : windowWidth - CONTENT_PADDING_H * 2
   );
-  const chartWidth = Math.max(240, sectionColumnWidth - 36);
+  const chartWidth = Math.max(240, sectionColumnWidth);
 
   const leadVelocityData = useMemo(() => {
+    if (dashboardData?.leadVelocity) {
+      const data = dashboardData.leadVelocity;
+      // If we have 12 items, they are likely months
+      const labels = data.length === 12
+        ? ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+        : data.map((_, i) => (i + 1).toString());
+
+      return { labels, datasets: [{ data }] };
+    }
+
     const labels = velocityRange === '7d'
       ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
       : ['1', '5', '10', '15', '20', '25', '30'];
@@ -339,7 +362,7 @@ export default function DashboardScreen() {
       ? [10, 12, 9, 14, 16, 13, 18]
       : [6, 10, 12, 11, 15, 14, 18];
     return { labels, datasets: [{ data }] };
-  }, [velocityRange]);
+  }, [velocityRange, dashboardData]);
 
   const chartConfig = useMemo(
     () => ({
@@ -351,7 +374,7 @@ export default function DashboardScreen() {
       fillShadowGradientFrom: colors.accentTeal,
       fillShadowGradientTo: colors.accentDark ?? '#1B5E9A',
       fillShadowGradientOpacity: 1,
-      barPercentage: 0.65,
+      barPercentage: 0.55,
       propsForBackgroundLines: {
         stroke: colors.divider,
         strokeDasharray: '4 6',
@@ -371,6 +394,11 @@ export default function DashboardScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: 32 }]}
         showsVerticalScrollIndicator={false}
       >
+        {isDashboardLoading && (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={colors.accentTeal} />
+          </View>
+        )}
         {/* ── Greeting Card ── */}
         <LinearGradient
           colors={['#0D2F45', '#0B2D3E', '#082030']}
@@ -456,13 +484,13 @@ export default function DashboardScreen() {
             <View style={styles.chartWrap}>
               <BarChart
                 data={leadVelocityData}
-                width={chartWidth}
+                width={windowWidth}
                 height={175}
                 fromZero
                 showValuesOnTopOfBars={false}
-                withInnerLines
-                withHorizontalLabels
-                withVerticalLabels
+                withInnerLines={false}
+                withHorizontalLabels={false}
+                withVerticalLabels={false}
                 yAxisLabel=""
                 yAxisSuffix=""
                 chartConfig={chartConfig as any}

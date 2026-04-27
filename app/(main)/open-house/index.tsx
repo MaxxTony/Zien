@@ -1,9 +1,9 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { getOpenHouses, OpenHouseEvent } from '@/services/openHouseService';
+import { getOpenHouses, OpenHouseEvent, deleteOpenHouse } from '@/services/openHouseService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -112,17 +112,30 @@ export default function OpenHouseScreen() {
     enabled: !!accessToken,
   });
 
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string | number) => deleteOpenHouse(accessToken || '', id),
+    onSuccess: () => {
+      Alert.alert('Success', 'Open house deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['open-houses'] });
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to delete open house');
+    },
+  });
+
   const handleDelete = (id: string | number) => {
     Alert.alert(
-      '',
+      'Delete Open House',
       'Are you sure you want to delete this open house event? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'OK',
+          text: 'Delete',
+          style: 'destructive',
           onPress: () => {
-            // Delete logic would go here
-            console.log('Delete', id);
+            deleteMutation.mutate(id);
           }
         },
       ]
