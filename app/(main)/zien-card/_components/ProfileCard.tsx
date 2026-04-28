@@ -272,7 +272,7 @@ export function ProfileCard({
                 <Pressable onPress={openEmail} style={styles.minimalIconBtn} disabled={isAlt(card.email)}>
                   <MaterialCommunityIcons name="email-outline" size={22} color={isAlt(card.email) ? "#9AA7B640" : "#9AA7B6"} />
                 </Pressable>
-                <ExternalLink href={card.website as any} style={styles.minimalIconBtn} disabled={isAlt(card.website)}>
+                <ExternalLink href={card.website} style={styles.minimalIconBtn} disabled={isAlt(card.website)}>
                   <MaterialCommunityIcons name="web" size={22} color={isAlt(card.website) ? "#9AA7B640" : "#9AA7B6"} />
                 </ExternalLink>
               </View>
@@ -337,35 +337,35 @@ export function ProfileCard({
               </Pressable>
               <View style={styles.socialRow}>
                 <ExternalLink
-                  href={card.website as any}
+                  href={card.website}
                   style={[styles.socialLink, isAlt(card.website) && { opacity: 0.3 }]}
                   disabled={isAlt(card.website)}
                 >
                   <MaterialCommunityIcons name="web" size={20} color="#7B8794" />
                 </ExternalLink>
                 <ExternalLink
-                  href={card.instagram as any}
+                  href={card.instagram}
                   style={[styles.socialLink, isAlt(card.instagram) && { opacity: 0.3 }]}
                   disabled={isAlt(card.instagram)}
                 >
                   <MaterialCommunityIcons name="instagram" size={20} color="#7B8794" />
                 </ExternalLink>
                 <ExternalLink
-                  href={card.linkedin as any}
+                  href={card.linkedin}
                   style={[styles.socialLink, isAlt(card.linkedin) && { opacity: 0.3 }]}
                   disabled={isAlt(card.linkedin)}
                 >
                   <MaterialCommunityIcons name="linkedin" size={20} color="#7B8794" />
                 </ExternalLink>
                 <ExternalLink
-                  href={card.facebook as any}
+                  href={card.facebook}
                   style={[styles.socialLink, isAlt(card.facebook) && { opacity: 0.3 }]}
                   disabled={isAlt(card.facebook)}
                 >
                   <MaterialCommunityIcons name="facebook" size={20} color="#7B8794" />
                 </ExternalLink>
                 <ExternalLink
-                  href={card.tiktok as any}
+                  href={card.tiktok}
                   style={[styles.socialLink, isAlt(card.tiktok) && { opacity: 0.3 }]}
                   disabled={isAlt(card.tiktok)}
                 >

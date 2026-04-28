@@ -1,19 +1,17 @@
+import { useAuth } from '@/context/AuthContext';
+import { useAppTheme } from '@/context/ThemeContext';
+import { getOpenHouseById } from '@/services/openHouseService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAppTheme } from '@/context/ThemeContext';
-import { useAuth } from '@/context/AuthContext';
-import { getOpenHouseById } from '@/services/openHouseService';
-import { useQuery } from '@tanstack/react-query';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Animated,
     Dimensions,
     Modal,
-    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -23,7 +21,6 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ExternalLink } from '../../../../components/external-link';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -32,45 +29,23 @@ const TABS = ['Overview', 'Visitors', 'Automation', 'Assets & Design', 'Settings
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800';
 
 function formatDate(dateStr: string): string {
-    if (!dateStr) return '—';
+    if (!dateStr) return 'TBD';
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatTime12(timeStr: string): string {
-    if (!timeStr) return '—';
+    if (!timeStr) return 'TBD';
     const [h, m] = timeStr.split(':').map(Number);
     const am = h < 12;
     const h12 = h % 12 || 12;
     return `${h12}:${String(m).padStart(2, '0')} ${am ? 'AM' : 'PM'}`;
 }
 
-const TIMELINE_EVENTS = [
-    { title: 'New Lead: Jessica Miller', time: '1:20 PM' },
-    { title: 'Check-in: Robert Chen', time: '1:45 PM' },
-    { title: 'Check-in: David Wilson', time: '2:10 PM' },
-    { title: 'Email Follow-up Sent', time: 'Ongoing' },
-];
-
-const VISITORS_DATA = [
-    { id: 1, name: 'Jessica Miller', signal: 'Hot', timeline: 'Immediate', preApproved: 'Yes', sync: 'CRM', phone: '(555) 123-4567', email: 'jessica@gmail.com' },
-    { id: 2, name: 'Robert Chen', signal: 'Top 3', timeline: '3-6 Months', preApproved: 'Yes', sync: 'CRM', phone: '(555) 987-6543', email: 'robert.c@outlook.com' },
-    { id: 3, name: 'David Wilson', signal: 'Warm', timeline: '6-12 Months', preApproved: 'No', sync: 'QUEUED', phone: '(555) 456-7890', email: 'david.w@company.com' },
-    { id: 4, name: 'Sarah Connor', signal: 'Cold', timeline: 'Just Exploring', preApproved: 'No', sync: 'CRM', phone: '(555) 321-0987', email: 'sarah.c@terminator.com' },
-];
-
-const TOP_LEADS = [
-    { id: 1, name: 'Jessica Miller', score: 98, avatar: 'JM' },
-    { id: 2, name: 'Robert Chen', score: 94, avatar: 'RC' },
-    { id: 5, name: 'Emily Blunt', score: 89, avatar: 'EB' },
-];
-
 export default function EventDashboardScreen() {
-  const { colors } = useAppTheme();
-  const styles = getStyles(colors);
-
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
     const { id, mode } = useLocalSearchParams();
-    const isLiveMode = mode !== 'view';
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { accessToken } = useAuth();
@@ -82,2684 +57,494 @@ export default function EventDashboardScreen() {
     });
 
     // Derived display values
-    const eventAddress = openHouseData?.property?.address || '—';
-    const eventId = openHouseData?.id ? `OH-${String(openHouseData.id).padStart(3, '0')}` : '—';
+    const eventAddress = openHouseData?.property?.address || 'Property Address';
+    const eventId = openHouseData?.id ? `OH-${String(openHouseData.id).padStart(3, '0')}` : 'N/A';
     const eventVisitors = openHouseData?.visitors_count ?? 0;
     const eventHotLeads = openHouseData?.hot_leads_count ?? 0;
-    const eventPrice = openHouseData?.property?.data?.ListPrice
-        ? `$${Number(openHouseData.property.data.ListPrice).toLocaleString()}`
-        : '—';
+    const pData = openHouseData?.property?.data;
+
+    const eventPrice = pData?.price || (pData?.ListPrice ? `$${Number(pData.ListPrice).toLocaleString()}` : 'N/A');
     const eventStatus = openHouseData?.status?.toUpperCase() || 'UPCOMING';
-    const eventDescription = openHouseData?.ai_description || '—';
-    const eventBeds = openHouseData?.property?.data?.BedroomsTotal || openHouseData?.property?.data?.beds || '—';
-    const eventBaths = openHouseData?.property?.data?.BathroomsFull || openHouseData?.property?.data?.baths || '—';
-    const eventSqft = openHouseData?.property?.data?.LivingArea || openHouseData?.property?.data?.sqft || '—';
-    const eventDate = openHouseData?.date ? formatDate(openHouseData.date) : '—';
+    const eventDescription = openHouseData?.ai_description || 'A premium real estate opportunity.';
+    const eventBeds = pData?.beds || pData?.BedroomsTotal || 'N/A';
+    const eventBaths = pData?.bathsFull || pData?.BathroomsFull || 'N/A';
+    const eventSqft = pData?.sqft || pData?.LivingArea || 'N/A';
+    const eventDate = openHouseData?.date ? formatDate(openHouseData.date) : 'TBD';
     const eventTime = openHouseData?.start_time && openHouseData?.end_time
         ? `${formatTime12(openHouseData.start_time)} - ${formatTime12(openHouseData.end_time)}`
-        : '—';
-    const agentName = openHouseData?.agent_details?.name || '—';
-    const agentTitle = [openHouseData?.agent_details?.brokerage, openHouseData?.agent_details?.license ? `DRE# ${openHouseData.agent_details.license}` : ''].filter(Boolean).join(' | ') || '—';
-    const agentEmail = openHouseData?.agent_details?.email || '—';
-    const agentPhone = openHouseData?.agent_details?.phone || '—';
-    const propertyImage = openHouseData?.gallery_images?.[0] || PLACEHOLDER_IMAGE;
-    const checkInUrl = `https://zien.codesmile.in/check-in/${eventId}/`;
+        : 'TBD';
+    const agentName = openHouseData?.agent_details?.name || 'Agent Name';
+    const agentTitle = [openHouseData?.agent_details?.brokerage, openHouseData?.agent_details?.license ? `DRE# ${openHouseData.agent_details.license}` : ''].filter(Boolean).join(' | ') || 'Real Estate Professional';
+    const agentEmail = openHouseData?.agent_details?.email || 'email@example.com';
 
     const [activeTab, setActiveTab] = useState('Overview');
     const [selectedVisitor, setSelectedVisitor] = useState<any>(null);
-    const [anonymizeLeads, setAnonymizeLeads] = useState(true);
-    const [hideVisitorNames, setHideVisitorNames] = useState(true);
-    const [automationRules, setAutomationRules] = useState({
-        tag: true,
-        crm: true,
-        alert: true,
-        sms: false,
-        dwell: true,
-        ghost: true
-    });
+    const [propertyPhotos, setPropertyPhotos] = useState<string[]>([]);
+    const [automationRules, setAutomationRules] = useState({ tag: true, crm: true, alert: true, sms: false, dwell: true, ghost: true });
     const [activeSequence, setActiveSequence] = useState('Open House: Instant Digital Portfolio');
     const [showSequenceDropdown, setShowSequenceDropdown] = useState(false);
-
-    const SEQUENCES = [
-        'Open House: Instant Digital Portfolio',
-        'Luxury Listing: VIP Walkthrough Nurture',
-        'Drip: 7-Day Market Insights',
-        'None (Manual Follow-up Only)'
-    ];
-
-    const [propertyPhotos, setPropertyPhotos] = useState<string[]>([]);
+    const [anonymizeLeads, setAnonymizeLeads] = useState(true);
+    const [hideVisitorNames, setHideVisitorNames] = useState(false);
 
     useEffect(() => {
         if (openHouseData?.gallery_images?.length) {
             setPropertyPhotos(openHouseData.gallery_images);
+        } else if (openHouseData?.property?.data?.Media?.length) {
+            const mediaImages = openHouseData.property.data.Media.filter((m: any) => m.MediaURL).map((m: any) => m.MediaURL);
+            setPropertyPhotos(mediaImages);
         }
     }, [openHouseData]);
-    const [showPickerOptions, setShowPickerOptions] = useState(false);
 
-    const handleAddPhoto = async (type: 'camera' | 'library') => {
-        setShowPickerOptions(false);
-
-        const permissionResult = type === 'camera'
-            ? await ImagePicker.requestCameraPermissionsAsync()
-            : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        if (permissionResult.granted === false) {
-            alert(`You need to allow ${type === 'camera' ? 'camera' : 'gallery'} permissions to add photos.`);
-            return;
-        }
-
-        const result = type === 'camera'
-            ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
-            : await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsMultipleSelection: true });
-
-        if (!result.canceled) {
-            const newPhotos = result.assets.map(asset => asset.uri);
-            setPropertyPhotos([...propertyPhotos, ...newPhotos]);
-        }
+    const handleAddPhoto = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsMultipleSelection: true });
+        if (!result.canceled) setPropertyPhotos([...propertyPhotos, ...result.assets.map(a => a.uri)]);
     };
 
-    const triggerImagePicker = () => {
-        setShowPickerOptions(true);
+    const renderHeader = () => (
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+            <View style={styles.headerTop}>
+                <Pressable onPress={() => router.back()} style={styles.headerCircleBtn}>
+                    <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
+                </Pressable>
+                <View style={styles.headerTitleContainer}>
+                    <Text style={styles.headerTitle} numberOfLines={1}>{eventAddress}</Text>
+                    <View style={styles.headerStatusRow}>
+                        <View style={[styles.liveDot, { backgroundColor: openHouseData?.status === 'live' ? '#10B981' : '#F59E0B' }]} />
+                        <Text style={styles.headerStatusText}>{eventStatus}</Text>
+                    </View>
+                </View>
+                <Pressable style={styles.headerCircleBtn}>
+                    <MaterialCommunityIcons name="share-variant-outline" size={22} color={colors.textPrimary} />
+                </Pressable>
+            </View>
+        </View>
+    );
+
+    const renderHero = () => {
+        const photos = propertyPhotos.length > 0 ? propertyPhotos : [PLACEHOLDER_IMAGE];
+        return (
+            <View style={styles.heroSection}>
+                <ScrollView
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    style={StyleSheet.absoluteFill}
+                >
+                    {photos.map((photo, index) => (
+                        <View key={index} style={{ width: SCREEN_WIDTH, height: 280 }}>
+                            <Image
+                                source={{ uri: photo }}
+                                style={styles.heroImage}
+                                contentFit="cover"
+                                transition={1000}
+                            />
+                        </View>
+                    ))}
+                </ScrollView>
+                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.heroGradient} />
+                <View style={styles.heroContent}>
+                    <View style={styles.heroPriceBadge}>
+                        <Text style={styles.heroPriceText}>{eventPrice}</Text>
+                    </View>
+                    <Text style={styles.heroAddressText} numberOfLines={2}>{eventAddress}</Text>
+                    <View style={styles.heroMetaRow}>
+                        <View style={styles.heroMetaItem}>
+                            <MaterialCommunityIcons name="bed-outline" size={16} color="#FFFFFF" />
+                            <Text style={styles.heroMetaText}>{eventBeds} Beds</Text>
+                        </View>
+                        <View style={styles.heroMetaDivider} />
+                        <View style={styles.heroMetaItem}>
+                            <MaterialCommunityIcons name="bathtub-outline" size={16} color="#FFFFFF" />
+                            <Text style={styles.heroMetaText}>{eventBaths} Baths</Text>
+                        </View>
+                        <View style={styles.heroMetaDivider} />
+                        <View style={styles.heroMetaItem}>
+                            <MaterialCommunityIcons name="vector-square" size={16} color="#FFFFFF" />
+                            <Text style={styles.heroMetaText}>{eventSqft} Sqft</Text>
+                        </View>
+                    </View>
+                </View>
+                {photos.length > 1 && (
+                    <View style={styles.carouselPagination}>
+                        {photos.map((_, i) => (
+                            <View key={i} style={styles.paginationDot} />
+                        ))}
+                    </View>
+                )}
+            </View>
+        );
     };
 
-    // Animation for blinking dot
-    const fadeAnim = useRef(new Animated.Value(0.4)).current;
-
-    useEffect(() => {
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 800,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(fadeAnim, {
-                    toValue: 0.4,
-                    duration: 800,
-                    useNativeDriver: true,
-                }),
-            ])
-        ).start();
-    }, [fadeAnim]);
+    const renderTabs = () => (
+        <View style={styles.tabBarContainer}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.tabsScroll}
+                style={{ backgroundColor: colors.surfaceSoft }}
+            >
+                {TABS.map((tab) => (
+                    <Pressable key={tab} onPress={() => setActiveTab(tab)} style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}>
+                        <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+                        {activeTab === tab && <View style={styles.tabIndicator} />}
+                    </Pressable>
+                ))}
+            </ScrollView>
+        </View>
+    );
 
     const renderOverview = () => (
         <View style={styles.tabContentPremium}>
-            {/* Top Row: Property Card & Real-Time Timeline */}
-            <View style={styles.overviewTopRow}>
-                {/* Property Card */}
-                <View style={styles.ovPropertyCard}>
-                    <View style={styles.ovPropertyImageContainer}>
-                        <Image
-                            source={{ uri: propertyImage }}
-                            style={styles.ovPropertyImage}
-                            contentFit="cover"
-                        />
-                        <View style={styles.featuredBadge}>
-                            <Text style={styles.featuredBadgeText}>FEATURED</Text>
-                        </View>
-                    </View>
-                    <View style={styles.ovPropertyDetails}>
-                        <View style={styles.ovMainInfo}>
-                            <Text style={styles.ovAddress}>{eventAddress}</Text>
-                            <View style={styles.ovStatusRow}>
-                                <Text style={styles.ovPrice}>{eventPrice}</Text>
-                                <View style={styles.ovStatusBadge}>
-                                    <Text style={styles.ovStatusText}>{eventStatus}</Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        <View style={styles.ovFeaturesGrid}>
-                            <View style={styles.ovFeatureItem}>
-                                <MaterialCommunityIcons name="bed-outline" size={24} color={colors.accentTeal} />
-                                <Text style={styles.ovFeatureVal}>{eventBeds}</Text>
-                                <Text style={styles.ovFeatureLabel}>Beds</Text>
-                            </View>
-                            <View style={styles.ovFeatureItem}>
-                                <MaterialCommunityIcons name="bathtub-outline" size={24} color={colors.accentTeal} />
-                                <Text style={styles.ovFeatureVal}>{eventBaths}</Text>
-                                <Text style={styles.ovFeatureLabel}>Baths</Text>
-                            </View>
-                            <View style={styles.ovFeatureItem}>
-                                <MaterialCommunityIcons name="selection" size={24} color={colors.accentTeal} />
-                                <Text style={styles.ovFeatureVal}>{eventSqft}</Text>
-                                <Text style={styles.ovFeatureLabel}>Sq Ft</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.ovScheduleStrip}>
-                            <View style={styles.ovScheduleItem}>
-                                <MaterialCommunityIcons name="calendar-outline" size={20} color={colors.textSecondary} />
-                                <Text style={styles.ovScheduleText}>{eventDate}</Text>
-                            </View>
-                            <View style={styles.ovScheduleDivider} />
-                            <View style={styles.ovScheduleItem}>
-                                <MaterialCommunityIcons name="clock-outline" size={20} color={colors.textSecondary} />
-                                <Text style={styles.ovScheduleText}>{eventTime}</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Real-Time Timeline */}
-                <View style={styles.ovTimelineCard}>
-                    <Text style={styles.ovTimelineTitle}>Real-Time Timeline</Text>
-                    <View style={styles.ovTimelineList}>
-                        {TIMELINE_EVENTS.map((event, idx) => (
-                            <View key={idx} style={styles.ovTimelineItem}>
-                                <View style={styles.ovTimelineDot} />
-                                <Text style={styles.ovTimelineText} numberOfLines={1}>{event.title}</Text>
-                                <Text style={styles.ovTimelineTime}>{event.time}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
+            <View style={styles.kpiRow}>
+                <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.kpiCard}>
+                    <View style={styles.kpiIconBox}><MaterialCommunityIcons name="account-group" size={20} color={colors.accentTeal} /></View>
+                    <Text style={styles.kpiValue}>{eventVisitors}</Text>
+                    <Text style={styles.kpiLabel}>TOTAL VISITORS</Text>
+                </LinearGradient>
+                <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.kpiCard}>
+                    <View style={[styles.kpiIconBox, { backgroundColor: 'rgba(244, 63, 94, 0.1)' }]}><MaterialCommunityIcons name="fire" size={20} color="#F43F5E" /></View>
+                    <Text style={styles.kpiValue}>{eventHotLeads}</Text>
+                    <Text style={styles.kpiLabel}>HOT LEADS</Text>
+                </LinearGradient>
             </View>
 
-            {/* Bottom Row: QR Check-in & Agent Card */}
-            <View style={styles.overviewBottomRow}>
-                {/* QR Check-in Card */}
-                <View style={styles.ovQrCard}>
-                    <View style={styles.ovQrBox}>
-                        <QRCode
-                            value={checkInUrl}
-                            size={70}
-                            color="#FFFFFF"
-                            backgroundColor="transparent"
-                        />
+            <View style={styles.qrHeroPremium}>
+                <View style={styles.qrHeroDetails}>
+                    <Text style={styles.qrHeroTitle}>Event QR Code</Text>
+                    <Text style={styles.qrHeroSub}>Scan to access digital portfolio</Text>
+                    <Pressable style={styles.qrShareBtn}><MaterialCommunityIcons name="share-variant" size={16} color="#FFFFFF" /><Text style={styles.qrShareBtnText}>Share Portfolio Link</Text></Pressable>
+                </View>
+                <View style={styles.qrContainerPremium}><QRCode value={`http://18.219.170.119:3000/check-in/OH-${id}/`} size={70} color="#0F172A" backgroundColor="transparent" /></View>
+            </View>
+
+            <View style={styles.sectionHeaderPremium}>
+                <Text style={styles.sectionTitlePremium}>Live Activity Feed</Text>
+                <Pressable onPress={() => setActiveTab('Visitors')}><Text style={styles.sectionLinkPremium}>View All</Text></Pressable>
+            </View>
+
+            <View style={styles.activityFeed}>
+                {(openHouseData?.enquiries || []).length > 0 ? (openHouseData?.enquiries || []).slice(0, 3).map((v: any, i: number) => (
+                    <View key={i} style={styles.activityItem}>
+                        <View style={styles.activityAvatar}><Text style={styles.activityAvatarText}>{(v.name || 'A')[0].toUpperCase()}</Text></View>
+                        <View style={styles.activityInfo}><Text style={styles.activityTitle}>{v.name || 'Anonymous'}</Text><Text style={styles.activityTime}>{new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text></View>
+                        <View style={[styles.activitySignal, { backgroundColor: (v.signal || '').toLowerCase() === 'hot' ? '#F43F5E' : colors.accentTeal }]} />
                     </View>
-                    <View style={styles.ovQrTextContent}>
-                        <Text style={styles.ovQrTitle}>EVENT CHECK-IN</Text>
-                        <Text style={styles.ovQrSub}>SCAN TO CAPTURE LEAD</Text>
+                )) : (
+                    <View style={styles.emptyActivityBox}><MaterialCommunityIcons name="radar" size={40} color={colors.textMuted} /><Text style={styles.emptyActivityText}>Waiting for visitors...</Text></View>
+                )}
+            </View>
+
+            <View style={styles.agentCardPremium}>
+                <View style={styles.agentInfoRow}>
+                    <View style={styles.agentAvatarBox}><Text style={styles.agentAvatarText}>{agentName[0].toUpperCase()}</Text></View>
+                    <View style={styles.agentNameBox}>
+                        <Text style={styles.agentNamePremium}>{agentName}</Text>
+                        <Text style={styles.agentTitlePremium}>{agentTitle}</Text>
                     </View>
                 </View>
-
-                {/* Agent Card */}
-                <View style={styles.ovAgentCard}>
-                    <Text style={styles.ovAgentSectionTitle}>Agent & Brokerage</Text>
-                    <View style={styles.ovAgentMain}>
-                        <View style={[styles.ovAgentAvatar, { backgroundColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center' }]}>
-                            <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF' }}>{agentName.charAt(0).toUpperCase()}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <View style={styles.ovAgentNameRow}>
-                                <Text style={styles.ovAgentName}>{agentName}</Text>
-                                <View style={styles.verifiedBadge}>
-                                    <Text style={styles.verifiedBadgeText}>VERIFIED</Text>
-                                </View>
-                            </View>
-                            <Text style={styles.ovAgentTitle}>{agentTitle}</Text>
-                        </View>
-                    </View>
-                    <View style={styles.ovAgentContact}>
-                        <View style={styles.ovContactItem}>
-                            <MaterialCommunityIcons name="email-outline" size={14} color={colors.textSecondary} />
-                            <Text style={styles.ovContactText}>{agentEmail}</Text>
-                        </View>
-                        <View style={styles.ovContactItem}>
-                            <MaterialCommunityIcons name="phone-outline" size={14} color={colors.textSecondary} />
-                            <Text style={styles.ovContactText}>{agentPhone}</Text>
-                        </View>
-                    </View>
+                <View style={styles.agentContactPremium}>
+                    <View style={styles.contactItemPremium}><MaterialCommunityIcons name="email-outline" size={14} color={colors.textSecondary} /><Text style={styles.contactTextPremium}>{agentEmail}</Text></View>
                 </View>
             </View>
         </View>
     );
 
     const renderVisitors = () => (
-        <View style={styles.tabContent}>
-            {/* Premium Visitor List (No Horizontal Scroll) */}
-            <View style={styles.visitorListContainer}>
-                {VISITORS_DATA.map((visitor) => (
-                    <View key={visitor.id} style={styles.visitorCardNew}>
-                        {/* Top Section: Name & Details Button */}
-                        <View style={styles.vCardTop}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.visitorNameText}>{visitor.name}</Text>
-                                <Text style={styles.visitorEmailText} numberOfLines={1}>{visitor.email}</Text>
-                            </View>
-                            <Pressable style={styles.vDetailsBtn} onPress={() => setSelectedVisitor(visitor)}>
-                                <Text style={styles.vDetailsBtnText}>Details</Text>
-                            </Pressable>
-                        </View>
-
-                        <View style={styles.vCardDivider} />
-
-                        {/* Bottom Section: Key Stats Badges */}
-                        <View style={styles.vCardStatsRow}>
-                            <View style={styles.vStatBadge}>
-                                <MaterialCommunityIcons
-                                    name={visitor.signal.toLowerCase() === 'hot' ? 'fire' :
-                                        visitor.signal.toLowerCase() === 'top 3' ? 'trending-up' :
-                                            visitor.signal.toLowerCase() === 'warm' ? 'water' : 'snowflake'}
-                                    size={14}
-                                    color="#1E293B"
-                                />
-                                <Text style={styles.vStatBadgeText}>{visitor.signal}</Text>
-                            </View>
-
-                            <View style={styles.vStatBadge}>
-                                <MaterialCommunityIcons name="timeline-outline" size={14} color={colors.textSecondary} />
-                                <Text style={[styles.vStatBadgeText, { color: colors.textSecondary, fontWeight: '600' }]}>{visitor.timeline}</Text>
-                            </View>
-
-                            <View style={styles.vStatBadge}>
-                                <Text style={[styles.vStatBadgeText, { fontSize: 9, color: colors.textMuted }]}>PRE-APP:</Text>
-                                <Text style={[styles.vStatBadgeText, { color: visitor.preApproved === 'Yes' ? '#0D9488' : '#64748B' }]}>
-                                    {visitor.preApproved.toUpperCase()}
-                                </Text>
-                            </View>
-
-                            <View style={{ marginLeft: 'auto' }}>
-                                <View style={styles.vSyncBadge}>
-                                    <MaterialCommunityIcons
-                                        name={visitor.sync.toLowerCase() === 'crm' ? 'pulse' : 'clock-outline'}
-                                        size={12}
-                                        color={colors.accentTeal}
-                                    />
-                                    <Text style={styles.vSyncBadgeText}>{visitor.sync}</Text>
-                                </View>
-                            </View>
+        <View style={styles.tabContentPremium}>
+            {(openHouseData?.enquiries || []).length > 0 ? (openHouseData?.enquiries || []).map((visitor: any) => (
+                <Pressable key={visitor.id} style={styles.visitorCardPremium} onPress={() => setSelectedVisitor(visitor)}>
+                    <View style={styles.vCardHeader}>
+                        <View style={styles.vAvatarBox}><Text style={styles.vAvatarText}>{(visitor.name || 'A')[0].toUpperCase()}</Text></View>
+                        <View style={styles.vInfoBox}><Text style={styles.vNameText}>{visitor.name || 'Anonymous'}</Text><Text style={styles.vEmailText}>{visitor.email || 'No email provided'}</Text></View>
+                        <View style={[styles.vSignalBadge, { backgroundColor: (visitor.signal || '').toLowerCase() === 'hot' ? '#F43F5E' : '#E2E8F0' }]}>
+                            <Text style={[styles.vSignalText, { color: (visitor.signal || '').toLowerCase() === 'hot' ? '#FFFFFF' : '#475569' }]}>{(visitor.signal || 'Cold').toUpperCase()}</Text>
                         </View>
                     </View>
-                ))}
-            </View>
+                    <View style={styles.vCardStats}>
+                        <View style={styles.vStatItem}><MaterialCommunityIcons name="timeline-outline" size={14} color={colors.textMuted} /><Text style={styles.vStatText}>{visitor.timeline || 'Exploring'}</Text></View>
+                        <View style={styles.vStatItem}><MaterialCommunityIcons name="check-decagram-outline" size={14} color={colors.textMuted} /><Text style={styles.vStatText}>PRE: {visitor.preApproved || 'No'}</Text></View>
+                        <View style={{ marginLeft: 'auto' }}><Text style={styles.vTimeText}>{new Date(visitor.created_at).toLocaleDateString()}</Text></View>
+                    </View>
+                </Pressable>
+            )) : (
+                <View style={styles.emptyActivityBox}><MaterialCommunityIcons name="account-group-outline" size={48} color={colors.textMuted} /><Text style={styles.emptyActivityText}>No leads collected yet</Text></View>
+            )}
         </View>
     );
 
     const renderAutomation = () => (
         <View style={styles.tabContentPremium}>
-            {/* Follow-Up Sequence Control */}
             <View style={styles.premiumCard}>
-                <Text style={styles.premiumCardHeader}>Follow-Up Sequence Control</Text>
-
+                <Text style={styles.premiumCardHeader}>Follow-up Strategy</Text>
                 <View style={styles.automationSelector}>
-                    <Text style={styles.selectorLabel}>ACTIVE AUTOMATION SEQUENCE</Text>
-                    <Pressable
-                        style={styles.selectorBox}
-                        onPress={() => setShowSequenceDropdown(!showSequenceDropdown)}
-                    >
+                    <Text style={styles.selectorLabel}>ACTIVE SEQUENCE</Text>
+                    <Pressable style={styles.selectorBox} onPress={() => setShowSequenceDropdown(!showSequenceDropdown)}>
                         <Text style={styles.selectorValue}>{activeSequence}</Text>
-                        <MaterialCommunityIcons
-                            name={showSequenceDropdown ? "chevron-up" : "chevron-down"}
-                            size={20}
-                            color={colors.textPrimary}
-                        />
+                        <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                     </Pressable>
-
-                    {showSequenceDropdown && (
-                        <View style={styles.dropdownMenu}>
-                            {SEQUENCES.map((seq) => (
-                                <Pressable
-                                    key={seq}
-                                    style={styles.dropdownItem}
-                                    onPress={() => {
-                                        setActiveSequence(seq);
-                                        setShowSequenceDropdown(false);
-                                    }}
-                                >
-                                    <View style={styles.dropdownItemContent}>
-                                        {activeSequence === seq && (
-                                            <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-                                        )}
-                                        <Text style={[
-                                            styles.dropdownItemText,
-                                            activeSequence === seq && styles.dropdownItemTextActive
-                                        ]}>
-                                            {seq}
-                                        </Text>
-                                    </View>
-                                </Pressable>
-                            ))}
-                        </View>
-                    )}
-
-                    <Text style={styles.selectorHint}>This sequence triggers automatically for every person who scans the QR code.</Text>
                 </View>
-
-                {/* Template Preview Box */}
-                <View style={styles.templatePreviewBox}>
-                    <View style={styles.templateHeader}>
-                        <Text style={styles.templateHeaderText}>TEMPLATE PREVIEW</Text>
-                        <Pressable>
-                            <Text style={styles.editLink}>EDIT IN BUILDER</Text>
-                        </Pressable>
-                    </View>
-                    <Text style={styles.templateTitle}>"Thank you for visiting {eventAddress}!"</Text>
-                    <Text style={styles.templateBody} numberOfLines={3}>
-                        Hi {"{{first_name}}"}, it was great meeting you today. I've attached the property dossier including the virtual tour and local market report we discussed...
-                    </Text>
-                    <View style={styles.templateFooter}>
-                        <View style={styles.footerIconGroup}>
-                            <View style={styles.templateIconBox}>
-                                <MaterialCommunityIcons name="file-document-outline" size={16} color={colors.textSecondary} />
-                            </View>
-                            <View style={styles.templateIconBox}>
-                                <MaterialCommunityIcons name="lightning-bolt-outline" size={16} color={colors.textSecondary} />
-                            </View>
-                            <Text style={styles.attachmentTextSmall}>+3 attachments</Text>
+                <View style={styles.rulesList}>
+                    {[
+                        { id: 'tag', label: 'Auto-Tag Visitors', icon: 'tag-outline' },
+                        { id: 'crm', label: 'Sync to Zien CRM', icon: 'sync' },
+                        { id: 'alert', label: 'Hot Lead Mobile Alert', icon: 'bell-ring-outline' },
+                        { id: 'sms', label: 'Send Welcome SMS', icon: 'message-text-outline' },
+                    ].map((rule) => (
+                        <View key={rule.id} style={styles.ruleRowPremium}>
+                            <View style={styles.ruleInfoRow}><MaterialCommunityIcons name={rule.icon as any} size={20} color={colors.textSecondary} /><Text style={styles.ruleLabelPremium}>{rule.label}</Text></View>
+                            <Switch value={(automationRules as any)[rule.id]} onValueChange={(val) => setAutomationRules(prev => ({ ...prev, [rule.id]: val }))} trackColor={{ false: '#E2E8F0', true: colors.accentTeal }} />
                         </View>
-                    </View>
+                    ))}
                 </View>
-            </View>
-
-            {/* Event-Specific Rules */}
-            <View style={styles.premiumCard}>
-                <Text style={styles.premiumCardHeader}>Event-Specific Rules</Text>
-
-                {[
-                    { id: 'tag', title: "Apply 'Open House' Tag", icon: "account-tag-outline" },
-                    { id: 'crm', title: "Sync to Zien CRM Instantly", icon: "chart-timeline-variant" },
-                    { id: 'alert', title: "Mobile Alert for 'Hot' Leads", icon: "fire" },
-                    { id: 'sms', title: "Send SMS Confirmation", icon: "message-outline" },
-                    { id: 'dwell', title: "Auto-Notify Seller on Dwell > 5m", icon: "pulse" },
-                ].map((rule) => (
-                    <View key={rule.id} style={styles.premiumRuleItem}>
-                        <View style={styles.ruleIconBox}>
-                            <MaterialCommunityIcons name={rule.icon as any} size={18} color={colors.textSecondary} />
-                        </View>
-                        <Text style={styles.premiumRuleText}>{rule.title}</Text>
-                        <Switch
-                            trackColor={{ false: colors.cardBorder, true: colors.accentTeal }}
-                            thumbColor={"#FFFFFF"}
-                            ios_backgroundColor={colors.cardBorder}
-                            value={(automationRules as any)[rule.id]}
-                            onValueChange={(val) => setAutomationRules(prev => ({ ...prev, [rule.id]: val }))}
-                            style={Platform.OS === 'ios' ? {} : { transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-                        />
-                    </View>
-                ))}
-            </View>
-
-            {/* Ghost Protocol Re-Engagement */}
-            <View style={[styles.premiumCard, styles.ghostProtocolCard]}>
-                <View style={styles.ghostHeader}>
-                    <View style={styles.ghostTitleRow}>
-                        <View style={styles.ghostIconBox}>
-                            <MaterialCommunityIcons name="lightning-bolt" size={18} color={colors.accentTeal} />
-                        </View>
-                        <Text style={styles.ghostTitle}>Ghost Protocol Re-Engagement</Text>
-                    </View>
-                    <Switch
-                        trackColor={{ false: "#E2E8F0", true: "#0D9488" }}
-                        thumbColor={"#FFFFFF"}
-                        ios_backgroundColor="#E2E8F0"
-                        value={automationRules.ghost}
-                        onValueChange={(val) => setAutomationRules(prev => ({ ...prev, ghost: val }))}
-                        style={Platform.OS === 'ios' ? {} : { transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-                    />
-                </View>
-                <Text style={styles.ghostDesc}>
-                    Automatically revive leads from this event if they go silent for more than 48 hours after the showing.
-                </Text>
             </View>
         </View>
     );
 
-    const renderAssetsAndDesign = () => (
+    const renderAssets = () => (
         <View style={styles.tabContentPremium}>
-            {/* Property Gallery */}
             <View style={styles.premiumCard}>
-                <Text style={styles.premiumCardHeader}>Property Gallery</Text>
-                <View style={styles.galleryGrid}>
+                <Text style={styles.premiumCardHeader}>Media Library</Text>
+                <View style={styles.galleryGridPremium}>
                     {propertyPhotos.map((photo, idx) => (
-                        <View key={idx} style={styles.galleryItem}>
-                            <Image source={photo} style={styles.galleryImage} contentFit="cover" />
-                            <Pressable
-                                style={styles.deletePhotoBtn}
-                                onPress={() => setPropertyPhotos(propertyPhotos.filter((_, i) => i !== idx))}
-                            >
-                                <MaterialCommunityIcons name="close" size={14} color="#FFFFFF" />
-                            </Pressable>
+                        <View key={idx} style={styles.galleryItemPremium}>
+                            <Image source={{ uri: photo }} style={styles.galleryImgPremium} contentFit="cover" />
                         </View>
                     ))}
-                    <Pressable
-                        style={styles.addPhotoBox}
-                        onPress={triggerImagePicker}
-                    >
-                        <MaterialCommunityIcons name="plus" size={24} color={colors.accentTeal} />
-                        <Text style={styles.addPhotoText}>ADD PHOTO</Text>
-                    </Pressable>
+                    <Pressable style={styles.addMediaBtn} onPress={handleAddPhoto}><MaterialCommunityIcons name="plus" size={24} color={colors.accentTeal} /><Text style={styles.addMediaText}>Add Media</Text></Pressable>
                 </View>
             </View>
-
-            {/* Property Specs */}
             <View style={styles.premiumCard}>
                 <Text style={styles.premiumCardHeader}>Property Specs</Text>
                 <View style={styles.specsContainer}>
-                    {[
-                        { label: 'Listing Price', value: eventPrice, icon: 'currency-usd' },
-                        { label: 'Square Footage', value: eventSqft !== '—' ? `${eventSqft} sqft` : '—', icon: 'square-edit-outline' },
-                        { label: 'Bedrooms', value: eventBeds !== '—' ? `${eventBeds} Bedrooms` : '—', icon: 'bed-outline' },
-                        { label: 'Bathrooms', value: eventBaths !== '—' ? `${eventBaths} Bathrooms` : '—', icon: 'bathtub-outline' },
-                        { label: 'Lot Size', value: '0.45 Acres', icon: 'earth' },
-                        { label: 'Year Built', value: '2025', icon: 'calendar-outline' },
-                    ].map((spec, idx) => (
-                        <View key={idx} style={styles.specRow}>
-                            <View style={styles.specLabelGroup}>
-                                <MaterialCommunityIcons name={spec.icon as any} size={18} color="#94A3B8" />
-                                <Text style={styles.specLabel}>{spec.label}</Text>
-                            </View>
-                            <Text style={styles.specValue}>{spec.value}</Text>
-                        </View>
-                    ))}
+                    <View style={styles.specRow}><Text style={styles.specLabel}>Listing Price</Text><Text style={styles.specValue}>{eventPrice}</Text></View>
+                    <View style={styles.specRow}><Text style={styles.specLabel}>Square Footage</Text><Text style={styles.specValue}>{eventSqft}</Text></View>
+                    <View style={styles.specRow}><Text style={styles.specLabel}>Bedrooms</Text><Text style={styles.specValue}>{eventBeds}</Text></View>
+                    <View style={styles.specRow}><Text style={styles.specLabel}>Bathrooms</Text><Text style={styles.specValue}>{eventBaths}</Text></View>
                 </View>
-
-                {/* AI Description */}
-                <View style={styles.aiDescriptionBox}>
-                    <Text style={styles.aiDescriptionTitle}>AI DESCRIPTION SUMMARY</Text>
-                    <Text style={styles.aiDescriptionText}>"{eventDescription}"</Text>
-                </View>
-
-                <Pressable style={styles.exportPdfBtn}>
-                    <Text style={styles.exportPdfBtnText}>Export PDF Portfolio</Text>
-                </Pressable>
+                <View style={styles.aiDescriptionBox}><Text style={styles.aiDescriptionTitle}>AI SUMMARY</Text><Text style={styles.aiDescriptionText}>"{eventDescription}"</Text></View>
             </View>
         </View>
     );
 
     const renderSettings = () => (
-        <View style={styles.tabContent}>
-            {/* Event Configuration */}
-            <View style={styles.card}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MaterialCommunityIcons name="cog-outline" size={20} color={colors.textPrimary} />
-                    <Text style={styles.cardTitle}>Event Configuration</Text>
+        <View style={styles.tabContentPremium}>
+            <View style={styles.premiumCard}>
+                <Text style={styles.premiumCardHeader}>Dashboard Preferences</Text>
+                <View style={styles.settingItemPremium}>
+                    <View><Text style={styles.settingTitlePremium}>Visitor Privacy Mode</Text><Text style={styles.settingDescPremium}>Anonymize lead names on dashboard</Text></View>
+                    <Switch value={hideVisitorNames} onValueChange={setHideVisitorNames} trackColor={{ false: '#E2E8F0', true: colors.accentTeal }} />
                 </View>
-
-                {/* Event Name */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Event Name</Text>
-                    <View style={styles.inputBox}>
-                        <Text style={styles.inputValue}>{eventAddress} Open House</Text>
-                    </View>
+                <View style={styles.settingItemPremium}>
+                    <View><Text style={styles.settingTitlePremium}>Anonymize Seller Report</Text><Text style={styles.settingDescPremium}>Hide lead details in shared reports</Text></View>
+                    <Switch value={anonymizeLeads} onValueChange={setAnonymizeLeads} trackColor={{ false: '#E2E8F0', true: colors.accentTeal }} />
                 </View>
-
-                {/* Date & Time */}
-                <View style={styles.rowInputs}>
-                    <View style={[styles.inputGroup, { flex: 1 }]}>
-                        <Text style={styles.inputLabel}>Date</Text>
-                        <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}>
-                            <MaterialCommunityIcons name="calendar" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                            <Text style={styles.inputValue}>{eventDate}</Text>
-                        </View>
-                    </View>
-                    <View style={[styles.inputGroup, { flex: 1 }]}>
-                        <Text style={styles.inputLabel}>Time</Text>
-                        <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}>
-                            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                            <Text style={styles.inputValue}>{eventTime}</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Property Address */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Property Address</Text>
-                    <View style={styles.inputBox}>
-                        <Text style={styles.inputValue}>{eventAddress}</Text>
-                    </View>
-                </View>
-
-                {/* Agent Name */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Agent Name</Text>
-                    <View style={styles.inputBox}>
-                        <Text style={styles.inputValue}>{agentName}</Text>
-                    </View>
-                </View>
-            </View>
-
-            {/* Notification Settings */}
-            <View style={styles.card}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MaterialCommunityIcons name="bell-outline" size={20} color={colors.textPrimary} />
-                    <Text style={styles.cardTitle}>Notification Settings</Text>
-                </View>
-                {[
-                    { title: 'Real-time Check-in Alerts', desc: 'Get notified when visitors check in', active: true },
-                    { title: 'Hot Lead Notifications', desc: 'Alert when high-interest leads arrive', active: true },
-                    { title: 'Email Summaries', desc: 'Daily recap of visitor activity', active: true }
-                ].map((setting, idx) => (
-                    <View key={idx} style={styles.ruleItem}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.settingTitle}>{setting.title}</Text>
-                            <Text style={styles.settingDesc}>{setting.desc}</Text>
-                        </View>
-                        <View style={[styles.checkbox, setting.active && styles.checkboxActive]}>
-                            {setting.active && <MaterialCommunityIcons name="check" size={14} color="#FFF" />}
-                        </View>
-                    </View>
-                ))}
-            </View>
-
-            {/* QR Code Settings */}
-            <View style={styles.card}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MaterialCommunityIcons name="qrcode-scan" size={20} color={colors.textPrimary} />
-                    <Text style={styles.cardTitle}>QR Code Settings</Text>
-                </View>
-                {[
-                    { title: 'Enable QR Check-in', checked: true },
-                    { title: 'Require Email', checked: true },
-                    { title: 'Require Phone', checked: false }
-                ].map((setting, idx) => (
-                    <View key={idx} style={styles.ruleItem}>
-                        <Text style={styles.settingTitle}>{setting.title}</Text>
-                        <View style={[styles.checkbox, setting.checked && styles.checkboxActive]}>
-                            {setting.checked && <MaterialCommunityIcons name="check" size={14} color="#FFF" />}
-                        </View>
-                    </View>
-                ))}
-
-                <Pressable style={styles.downloadQrBtn}>
-                    <MaterialCommunityIcons name="qrcode" size={18} color="#FFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.downloadQrText}>Download QR Code</Text>
-                </Pressable>
-            </View>
-
-            {/* Data & Privacy */}
-            <View style={styles.card}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MaterialCommunityIcons name="file-document-outline" size={20} color={colors.textPrimary} />
-                    <Text style={styles.cardTitle}>Data & Privacy</Text>
-                </View>
-
-                {/* Action Cards Grid */}
-                <View style={styles.dataActionGrid}>
-                    <View style={styles.dataActionCard}>
-                        <MaterialCommunityIcons name="account-group-outline" size={24} color={colors.textPrimary} />
-                        <Text style={styles.dataActionTitle}>Export Visitors</Text>
-                        <Pressable style={styles.dataActionBtn}>
-                            <Text style={styles.dataActionBtnText}>Download CSV</Text>
-                        </Pressable>
-                    </View>
-                    <View style={styles.dataActionCard}>
-                        <MaterialCommunityIcons name="email-outline" size={24} color={colors.textPrimary} />
-                        <Text style={styles.dataActionTitle}>Email Templates</Text>
-                        <Pressable style={styles.dataActionBtn}>
-                            <Text style={styles.dataActionBtnText}>Customize</Text>
-                        </Pressable>
-                    </View>
-                    <View style={styles.dataActionCard}>
-                        <MaterialCommunityIcons name="chart-timeline-variant" size={24} color={colors.textPrimary} />
-                        <Text style={styles.dataActionTitle}>Analytics</Text>
-                        <Pressable style={styles.dataActionBtn}>
-                            <Text style={styles.dataActionBtnText}>View Report</Text>
-                        </Pressable>
-                    </View>
-                </View>
-
-                {/* Danger Zone */}
-                <View style={styles.dangerZone}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.dangerTitle}>Danger Zone</Text>
-                        <Text style={styles.dangerDesc}>Permanently delete this open house event and all associated data</Text>
-                    </View>
-                    <Pressable style={styles.deleteBtn}>
-                        <Text style={styles.deleteBtnText}>Delete Event</Text>
-                    </Pressable>
-                </View>
-            </View>
-
-            {/* Footer Actions */}
-            <View style={styles.footerActions}>
-                <Pressable style={styles.cancelBtn}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                </Pressable>
-                <Pressable style={styles.saveBtn}>
-                    <Text style={styles.saveBtnText}>Save Changes</Text>
-                </Pressable>
             </View>
         </View>
     );
 
     const renderSellerReport = () => (
-        <View style={styles.tabContent}>
-            <View style={styles.card}>
-                <Text style={[styles.cardTitle, { textAlign: 'center', fontSize: 20 }]}>SELLER PERFORMANCE REPORT</Text>
-                <Text style={[styles.cardDescription, { textAlign: 'center', marginBottom: 24 }]}>123 BUSINESS WAY • LIVE STATS</Text>
-
-                <View style={styles.statsContainer}>
-                    <View style={styles.statBox}>
-                        <Text style={[styles.statValue, { fontSize: 24 }]}>{eventVisitors}</Text>
-                        <Text style={styles.statLabel}>CURR. VISITORS</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={[styles.statValue, { fontSize: 24 }]}>25%</Text>
-                        <Text style={styles.statLabel}>HOT LEAD RATIO</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={[styles.statValue, { fontSize: 24 }]}>9.5</Text>
-                        <Text style={styles.statLabel}>AVG INTEREST</Text>
-                    </View>
-                </View>
-
-                <View style={{ marginTop: 24 }}>
-                    <Text style={[styles.cardTitle, { fontSize: 14, marginBottom: 12 }]}>Market Sentiment Breakdown</Text>
-                    <View style={styles.sentimentItem}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <Text style={styles.sentimentLabel}>High Price Concern</Text>
-                            <Text style={styles.sentimentValue}>15%</Text>
-                        </View>
-                        <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: '15%' }]} />
-                        </View>
-                    </View>
-                    <View style={styles.sentimentItem}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <Text style={styles.sentimentLabel}>Love the Kitchen Reno</Text>
-                            <Text style={styles.sentimentValue}>65%</Text>
-                        </View>
-                        <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: '65%' }]} />
-                        </View>
-                    </View>
-                </View>
-            </View>
-
-            {/* Seller Visibility Card */}
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>Seller Visibility</Text>
-                <Text style={styles.cardDescription}>Control what the seller sees in their dashboard.</Text>
-
-                <View style={{ marginTop: 16 }}>
-                    <Pressable
-                        style={styles.visibilityRow}
-                        onPress={() => setAnonymizeLeads(!anonymizeLeads)}
-                    >
-                        <Text style={styles.visibilityLabel}>Anonymize Leads</Text>
-                        <View style={[styles.checkbox, anonymizeLeads && styles.checkboxActive]}>
-                            {anonymizeLeads && <MaterialCommunityIcons name="check" size={14} color="#FFF" />}
-                        </View>
-                    </Pressable>
-
-                    <Pressable
-                        style={styles.visibilityRow}
-                        onPress={() => setHideVisitorNames(!hideVisitorNames)}
-                    >
-                        <Text style={styles.visibilityLabel}>Hide Visitor Names</Text>
-                        <View style={[styles.checkbox, hideVisitorNames && styles.checkboxActive]}>
-                            {hideVisitorNames && <MaterialCommunityIcons name="check" size={14} color="#FFF" />}
-                        </View>
-                    </Pressable>
-                </View>
-
-                <Pressable style={styles.pushReportBtn}>
-                    <Text style={styles.pushReportText}>Push Live Report to Seller</Text>
-                </Pressable>
+        <View style={styles.tabContentPremium}>
+            <View style={styles.premiumCard}>
+                <Text style={styles.premiumCardHeader}>Seller Insight Dashboard</Text>
+                <Text style={styles.sellerDescPremium}>This report is synchronized live with the seller's portal. Any check-ins will appear instantly for the client.</Text>
+                <Pressable style={styles.actionBtnPrimaryPremium}><MaterialCommunityIcons name="file-pdf-box" size={20} color="#FFFFFF" /><Text style={styles.actionBtnTextPremium}>Generate PDF Report</Text></Pressable>
             </View>
         </View>
-    )
+    );
 
-    if (isLoading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.cardBackground }}>
-                <ActivityIndicator size="large" color={colors.accentTeal} />
-                <Text style={{ marginTop: 16, color: colors.textSecondary, fontWeight: '600' }}>Loading event...</Text>
-            </View>
-        );
-    }
+    if (isLoading) return <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.accentTeal} /><Text style={styles.loadingText}>Loading Premium Dashboard...</Text></View>;
 
     return (
-        <LinearGradient
-            colors={colors.backgroundGradient as any}
-            start={{ x: 0.1, y: 0 }}
-            end={{ x: 0.9, y: 1 }}
-            style={[styles.background, { paddingTop: insets.top }]}>
-
-            {/* Header */}
-            <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <MaterialCommunityIcons name="arrow-left" size={22} color={colors.accentTeal} />
-                </Pressable>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.headerMainTitle} numberOfLines={1}>
-                        <Text style={{ fontWeight: '500', color: colors.textSecondary }}>Back / </Text>
-                        {eventAddress} ({eventId})
-                    </Text>
+        <View style={styles.container}>
+            {renderHeader()}
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                stickyHeaderIndices={[2]}
+                contentContainerStyle={{ backgroundColor: colors.surfaceSoft }}
+            >
+                {renderHero()}
+                <View style={styles.kpiBelt}>
+                    <View style={styles.beltItem}><Text style={styles.beltVal}>{eventVisitors}</Text><Text style={styles.beltLabel}>VISITORS</Text></View>
+                    <View style={styles.beltDivider} />
+                    <View style={styles.beltItem}><Text style={[styles.beltVal, { color: '#F43F5E' }]}>{eventHotLeads}</Text><Text style={styles.beltLabel}>HOT LEADS</Text></View>
+                    <View style={styles.beltDivider} />
+                    <View style={styles.beltItem}><Text style={styles.beltVal}>12m</Text><Text style={styles.beltLabel}>AVG. DWELL</Text></View>
                 </View>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.actionRow}>
-                <ExternalLink href={checkInUrl} asChild>
-                    <Pressable style={styles.actionBtnOutline}>
-                        <MaterialCommunityIcons name="open-in-new" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
-                        <Text style={styles.actionBtnOutlineText}>Open Public Check-In</Text>
-                    </Pressable>
-                </ExternalLink>
-                <Pressable style={styles.actionBtnSolid}>
-                    <Text style={styles.actionBtnSolidText}>Generate Sheet</Text>
-                </Pressable>
-            </View>
-
-
-
-            {/* Tabs */}
-            <View>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.tabsContainer}
-                >
-                    {TABS.map(tab => (
-                        <Pressable
-                            key={tab}
-                            onPress={() => setActiveTab(tab)}
-                            style={[styles.tabItem, activeTab === tab && styles.activeTabItem]}
-                        >
-                            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
-                            {activeTab === tab && <View style={styles.activeTabIndicator} />}
-                        </Pressable>
-                    ))}
-                </ScrollView>
-            </View>
-
-            {/* Content */}
-            <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-                {activeTab === 'Overview' && renderOverview()}
-                {activeTab === 'Visitors' && renderVisitors()}
-                {activeTab === 'Automation' && renderAutomation()}
-                {activeTab === 'Assets & Design' && renderAssetsAndDesign()}
-                {activeTab === 'Settings' && renderSettings()}
-                {activeTab === 'Seller Report' && renderSellerReport()}
+                {renderTabs()}
+                <View style={styles.mainContent}>
+                    {activeTab === 'Overview' && renderOverview()}
+                    {activeTab === 'Visitors' && renderVisitors()}
+                    {activeTab === 'Automation' && renderAutomation()}
+                    {activeTab === 'Assets & Design' && renderAssets()}
+                    {activeTab === 'Settings' && renderSettings()}
+                    {activeTab === 'Seller Report' && renderSellerReport()}
+                </View>
+                <View style={{ height: 120 }} />
             </ScrollView>
 
-            <Modal
-                visible={selectedVisitor != null}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setSelectedVisitor(null)}>
-                <Pressable style={styles.visitorModalBackdrop} onPress={() => setSelectedVisitor(null)}>
-                    <Pressable style={styles.visitorModalCard} onPress={(e) => e.stopPropagation()}>
-                        <Pressable style={styles.visitorModalClose} onPress={() => setSelectedVisitor(null)} hitSlop={12}>
-                            <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
-                        </Pressable>
+
+            {/* Lead Intelligence Modal */}
+            <Modal visible={!!selectedVisitor} transparent animationType="slide">
+                <Pressable style={styles.modalOverlay} onPress={() => setSelectedVisitor(null)}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHandle} />
                         {selectedVisitor && (
-                            <>
-                                <View style={styles.visitorModalHeader}>
-                                    <View style={styles.visitorModalAvatar}>
-                                        <Text style={styles.visitorModalAvatarText}>
-                                            {selectedVisitor.name.charAt(0)}
-                                        </Text>
+                            <View>
+                                <View style={styles.modalHeader}>
+                                    <View style={styles.modalAvatar}><Text style={styles.modalAvatarText}>{(selectedVisitor.name || 'A')[0].toUpperCase()}</Text></View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalName}>{selectedVisitor.name || 'Anonymous'}</Text>
+                                        <Text style={styles.modalEmail}>{selectedVisitor.email || 'No email'}</Text>
                                     </View>
-                                    <View style={styles.visitorModalHeaderText}>
-                                        <View style={styles.visitorModalNameRow}>
-                                            <Text style={styles.visitorModalName}>{selectedVisitor.name}</Text>
-                                            {selectedVisitor.signal === 'Hot' && (
-                                                <View style={styles.visitorModalHotBadge}>
-                                                    <MaterialCommunityIcons name="fire" size={12} color="#FFFFFF" />
-                                                    <Text style={styles.visitorModalHotBadgeText}>HOT LEAD</Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                        <Text style={styles.visitorModalContact}>
-                                            {selectedVisitor.email || 'email@example.com'} • {selectedVisitor.phone || '(555) 123-4567'}
-                                        </Text>
-                                    </View>
+                                    <Pressable onPress={() => setSelectedVisitor(null)}><MaterialCommunityIcons name="close-circle" size={28} color={colors.textMuted} /></Pressable>
                                 </View>
-                                <Text style={styles.visitorModalSectionLabel}>VISITOR CONTEXT</Text>
-                                <View style={styles.visitorModalContextRow}>
-                                    <Text style={styles.visitorModalContextLabel}>Timeline</Text>
-                                    <Text style={styles.visitorModalContextValue}>{selectedVisitor.timeline}</Text>
+                                <View style={styles.intelGrid}>
+                                    <View style={styles.intelCard}><Text style={styles.intelLabel}>SIGNALS</Text><Text style={[styles.intelVal, { color: (selectedVisitor.signal || '').toLowerCase() === 'hot' ? '#F43F5E' : colors.accentTeal }]}>{selectedVisitor.signal || 'Exploring'}</Text></View>
+                                    <View style={styles.intelCard}><Text style={styles.intelLabel}>PRE-APPROVED</Text><Text style={[styles.intelVal, { color: (selectedVisitor.preApproved || '').toLowerCase() === 'yes' ? '#10B981' : '#F43F5E' }]}>{selectedVisitor.preApproved || 'No'}</Text></View>
                                 </View>
-                                <View style={styles.visitorModalContextRow}>
-                                    <Text style={styles.visitorModalContextLabel}>Pre-Approved</Text>
-                                    <Text style={styles.visitorModalContextValue}>{selectedVisitor.preApproved}</Text>
-                                </View>
-                                <View style={styles.visitorModalContextRow}>
-                                    <Text style={styles.visitorModalContextLabel}>Lead Score</Text>
-                                    <Text style={styles.visitorModalContextScore}>85/100</Text>
-                                </View>
-                                <Text style={[styles.visitorModalSectionLabel, styles.visitorModalSectionLabelTop]}>SMART FOLLOW-UP</Text>
-                                <Pressable style={styles.visitorModalBtnPrimary}>
-                                    <Text style={styles.visitorModalBtnPrimaryText}>Send Investment Analysis</Text>
-                                    <MaterialCommunityIcons name="star" size={18} color="#FFFFFF" />
-                                </Pressable>
-                                <Pressable style={styles.visitorModalBtnSecondary}>
-                                    <Text style={styles.visitorModalBtnSecondaryText}>Schedule Private Showing</Text>
-                                </Pressable>
-                                <Pressable style={styles.visitorModalBtnSecondaryBlue}>
-                                    <Text style={styles.visitorModalBtnSecondaryBlueText}>Send Similar Listings</Text>
-                                </Pressable>
-                            </>
+                                <View style={styles.intelCardFull}><Text style={styles.intelLabel}>KEY INTERESTS</Text><Text style={styles.intelValSmall}>Primary residence, school districts, kitchen upgrades.</Text></View>
+                                <Pressable style={styles.modalActionBtn}><Text style={styles.modalActionText}>Push to Zien CRM</Text></Pressable>
+                            </View>
                         )}
-                    </Pressable>
-                </Pressable>
-            </Modal>
-
-            {/* Photo Picker Bottom Sheet */}
-            <Modal
-                visible={showPickerOptions}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowPickerOptions(false)}>
-                <Pressable style={styles.modalBackdrop} onPress={() => setShowPickerOptions(false)}>
-                    <View style={styles.pickerModalContent}>
-                        <View style={styles.pickerModalHeader}>
-                            <View style={styles.pickerHandle} />
-                            <Text style={styles.pickerModalTitle}>Add Property Photos</Text>
-                        </View>
-
-                        <View style={styles.pickerOptionsContainer}>
-                            <Pressable style={styles.pickerOption} onPress={() => handleAddPhoto('camera')}>
-                                <View style={styles.pickerIconWrap}>
-                                    <MaterialCommunityIcons name="camera" size={24} color={colors.textPrimary} />
-                                </View>
-                                <View style={styles.pickerOptionTextContainer}>
-                                    <Text style={styles.pickerOptionText}>Take Photo</Text>
-                                    <Text style={styles.pickerOptionSub}>Use camera to capture new photos</Text>
-                                </View>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
-                            </Pressable>
-
-                            <Pressable style={styles.pickerOption} onPress={() => handleAddPhoto('library')}>
-                                <View style={styles.pickerIconWrap}>
-                                    <MaterialCommunityIcons name="image-multiple" size={24} color={colors.textPrimary} />
-                                </View>
-                                <View style={styles.pickerOptionTextContainer}>
-                                    <Text style={styles.pickerOptionText}>Choose from Gallery</Text>
-                                    <Text style={styles.pickerOptionSub}>Select existing photos from library</Text>
-                                </View>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
-                            </Pressable>
-                        </View>
-
-                        <Pressable style={styles.pickerCancelBtn} onPress={() => setShowPickerOptions(false)}>
-                            <Text style={styles.pickerCancelBtnText}>Cancel</Text>
-                        </Pressable>
                     </View>
                 </Pressable>
             </Modal>
-
-        </LinearGradient >
+        </View>
     );
 }
 
-function getStyles(colors: any) {
-  return StyleSheet.create({
-    background: {
-        flex: 1,
-    },
-    header: {
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: colors.cardBackground,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerMainTitle: {
-        fontSize: 15,
-        fontWeight: '800',
-        color: colors.textPrimary,
-        letterSpacing: -0.2,
-    },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: colors.textPrimary,
-    },
-    headerSubtitle: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        fontWeight: '600',
-    },
-    iconBtn: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: colors.surfaceIcon,
-        borderRadius: 20,
-    },
-    liveBanner: {
-        backgroundColor: colors.danger,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginHorizontal: 16,
-        borderRadius: 12,
-        marginTop: 8,
-        marginBottom: 16,
-        shadowColor: '#EF4444',
-        shadowOpacity: 0.3,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 8,
-    },
-    liveIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    pulseDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: colors.cardBackground,
-    },
-    bannerBoldText: {
-        color: '#FFF',
-        fontWeight: '900',
-        fontSize: 11,
-        letterSpacing: 0.5,
-    },
-    liveText: {
-        color: '#FFF',
-        fontWeight: '800',
-        fontSize: 12,
-        letterSpacing: 0.5,
-    },
-    // Action Row Styles
-    actionRow: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        gap: 5,
-        marginBottom: 16,
-    },
-    actionBtnOutline: {
-        flex: .55,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.cardBackground,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        paddingVertical: 14,
-        borderRadius: 12,
-    },
-    actionBtnOutlineText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    actionBtnSolid: {
-        flex: .45,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.accentTeal,
-        paddingVertical: 14,
-        borderRadius: 12,
-    },
-    actionBtnSolidText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    endEventBtn: {
-        backgroundColor: colors.surfaceIcon,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 6,
-    },
-    endEventText: {
-        color: '#FFF',
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    tabsContainer: {
-        paddingHorizontal: 16,
-        gap: 24,
-        paddingBottom: 12,
-    },
-    tabItem: {
-        paddingBottom: 8,
-        position: 'relative',
-    },
-    activeTabItem: {
-        // borderBottomWidth: 2,
-        // borderBottomColor: '#0F172A',
-    },
-    tabText: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        fontWeight: '600',
-    },
-    activeTabText: {
-        color: colors.textPrimary,
-        fontWeight: '800',
-    },
-    activeTabIndicator: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 3,
-        backgroundColor: colors.accentTeal,
-        borderRadius: 2,
-    },
-    tabContent: {
-        paddingHorizontal: 16,
-        paddingTop: 8,
-        gap: 16,
-    },
-    card: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: 16,
-        shadowColor: colors.cardShadowColor,
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    qrContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.surfaceSoft,
-        width: 60,
-        height: 60,
-        borderRadius: 12,
-        marginBottom: 12,
-    },
-    qrText: {
-        fontSize: 8,
-        marginTop: 4,
-        color: colors.textSecondary,
-        textAlign: 'center',
-    },
-    summaryContent: {
-        gap: 8,
-    },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: colors.textPrimary,
-    },
-    cardDescription: {
-        fontSize: 13,
-        color: colors.textSecondary,
-        lineHeight: 20,
-    },
-    timeRow: {
-        flexDirection: 'row',
-        gap: 24,
-        marginTop: 8,
-    },
-    timeValue: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: colors.textPrimary,
-    },
-    timeLabel: {
-        fontSize: 10,
-        color: colors.textMuted,
-        fontWeight: '700',
-        marginTop: 2,
-    },
-    statsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 16,
-    },
-    statBox: {
-        alignItems: 'center',
-        flex: 1,
-        padding: 12,
-        backgroundColor: colors.surfaceSoft,
-        borderRadius: 12,
-        marginHorizontal: 4,
-    },
-    statValue: {
-        fontSize: 20,
-        fontWeight: '900',
-        color: colors.textPrimary,
-    },
-    statLabel: {
-        fontSize: 9,
-        fontWeight: '700',
-        color: colors.textSecondary,
-        marginTop: 4,
-    },
-    timelineList: {
-        marginTop: 16,
-        gap: 16,
-    },
-    timelineItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    timelineDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: colors.accentTeal,
-    },
-    timelineText: {
-        color: colors.textPrimary,
-        fontSize: 13,
-        fontWeight: '500',
-    },
-    timelineTime: {
-        color: colors.textMuted,
-        fontSize: 11,
-    },
-    visitorCard: {
-        backgroundColor: '#FFF',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 8,
-    },
-    visitorHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.cardBorder,
-        paddingBottom: 12,
-    },
-    visitorName: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: colors.textPrimary,
-    },
-    actionBtn: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        borderRadius: 6,
-    },
-    actionBtnText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    visitorDetailsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
-    },
-    visitorDetailItem: {
-        width: '45%',
-    },
-    detailLabel: {
-        fontSize: 10,
-        color: colors.textMuted,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-    detailValue: {
-        fontSize: 13,
-        color: colors.textPrimary,
-        fontWeight: '600',
-    },
-    signalBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-
-    // Automation Styles
-    automationPreview: {
-        backgroundColor: colors.surfaceSoft,
-        padding: 16,
-        borderRadius: 12,
-        marginTop: 12,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    previewLabel: {
-        fontSize: 9,
-        fontWeight: '800',
-        color: colors.textSecondary,
-        marginBottom: 8,
-        letterSpacing: 0.5,
-    },
-    previewTitle: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: colors.textPrimary,
-        marginBottom: 4,
-    },
-    previewBody: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        lineHeight: 18,
-        marginBottom: 12,
-    },
-    attachmentsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    attachmentBox: {
-        width: 24,
-        height: 24,
-        backgroundColor: colors.cardBorder,
-        borderRadius: 4,
-    },
-    attachmentText: {
-        fontSize: 11,
-        color: colors.textMuted,
-        fontStyle: 'italic',
-    },
-    ruleItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.cardBorder,
-    },
-    ruleText: {
-        fontSize: 13,
-        color: colors.textPrimary,
-        fontWeight: '500',
-        flex: 1,
-        marginRight: 12,
-    },
-
-    // Settings Styles
-    inputGroup: {
-        marginBottom: 16,
-    },
-    inputLabel: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: colors.textSecondary,
-        marginBottom: 6,
-    },
-    inputBox: {
-        backgroundColor: colors.surfaceSoft,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        padding: 12,
-        borderRadius: 8,
-    },
-    inputValue: {
-        fontSize: 13,
-        color: colors.textPrimary,
-        fontWeight: '600',
-    },
-    rowInputs: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    settingTitle: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    settingDesc: {
-        fontSize: 11,
-        color: colors.textMuted,
-    },
-
-    // Seller Report
-    sentimentItem: {
-        marginBottom: 16,
-    },
-    sentimentLabel: {
-        fontSize: 12,
-        color: colors.textPrimary,
-        fontWeight: '700',
-    },
-    sentimentValue: {
-        fontSize: 12,
-        color: colors.textPrimary,
-        fontWeight: '800',
-    },
-    progressBarBg: {
-        height: 6,
-        backgroundColor: colors.cardBorder,
-        borderRadius: 3,
-        marginTop: 6,
-    },
-    progressBarFill: {
-        height: '100%',
-        backgroundColor: colors.accentTeal,
-        borderRadius: 3,
-    },
-    // Modal Styles
-    visitorModalBackdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    visitorModalCard: {
-        width: '100%',
-        maxWidth: 360,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 24,
-        padding: 20,
-        paddingTop: 44,
-        shadowColor: colors.cardShadowColor,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 24,
-        elevation: 12,
-    },
-    visitorModalClose: {
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: colors.surfaceSoft,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    visitorModalHeader: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 20,
-        gap: 14,
-    },
-    visitorModalAvatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: colors.accentTeal,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    visitorModalAvatarText: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: '#FFFFFF',
-    },
-    visitorModalHeaderText: {
-        flex: 1,
-        minWidth: 0,
-    },
-    visitorModalNameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 6,
-    },
-    visitorModalName: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: colors.textPrimary,
-    },
-    visitorModalHotBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-        backgroundColor: colors.danger,
-    },
-    visitorModalHotBadgeText: {
-        fontSize: 11,
-        fontWeight: '800',
-        color: '#FFFFFF',
-        letterSpacing: 0.3,
-    },
-    visitorModalContact: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: colors.textSecondary,
-        lineHeight: 18,
-    },
-    visitorModalSectionLabel: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: colors.textMuted,
-        letterSpacing: 0.5,
-        marginBottom: 10,
-    },
-    visitorModalSectionLabelTop: {
-        marginTop: 18,
-        marginBottom: 10,
-    },
-    visitorModalContextRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 10,
-        borderTopWidth: 1,
-        borderTopColor: colors.cardBorder,
-    },
-    visitorModalContextLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: colors.textSecondary,
-    },
-    visitorModalContextValue: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    visitorModalContextScore: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: colors.accentTeal,
-    },
-    visitorModalBtnPrimary: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 14,
-        borderRadius: 12,
-        backgroundColor: colors.accentTeal,
-        marginBottom: 10,
-    },
-    visitorModalBtnPrimaryText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    visitorModalBtnSecondary: {
-        paddingVertical: 14,
-        borderRadius: 12,
-        backgroundColor: colors.cardBackground,
-        borderWidth: 1.5,
-        borderColor: colors.cardBorder,
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    visitorModalBtnSecondaryText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    visitorModalBtnSecondaryBlue: {
-        paddingVertical: 14,
-        borderRadius: 12,
-        backgroundColor: colors.cardBackground,
-        borderWidth: 1.5,
-        borderColor: '#0D9488',
-        alignItems: 'center',
-    },
-    visitorModalBtnSecondaryBlueText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: colors.accentTeal,
-    },
-    // Seller Visibility Styles
-    visibilityRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.cardBorder,
-    },
-    visibilityLabel: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    checkbox: {
-        width: 20,
-        height: 20,
-        borderRadius: 4,
-        borderWidth: 2,
-        borderColor: colors.cardBorder,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    checkboxActive: {
-        backgroundColor: '#3B82F6',
-        borderColor: '#3B82F6',
-    },
-    pushReportBtn: {
-        backgroundColor: colors.accentTeal,
-        marginTop: 20,
-        paddingVertical: 14,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    pushReportText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '800',
-    },
-
-    // New Styles for Settings
-    downloadQrBtn: {
-        backgroundColor: colors.accentTeal,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        borderRadius: 8,
-        marginTop: 16,
-    },
-    downloadQrText: {
-        color: '#FFFFFF',
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    dataActionGrid: {
-        flexDirection: 'row', // Make it scrollable or wrapped on small screens? The layout had 3 columns.
-        flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 24,
-    },
-    dataActionCard: {
-        flex: 1, // Distribute space evenly
-        minWidth: '28%', // Ensure they don't get too squished
-        backgroundColor: colors.cardBackground, // Changed to white as per card standard or maybe slight grey
-        borderRadius: 12,
-        padding: 16,
-        alignItems: 'center',
-        gap: 12,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        shadowColor: colors.cardShadowColor,
-        shadowOpacity: 0.02,
-        shadowOffset: { width: 0, height: 2 },
-    },
-    dataActionTitle: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.textPrimary,
-        textAlign: 'center',
-    },
-    dataActionBtn: {
-        backgroundColor: colors.cardBackground,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        marginTop: 4,
-        width: '100%',
-        alignItems: 'center',
-    },
-    dataActionBtnText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    dangerZone: {
-        backgroundColor: colors.dangerBg,
-        borderWidth: 1,
-        borderColor: colors.dangerBorder,
-        borderRadius: 12,
-        padding: 16,
-        gap: 16,
-    },
-    dangerTitle: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: colors.danger,
-        marginBottom: 4,
-    },
-    dangerDesc: {
-        fontSize: 11,
-        color: colors.danger,
-        lineHeight: 16,
-    },
-    deleteBtn: {
-        backgroundColor: colors.cardBackground,
-        paddingVertical: 12,
-        alignItems: 'center',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: colors.dangerBorder,
-    },
-    deleteBtnText: {
-        color: colors.danger,
-        fontSize: 12,
-        fontWeight: '700',
-    },
-    footerActions: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        gap: 12,
-        marginTop: 8,
-        paddingHorizontal: 16, // Match other padding
-    },
-    cancelBtn: {
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    cancelBtnText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    saveBtn: {
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        backgroundColor: colors.accentTeal,
-        borderRadius: 8,
-    },
-    saveBtnText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    // Premium Dashboard Styles
-    contentLiveBanner: {
-        backgroundColor: colors.danger,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderRadius: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    indicators: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    bannerBtn: {
-        backgroundColor: colors.surfaceIcon,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    bannerBtnText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '800',
-    },
-    qrHeroCard: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 20,
-        padding: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-        marginBottom: 16,
-    },
-    qrIconBox: {
-        width: 80,
-        height: 80,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    qrHeroInfo: {
-        flex: 1,
-    },
-    qrHeroTitle: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        marginBottom: 4,
-    },
-    qrHeroSub: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        lineHeight: 18,
-        fontWeight: '500',
-    },
-    statsRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 16,
-    },
-    dashStatCard: {
-        flex: 1,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: 16,
-        alignItems: 'center',
-    },
-    dashStatValue: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: colors.textPrimary,
-    },
-    dashStatLabel: {
-        fontSize: 9,
-        fontWeight: '800',
-        color: colors.textMuted,
-        marginTop: 4,
-        letterSpacing: 0.5,
-    },
-    overviewLowerGrid: {
-        gap: 16,
-    },
-    timelineCardDark: {
-        backgroundColor: colors.accentTeal,
-        borderRadius: 20,
-        padding: 20,
-    },
-    timelineCardTitle: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: '#FFFFFF',
-        marginBottom: 16,
-    },
-    overviewTimelineList: {
-        gap: 14,
-    },
-    overviewTimelineItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    timelineStatusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-    overviewTimelineText: {
-        flex: 1,
-        fontSize: 13,
-        color: colors.textPrimary,
-        fontWeight: '500',
-    },
-    overviewTimelineTime: {
-        fontSize: 11,
-        color: colors.textMuted,
-    },
-    quickActionsRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    quickActionBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        backgroundColor: colors.cardBackground,
-        paddingVertical: 14,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    quickActionText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    // Visitors Premium Styles
-    sectionTitle: {
-        fontSize: 15,
-        fontWeight: '800',
-        color: colors.textPrimary,
-        marginBottom: 12,
-    },
-    topLeadsSection: {
-        marginBottom: 20,
-    },
-    topLeadsScroll: {
-        gap: 12,
-    },
-    topLeadCard: {
-        width: 100,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: 12,
-        alignItems: 'center',
-    },
-    topLeadAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: colors.accentTeal,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 8,
-        position: 'relative',
-    },
-    topLeadAvatarText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '800',
-    },
-    scoreBadge: {
-        position: 'absolute',
-        bottom: -2,
-        right: -2,
-        backgroundColor: '#0D9488',
-        paddingHorizontal: 4,
-        paddingVertical: 2,
-        borderRadius: 6,
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-    },
-    scoreText: {
-        fontSize: 8,
-        fontWeight: '900',
-        color: '#FFFFFF',
-    },
-    topLeadName: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.textPrimary,
-        marginBottom: 2,
-    },
-    topLeadStatus: {
-        fontSize: 9,
-        fontWeight: '600',
-        color: colors.textSecondary,
-    },
-    searchBarBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.cardBackground,
-        borderRadius: 14,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        gap: 10,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    searchBarInput: {
-        flex: 1,
-        fontSize: 14,
-        color: colors.textPrimary,
-        fontWeight: '500',
-    },
-    visitorCardPremium: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 20,
-        padding: 16,
-        marginBottom: 12,
-    },
-    visitorRowTop: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    visitorMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    initialsBox: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.surfaceSoft,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    initialsText: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: colors.textSecondary,
-    },
-    // --- Premium Visitor List Styles (Mobile Card) ---
-    visitorListContainer: {
-        gap: 16,
-    },
-    visitorCardNew: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 24,
-        padding: 20,
-        shadowColor: colors.cardShadowColor,
-        shadowOpacity: 0.08,
-        shadowOffset: { width: 0, height: 6 },
-        shadowRadius: 16,
-        elevation: 4,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    vCardTop: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    visitorNameText: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        marginBottom: 2,
-    },
-    visitorEmailText: {
-        fontSize: 13,
-        color: colors.textSecondary,
-        fontWeight: '500',
-    },
-    vDetailsBtn: {
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        backgroundColor: colors.surfaceSoft,
-        borderWidth: 1.5,
-        borderColor: colors.cardBorder,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    vDetailsBtnText: {
-        fontSize: 13,
-        fontWeight: '900',
-        color: colors.textPrimary,
-    },
-    vCardDivider: {
-        height: 1,
-        backgroundColor: colors.surfaceSoft,
-        marginBottom: 16,
-    },
-    vCardStatsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 12,
-    },
-    vStatBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: colors.surfaceSoft,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 10,
-    },
-    vStatBadgeText: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: colors.textPrimary,
-    },
-    vSyncBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        backgroundColor: colors.surfaceIcon,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    vSyncBadgeText: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: colors.accentTeal,
-        letterSpacing: 0.3,
-    },
-    // Premium Overview Styles
-    tabContentPremium: {
-        paddingHorizontal: 16,
-        paddingTop: 8,
-        gap: 16,
-    },
-    overviewTopRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
-    },
-    ovPropertyCard: {
-        width: '100%',
-        backgroundColor: colors.cardBackground,
-        borderRadius: 24,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        shadowColor: colors.cardShadowColor,
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 20,
-        elevation: 5,
-    },
-    ovPropertyImageContainer: {
-        width: '100%',
-        height: 220,
-        position: 'relative',
-    },
-    ovPropertyImage: {
-        width: '100%',
-        height: '100%',
-    },
-    featuredBadge: {
-        position: 'absolute',
-        top: 16,
-        left: 16,
-        backgroundColor: '#0D9488',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    featuredBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '900',
-    },
-    ovPropertyDetails: {
-        padding: 20,
-    },
-    ovMainInfo: {
-        marginBottom: 20,
-    },
-    ovAddress: {
-        fontSize: 20,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        lineHeight: 34,
-        marginBottom: 10,
-    },
-    ovStatusRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 24,
-    },
-    ovPrice: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: colors.textSecondary,
-    },
-    ovStatusBadge: {
-        backgroundColor: colors.surfaceIcon,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 10,
-    },
-    ovStatusText: {
-        color: colors.accentTeal,
-        fontSize: 11,
-        fontWeight: '900',
-        letterSpacing: 0.3,
-    },
-    ovFeaturesGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        backgroundColor: colors.surfaceSoft,
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 24,
-    },
-    ovFeatureItem: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    ovFeatureVal: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        marginTop: 10,
-    },
-    ovFeatureLabel: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: colors.textMuted,
-        marginTop: 4,
-    },
-    ovScheduleStrip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 4,
-    },
-    ovScheduleItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    ovScheduleText: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: colors.textSecondary,
-    },
-    ovScheduleDivider: {
-        width: 1.5,
-        height: 20,
-        backgroundColor: colors.cardBorder,
-    },
-    ovTimelineCard: {
-        flex: 1,
-        minWidth: SCREEN_WIDTH > 600 ? 300 : '100%',
-        backgroundColor: colors.accentTeal,
-        borderRadius: 20,
-        padding: 20,
-    },
-    ovTimelineTitle: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        marginBottom: 20,
-    },
-    ovTimelineList: {
-        gap: 16,
-    },
-    ovTimelineItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    ovTimelineDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: '#FFFFFF',
-    },
-    ovTimelineText: {
-        flex: 1,
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    ovTimelineTime: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: colors.textMuted,
-    },
-    overviewBottomRow: {
-        flexDirection: 'column',
-        gap: 16,
-    },
-    ovQrCard: {
-        width: '100%',
-        backgroundColor: colors.accentTeal,
-        borderRadius: 24,
-        padding: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 20,
-    },
-    ovQrTextContent: {
-        flex: 1,
-    },
-    ovQrBox: {
-        // No margin needed in row layout
-    },
-    ovQrTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 0.5,
-    },
-    ovQrSub: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: colors.textMuted,
-        marginTop: 4,
-        letterSpacing: 0.3,
-    },
-    ovAgentCard: {
-        flex: 1,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 20,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        shadowColor: colors.cardShadowColor,
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 12,
-    },
-    ovAgentSectionTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        marginBottom: 16,
-    },
-    ovAgentMain: {
-        flexDirection: 'row',
-        gap: 12,
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    ovAgentAvatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 8,
-    },
-    ovAgentNameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 4,
-    },
-    ovAgentName: {
-        fontSize: 15,
-        fontWeight: '900',
-        color: colors.textPrimary,
-    },
-    verifiedBadge: {
-        backgroundColor: colors.surfaceSoft,
-        paddingHorizontal: 6,
-        paddingVertical: 3,
-        borderRadius: 4,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    verifiedBadgeText: {
-        fontSize: 8,
-        fontWeight: '900',
-        color: colors.accentTeal,
-    },
-    ovAgentTitle: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: colors.accentTeal,
-    },
-    ovAgentContact: {
-        gap: 6,
-    },
-    ovContactItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    ovContactText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: colors.textSecondary,
-    },
-    // --- Premium Automation Styles ---
-    premiumCard: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 24,
-        padding: 15,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        shadowColor: colors.cardShadowColor,
-        shadowOpacity: 0.08,
-        shadowOffset: { width: 0, height: 8 },
-        shadowRadius: 16,
-        elevation: 4,
-        marginBottom: 16,
-    },
-    premiumCardHeader: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        marginBottom: 20,
-    },
-    automationSelector: {
-        marginBottom: 24,
-    },
-    selectorLabel: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: colors.textMuted,
-        letterSpacing: 0.5,
-        marginBottom: 10,
-    },
-    selectorBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: colors.surfaceSoft,
-        borderWidth: 1.5,
-        borderColor: colors.cardBorder,
-        borderRadius: 14,
-        padding: 16,
-        marginBottom: 10,
-    },
-    selectorValue: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    selectorHint: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        fontWeight: '500',
-        lineHeight: 18,
-    },
-    templatePreviewBox: {
-        backgroundColor: colors.cardBackground,
-        borderWidth: 1.5,
-        borderColor: colors.cardBorder,
-        borderRadius: 20,
-        padding: 20,
-    },
-    templateHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    templateHeaderText: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        letterSpacing: 0.8,
-    },
-    editLink: {
-        fontSize: 11,
-        fontWeight: '900',
-        color: colors.accentTeal,
-        letterSpacing: 0.5,
-    },
-    templateTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        marginBottom: 8,
-    },
-    templateBody: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        lineHeight: 22,
-        fontWeight: '500',
-        marginBottom: 16,
-    },
-    templateFooter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    footerIconGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    templateIconBox: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        backgroundColor: colors.surfaceSoft,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    attachmentTextSmall: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        fontWeight: '600',
-        marginLeft: 4,
-    },
-    premiumRuleItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.surfaceSoft,
-        borderRadius: 16,
-        padding: 14,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    ruleIconBox: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: colors.cardBackground,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 14,
-        shadowColor: colors.cardShadowColor,
-        shadowOpacity: 0.03,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-    },
-    premiumRuleText: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    ghostProtocolCard: {
-        borderLeftWidth: 4,
-        borderLeftColor: '#0D9488',
-        backgroundColor: colors.cardBackground,
-    },
-    ghostHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 12,
-    },
-    ghostTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    ghostIconBox: {
-        width: 28,
-        height: 28,
-        borderRadius: 8,
-        backgroundColor: colors.surfaceIcon,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 10,
-    },
-    ghostTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        flex: 1,
-    },
-    ghostDesc: {
-        fontSize: 13,
-        color: colors.textSecondary,
-        lineHeight: 20,
-        fontWeight: '500',
-    },
-    // Dropdown Styles
-    dropdownMenu: {
-        position: 'absolute',
-        top: 85, // Adjust based on selector height
-        left: 0,
-        right: 0,
-        backgroundColor: '#4B5563',
-        borderRadius: 12,
-        padding: 8,
-        shadowColor: colors.cardShadowColor,
-        shadowOpacity: 0.3,
-        shadowOffset: { width: 0, height: 8 },
-        shadowRadius: 16,
-        elevation: 10,
-        zIndex: 9999,
-    },
-    dropdownItem: {
-        paddingVertical: 12,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-    },
-    dropdownItemContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    dropdownItemText: {
-        fontSize: 14,
-        color: '#E5E7EB', // Light grey text
-        fontWeight: '500',
-    },
-    dropdownItemTextActive: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-    },
-    // Assets & Design Styles
-    galleryGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-    },
-    galleryItem: {
-        width: (SCREEN_WIDTH - 80) / 2, // 2 column grid for better mobile view as per screenshot
-        height: 160,
-        borderRadius: 20,
-        overflow: 'hidden',
-        backgroundColor: colors.surfaceSoft,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    galleryImage: {
-        width: '100%',
-        height: '100%',
-    },
-    addPhotoBox: {
-        width: (SCREEN_WIDTH - 80) / 2,
-        height: 160,
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: '#0D9488',
-        borderStyle: 'dashed',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(13, 148, 136, 0.03)',
-    },
-    addPhotoText: {
-        fontSize: 11,
-        fontWeight: '900',
-        color: colors.accentTeal,
-        marginTop: 8,
-        letterSpacing: 0.5,
-    },
-    deletePhotoBtn: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    // Picker Modal (Bottom Sheet) Styles
-    modalBackdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    pickerModalContent: {
-        backgroundColor: colors.cardBackground,
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        paddingHorizontal: 24,
-        paddingTop: 12,
-        paddingBottom: Platform.OS === 'ios' ? 44 : 32,
-        shadowColor: colors.cardShadowColor,
-        shadowOffset: { width: 0, height: -10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 20,
-    },
-    pickerModalHeader: {
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    pickerHandle: {
-        width: 36,
-        height: 5,
-        borderRadius: 2.5,
-        backgroundColor: colors.cardBorder,
-        marginBottom: 16,
-    },
-    pickerModalTitle: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        letterSpacing: -0.5,
-    },
-    pickerOptionsContainer: {
-        gap: 12,
-        marginBottom: 24,
-    },
-    pickerOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.surfaceSoft,
-        padding: 16,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-    },
-    pickerIconWrap: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
-        backgroundColor: colors.cardBackground,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 16,
-        shadowColor: '#0D9488',
-        shadowOpacity: 0.08,
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 8,
-    },
-    pickerOptionTextContainer: {
-        flex: 1,
-    },
-    pickerOptionText: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: colors.textPrimary,
-        marginBottom: 2,
-    },
-    pickerOptionSub: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        fontWeight: '500',
-    },
-    pickerCancelBtn: {
-        backgroundColor: colors.accentTeal,
-        paddingVertical: 18,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    pickerCancelBtnText: {
-        fontSize: 15,
-        fontWeight: '800',
-        color: '#fff',
-    },
-    specsContainer: {
-        gap: 12,
-        marginBottom: 24,
-    },
-    specRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    specLabelGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    specLabel: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        fontWeight: '500',
-    },
-    specValue: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    aiDescriptionBox: {
-        backgroundColor: colors.surfaceSoft,
-        padding: 20,
-        borderRadius: 16,
-        marginBottom: 20,
-    },
-    aiDescriptionTitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: colors.accentTeal,
-        letterSpacing: 0.8,
-        marginBottom: 8,
-    },
-    aiDescriptionText: {
-        fontSize: 13,
-        color: colors.textPrimary,
-        lineHeight: 20,
-        fontWeight: '500',
-        fontStyle: 'italic',
-    },
-    exportPdfBtn: {
-        backgroundColor: colors.accentTeal,
-        paddingVertical: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    exportPdfBtnText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '800',
-        letterSpacing: 0.5,
-    },
-  });
-}
+const getStyles = (colors: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.surfaceSoft },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surfaceSoft },
+    loadingText: { marginTop: 12, color: colors.textSecondary, fontWeight: '700', fontSize: 14 },
+    header: { paddingHorizontal: 20, paddingBottom: 15, backgroundColor: colors.surfaceSoft, zIndex: 200 },
+    headerTop: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+    headerCircleBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceSoft, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.cardBorder },
+    headerTitleContainer: { flex: 1 },
+    headerTitle: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
+    headerStatusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+    liveDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
+    headerStatusText: { fontSize: 10, fontWeight: '800', color: colors.textMuted, letterSpacing: 0.5 },
+    heroSection: { height: 280, position: 'relative' },
+    heroImage: { width: '100%', height: '100%' },
+    heroGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '80%' },
+    heroContent: { position: 'absolute', bottom: 35, left: 20, right: 20 },
+    heroPriceBadge: { backgroundColor: colors.accentTeal, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 10 },
+    heroPriceText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+    heroAddressText: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', lineHeight: 30, marginBottom: 15 },
+    heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+    heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    heroMetaText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+    heroMetaDivider: { width: 1, height: 12, backgroundColor: 'rgba(255,255,255,0.4)' },
+    carouselPagination: { position: 'absolute', top: 20, right: 20, flexDirection: 'row', gap: 6 },
+    paginationDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' },
+    kpiBelt: { flexDirection: 'row', backgroundColor: colors.cardBackground, marginHorizontal: 20, marginTop: -30, borderRadius: 24, padding: 25, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 15, elevation: 8, alignItems: 'center', justifyContent: 'space-around', zIndex: 10 },
+    beltItem: { alignItems: 'center' },
+    beltVal: { fontSize: 20, fontWeight: '900', color: colors.textPrimary },
+    beltLabel: { fontSize: 9, fontWeight: '800', color: colors.textMuted, marginTop: 6, letterSpacing: 0.5 },
+    beltDivider: { width: 1, height: 35, backgroundColor: colors.cardBorder },
+    tabBarContainer: { backgroundColor: colors.surfaceSoft, zIndex: 100, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 4 },
+    tabsScroll: { paddingHorizontal: 20, paddingTop: 25, paddingBottom: 15, gap: 30, backgroundColor: colors.surfaceSoft },
+    tabItem: { paddingBottom: 10, position: 'relative' },
+    tabItemActive: {},
+    tabText: { fontSize: 15, fontWeight: '700', color: colors.textMuted },
+    tabTextActive: { color: colors.textPrimary },
+    tabIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: colors.accentTeal, borderRadius: 1.5 },
+    mainContent: { paddingHorizontal: 20, paddingTop: 25, backgroundColor: colors.surfaceSoft },
+    tabContentPremium: { gap: 24 },
+    kpiRow: { flexDirection: 'row', gap: 15 },
+    kpiCard: { flex: 1, borderRadius: 20, padding: 20 },
+    kpiIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(13, 148, 136, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
+    kpiValue: { fontSize: 26, fontWeight: '900', color: '#FFFFFF' },
+    kpiLabel: { fontSize: 9, fontWeight: '800', color: 'rgba(255,255,255,0.6)', marginTop: 4, letterSpacing: 0.6 },
+    qrHeroPremium: { flexDirection: 'row', backgroundColor: colors.cardBackground, borderRadius: 24, padding: 20, alignItems: 'center', gap: 20, borderWidth: 1, borderColor: colors.cardBorder },
+    qrHeroDetails: { flex: 1 },
+    qrHeroTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
+    qrHeroSub: { fontSize: 12, color: colors.textSecondary, marginTop: 4, fontWeight: '500' },
+    qrShareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.accentTeal, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginTop: 15 },
+    qrShareBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+    qrContainerPremium: { padding: 10, backgroundColor: '#FFFFFF', borderRadius: 16 },
+    sectionHeaderPremium: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 },
+    sectionTitlePremium: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
+    sectionLinkPremium: { fontSize: 13, fontWeight: '800', color: colors.accentTeal },
+    activityFeed: { gap: 15 },
+    activityItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBackground, padding: 18, borderRadius: 20, borderWidth: 1, borderColor: colors.cardBorder },
+    activityAvatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surfaceSoft, alignItems: 'center', justifyContent: 'center' },
+    activityAvatarText: { fontSize: 15, fontWeight: '900', color: colors.textPrimary },
+    activityInfo: { flex: 1, marginLeft: 15 },
+    activityTitle: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
+    activityTime: { fontSize: 12, color: colors.textMuted, marginTop: 2, fontWeight: '600' },
+    activitySignal: { width: 10, height: 10, borderRadius: 5 },
+    emptyActivityBox: { paddingVertical: 50, alignItems: 'center', justifyContent: 'center', gap: 20, backgroundColor: colors.surfaceSoft, borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: colors.cardBorder },
+    emptyActivityText: { fontSize: 14, color: colors.textMuted, fontWeight: '700' },
+    visitorCardPremium: { backgroundColor: colors.cardBackground, borderRadius: 24, padding: 20, marginBottom: 15, borderWidth: 1, borderColor: colors.cardBorder },
+    vCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+    vAvatarBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.surfaceSoft, alignItems: 'center', justifyContent: 'center' },
+    vAvatarText: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
+    vInfoBox: { flex: 1 },
+    vNameText: { fontSize: 17, fontWeight: '900', color: colors.textPrimary },
+    vEmailText: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+    vSignalBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+    vSignalText: { fontSize: 10, fontWeight: '900' },
+    vCardStats: { flexDirection: 'row', alignItems: 'center', marginTop: 18, paddingTop: 18, borderTopWidth: 1, borderTopColor: colors.surfaceSoft, gap: 18 },
+    vStatItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    vStatText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+    vTimeText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+    premiumCard: { backgroundColor: colors.cardBackground, borderRadius: 24, padding: 25, borderWidth: 1, borderColor: colors.cardBorder },
+    premiumCardHeader: { fontSize: 19, fontWeight: '900', color: colors.textPrimary, marginBottom: 25 },
+    automationSelector: { marginBottom: 24 },
+    selectorLabel: { fontSize: 10, fontWeight: '800', color: colors.textMuted, letterSpacing: 0.8, marginBottom: 12 },
+    selectorBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceSoft, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: colors.cardBorder },
+    selectorValue: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+    rulesList: { marginTop: 20, gap: 15 },
+    ruleRowPremium: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceSoft, padding: 16, borderRadius: 18 },
+    ruleInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    ruleLabelPremium: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+    galleryGridPremium: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    galleryItemPremium: { width: (SCREEN_WIDTH - 125) / 2, height: 130, borderRadius: 18, overflow: 'hidden' },
+    galleryImgPremium: { width: '100%', height: '100%' },
+    addMediaBtn: { width: (SCREEN_WIDTH - 125) / 2, height: 130, borderRadius: 18, borderStyle: 'dashed', borderWidth: 2, borderColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center', gap: 10 },
+    addMediaText: { fontSize: 12, fontWeight: '900', color: colors.accentTeal },
+    specsContainer: { gap: 15, marginBottom: 24 },
+    specRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    specLabel: { fontSize: 15, color: colors.textSecondary, fontWeight: '500' },
+    specValue: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+    aiDescriptionBox: { backgroundColor: colors.surfaceSoft, padding: 20, borderRadius: 18, marginTop: 20 },
+    aiDescriptionTitle: { fontSize: 10, fontWeight: '900', color: colors.accentTeal, letterSpacing: 0.8, marginBottom: 10 },
+    aiDescriptionText: { fontSize: 14, color: colors.textPrimary, lineHeight: 22, fontWeight: '500', fontStyle: 'italic' },
+    settingItemPremium: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceSoft, padding: 18, borderRadius: 18, marginBottom: 15 },
+    settingTitlePremium: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
+    settingDescPremium: { fontSize: 13, color: colors.textMuted, marginTop: 3 },
+    sellerDescPremium: { fontSize: 15, color: colors.textSecondary, lineHeight: 24, fontWeight: '500' },
+    actionBtnPrimaryPremium: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: colors.accentTeal, borderRadius: 18, paddingVertical: 18, marginTop: 25 },
+    actionBtnTextPremium: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+    agentCardPremium: { marginTop: 30, backgroundColor: colors.surfaceSoft, borderRadius: 24, padding: 25, borderWidth: 1, borderColor: colors.cardBorder },
+    agentInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 18 },
+    agentAvatarBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center' },
+    agentAvatarText: { color: '#FFFFFF', fontSize: 22, fontWeight: '900' },
+    agentNameBox: { flex: 1 },
+    agentNamePremium: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
+    agentTitlePremium: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+    agentContactPremium: { borderTopWidth: 1, borderTopColor: colors.cardBorder, paddingTop: 18 },
+    contactItemPremium: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    contactTextPremium: { fontSize: 14, color: colors.textPrimary, fontWeight: '600' },
+    fabGoLive: { position: 'absolute', bottom: 35, left: 25, right: 25, borderRadius: 22, overflow: 'hidden', shadowColor: '#0D9488', shadowOpacity: 0.35, shadowRadius: 20, elevation: 12 },
+    fabGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, gap: 14 },
+    fabText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', letterSpacing: 1.2 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: colors.cardBackground, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 30, paddingBottom: 60 },
+    modalHandle: { width: 44, height: 6, backgroundColor: colors.cardBorder, borderRadius: 3, alignSelf: 'center', marginBottom: 25 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 30 },
+    modalAvatar: { width: 64, height: 64, borderRadius: 20, backgroundColor: colors.accentTeal, alignItems: 'center', justifyContent: 'center' },
+    modalAvatarText: { fontSize: 24, fontWeight: '900', color: '#FFFFFF' },
+    modalName: { fontSize: 22, fontWeight: '900', color: colors.textPrimary },
+    modalEmail: { fontSize: 15, color: colors.textSecondary, marginTop: 4 },
+    intelGrid: { flexDirection: 'row', gap: 18, marginBottom: 18 },
+    intelCard: { flex: 1, backgroundColor: colors.surfaceSoft, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: colors.cardBorder },
+    intelCardFull: { backgroundColor: colors.surfaceSoft, borderRadius: 22, padding: 20, borderWidth: 1, borderColor: colors.cardBorder, marginBottom: 30 },
+    intelLabel: { fontSize: 10, fontWeight: '800', color: colors.textMuted, letterSpacing: 0.6, marginBottom: 10 },
+    intelVal: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
+    intelValSmall: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, lineHeight: 20 },
+    modalActionBtn: { backgroundColor: colors.textPrimary, borderRadius: 18, paddingVertical: 18, alignItems: 'center' },
+    modalActionText: { color: colors.background, fontSize: 16, fontWeight: '800' },
+});

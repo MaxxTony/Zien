@@ -263,7 +263,7 @@ export function DashboardSection({
 
               <View style={styles.secondaryActionsRow}>
                 <ExternalLink
-                  href={profileUrl as any}
+                  href={profileUrl}
                   style={styles.secondaryBtn}>
                   <View style={styles.secondaryBtnInner}>
                     <MaterialCommunityIcons name="eye-outline" size={22} color={colors.textPrimary} />

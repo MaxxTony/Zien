@@ -130,7 +130,7 @@ export default function LeadsCaptureScreen() {
                     <Text style={styles.leadType}>{item.type}</Text>
                 </View>
                 <View style={styles.actionRow}>
-                    <ExternalLink href={item.url as any}>
+                    <ExternalLink href={item.url}>
                         <View style={styles.miniActionBtn}>
                             <MaterialCommunityIcons name="open-in-new" size={16} color={colors.textSecondary} />
                         </View>

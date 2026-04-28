@@ -49,39 +49,40 @@ export const ActionPillsRow = memo(ActionPillsRowComponent);
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  scroll: {
-    marginBottom: 20,
-    marginHorizontal: -18,
-  },
-  row: {
-    paddingHorizontal: 18,
-    gap: 10,
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 999,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    shadowColor: colors.cardShadowColor,
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  pillPressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.97 }],
-  },
-  pillText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    letterSpacing: 0.1,
-  },
-});
+    scroll: {
+      marginBottom: 20,
+      marginHorizontal: -18,
+    },
+    row: {
+      paddingHorizontal: 18,
+      gap: 10,
+    },
+    pill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 999,
+      paddingVertical: 10,
+      paddingHorizontal: 15,
+      shadowColor: colors.cardShadowColor,
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
+      marginBottom: 10
+    },
+    pillPressed: {
+      opacity: 0.7,
+      transform: [{ scale: 0.97 }],
+    },
+    pillText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      letterSpacing: 0.1,
+    },
+  });
 }
