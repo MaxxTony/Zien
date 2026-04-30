@@ -1,9 +1,15 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAuth } from '@/context/AuthContext';
+import { useAppTheme } from '@/context/ThemeContext';
+import { getSocialPosts, SocialPost } from '@/services/socialService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAppTheme } from '@/context/ThemeContext';
+import React from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Platform,
   Pressable,
@@ -14,538 +20,250 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const HUB_TABS = [
-  { id: 'Overview', label: 'Overview', icon: 'view-grid-outline' as const },
-  { id: 'Create Post', label: 'Create Post', icon: 'plus-box-outline' as const, route: '/(main)/social-hub/create-post' },
-  { id: 'Content Library', label: 'Content Library', icon: 'image-outline' as const, route: '/(main)/social-hub/content-library' },
-  { id: 'Scheduler', label: 'Scheduler', icon: 'calendar-blank-outline' as const, route: '/(main)/social-hub/scheduler' },
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const HUB_TOOLS = [
+  { id: 'Library', label: 'Library', icon: 'image-outline' as const, route: '/(main)/social-hub/content-library' },
+  { id: 'Scheduler', label: 'Schedule', icon: 'calendar-blank-outline' as const, route: '/(main)/social-hub/scheduler' },
   { id: 'Campaigns', label: 'Campaigns', icon: 'flag-outline' as const, route: '/(main)/social-hub/campaigns' },
   { id: 'Templates', label: 'Templates', icon: 'content-copy' as const, route: '/(main)/social-hub/templates' },
   { id: 'Analytics', label: 'Analytics', icon: 'chart-bar' as const, route: '/(main)/social-hub/analytics' },
-  { id: 'Automation Rules', label: 'Automation Rules', icon: 'lightning-bolt-outline' as const, route: '/(main)/social-hub/automation-rules' },
-  { id: 'Accounts Setting', label: 'Accounts Setting', icon: 'account-group-outline' as const, route: '/(main)/social-hub/accounts' },
+  { id: 'Automation', label: 'Automation', icon: 'lightning-bolt-outline' as const, route: '/(main)/social-hub/automation-rules' },
 ];
 
 const STAT_CARDS = [
-  { title: 'Scheduled Posts', value: '12', meta: '+2', icon: 'calendar-clock-outline' as const },
-  { title: 'Published (30D)', value: '48', meta: '+15%', icon: 'share-outline' as const },
-  { title: 'Engagement Rate', value: '4.8%', meta: '+0.6%', icon: 'heart-outline' as const },
-  { title: 'Best Platform', value: 'Instagram', meta: '92% reach', icon: 'instagram' as const },
+  { title: 'Scheduled', value: '12', meta: '+2', icon: 'calendar-clock-outline' as const },
+  { title: 'Published', value: '48', meta: '+15%', icon: 'share-outline' as const },
+  { title: 'Engagement', value: '4.8%', meta: '+0.6%', icon: 'heart-outline' as const },
+  { title: 'Growth', value: '', meta: '92% reach', icon: 'instagram' as const },
 ];
 
-const UPCOMING_POSTS = [
-  { id: '1', title: 'New Listing: 123 Business Way', platform: 'Instagram', when: 'Today, 3:00 PM', image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=200' },
-  { id: '2', title: 'Open House This Weekend!', platform: 'Facebook', when: 'Tomorrow, 10:00 AM', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=200' },
-  { id: '3', title: 'Market Update: Los Angeles', platform: 'LinkedIn', when: 'Jan 22, 2:00 PM', image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=200' },
-];
+const PLACEHOLDER_POST_IMAGE = 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400';
 
-const SOCIAL_TEMPLATES = [
-  { id: '1', title: 'Listing Showcase', sub: 'Instagram • High Impact', icon: 'image-outline' as const },
-  { id: '2', title: 'Open House Promo', sub: 'Facebook • Event Drive', icon: 'calendar-star' as const },
-  { id: '3', title: 'Market Success Story', sub: 'LinkedIn • B2B Trust', icon: 'trending-up' as const },
-];
+function formatScheduledDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
+  const isToday = d.toDateString() === now.toDateString();
+  const isTomorrow = d.toDateString() === tomorrow.toDateString();
+
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  if (isToday) return `Today, ${time}`;
+  if (isTomorrow) return `Tomorrow, ${time}`;
+  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${time}`;
+}
+
+function getPostTitle(post: SocialPost): string {
+  // Use the first line of the caption, truncated
+  const firstLine = (post.caption || '').split('\n')[0].trim();
+  return firstLine || 'Untitled Post';
+}
 
 export default function SocialHubScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { width } = Dimensions.get('window');
-  const hPadding = 18;
-  const gap = 12;
-  const statCardWidth = (width - hPadding * 2 - gap) / 2;
+  const { accessToken } = useAuth();
 
-
+  // Fetch upcoming posts (status=1)
+  const { data: upcomingPosts, isLoading: postsLoading } = useQuery({
+    queryKey: ['social-posts', 'upcoming'],
+    queryFn: () => getSocialPosts(accessToken || '', 1),
+    enabled: !!accessToken,
+  });
 
   return (
-    <LinearGradient
-      colors={colors.backgroundGradient as any}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
-      style={[styles.background, { paddingTop: insets.top }]}>
-
-      {/* Page Header */}
-      <PageHeader
-        title="Social Media"
-        subtitle="Automate your property promotion and engage with your audience."
-        onBack={() => router.back()}
-      />
-
-
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-
-
-        {/* Header Actions */}
-        <View style={styles.headerActionsMobile}>
-          <Pressable style={styles.accountBtn} onPress={() => router.push('/(main)/social-hub/accounts')}>
-            <Text style={styles.accountBtnText}>Account Setting</Text>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={colors.backgroundGradient as any}
+        style={[styles.background, { paddingTop: insets.top }]}
+      >
+        <PageHeader
+          title="Social Hub"
+          subtitle="Manage and automate your social presence."
+          onBack={() => router.back()}
+        >
+          <Pressable onPress={() => router.push('/(main)/social-hub/accounts')} style={styles.headerCircleBtn}>
+            <MaterialCommunityIcons name="cog-outline" size={22} color={colors.textPrimary} />
           </Pressable>
-          <Pressable style={styles.createBtn} onPress={() => router.push('/(main)/social-hub/create-post')}>
-            <MaterialCommunityIcons name="plus" size={16} color="#FFF" />
-            <Text style={styles.createBtnText}>Create New Post</Text>
-          </Pressable>
-        </View>
+        </PageHeader>
 
-        {/* Overview Section Heading */}
-        <View style={styles.overviewHeader}>
-          <MaterialCommunityIcons name="view-grid-outline" size={20} color={colors.textPrimary} />
-          <Text style={styles.overviewHeaderText}>Overview</Text>
-        </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Performance Summary */}
+          <View style={styles.sectionHeaderPremium}>
+            <Text style={styles.sectionTitlePremium}>Performance Summary</Text>
+          </View>
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          {STAT_CARDS.map((card) => (
-            <View key={card.title} style={[styles.statCardPremium, { width: statCardWidth }]}>
-              <View style={styles.statTop}>
-                <View style={styles.statIconCircle}>
-                  <MaterialCommunityIcons name={card.icon} size={18} color={colors.textPrimary} />
+          <View style={styles.statsGrid}>
+            {STAT_CARDS.map((card, i) => (
+              <View key={i} style={styles.statCardPremium}>
+                <View style={styles.statIconBox}>
+                  <MaterialCommunityIcons name={card.icon} size={18} color={colors.accentTeal} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statLabel}>{card.title.toUpperCase()}</Text>
-                  <View style={styles.statValueRow}>
-                    <Text style={[styles.statValueText, typeof card.value === 'string' && card.value.length > 8 && { fontSize: 14 }]}>
-                      {card.value}
-                    </Text>
-                    {card.meta && <Text style={styles.statMetaText}>{card.meta}</Text>}
+                <View>
+                  <Text style={styles.statLabelPremium}>{card.title}</Text>
+                  <View style={styles.statRow}>
+                    <Text style={styles.statValuePremium}>{card.value}</Text>
+                    <Text style={styles.statMetaPremium}>{card.meta}</Text>
                   </View>
                 </View>
               </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
 
-        {/* Upcoming Posts Section */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitleText}>Upcoming Posts</Text>
+          {/* Upcoming Content — Live from API */}
+          <View style={styles.sectionHeaderPremium}>
+            <Text style={styles.sectionTitlePremium}>Upcoming Content</Text>
             <Pressable onPress={() => router.push('/(main)/social-hub/scheduler')}>
-              <Text style={styles.sectionLinkText}>View Calendar →</Text>
+              <Text style={styles.sectionLinkPremium}>View All</Text>
             </Pressable>
           </View>
-          <View style={styles.postsList}>
-            {UPCOMING_POSTS.map((post) => (
-              <View key={post.id} style={styles.postCard}>
-                <Image source={{ uri: post.image }} style={styles.postImage} />
-                <View style={styles.postContent}>
-                  <Text style={styles.postTitleText} numberOfLines={1}>{post.title}</Text>
-                  <Text style={styles.postSubText}>{post.platform} • {post.when}</Text>
-                </View>
-                <Pressable style={styles.editBtn}>
-                  <Text style={styles.editBtnText}>Edit Post</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        </View>
 
-        {/* Stacked Layout for Mobile: Templates & Powerups each taking full width */}
-        <View style={styles.stackedCardCol}>
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitleText} numberOfLines={1}>Social Templates</Text>
-              <Pressable hitSlop={10}>
-                <Text style={styles.sectionLinkText}>Manage →</Text>
-              </Pressable>
+          {postsLoading ? (
+            <View style={styles.loaderBox}>
+              <ActivityIndicator size="small" color={colors.accentTeal} />
             </View>
-            <View style={styles.templatesList}>
-              {SOCIAL_TEMPLATES.map((tmp) => (
-                <View key={tmp.id} style={styles.templateCard}>
-                  <View style={styles.templateIconSmall}>
-                    <MaterialCommunityIcons name={tmp.icon} size={16} color={colors.textPrimary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.templateTitleText}>{tmp.title}</Text>
-                    <Text style={styles.templateSubText}>{tmp.sub}</Text>
-                  </View>
-                </View>
-              ))}
+          ) : upcomingPosts && upcomingPosts.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+              {upcomingPosts.map((post) => {
+                const imageUrl = post.media?.[0]?.media_url || PLACEHOLDER_POST_IMAGE;
+                const title = getPostTitle(post);
+                const when = post.scheduled_at ? formatScheduledDate(post.scheduled_at) : 'Draft';
+                const platformName = post.post_platforms?.[0]?.platform || 'calendar-clock-outline';
+
+                return (
+                  <Pressable key={post.id} style={styles.postCardPremium}>
+                    <Image source={{ uri: imageUrl }} style={styles.postCardImage} contentFit="cover" transition={300} />
+                    <View style={styles.postCardOverlay}>
+                      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFill} />
+                      
+                      {/* Top Action Buttons */}
+                      <View style={styles.postCardActions}>
+                        <Pressable style={styles.actionIconBtn} onPress={() => console.log('Edit', post.id)}>
+                          <MaterialCommunityIcons name="pencil-outline" size={14} color="#FFF" />
+                        </Pressable>
+                        <Pressable style={styles.actionIconBtn} onPress={() => console.log('Delete', post.id)}>
+                          <MaterialCommunityIcons name="trash-can-outline" size={14} color="#FFF" />
+                        </Pressable>
+                      </View>
+
+                      <View style={styles.postCardContent}>
+                        <Text style={styles.postCardTitle} numberOfLines={2}>{title}</Text>
+                        <View style={styles.postCardFooter}>
+                          <MaterialCommunityIcons name="clock-outline" size={12} color="#FFF" />
+                          <Text style={styles.postCardSubText}>{when}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyPostsBox}>
+              <MaterialCommunityIcons name="calendar-blank-outline" size={32} color={colors.textMuted} />
+              <Text style={styles.emptyPostsText}>No upcoming posts</Text>
+              <Text style={styles.emptyPostsSub}>Tap + to create your first post</Text>
             </View>
+          )}
+
+          {/* Tools & Utilities Grid */}
+          <View style={styles.sectionHeaderPremium}>
+            <Text style={styles.sectionTitlePremium}>Hub Tools</Text>
           </View>
 
-          {/* Power-Ups Card */}
-          <View style={styles.powerUpFixedCard}>
-            <Text style={styles.powerUpTitleText}>Power-Ups</Text>
-            <Text style={styles.powerUpDescText}>
-              Connect more accounts to unlock advanced analytics.
-            </Text>
-            <View style={styles.platformIconRow}>
-              <View style={styles.platformIconCircle}><MaterialCommunityIcons name="instagram" size={18} color="#FFF" /></View>
-              <View style={styles.platformIconCircle}><MaterialCommunityIcons name="facebook" size={18} color="#FFF" /></View>
-              <View style={styles.platformIconCircle}><MaterialCommunityIcons name="linkedin" size={18} color="#FFF" /></View>
-            </View>
-          </View>
-        </View>
-
-        {/* AI Usage Card (Simplified) */}
-        <View style={styles.usageCardPremium}>
-          <View style={styles.usageInfo}>
-            <MaterialCommunityIcons name="lightning-bolt" size={18} color={colors.accentTeal} />
-            <Text style={styles.usageLabel}>AI Generation Credits: <Text style={{ fontWeight: '800' }}>150/1000 left</Text></Text>
-          </View>
-          <View style={styles.usageBar}>
-            <View style={[styles.usageFill, { width: '85%' }]} />
-          </View>
-        </View>
-
-        {/* Restore Hub Sections List at bottom */}
-        <View style={styles.restoreHubContainer}>
-          <Text style={styles.restoreHubTitle}>Explore Social Hub</Text>
-          <View style={styles.restoreHubList}>
-            {HUB_TABS.filter(t => t.id !== 'Overview').map((tab) => (
+          <View style={styles.toolsGrid}>
+            {HUB_TOOLS.map((tool) => (
               <Pressable
-                key={tab.id}
-                style={styles.restoreHubRow}
-                onPress={() => tab.route && router.push(tab.route as any)}>
-                <View style={styles.restoreHubIconWrap}>
-                  <MaterialCommunityIcons name={tab.icon} size={20} color={colors.textPrimary} />
+                key={tool.id}
+                style={styles.toolCardPremium}
+                onPress={() => router.push(tool.route as any)}
+              >
+                <View style={styles.toolIconCircle}>
+                  <MaterialCommunityIcons name={tool.icon} size={20} color={colors.textPrimary} />
                 </View>
-                <Text style={styles.restoreHubLabel}>{tab.label}</Text>
-                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+                <Text style={styles.toolLabelPremium}>{tool.label}</Text>
               </Pressable>
             ))}
           </View>
-        </View>
 
+          {/* AI Credits */}
+          <View style={styles.usageCardPremium}>
+            <View style={styles.usageHeader}>
+              <MaterialCommunityIcons name="lightning-bolt" size={16} color={colors.accentTeal} />
+              <Text style={styles.usageTitle}>AI Generation Credits</Text>
+              <Text style={styles.usageCount}>150 / 1000</Text>
+            </View>
+            <View style={styles.usageBar}>
+              <View style={[styles.usageFill, { width: '15%' }]} />
+            </View>
+          </View>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </LinearGradient>
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </LinearGradient>
+
+      {/* Floating Action Button */}
+      <Pressable
+        style={[styles.fab, { bottom: insets.bottom + 20 }]}
+        onPress={() => router.push('/(main)/social-hub/create-post')}
+      >
+        <LinearGradient colors={['#0BA0B2', '#0D9488']} style={styles.fabGradient}>
+          <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
+        </LinearGradient>
+      </Pressable>
+    </View>
   );
 }
 
-// Custom Image component to avoid errors if expo-image is missing, but it was in header
-import { Image } from 'expo-image';
-
 function getStyles(colors: any) {
   return StyleSheet.create({
-  background: { flex: 1 },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 18 },
-
-
-
-  // Overview Header
-  overviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  overviewHeaderText: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-
-  // Restore Hub Sections
-  restoreHubContainer: {
-    marginTop: 24,
-  },
-  restoreHubTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    marginBottom: 16,
-  },
-  restoreHubList: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  restoreHubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
-  },
-  restoreHubIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  restoreHubLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-
-  // Header Actions Mobile
-  headerActionsMobile: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
-    paddingTop: 8,
-  },
-  accountBtn: {
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    justifyContent: 'center',
-  },
-  accountBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  createBtn: {
-    flex: 1,
-    backgroundColor: colors.accentTeal,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  createBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFF',
-  },
-
-  // Stats Premium
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCardPremium: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 14,
-    ...Platform.select({
-      ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8 },
-      android: { elevation: 2 }
-    })
-  },
-  statTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  statIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statLabel: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-  },
-  statValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-    flexWrap: 'wrap',
-  },
-  statValueText: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-  },
-  statMetaText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#10B981',
-  },
-
-  // Sections
-  sectionCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    ...Platform.select({
-      ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.03, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10 },
-      android: { elevation: 1 }
-    })
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  sectionTitleText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  sectionLinkText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.accentTeal,
-  },
-
-  // Posts
-  postsList: { gap: 12 },
-  postCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceSoft,
-    padding: 12,
-    borderRadius: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  postImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: colors.cardBorder,
-  },
-  postContent: { flex: 1 },
-  postTitleText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  postSubText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  editBtn: {
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  editBtnText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-
-  // Stacked Row
-  stackedCardCol: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  templatesList: { gap: 10 },
-  templateCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.surfaceSoft,
-    padding: 10,
-    borderRadius: 12,
-  },
-  templateIconSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  templateTitleText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  templateSubText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-
-  // Power Up Fixed
-  powerUpFixedCard: {
-    backgroundColor: colors.accentTeal,
-    borderRadius: 20,
-    padding: 18,
-    justifyContent: 'center',
-  },
-  powerUpTitleText: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#FFF',
-    marginBottom: 6,
-  },
-  powerUpDescText: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
-    marginBottom: 16,
-  },
-  platformIconRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  platformIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceIcon,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Usage Premium
-  usageCardPremium: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  usageInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  usageLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  usageBar: {
-    height: 6,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  usageFill: {
-    height: '100%',
-    backgroundColor: '#0D9488',
-    borderRadius: 3,
-  },
+    container: { flex: 1, backgroundColor: colors.surfaceSoft },
+    background: { flex: 1 },
+    headerCircleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.cardBackground, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.cardBorder },
+    scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
+    sectionHeaderPremium: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 20 },
+    sectionTitlePremium: { fontSize: 16, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.2 },
+    sectionLinkPremium: { fontSize: 13, fontWeight: '800', color: colors.accentTeal },
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    statCardPremium: { width: (SCREEN_WIDTH - 52) / 2, backgroundColor: colors.cardBackground, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.cardBorder, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    statIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.surfaceSoft, alignItems: 'center', justifyContent: 'center' },
+    statLabelPremium: { fontSize: 10, fontWeight: '800', color: colors.textMuted, letterSpacing: 0.5, marginBottom: 2 },
+    statValuePremium: { fontSize: 15, fontWeight: '900', color: colors.textPrimary },
+    statMetaPremium: { fontSize: 10, fontWeight: '800', color: '#10B981', marginLeft: 4 },
+    statRow: { flexDirection: 'row', alignItems: 'center' },
+    horizontalScroll: { gap: 12, paddingRight: 20 },
+    postCardPremium: { width: 220, height: 140, borderRadius: 20, overflow: 'hidden', backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder },
+    postCardImage: { width: '100%', height: '100%' },
+    postCardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', justifyContent: 'flex-end' },
+    postCardContent: { padding: 12 },
+    postCardTitle: { fontSize: 13, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
+    postCardFooter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    postCardSubText: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
+    postCardActions: { position: 'absolute', top: 10, right: 10, flexDirection: 'row', gap: 6 },
+    actionIconBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    loaderBox: { height: 140, alignItems: 'center', justifyContent: 'center' },
+    emptyPostsBox: { backgroundColor: colors.cardBackground, borderRadius: 20, padding: 30, alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: colors.cardBorder },
+    emptyPostsText: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
+    emptyPostsSub: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+    toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    toolCardPremium: { width: (SCREEN_WIDTH - 64) / 3, backgroundColor: colors.cardBackground, borderRadius: 18, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.cardBorder, gap: 8 },
+    toolIconCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceSoft, alignItems: 'center', justifyContent: 'center' },
+    toolLabelPremium: { fontSize: 11, fontWeight: '800', color: colors.textPrimary },
+    usageCardPremium: { marginTop: 30, backgroundColor: colors.cardBackground, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.cardBorder },
+    usageHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+    usageTitle: { flex: 1, fontSize: 12, fontWeight: '800', color: colors.textPrimary },
+    usageCount: { fontSize: 12, fontWeight: '900', color: colors.accentTeal },
+    usageBar: { height: 6, backgroundColor: colors.surfaceSoft, borderRadius: 3, overflow: 'hidden' },
+    usageFill: { height: '100%', backgroundColor: colors.accentTeal, borderRadius: 3 },
+    fab: { position: 'absolute', right: 20, borderRadius: 28, ...Platform.select({ ios: { shadowColor: '#0BA0B2', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }, android: { elevation: 8 } }) },
+    fabGradient: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   });
 }
-
