@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Platform,
   Pressable,
@@ -143,13 +144,22 @@ export default function SocialHubScreen() {
                     <Image source={{ uri: imageUrl }} style={styles.postCardImage} contentFit="cover" transition={300} />
                     <View style={styles.postCardOverlay}>
                       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFill} />
-                      
+
                       {/* Top Action Buttons */}
                       <View style={styles.postCardActions}>
-                        <Pressable style={styles.actionIconBtn} onPress={() => console.log('Edit', post.id)}>
+                        <Pressable style={styles.actionIconBtn} onPress={() => router.push({
+                          pathname: '/(main)/social-hub/create-post',
+                          params: {
+                            postId: String(post.id),
+                            propertyId: post.property_id ? String(post.property_id) : '',
+                            editCaption: post.caption || '',
+                            editMedia: JSON.stringify(post.media || []),
+                            editScheduledAt: post.scheduled_at || '',
+                          }
+                        })}>
                           <MaterialCommunityIcons name="pencil-outline" size={14} color="#FFF" />
                         </Pressable>
-                        <Pressable style={styles.actionIconBtn} onPress={() => console.log('Delete', post.id)}>
+                        <Pressable style={styles.actionIconBtn} onPress={() => Alert.alert('Delete')}>
                           <MaterialCommunityIcons name="trash-can-outline" size={14} color="#FFF" />
                         </Pressable>
                       </View>

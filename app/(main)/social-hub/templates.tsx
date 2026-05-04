@@ -1,500 +1,530 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAuth } from '@/context/AuthContext';
+import { useAppTheme } from '@/context/ThemeContext';
+import { deleteTemplate, getTemplates } from '@/services/socialService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAppTheme } from '@/context/ThemeContext';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    FlatList,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-
-const TEMPLATES_DATA = [
-    {
-        id: '1',
-        title: 'Listing Showcase',
-        status: 'ACTIVE',
-        latest: '2H AGO',
-        usage_count: '124 posts',
-        conv_rate: '88%',
-        image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
-        platform_icon: 'instagram'
-    },
-    {
-        id: '2',
-        title: 'Open House Blitz',
-        status: 'ACTIVE',
-        latest: '1D AGO',
-        usage_count: '86 posts',
-        conv_rate: '94%',
-        image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-        platform_icon: 'lightning-bolt'
-    },
-    {
-        id: '3',
-        title: 'Market Insight Series',
-        status: 'DRAFT',
-        latest: '3D AGO',
-        usage_count: '42 posts',
-        conv_rate: '88%',
-        image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800',
-        platform_icon: 'office-building'
-    },
-    {
-        id: '4',
-        title: 'Property Price Drop',
-        status: 'PAUSED',
-        latest: '5D AGO',
-        usage_count: '15 posts',
-        conv_rate: '94%',
-        image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
-        platform_icon: 'twitter'
-    },
+const PLATFORM_FILTERS = [
+  { id: 'all', label: 'All', icon: 'apps' as const },
+  { id: 'instagram', label: 'Instagram', icon: 'instagram' as const },
+  { id: 'facebook', label: 'Facebook', icon: 'facebook' as const },
+  { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' as const },
+  { id: 'tiktok', label: 'TikTok', icon: 'music-note' as const },
 ];
 
 export default function SocialTemplatesScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
 
-    const insets = useSafeAreaInsets();
-    const router = useRouter();
-    const [templates, setTemplates] = useState(TEMPLATES_DATA);
-    const [webOnlyModalVisible, setWebOnlyModalVisible] = useState(false);
+  const [search, setSearch] = useState('');
+  const [activePlatform, setActivePlatform] = useState('all');
+  const [webOnlyModalVisible, setWebOnlyModalVisible] = useState(false);
 
-    const handleDuplicate = (id: string) => {
-        const index = templates.findIndex(t => t.id === id);
-        if (index === -1) return;
+  // Fetch templates from API
+  const { data: apiTemplates = [], isLoading } = useQuery({
+    queryKey: ['social-templates'],
+    queryFn: () => getTemplates(accessToken || ''),
+    enabled: !!accessToken,
+  });
 
-        const original = templates[index];
-        const baseTitle = original.title.split(' (copy')[0];
-
-        // Find all siblings that are copies of the same base title
-        const copies = templates.filter(t => t.title === baseTitle || t.title.startsWith(`${baseTitle} (copy`));
-
-        let maxCopy = 0;
-        copies.forEach(t => {
-            if (t.title === `${baseTitle} (copy)`) {
-                maxCopy = Math.max(maxCopy, 1);
-            } else {
-                const match = t.title.match(/\(copy\s(\d+)\)$/);
-                if (match) {
-                    maxCopy = Math.max(maxCopy, parseInt(match[1]));
-                }
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      'Delete Template',
+      'Are you sure you want to delete this template? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'OK',
+          style: 'destructive',
+          onPress: async () => {
+            if (!accessToken) return;
+            try {
+              await deleteTemplate(accessToken, id);
+              queryClient.invalidateQueries({ queryKey: ['social-templates'] });
+              Alert.alert('Success', 'Template deleted successfully');
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to delete template');
             }
-        });
-
-        const nextNumber = maxCopy + 1;
-        const newTitle = nextNumber === 1
-            ? `${baseTitle} (copy)`
-            : `${baseTitle} (copy ${nextNumber})`;
-
-        const newTemplate = {
-            ...original,
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-            title: newTitle,
-        };
-
-        const newTemplates = [...templates];
-        newTemplates.splice(index + 1, 0, newTemplate);
-        setTemplates(newTemplates);
-    };
-
-    const handleDelete = (id: string) => {
-        Alert.alert(
-            'Delete Template',
-            'Are you sure you want to delete this template? This action cannot be undone.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'OK',
-                    style: 'destructive',
-                    onPress: () => {
-                        setTemplates(prev => prev.filter(t => t.id !== id));
-                    },
-                },
-            ]
-        );
-    };
-
-    const renderTemplate = ({ item }: { item: typeof templates[0] }) => (
-        <View style={styles.templateCard}>
-            <View style={styles.imageContainer}>
-                <Image source={{ uri: item.image }} style={styles.templateImage} contentFit="cover" />
-                <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.6)']}
-                    style={styles.imageGradient}
-                />
-                <View style={styles.platformBadge}>
-                    <MaterialCommunityIcons name={item.platform_icon as any} size={14} color={colors.textPrimary} />
-                </View>
-                <Text style={styles.overlayTitle}>{item.title}</Text>
-            </View>
-
-            <View style={styles.cardContent}>
-                <View style={styles.statusRow}>
-                    <Text style={styles.latestText}>LATEST: {item.latest}</Text>
-                    <View style={[styles.statusBadge, item.status === 'ACTIVE' ? styles.statusActive : styles.statusOther]}>
-                        <Text style={[styles.statusText, item.status === 'ACTIVE' ? styles.statusTextActive : styles.statusTextOther]}>
-                            {item.status}
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.metricsGrid}>
-                    <View style={styles.metricItem}>
-                        <Text style={styles.metricLabel}>USAGE</Text>
-                        <Text style={styles.metricValue}>{item.usage_count}</Text>
-                    </View>
-                    <View style={styles.metricItem}>
-                        <Text style={styles.metricLabel}>CONV.</Text>
-                        <Text style={styles.metricValue}>{item.conv_rate}</Text>
-                    </View>
-                    <View style={styles.circlesVisual}>
-                        <View style={[styles.overlapCircle, { backgroundColor: colors.accentDark }]} />
-                        <View style={[styles.overlapCircle, { backgroundColor: colors.accentTeal, marginLeft: -8 }]} />
-                    </View>
-                </View>
-
-                <View style={styles.actionRow}>
-                    <Pressable
-                        style={styles.editBtn}
-                        onPress={() => setWebOnlyModalVisible(true)}
-                    >
-                        <Text style={styles.editBtnText}>Edit Template</Text>
-                    </Pressable>
-                    <Pressable
-                        style={styles.iconActionBtn}
-                        onPress={() => handleDuplicate(item.id)}
-                    >
-                        <MaterialCommunityIcons name="plus" size={18} color={colors.textMuted} />
-                    </Pressable>
-                    <Pressable
-                        style={styles.iconActionBtn}
-                        onPress={() => handleDelete(item.id)}
-                    >
-                        <MaterialCommunityIcons name="trash-can-outline" size={18} color="#F87171" />
-                    </Pressable>
-                </View>
-            </View>
-        </View>
+          },
+        },
+      ]
     );
+  };
+
+  const filteredTemplates = apiTemplates.filter((item: any) => {
+    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+    const matchesPlatform = activePlatform === 'all' || item.platform.toLowerCase() === activePlatform.toLowerCase();
+    return matchesSearch && matchesPlatform;
+  });
+
+  const renderTemplate = ({ item, index }: { item: any; index: number }) => {
+    const platformIcon = item.platform.toLowerCase() === 'instagram' ? 'instagram' :
+                         item.platform.toLowerCase() === 'facebook' ? 'facebook' :
+                         item.platform.toLowerCase() === 'linkedin' ? 'linkedin' :
+                         item.platform.toLowerCase() === 'tiktok' ? 'music-note' : 'layers-outline';
+    
+    const platformColor = item.platform.toLowerCase() === 'instagram' ? '#E1306C' :
+                          item.platform.toLowerCase() === 'facebook' ? '#1877F2' :
+                          item.platform.toLowerCase() === 'linkedin' ? '#0A66C2' :
+                          item.platform.toLowerCase() === 'tiktok' ? '#000000' : colors.accentTeal;
 
     return (
+      <Animated.View 
+        entering={FadeInDown.delay(index * 100).springify()}
+        style={styles.templateCard}
+      >
         <LinearGradient
-            colors={colors.backgroundGradient as any}
-            style={[styles.background, { paddingTop: insets.top }]}>
+          colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']}
+          style={styles.glassBackground}
+        />
+        
+        <View style={styles.cardHeader}>
+          <View style={[styles.platformBadge, { backgroundColor: platformColor + '20' }]}>
+            <MaterialCommunityIcons name={platformIcon as any} size={14} color={platformColor} />
+            <Text style={[styles.platformText, { color: platformColor }]}>{item.platform}</Text>
+          </View>
+          <Pressable onPress={() => handleDelete(item.id)} style={styles.moreButton}>
+            <MaterialCommunityIcons name="delete-outline" size={20} color={colors.textMuted} />
+          </Pressable>
+        </View>
 
-            <PageHeader
-                title="Templates"
-                subtitle="Design premium visual templates for automated social posting."
-                onBack={() => router.back()}
-            />
+        <View style={styles.cardBody}>
+          <Text style={styles.templateTitle}>{item.name}</Text>
+          <Text style={styles.templateMeta}>
+            Created {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
+          </Text>
+        </View>
 
-
-            <FlatList
-                key="single-column"
-                data={templates}
-                keyExtractor={(item) => item.id}
-                renderItem={renderTemplate}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <MaterialCommunityIcons name="image-off-outline" size={48} color={colors.textMuted} />
-                        <Text style={styles.emptyText}>No templates found.</Text>
-                    </View>
-                }
-            />
-
-            {/* Floating Create Button */}
-            <View style={[styles.floatingHint, { bottom: insets.bottom + 20 }]}>
-                <Pressable
-                    style={styles.aiButton}
-                    onPress={() => setWebOnlyModalVisible(true)}
-                >
-                    <MaterialCommunityIcons name="plus" size={20} color="#FFF" />
-                    <Text style={styles.aiButtonText}>New Template</Text>
-                </Pressable>
-            </View>
-            {/* Web Only Feature Modal */}
-            <Modal
-                visible={webOnlyModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setWebOnlyModalVisible(false)}
-            >
-                <Pressable
-                    style={styles.modalOverlayDark}
-                    onPress={() => setWebOnlyModalVisible(false)}
-                >
-                    <View style={styles.infoModalContent}>
-                        <View style={styles.infoIconBox}>
-                            <MaterialCommunityIcons name="monitor" size={32} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.infoModalTitle}>Web-Only Feature</Text>
-                        <Text style={styles.infoModalDesc}>
-                            Advanced template design and customization are exclusively available on our web platform for a professional experience.
-                        </Text>
-                        <Pressable
-                            style={styles.infoGotItBtn}
-                            onPress={() => setWebOnlyModalVisible(false)}
-                        >
-                            <Text style={styles.infoGotItText}>GOT IT</Text>
-                        </Pressable>
-                    </View>
-                </Pressable>
-            </Modal>
-        </LinearGradient>
+        <View style={styles.cardFooter}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>88%</Text>
+            <Text style={styles.statLabel}>Conv.</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>124</Text>
+            <Text style={styles.statLabel}>Posts</Text>
+          </View>
+          <Pressable 
+            style={styles.editButton}
+            onPress={() => setWebOnlyModalVisible(true)}
+          >
+            <Text style={styles.editButtonText}>Customize</Text>
+            <MaterialCommunityIcons name="chevron-right" size={16} color="#FFF" />
+          </Pressable>
+        </View>
+      </Animated.View>
     );
+  };
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={colors.backgroundGradient as any}
+        style={[styles.container, { paddingTop: insets.top }]}
+      >
+        <PageHeader
+          title="Template Library"
+          subtitle="Pre-built high-converting social structures."
+          onBack={() => router.back()}
+        />
+
+        <View style={styles.searchContainer}>
+          <View style={styles.searchWrapper}>
+            <MaterialCommunityIcons name="magnify" size={20} color={colors.textMuted} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search templates..."
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+            />
+          </View>
+        </View>
+
+        <View style={styles.filterScrollContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            {PLATFORM_FILTERS.map((filter) => (
+              <Pressable
+                key={filter.id}
+                onPress={() => setActivePlatform(filter.id)}
+                style={[
+                  styles.filterPill,
+                  activePlatform === filter.id && styles.activeFilterPill,
+                ]}
+              >
+                <MaterialCommunityIcons 
+                  name={filter.icon as any} 
+                  size={16} 
+                  color={activePlatform === filter.id ? '#FFF' : colors.textMuted} 
+                />
+                <Text style={[
+                  styles.filterText,
+                  activePlatform === filter.id && styles.activeFilterText,
+                ]}>
+                  {filter.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.accentTeal} />
+            <Text style={styles.loadingText}>Fetching architectures...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredTemplates}
+            renderItem={renderTemplate}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="layers-off-outline" size={60} color={colors.cardBorder} />
+                <Text style={styles.emptyTitle}>No Templates Found</Text>
+                <Text style={styles.emptySubtitle}>Try adjusting your search or filters.</Text>
+              </View>
+            }
+          />
+        )}
+
+        <Pressable 
+          style={styles.fab}
+          onPress={() => setWebOnlyModalVisible(true)}
+        >
+          <LinearGradient
+            colors={[colors.accentTeal, colors.accentBlue]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fabGradient}
+          >
+            <MaterialCommunityIcons name="plus" size={32} color="#FFF" />
+          </LinearGradient>
+        </Pressable>
+
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={webOnlyModalVisible}
+          onRequestClose={() => setWebOnlyModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.webBadge}>
+                <MaterialCommunityIcons name="monitor" size={16} color={colors.accentTeal} />
+                <Text style={styles.webBadgeText}>WEB FEATURE</Text>
+              </View>
+              <Text style={styles.modalTitle}>Visual Editor</Text>
+              <Text style={styles.modalDescription}>
+                Creating and editing template architectures requires the high-fidelity Visual Social Canvas, currently available on our desktop platform.
+              </Text>
+              <Pressable 
+                style={styles.closeModalBtn}
+                onPress={() => setWebOnlyModalVisible(false)}
+              >
+                <Text style={styles.closeModalBtnText}>Got it</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      </LinearGradient>
+    </View>
+  );
 }
 
-function getStyles(colors: any) {
-  return StyleSheet.create({
-    background: { flex: 1 },
-    listContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 120,
-    },
-    templateCard: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 24,
-        marginBottom: 20,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        ...Platform.select({
-            ios: { shadowColor: colors.cardShadowColor, shadowOpacity: 0.06, shadowOffset: { width: 0, height: 10 }, shadowRadius: 20 },
-            android: { elevation: 4 },
-        }),
-    },
-    imageContainer: {
-        height: 160,
-        width: '100%',
-        position: 'relative',
-    },
-    templateImage: {
-        width: '100%',
-        height: '100%',
-    },
-    imageGradient: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    platformBadge: {
-        position: 'absolute',
-        top: 12,
-        left: 12,
-        width: 28,
-        height: 28,
-        borderRadius: 8,
-        backgroundColor: colors.surfaceIcon,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    overlayTitle: {
-        position: 'absolute',
-        bottom: 12,
-        left: 12,
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: -0.5,
-    },
-    cardContent: {
-        padding: 16,
-    },
-    statusRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    latestText: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: colors.textMuted,
-        letterSpacing: 0.5,
-    },
-    statusBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    statusActive: {
-        backgroundColor: '#ECFDF5',
-    },
-    statusOther: {
-        backgroundColor: colors.surfaceSoft,
-    },
-    statusText: {
-        fontSize: 10,
-        fontWeight: '900',
-    },
-    statusTextActive: {
-        color: '#10B981',
-    },
-    statusTextOther: {
-        color: colors.textSecondary,
-    },
-    metricsGrid: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.surfaceSoft,
-        padding: 12,
-        borderRadius: 16,
-        marginBottom: 16,
-        gap: 20,
-    },
-    metricItem: {
-        flex: 1,
-    },
-    metricLabel: {
-        fontSize: 9,
-        fontWeight: '800',
-        color: colors.textMuted,
-        marginBottom: 4,
-    },
-    metricValue: {
-        fontSize: 13,
-        fontWeight: '900',
-        color: colors.textPrimary,
-    },
-    circlesVisual: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    overlapCircle: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        borderWidth: 2,
-        borderColor: colors.cardBorder,
-    },
-    actionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    editBtn: {
-        flex: 1,
-        height: 44,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    editBtnText: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: colors.textPrimary,
-    },
-    iconActionBtn: {
-        width: 44,
-        height: 44,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 100,
-        gap: 16,
-    },
-    emptyText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.textMuted,
-    },
-    floatingHint: {
-        position: 'absolute',
-        left: 20,
-        right: 20,
-        alignItems: 'center',
-    },
-    aiButton: {
-        backgroundColor: colors.accentTeal,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        paddingHorizontal: 28,
-        paddingVertical: 18,
-        borderRadius: 30,
-        shadowColor: '#0B2341',
-        shadowOpacity: 0.3,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 15,
-        elevation: 10,
-    },
-    aiButtonText: {
-        color: '#FFF',
-        fontSize: 15,
-        fontWeight: '900',
-        letterSpacing: -0.2,
-    },
-    modalOverlayDark: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 40,
-    },
-    infoModalContent: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 32,
-        padding: 30,
-        width: '100%',
-        alignItems: 'center',
-    },
-    infoIconBox: {
-        width: 64,
-        height: 64,
-        backgroundColor: colors.surfaceSoft,
-        borderRadius: 32,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-    },
-    infoModalTitle: {
-        fontSize: 20,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        marginBottom: 12,
-    },
-    infoModalDesc: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        textAlign: 'center',
-        lineHeight: 20,
-        marginBottom: 24,
-    },
-    infoGotItBtn: {
-        backgroundColor: colors.accentTeal,
-        paddingHorizontal: 40,
-        paddingVertical: 14,
-        borderRadius: 16,
-    },
-    infoGotItText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '900',
-        letterSpacing: 1,
-    },
-  });
-}
+const getStyles = (colors: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  searchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 50,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '500',
+    height: '100%',
+  },
+  filterScrollContainer: {
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  filterScroll: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    gap: 8,
+  },
+  activeFilterPill: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  activeFilterText: {
+    color: '#FFF',
+  },
+  listContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  templateCard: {
+    borderRadius: 24,
+    marginBottom: 16,
+    padding: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  glassBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  platformBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  platformText: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  moreButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardBody: {
+    marginBottom: 20,
+  },
+  templateTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    marginBottom: 6,
+    letterSpacing: -0.5,
+  },
+  templateMeta: {
+    fontSize: 13,
+    color: colors.textMuted,
+    fontWeight: '600',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginHorizontal: -20,
+    marginBottom: -20,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  statBox: {
+    alignItems: 'flex-start',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  divider: {
+    width: 1,
+    height: 24,
+    backgroundColor: colors.cardBorder,
+    marginHorizontal: 15,
+  },
+  editButton: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accentTeal,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    gap: 4,
+  },
+  editButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 25,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  fabGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 15,
+    color: colors.textMuted,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 100,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    marginTop: 20,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.textMuted,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    padding: 25,
+  },
+  modalContent: {
+    backgroundColor: '#1A1D21',
+    borderRadius: 30,
+    padding: 30,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  webBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(45, 212, 191, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 20,
+    gap: 6,
+  },
+  webBadgeText: {
+    color: colors.accentTeal,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 25,
+    fontWeight: '500',
+  },
+  closeModalBtn: {
+    backgroundColor: '#FFF',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 18,
+    alignItems: 'center',
+  },
+  closeModalBtnText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+});

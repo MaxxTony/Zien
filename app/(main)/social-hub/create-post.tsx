@@ -1,16 +1,16 @@
-import { createSocialPost } from '@/services/socialService';
+import { createSocialPost, updateSocialPost } from '@/services/socialService';
 import { uploadPropertyImage } from '@/services/propertyService';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { getProperties } from '@/services/propertyService';
+import { getProperties, getPropertyDetails } from '@/services/propertyService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -221,9 +221,18 @@ export default function CreatePostScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { accessToken } = useAuth();
+  const { postId, propertyId, editCaption, editMedia, editScheduledAt } = useLocalSearchParams<{
+    postId?: string;
+    propertyId?: string;
+    editCaption?: string;
+    editMedia?: string;
+    editScheduledAt?: string;
+  }>();
+  const isEditMode = !!postId;
+  const hasPrefilledRef = useRef(false);
   const [step, setStep] = useState<StepId | 'success'>(1);
   const [targetContent, setTargetContent] = useState('Custom Post / Market Update');
-  const [caption, setCaption] = useState(DEFAULT_CAPTION);
+  const [caption, setCaption] = useState(isEditMode ? '' : DEFAULT_CAPTION);
   const [platforms, setPlatforms] = useState<PlatformId[]>(['instagram', 'facebook']);
   const [previewPlatform, setPreviewPlatform] = useState<PlatformId>('instagram');
   const [uploadedMedia, setUploadedMedia] = useState<{ id: string, uri: string }[]>([]);
@@ -236,11 +245,63 @@ export default function CreatePostScreen() {
   const [isTargetDropdownVisible, setIsTargetDropdownVisible] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingPost, setIsLoadingPost] = useState(isEditMode);
   const [scheduledDate, setScheduledDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   const previewTranslateX = useSharedValue(SCREEN_WIDTH);
+
+  // Prefill data for edit mode using route params
+  useEffect(() => {
+    if (!isEditMode || hasPrefilledRef.current) return;
+    (async () => {
+      try {
+        setIsLoadingPost(true);
+        hasPrefilledRef.current = true;
+
+        // Prefill caption from route params
+        if (editCaption) setCaption(editCaption);
+
+        // Prefill scheduled date
+        if (editScheduledAt) {
+          setScheduledDate(new Date(editScheduledAt));
+          setStrategy('custom');
+        }
+
+        // Prefill media from route params
+        if (editMedia) {
+          try {
+            const mediaArr = JSON.parse(editMedia);
+            if (Array.isArray(mediaArr) && mediaArr.length > 0) {
+              const prefillMedia = mediaArr.map((m: any, i: number) => ({
+                id: `existing-${m.id || i}`,
+                uri: m.media_url,
+              }));
+              setUploadedMedia(prefillMedia);
+              setSelectedMediaIds(prefillMedia.map((m: any) => m.id));
+              setLastSelectedMediaUri(prefillMedia[0].uri);
+            }
+          } catch { /* media parse failed */ }
+        }
+
+        // Prefill property target using property details API
+        if (propertyId && accessToken) {
+          try {
+            const propRes = await getPropertyDetails(propertyId, accessToken);
+            if (propRes.data?.address) {
+              setTargetContent(`${propRes.data.address} (Property)`);
+            }
+          } catch { /* property fetch failed, use default */ }
+        }
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'Failed to load post data');
+        router.back();
+      } finally {
+        setIsLoadingPost(false);
+      }
+    })();
+  }, [isEditMode, postId, accessToken]);
 
   useEffect(() => {
     previewTranslateX.value = withTiming(isPreviewOpen ? 0 : SCREEN_WIDTH, { duration: 300 });
@@ -267,6 +328,7 @@ export default function CreatePostScreen() {
   const properties = propertiesData?.properties || [];
 
   useEffect(() => {
+    if (isEditMode && hasPrefilledRef.current) return; // Don't override edit prefill
     if (!isLoadingProperties) {
       if (properties.length > 0) {
         if (targetContent === 'Custom Post / Market Update') {
@@ -404,18 +466,22 @@ export default function CreatePostScreen() {
           platform_account_ids: []
         };
 
-        // 3. Call API
-        await createSocialPost(accessToken || '', payload);
+        // 3. Call API — create or update
+        if (isEditMode) {
+          await updateSocialPost(accessToken || '', Number(postId), payload);
+        } else {
+          await createSocialPost(accessToken || '', payload);
+        }
 
         triggerHaptic(Haptics.ImpactFeedbackStyle.Heavy);
         setStep('success');
       } catch (error: any) {
-        Alert.alert('Scheduling Failed', error.message || 'Something went wrong while scheduling your post.');
+        Alert.alert(isEditMode ? 'Update Failed' : 'Scheduling Failed', error.message || 'Something went wrong.');
       } finally {
         setIsSubmitting(false);
       }
     }
-  }, [step, isSubmitting, caption, selectedProperty, strategy, scheduledDate, lastSelectedMediaUri, accessToken]);
+  }, [step, isSubmitting, caption, selectedProperty, strategy, scheduledDate, lastSelectedMediaUri, accessToken, isEditMode, postId]);
 
   const goBack = useCallback(() => {
     triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
@@ -434,7 +500,7 @@ export default function CreatePostScreen() {
             </LinearGradient>
             <Animated.View entering={FadeInRight} style={styles.successIconRing} />
           </View>
-          <Text style={styles.successTitleText}>Post Scheduled!</Text>
+          <Text style={styles.successTitleText}>{isEditMode ? 'Post Updated!' : 'Post Scheduled!'}</Text>
           <Text style={styles.successSubText}>
             Your masterpiece is in the queue. We'll handle the heavy lifting and notify you the moment it's live.
           </Text>
@@ -464,6 +530,16 @@ export default function CreatePostScreen() {
     );
   }
 
+  if (isLoadingPost) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.surfaceSoft, alignItems: 'center', justifyContent: 'center' }]}>
+        <LinearGradient colors={colors.backgroundGradient as any} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color={colors.accentTeal} />
+        <Text style={[styles.headerSubtitle, { marginTop: 16 }]}>Loading post data...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceSoft }]}>
       <LinearGradient colors={colors.backgroundGradient as any} style={StyleSheet.absoluteFill} />
@@ -474,8 +550,8 @@ export default function CreatePostScreen() {
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
         </Pressable>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Create New Post</Text>
-          <Text style={styles.headerSubtitle}>Ready to engage your audience?</Text>
+          <Text style={styles.headerTitle}>{isEditMode ? 'Edit Post' : 'Create New Post'}</Text>
+          <Text style={styles.headerSubtitle}>{isEditMode ? 'Update your post details' : 'Ready to engage your audience?'}</Text>
         </View>
       </View>
 
@@ -836,7 +912,7 @@ export default function CreatePostScreen() {
               style={styles.gradientBtn}
             >
               <Text style={styles.footerContinueBtnText}>
-                {step === 3 ? (isSubmitting ? 'Scheduling...' : 'Confirm Schedule') : 'Continue'}
+                {step === 3 ? (isSubmitting ? (isEditMode ? 'Updating...' : 'Scheduling...') : (isEditMode ? 'Update Post' : 'Confirm Schedule')) : 'Continue'}
               </Text>
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#FFF" style={{ marginLeft: 8 }} />

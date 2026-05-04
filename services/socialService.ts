@@ -70,3 +70,185 @@ export const createSocialPost = async (token: string, payload: any): Promise<{ s
 
   return json;
 };
+
+/**
+ * Fetch a single social post by its ID.
+ */
+export const getSocialPostById = async (token: string, postId: number): Promise<SocialPost> => {
+  const response = await fetch(`${API_BASE_URL}/solo/social/posts/${postId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || 'Failed to fetch social post');
+  }
+
+  return json.data;
+};
+
+/**
+ * Update an existing social post.
+ */
+export const updateSocialPost = async (token: string, postId: number, payload: any): Promise<{ success: boolean; message: string; post: SocialPost }> => {
+  const response = await fetch(`${API_BASE_URL}/solo/social/posts/${postId}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || 'Failed to update social post');
+  }
+
+  return json;
+};
+
+/**
+ * Create a new social campaign.
+ */
+export const createCampaign = async (
+  token: string,
+  payload: { name: string; target_audience: string; start_date: string; status: number }
+): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/solo/social/campaigns`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || 'Failed to create campaign');
+  }
+
+  return json;
+};
+
+/**
+ * Fetch all social campaigns for the current user.
+ */
+export const getCampaigns = async (token: string): Promise<any[]> => {
+  const response = await fetch(`${API_BASE_URL}/solo/social/campaigns`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || 'Failed to fetch campaigns');
+  }
+
+  return json.data;
+};
+
+/**
+ * Update an existing social campaign.
+ */
+export const updateCampaign = async (
+  token: string,
+  campaignId: number,
+  payload: { name?: string; target_audience?: string; start_date?: string; status?: number }
+): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/solo/social/campaigns/${campaignId}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || 'Failed to update campaign');
+  }
+
+  return json;
+};
+
+/**
+ * Delete a social campaign.
+ */
+export const deleteCampaign = async (token: string, campaignId: number): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/solo/social/campaigns/${campaignId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || 'Failed to delete campaign');
+  }
+
+  return json;
+};
+
+/**
+ * Fetch all social templates.
+ */
+export const getTemplates = async (token: string): Promise<any[]> => {
+  const response = await fetch(`${API_BASE_URL}/solo/social/templates`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || 'Failed to fetch templates');
+  }
+
+  return json.data;
+};
+
+
+
+
+
+/**
+ * Delete a social template.
+ */
+export const deleteTemplate = async (token: string, templateId: number): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/solo/social/templates/${templateId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || 'Failed to delete template');
+  }
+
+  return json;
+};
