@@ -215,8 +215,11 @@ export default function EnterpriseContactScreen() {
                     <PhoneInput
                       defaultValue={value}
                       defaultCode="US"
-                      layout="second"
-                      onChangeText={onChange}
+                      layout="first"
+                      onChangeText={(text) => {
+                        const cleaned = text.replace(/[^0-9]/g, '').slice(0, 15);
+                        onChange(cleaned);
+                      }}
                       onChangeFormattedText={onChange}
                       withDarkTheme={theme === 'dark'}
                       withShadow={false}
@@ -227,9 +230,20 @@ export default function EnterpriseContactScreen() {
                       codeTextStyle={styles.phoneCodeText}
                       flagButtonStyle={styles.phoneFlagButton}
                       placeholder="Phone number"
+                      textInputProps={{
+                        maxLength: 15,
+                        keyboardType: 'phone-pad',
+                      }}
                       countryPickerProps={{
                         withFilter: true,
                         withAlphaFilter: true,
+                        renderFlagButton: (props: any) => {
+                          const code = (props.countryCode || 'US').toUpperCase();
+                          const emoji = code.replace(/./g, (c: string) =>
+                            String.fromCodePoint(0x1F1A5 + c.charCodeAt(0))
+                          );
+                          return <Text style={{ fontSize: 20, lineHeight: 26, marginLeft: 5 }}>{emoji}</Text>;
+                        },
                         theme: theme === 'dark' ? {
                           backgroundColor: '#000000',
                           onBackgroundTextColor: '#FFFFFF',
@@ -543,18 +557,24 @@ function getStyles(colors: any) {
       paddingVertical: 0,
       borderRadius: colors.inputBorderRadius,
     },
+    phoneCodeText: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      paddingHorizontal: 10,
+    },
     phoneFlagButton: {
       backgroundColor: 'transparent',
       width: 60,
+      height: 50,
+      borderRightWidth: 1,
+      borderRightColor: colors.borderInput,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     phoneTextInput: {
       fontSize: 15,
       color: colors.textPrimary,
       height: 50,
-    },
-    phoneCodeText: {
-      fontSize: 15,
-      color: colors.textPrimary,
     },
     errorText: {
       fontSize: 12,

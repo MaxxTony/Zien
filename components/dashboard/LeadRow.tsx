@@ -33,7 +33,7 @@ function getInitials(name: string) {
 function LeadRowComponent({ name, note, badge, badgeTone, color, onPress }: LeadRowProps) {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-  const bs = INITIALS_COLORS[badgeTone];
+  const bs = INITIALS_COLORS[badgeTone] || INITIALS_COLORS.muted;
 
   return (
     <Pressable
@@ -64,54 +64,54 @@ export const LeadRow = memo(LeadRowComponent);
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  rowPressed: {
-    opacity: 0.7,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  content: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  note: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  badge: {
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 9,
-    borderWidth: 1,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-});
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 11,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    rowPressed: {
+      opacity: 0.7,
+    },
+    avatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#fff',
+      letterSpacing: 0.5,
+    },
+    content: {
+      flex: 1,
+    },
+    name: {
+      fontSize: 13.5,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    note: {
+      marginTop: 2,
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    badge: {
+      borderRadius: 8,
+      paddingVertical: 4,
+      paddingHorizontal: 9,
+      borderWidth: 1,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.4,
+    },
+  });
 }

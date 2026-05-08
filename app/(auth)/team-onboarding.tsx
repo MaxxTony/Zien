@@ -16,6 +16,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -36,6 +37,24 @@ export default function TeamOnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, theme } = useAppTheme();
+
+  const handleContactSupport = async () => {
+    const url = 'mailto:support@zien.ai';
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        throw new Error('Not supported');
+      }
+    } catch (error) {
+      Alert.alert(
+        'Support Email',
+        'Please email us at support@zien.ai',
+        [{ text: 'OK' }]
+      );
+    }
+  };
   const styles = getStyles(colors, insets);
   const { login, logout, accessToken } = useAuth();
   const { isCompleting } = useLocalSearchParams();
@@ -46,7 +65,7 @@ export default function TeamOnboardingScreen() {
   const [duration, setDuration] = useState<'monthly' | 'annually'>('monthly');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
   const [showSuccess, setShowSuccess] = useState(false);
-  const [formattedPhone, setFormattedPhone] = useState('');
+
   const [countryCode, setCountryCode] = useState('+1');
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -105,7 +124,10 @@ export default function TeamOnboardingScreen() {
       } else if (formData.password.length < 8) {
         newErrors.password = 'Password must be at least 8 characters';
       }
-      if (formData.password !== formData.confirmPassword) {
+
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = 'Confirm password is required';
+      } else if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
       }
     } else if (currentStep === 2) {
@@ -179,6 +201,7 @@ export default function TeamOnboardingScreen() {
     queryFn: fetchTeamPlans,
   });
 
+
   const activePlan = useMemo(() => {
     return plans?.find(p => p.slug === selectedPlan) || plans?.[0];
   }, [plans, selectedPlan]);
@@ -194,7 +217,7 @@ export default function TeamOnboardingScreen() {
   const registerMutation = useMutation({
     mutationFn: (payload: TeamCheckoutPayload) => registerTeamCheckout(payload, accessToken),
     onSuccess: (data) => {
-      console.log('Registration Success Result:', data);
+
       if (data.checkout_url && data.session_id) {
         setCheckoutUrl(data.checkout_url);
         setSessionId(data.session_id);
@@ -204,14 +227,24 @@ export default function TeamOnboardingScreen() {
       }
     },
     onError: (error: Error) => {
-      setErrors(prev => ({ ...prev, _form: error.message }));
+
+      const msg = error.message.toLowerCase();
+      if (msg.includes('email')) {
+        setErrors(prev => ({ ...prev, email: error.message }));
+        setCurrentStep(1);
+      } else if (msg.includes('phone')) {
+        setErrors(prev => ({ ...prev, phone: error.message }));
+        setCurrentStep(1);
+      } else {
+        setErrors(prev => ({ ...prev, _form: error.message }));
+      }
     },
   });
 
   const completeCheckoutMutation = useMutation({
     mutationFn: (sId: string) => completeCheckout(sId),
     onSuccess: (data) => {
-      console.log('Checkout Complete Result:', JSON.stringify(data, null, 2));
+
       if (data.access_token) {
         login(data.access_token, data.role, true);
         setSuccessData(data);
@@ -243,10 +276,11 @@ export default function TeamOnboardingScreen() {
 
   const updateField = (field: keyof typeof formData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
+    if (errors[field] || errors._form) {
       setErrors((prev) => {
         const next = { ...prev };
         delete next[field];
+        delete next._form;
         return next;
       });
     }
@@ -272,7 +306,6 @@ export default function TeamOnboardingScreen() {
       const options: ImagePicker.ImagePickerOptions = {
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [1, 1],
         quality: 0.8,
       };
 
@@ -292,6 +325,11 @@ export default function TeamOnboardingScreen() {
 
   const pickImage = () => {
     setShowLogoModal(true);
+  };
+
+  const handleRemoveLogo = () => {
+    setLocalLogoUri(null);
+    updateField('teamLogo', null);
   };
 
   const renderStepContent = () => {
@@ -340,10 +378,13 @@ export default function TeamOnboardingScreen() {
                   ref={phoneInputRef}
                   defaultValue={formData.phone}
                   defaultCode="US"
-                  layout="second"
-                  onChangeText={(text) => updateField('phone', text)}
+                  layout="first"
+                  onChangeText={(text) => {
+                    // Only allow digits and limit to 15 characters
+                    const cleaned = text.replace(/[^0-9]/g, '').slice(0, 15);
+                    updateField('phone', cleaned);
+                  }}
                   onChangeFormattedText={(text) => {
-                    setFormattedPhone(text);
                     if (text.startsWith('+')) {
                       const code = text.split(' ')[0];
                       if (code) setCountryCode(code);
@@ -359,9 +400,20 @@ export default function TeamOnboardingScreen() {
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
                   withDarkTheme={theme === 'dark'}
+                  textInputProps={{
+                    maxLength: 15,
+                    keyboardType: 'phone-pad',
+                  }}
                   countryPickerProps={{
                     withFilter: true,
                     withAlphaFilter: true,
+                    renderFlagButton: (props: any) => {
+                      const code = (props.countryCode || 'US').toUpperCase();
+                      const emoji = code.replace(/./g, (c: string) =>
+                        String.fromCodePoint(0x1F1A5 + c.charCodeAt(0))
+                      );
+                      return <Text style={{ fontSize: 20, lineHeight: 26 }}>{emoji}</Text>;
+                    },
                     theme: theme === 'dark' ? {
                       backgroundColor: '#000000',
                       onBackgroundTextColor: '#FFFFFF',
@@ -410,6 +462,14 @@ export default function TeamOnboardingScreen() {
             </View>
 
             <GradientButton title="Continue" style={styles.primaryButton} onPress={goNext} />
+            {errors._form && (
+              <Text style={[styles.errorTextSmall, { textAlign: 'center', marginTop: 12 }]}>
+                {errors._form}
+              </Text>
+            )}
+            <Text style={styles.supportText}>
+              Need help? <Text style={styles.supportLink} onPress={handleContactSupport}>Contact Support</Text>
+            </Text>
           </>
         );
       case 2:
@@ -455,6 +515,15 @@ export default function TeamOnboardingScreen() {
                     </>
                   )}
                 </Pressable>
+                {localLogoUri && !uploadLogoMutation.isPending && (
+                  <Pressable
+                    style={styles.removeLogoButton}
+                    onPress={handleRemoveLogo}
+                  >
+                    <MaterialCommunityIcons name="trash-can-outline" size={16} color="#EF4444" />
+                    <Text style={styles.removeLogoText}>Remove Logo</Text>
+                  </Pressable>
+                )}
                 {errors.teamLogo ? <Text style={styles.errorTextSmall}>{errors.teamLogo}</Text> : null}
               </View>
             </View>
@@ -463,6 +532,14 @@ export default function TeamOnboardingScreen() {
               <OutlineButton title="Back" style={styles.secondaryButton} onPress={goBack} />
               <GradientButton title="Continue" style={styles.primaryButtonFlex} onPress={goNext} />
             </View>
+            {errors._form && (
+              <Text style={[styles.errorTextSmall, { textAlign: 'center', marginTop: 12 }]}>
+                {errors._form}
+              </Text>
+            )}
+            <Text style={styles.supportText}>
+              Need help? <Text style={styles.supportLink} onPress={handleContactSupport}>Contact Support</Text>
+            </Text>
           </>
         );
       case 3:
@@ -489,6 +566,14 @@ export default function TeamOnboardingScreen() {
               <OutlineButton title="Back" style={styles.secondaryButton} onPress={goBack} />
               <GradientButton title="Confirm" style={styles.primaryButtonFlex} onPress={goNext} />
             </View>
+            {errors._form && (
+              <Text style={[styles.errorTextSmall, { textAlign: 'center', marginTop: 12 }]}>
+                {errors._form}
+              </Text>
+            )}
+            <Text style={styles.supportText}>
+              Need help? <Text style={styles.supportLink} onPress={handleContactSupport}>Contact Support</Text>
+            </Text>
           </>
         );
       case 4:
@@ -547,8 +632,11 @@ export default function TeamOnboardingScreen() {
                   'enterprise': { icon: 'domain', role: 'Enterprise' },
                 };
                 const meta = PLAN_META[plan.slug] || { icon: 'account-group-outline', role: 'Team Owner' };
-                const wholePrice = planPrice?.price.split('.')[0] || '0';
-                const decimalPrice = planPrice?.price.split('.')[1] || '00';
+                const displayMonthly = duration === 'annually' && planPrice
+                  ? (Number(planPrice.price) / 12).toFixed(2)
+                  : (planPrice?.price || '0.00');
+                const wholePrice = displayMonthly.split('.')[0];
+                const decimalPrice = displayMonthly.split('.')[1] || '00';
 
                 return (
                   <Pressable
@@ -687,7 +775,9 @@ export default function TeamOnboardingScreen() {
                           <Text style={styles.addOnSub}>{addon.description}</Text>
                           <View style={styles.addOnActionCol}>
                             <Text style={[styles.addOnPrice, isSelected && styles.addOnPriceActive]}>
-                              {addonPrice ? `$${addonPrice.price}` : 'N/A'}
+                              {addonPrice
+                                ? `$${duration === 'annually' ? (Number(addonPrice.price) / 12).toFixed(2) : addonPrice.price}/mo`
+                                : 'N/A'}
                             </Text>
                             <Switch
                               value={isSelected}
@@ -708,7 +798,11 @@ export default function TeamOnboardingScreen() {
                 <Text style={styles.summaryTitle}>Payment Summary ({duration.charAt(0).toUpperCase() + duration.slice(1)})</Text>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>{activePlan?.name}</Text>
-                  <Text style={styles.summaryValue}>${activePrice?.price || '0.00'}</Text>
+                  <Text style={styles.summaryValue}>
+                    {duration === 'annually'
+                      ? `$${(Number(activePrice?.price || 0) / 12).toFixed(2)}/mo x 12`
+                      : `$${activePrice?.price || '0.00'}`}
+                  </Text>
                 </View>
 
                 {activePlan?.addons.filter(a => selectedAddons[a.slug]).map(addon => {
@@ -716,14 +810,18 @@ export default function TeamOnboardingScreen() {
                   return (
                     <View key={addon.id} style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>{addon.name}</Text>
-                      <Text style={styles.summaryValue}>${ap?.price || '0.00'}</Text>
+                      <Text style={styles.summaryValue}>
+                        {duration === 'annually'
+                          ? `$${(Number(ap?.price || 0) / 12).toFixed(2)}/mo x 12`
+                          : `$${ap?.price || '0.00'}`}
+                      </Text>
                     </View>
                   );
                 })}
 
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryTotalLabel}>Total after trial</Text>
+                  <Text style={styles.summaryTotalLabel}>Total Deduction</Text>
                   <Text style={styles.summaryTotalValue}>
                     ${(
                       Number(activePrice?.price || 0) +
@@ -737,17 +835,28 @@ export default function TeamOnboardingScreen() {
                   </Text>
                 </View>
                 <Text style={styles.trialInfo}>
-                  <Text style={styles.trialBold}>14-day free trial.</Text> You will enter a payment method at checkout; you are not charged today. After the trial, <Text style={styles.trialBold}>
-                    ${(
-                      Number(activePrice?.price || 0) +
+                  {(() => {
+                    const total = Number(activePrice?.price || 0) +
                       (activePlan?.addons || [])
                         .filter(a => selectedAddons[a.slug])
                         .reduce((sum, a) => {
                           const ap = a.prices.find(p => p.billing_interval === duration) || a.prices[0];
                           return sum + Number(ap?.price || 0);
-                        }, 0)
-                    ).toFixed(2)}
-                  </Text> per {duration === 'monthly' ? 'Month' : 'Year'}
+                        }, 0);
+                    const perMonth = (total / 12).toFixed(2);
+                    return (
+                      <>
+                        <Text style={styles.trialBold}>14-day free trial.</Text>
+                        {' '}You will enter a payment method at checkout; you are not charged today. After the trial,{' '}
+                        {duration === 'annually' ? (
+                          <Text style={styles.trialBold}>${perMonth}/mo (billed ${total.toFixed(2)} annually)</Text>
+                        ) : (
+                          <Text style={styles.trialBold}>${total.toFixed(2)} per Month</Text>
+                        )}
+                        {' '}applies until you cancel.
+                      </>
+                    );
+                  })()}
                 </Text>
               </View>
             </View>
@@ -771,6 +880,9 @@ export default function TeamOnboardingScreen() {
                 {registerMutation.error.message}
               </Text>
             )}
+            <Text style={styles.supportText}>
+              Need help? <Text style={styles.supportLink} onPress={handleContactSupport}>Contact Support</Text>
+            </Text>
           </>
         );
       default:
@@ -829,7 +941,7 @@ export default function TeamOnboardingScreen() {
         )}
 
         <GradientButton
-          title="Continue to Workspace"
+          title="Continue to Dashboard"
           style={styles.successButton}
           onPress={() => router.push(redirectTo as any)}
         />
@@ -1040,12 +1152,16 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.textPrimary,
+    paddingHorizontal: 10,
   },
   phoneFlagButton: {
-    width: 70,
+    width: 60,
+    height: 50,
     backgroundColor: 'transparent',
     borderRightWidth: 1,
     borderRightColor: colors.borderInput,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorTextSmall: {
     fontSize: 12,
@@ -1066,6 +1182,23 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
   uploadText: {
     fontSize: 13,
     color: '#64748B',
+  },
+  removeLogoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  removeLogoText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#EF4444',
   },
   logoPreview: {
     width: 90,
@@ -1744,5 +1877,15 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#E11D48',
+  },
+  supportText: {
+    marginTop: 24,
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  supportLink: {
+    color: colors.accent,
+    fontWeight: '700',
   },
 });

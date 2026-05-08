@@ -147,24 +147,7 @@ function NavDrawerComponent({
         </ScrollView>
 
 
-        {/* Back to main link at the bottom if provided */}
-        {backToMainRoute && (
-          <View style={{ paddingTop: 10, borderTopWidth: 1, borderTopColor: customBackground ? 'rgba(255,255,255,0.1)' : colors.divider }}>
-            <Pressable
-              style={({ pressed }) => [styles.item, { marginBottom: 20 }, pressed && { opacity: 0.7 }]}
-              onPress={() => router.push(backToMainRoute)}
-            >
-              <View style={styles.iconWrap}>
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={20}
-                  color={customBackground ? '#fff' : colors.textSecondary}
-                />
-              </View>
-              <Text style={[styles.itemText, customBackground ? { color: '#fff' } : {}]}>Back to Main App</Text>
-            </Pressable>
-          </View>
-        )}
+
       </Animated.View>
     </View>
   );

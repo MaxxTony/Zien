@@ -30,7 +30,10 @@
         "NSCalendarsUsageDescription": "This app needs access to your calendar to schedule property viewings and appointments.",
         "NSRemindersUsageDescription": "This app needs access to reminders to help you manage follow-ups and tasks.",
         "NSMicrophoneUsageDescription": "This app needs access to your microphone to record property videos and use voice commands.",
-        "NSSpeechRecognitionUsageDescription": "This app needs speech recognition to allow you to command Zien with your voice."
+        "NSSpeechRecognitionUsageDescription": "This app needs speech recognition to allow you to command Zien with your voice.",
+        "LSApplicationQueriesSchemes": [
+          "mailto"
+        ]
       },
       "config": {
         "googleMapsApiKey": "AIzaSyBxs1NkCMn1ny24-4fGnBVsbwMyTSWBDr8"

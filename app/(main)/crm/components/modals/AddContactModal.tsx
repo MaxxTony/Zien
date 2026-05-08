@@ -64,7 +64,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
   const [phone, setPhone] = useState('');
   const [group, setGroup] = useState('');
   const [tag, setTag] = useState('');
-  const [countryCodeISO, setCountryCodeISO] = useState<any>('IN');
+  const [countryCodeISO, setCountryCodeISO] = useState<any>('US');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -88,7 +88,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
         setFirstName(initialData.firstName || '');
         setLastName(initialData.lastName || '');
         setEmail(initialData.email || '');
-        
+
         // Correctly prefill the phone number by stripping the country prefix if it's there
         const rawPhone = initialData.phone || '';
         const callingCode = (initialData.countryCode || '').replace('+', '');
@@ -98,17 +98,17 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
           setPhone(rawPhone);
         }
 
-        setGroup(initialData.group || (availableGroups[0] || ''));
-        setTag(initialData.tag || (availableTags[0] || ''));
+        setGroup(initialData.group || '');
+        setTag(initialData.tag || '');
         setCountryCodeISO(getIsoCode(initialData.countryCode));
       } else {
         setFirstName('');
         setLastName('');
         setEmail('');
         setPhone('');
-        setGroup(availableGroups[0] || '');
-        setTag(availableTags[0] || '');
-        setCountryCodeISO('IN');
+        setGroup('');
+        setTag('');
+        setCountryCodeISO('US');
       }
     }
   }, [visible, initialData]);
@@ -139,7 +139,8 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
 
     // 4. Phone Validation (Library Check)
     if (phone && !phoneInputRef.current?.isValidNumber(phone)) {
-      newErrors.phone = 'Please enter a valid phone number for the selected country.';
+      const countryCode = phoneInputRef.current?.getCountryCode();
+      newErrors.phone = `Invalid number for ${countryCode || 'selected country'}.`;
     }
 
     // 5. Metadata Selection Check
@@ -265,9 +266,20 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
                   withDarkTheme={theme === 'dark'}
+                  textInputProps={{
+                    maxLength: 15,
+                    keyboardType: 'phone-pad',
+                  }}
                   countryPickerProps={{
                     withFilter: true,
                     withAlphaFilter: true,
+                    renderFlagButton: (props: any) => {
+                      const code = (props.countryCode || 'US').toUpperCase();
+                      const emoji = code.replace(/./g, (c: string) =>
+                        String.fromCodePoint(0x1F1A5 + c.charCodeAt(0))
+                      );
+                      return <Text style={{ fontSize: 22, lineHeight: 30, marginLeft: 8 }}>{emoji}</Text>;
+                    },
                     theme: theme === 'dark' ? {
                       backgroundColor: '#000000',
                       onBackgroundTextColor: '#FFFFFF',
@@ -306,7 +318,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
                   style={[styles.select, errors.group && styles.inputError]}
                   onPress={() => { setActivePicker(activePicker === 'group' ? null : 'group'); clearError('group'); }}
                 >
-                  <Text style={styles.selectText}>{group || 'Select Group'}</Text>
+                  <Text style={[styles.selectText, !group && styles.placeholderText]}>{group || 'Select Group'}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textPrimary} />
                 </Pressable>
                 {errors.group && <Text style={styles.errorText}>{errors.group}</Text>}
@@ -317,7 +329,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
                   style={[styles.select, errors.tag && styles.inputError]}
                   onPress={() => { setActivePicker(activePicker === 'tag' ? null : 'tag'); clearError('tag'); }}
                 >
-                  <Text style={styles.selectText}>{tag || 'Select Tag'}</Text>
+                  <Text style={[styles.selectText, !tag && styles.placeholderText]}>{tag || 'Select Tag'}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textPrimary} />
                 </Pressable>
                 {errors.tag && <Text style={styles.errorText}>{errors.tag}</Text>}
@@ -330,8 +342,8 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
               <Pressable style={styles.cancelBtn} onPress={onClose}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
-              <Pressable 
-                style={[styles.saveBtn, loading && { opacity: 0.7 }]} 
+              <Pressable
+                style={[styles.saveBtn, loading && { opacity: 0.7 }]}
                 onPress={handleSave}
                 disabled={loading}
               >
@@ -353,7 +365,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
           onRequestClose={() => setActivePicker(null)}
         >
           <View style={styles.pickerOverlay}>
-            <View style={[styles.pickerContent, { marginTop: insets.top + 40, marginBottom: insets.bottom + 20 }]}>
+            <View style={styles.pickerContent}>
               <View style={styles.pickerHeader}>
                 <Text style={styles.pickerTitle}>Select {activePicker === 'group' ? 'Group' : 'Tag'}</Text>
                 <Pressable onPress={() => setActivePicker(null)} style={styles.pickerCloseBtn}>
@@ -372,7 +384,7 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
                 />
               </View>
 
-              <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
+              <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled" keyboardDismissMode='on-drag'>
                 {filteredPickerOptions.length === 0 ? (
                   <Text style={styles.noResults}>No matches found</Text>
                 ) : (
@@ -507,12 +519,13 @@ const getStyles = (colors: any) => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   phoneCodeText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.textPrimary,
+    marginLeft: 4,
   },
   phoneFlagButton: {
-    width: 70,
+    width: 100,
     backgroundColor: colors.surfaceIcon,
     borderRightWidth: 1.5,
     borderRightColor: colors.cardBorder,
@@ -533,6 +546,9 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '600',
   },
+  placeholderText: {
+    color: colors.textMuted,
+  },
   pickerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -542,7 +558,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   pickerContent: {
     backgroundColor: colors.cardBackground,
     borderRadius: 24,
-    maxHeight: '80%',
+    height: 520,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 20 },

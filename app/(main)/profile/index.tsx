@@ -245,7 +245,7 @@ export default function ProfileScreen() {
 
   const removeSkill = (index: number) => setSpecializations(prev => prev.filter((_, i) => i !== index));
 
-  const pickImage = useCallback(async (aspect: [number, number] = [1, 1]): Promise<string | null> => {
+  const pickImage = useCallback(async (): Promise<string | null> => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Allow access to your photos.');
@@ -254,7 +254,6 @@ export default function ProfileScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect,
       quality: 0.85,
     });
     return result.canceled ? null : result.assets[0]?.uri ?? null;
@@ -268,7 +267,7 @@ export default function ProfileScreen() {
         text: 'Camera', onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== 'granted') { Alert.alert('Permission needed', 'Allow camera access.'); return; }
-          const res = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const res = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 });
           if (!res.canceled && res.assets[0]) setAvatarUri(res.assets[0].uri);
         }
       },
@@ -475,7 +474,7 @@ export default function ProfileScreen() {
               title="Brand Logo"
               subtitle="SVG or PNG, max 2MB. Used in documents and reports."
               previewUri={logoUri}
-              onUpload={async () => { const uri = await pickImage([4, 1]); if (uri) setLogoUri(uri); }}
+              onUpload={async () => { const uri = await pickImage(); if (uri) setLogoUri(uri); }}
               onRemove={() => setLogoUri(null)}
 
             />
@@ -489,7 +488,7 @@ export default function ProfileScreen() {
               title="Digital Signature"
               subtitle="Used for document signing and high-priority communications."
               previewUri={signatureUri}
-              onUpload={async () => { const uri = await pickImage([3, 1]); if (uri) setSignatureUri(uri); }}
+              onUpload={async () => { const uri = await pickImage(); if (uri) setSignatureUri(uri); }}
               onRemove={() => setSignatureUri(null)}
 
             />
@@ -606,7 +605,7 @@ export default function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={[...Theme.backgroundGradient]}
+      colors={Theme.backgroundGradient as any}
       start={{ x: 0.1, y: 0 }}
       end={{ x: 0.9, y: 1 }}
       style={[styles.bg, { paddingTop: insets.top }]}

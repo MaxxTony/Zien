@@ -39,8 +39,7 @@ const MENU_ITEMS: NavMenuItem[] = [
   { label: 'Leads Capture', icon: 'form-select', route: '/(main)/leads-capture' as const },
   { label: 'Zien Card', icon: 'card-account-details-outline', route: '/(main)/zien-card' as const },
   { label: 'Zien Guardian', icon: 'target', route: '/(main)/guardian-ai' as const },
-  { label: 'Billing & Usage', icon: 'credit-card-outline', route: '/(main)/billing-usage' as const },
-  { label: 'Agency Panel', icon: 'shield-account-outline', route: '/(main)/agency' as Href, marginTop: 40 },
+  { label: 'Billing & Usage', icon: 'credit-card-outline', route: '/(main)/billing-usage' as const }
 ];
 
 
@@ -80,12 +79,7 @@ const STATS_CONFIG = [
   },
 ];
 
-const ACTIVE_LEADS = [
-  { name: 'Sarah Jenkins', note: 'Looking for 3bd/2ba', badge: 'HOT', badgeTone: 'hot' as const, color: '#F59E0B' },
-  { name: 'Mike Ross', note: 'Investment Inquiry', badge: 'NEW', badgeTone: 'new' as const, color: '#6B4EFF' },
-  { name: 'Elena G.', note: 'Listing Consultant', badge: 'Lead', badgeTone: 'muted' as const, color: '#0BA0B2' },
-  { name: 'David K.', note: 'Open House Guest', badge: 'Lead', badgeTone: 'muted' as const, color: '#10B981' },
-];
+
 
 const LATEST_UPDATES = [
   { icon: 'robot-outline', title: 'AI Valuation Completed', description: 'Processed valuation report for 124 Ocean Drive.', time: '2h ago', accent: '#6B4EFF' },
@@ -291,9 +285,26 @@ function getStyles(colors: any) {
       backgroundColor: `${colors.accentTeal}08`,
     },
     viewAllButtonText: {
-      fontSize: 13,
-      fontWeight: '800',
+      fontSize: 12,
+      fontWeight: '700',
       color: colors.accentTeal,
+    },
+    emptyStateContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 24,
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      marginTop: 8,
+      marginBottom: 16,
+    },
+    emptyStateText: {
+      fontSize: 13,
+      color: colors.textMuted || '#8DA4B5',
+      fontWeight: '600',
+      marginTop: 8,
     },
   });
 }
@@ -507,16 +518,23 @@ export default function DashboardScreen() {
             accent="#6B4EFF"
           >
             <View style={{ marginTop: 8 }}>
-              {ACTIVE_LEADS.slice(0, 3).map((lead) => (
-                <LeadRow
-                  key={lead.name}
-                  name={lead.name}
-                  note={lead.note}
-                  badge={lead.badge}
-                  badgeTone={lead.badgeTone}
-                  color={lead.color}
-                />
-              ))}
+              {ACTIVE_LEADS.length > 0 ? (
+                ACTIVE_LEADS.slice(0, 3).map((lead: any) => (
+                  <LeadRow
+                    key={lead.name}
+                    name={lead.name}
+                    note={lead.note}
+                    badge={lead.badge}
+                    badgeTone={lead.badgeTone}
+                    color={lead.color}
+                  />
+                ))
+              ) : (
+                <View style={styles.emptyStateContainer}>
+                  <MaterialCommunityIcons name="account-search-outline" size={32} color={colors.textMuted || '#8DA4B5'} />
+                  <Text style={styles.emptyStateText}>No active leads available</Text>
+                </View>
+              )}
               <Pressable
                 style={({ pressed }) => [styles.viewAllButton, pressed && { opacity: 0.8 }]}
                 onPress={() => router.push('/(main)/crm/leads' as Href)}

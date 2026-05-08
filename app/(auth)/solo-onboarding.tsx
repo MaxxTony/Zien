@@ -12,7 +12,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -35,6 +37,25 @@ export default function SoloOnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, theme } = useAppTheme();
+
+  const handleContactSupport = async () => {
+    const url = 'mailto:support@zien.ai';
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        throw new Error('Not supported');
+      }
+    } catch (error) {
+      Alert.alert(
+        'Support Email',
+        'Please email us at support@zien.ai',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const styles = getStyles(colors, insets);
   const { login, logout, accessToken } = useAuth();
   const { isCompleting } = useLocalSearchParams();
@@ -45,7 +66,7 @@ export default function SoloOnboardingScreen() {
   const [duration, setDuration] = useState<'monthly' | 'annually'>('monthly');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
   const [showSuccess, setShowSuccess] = useState(false);
-  const [formattedPhone, setFormattedPhone] = useState('');
+
   const [countryCode, setCountryCode] = useState('+1');
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -101,7 +122,10 @@ export default function SoloOnboardingScreen() {
       } else if (formData.password.length < 8) {
         newErrors.password = 'Password must be at least 8 characters';
       }
-      if (formData.password !== formData.confirmPassword) {
+
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = 'Confirm password is required';
+      } else if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
       }
     } else if (currentStep === 2) {
@@ -169,6 +193,8 @@ export default function SoloOnboardingScreen() {
   });
 
 
+
+
   const activePlan = useMemo(() => {
     return plans?.find(p => p.slug === selectedPlan) || plans?.[0];
   }, [plans, selectedPlan]);
@@ -184,7 +210,7 @@ export default function SoloOnboardingScreen() {
   const registerMutation = useMutation({
     mutationFn: (payload: CheckoutPayload) => registerSoloCheckout(payload, accessToken),
     onSuccess: (data) => {
-      console.log('Registration Success Result:', data);
+
       if (data.checkout_url && data.session_id) {
         setCheckoutUrl(data.checkout_url);
         setSessionId(data.session_id);
@@ -195,16 +221,24 @@ export default function SoloOnboardingScreen() {
       }
     },
     onError: (error: Error) => {
-      console.error('Registration Error:', error.message);
-      // We could add a top-level error state here if needed
-      setErrors(prev => ({ ...prev, _form: error.message }));
+
+      const msg = error.message.toLowerCase();
+      if (msg.includes('email')) {
+        setErrors(prev => ({ ...prev, email: error.message }));
+        setCurrentStep(1);
+      } else if (msg.includes('phone')) {
+        setErrors(prev => ({ ...prev, phone: error.message }));
+        setCurrentStep(1);
+      } else {
+        setErrors(prev => ({ ...prev, _form: error.message }));
+      }
     },
   });
 
   const completeCheckoutMutation = useMutation({
     mutationFn: (sId: string) => completeCheckout(sId),
     onSuccess: (data) => {
-      console.log('Checkout Complete Result:', data);
+
       if (data.access_token) {
         login(data.access_token, data.role, true);
         setSuccessData(data);
@@ -213,7 +247,7 @@ export default function SoloOnboardingScreen() {
       }
     },
     onError: (error: Error) => {
-      console.error('Checkout Complete Error:', error.message);
+
       setIsCompletingCheckout(false);
       setErrors(prev => ({ ...prev, _form: `Payment verified but account setup failed: ${error.message}` }));
     },
@@ -223,10 +257,11 @@ export default function SoloOnboardingScreen() {
 
   const updateField = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
+    if (errors[field] || errors._form) {
       setErrors((prev) => {
         const next = { ...prev };
         delete next[field];
+        delete next._form;
         return next;
       });
     }
@@ -278,10 +313,13 @@ export default function SoloOnboardingScreen() {
                   ref={phoneInputRef}
                   defaultValue={formData.phone}
                   defaultCode="US"
-                  layout="second"
-                  onChangeText={(text) => updateField('phone', text)}
+                  layout="first"
+                  onChangeText={(text) => {
+                    // Only allow digits and limit to 15 characters
+                    const cleaned = text.replace(/[^0-9]/g, '').slice(0, 15);
+                    updateField('phone', cleaned);
+                  }}
                   onChangeFormattedText={(text) => {
-                    setFormattedPhone(text);
                     if (text.startsWith('+')) {
                       const code = text.split(' ')[0];
                       if (code) setCountryCode(code);
@@ -297,9 +335,20 @@ export default function SoloOnboardingScreen() {
                   flagButtonStyle={styles.phoneFlagButton}
                   placeholder="Phone Number"
                   withDarkTheme={theme === 'dark'}
+                  textInputProps={{
+                    maxLength: 15,
+                    keyboardType: 'phone-pad',
+                  }}
                   countryPickerProps={{
                     withFilter: true,
                     withAlphaFilter: true,
+                    renderFlagButton: (props: any) => {
+                      const code = (props.countryCode || 'US').toUpperCase();
+                      const emoji = code.replace(/./g, (c: string) =>
+                        String.fromCodePoint(0x1F1A5 + c.charCodeAt(0))
+                      );
+                      return <Text style={{ fontSize: 20, lineHeight: 26 }}>{emoji}</Text>;
+                    },
                     theme: theme === 'dark' ? {
                       backgroundColor: '#000000',
                       onBackgroundTextColor: '#FFFFFF',
@@ -329,8 +378,8 @@ export default function SoloOnboardingScreen() {
                   }}
                 />
 
+
                 {errors.phone ? <Text style={styles.errorTextSmall}>{errors.phone}</Text> : null}
-                {errors._form ? <Text style={styles.errorTextSmall}>{errors._form}</Text> : null}
               </View>
 
               <PasswordInput
@@ -350,8 +399,13 @@ export default function SoloOnboardingScreen() {
             </View>
 
             <GradientButton title="Continue" style={styles.primaryButton} onPress={goNext} />
+            {errors._form && (
+              <Text style={[styles.errorTextSmall, { textAlign: 'center', marginTop: 12 }]}>
+                {errors._form}
+              </Text>
+            )}
             <Text style={styles.supportText}>
-              Need help? <Text style={styles.supportLink}>Contact Support</Text>
+              Need help? <Text style={styles.supportLink} onPress={handleContactSupport}>Contact Support</Text>
             </Text>
           </>
         );
@@ -386,8 +440,13 @@ export default function SoloOnboardingScreen() {
               <OutlineButton title="Back" style={styles.secondaryButton} onPress={goBack} />
               <GradientButton title="Continue" style={styles.primaryButtonFlex} onPress={goNext} />
             </View>
+            {errors._form && (
+              <Text style={[styles.errorTextSmall, { textAlign: 'center', marginTop: 12 }]}>
+                {errors._form}
+              </Text>
+            )}
             <Text style={styles.supportText}>
-              Need help? <Text style={styles.supportLink}>Contact Support</Text>
+              Need help? <Text style={styles.supportLink} onPress={handleContactSupport}>Contact Support</Text>
             </Text>
           </>
         );
@@ -426,7 +485,7 @@ export default function SoloOnboardingScreen() {
             <View style={styles.planSection}>
               <View style={styles.durationPickerContainer}>
                 <Pressable
-                  style={[styles.durationOption, duration === 'monthly' && styles.durationOptionActive]}
+                  style={[styles.durationOption, duration === 'monthly' && styles.durationOptionActive, { flex: .5 }]}
                   onPress={() => setDuration('monthly')}
                 >
                   <Text style={[styles.durationText, duration === 'monthly' && styles.durationTextActive]}>Monthly</Text>
@@ -438,7 +497,7 @@ export default function SoloOnboardingScreen() {
                   <View style={styles.annuallyLabelContainer}>
                     <Text style={[styles.durationText, duration === 'annually' && styles.durationTextActive]}>Annually</Text>
                     <View style={styles.saveBadge}>
-                      <Text style={styles.saveBadgeText}>SAVE 15%</Text>
+                      <Text style={styles.saveBadgeText}>SAVE 2 Months</Text>
                     </View>
                   </View>
                 </Pressable>
@@ -453,8 +512,11 @@ export default function SoloOnboardingScreen() {
                   'pro-agent': { icon: 'briefcase-check-outline', role: 'Pro Agent' },
                 };
                 const meta = PLAN_META[plan.slug] || { icon: 'star-outline', role: 'Professional' };
-                const wholePrice = planPrice?.price.split('.')[0] || '0';
-                const decimalPrice = planPrice?.price.split('.')[1] || '00';
+                const displayMonthly = duration === 'annually' && planPrice
+                  ? (Number(planPrice.price) / 12).toFixed(2)
+                  : (planPrice?.price || '0.00');
+                const wholePrice = displayMonthly.split('.')[0];
+                const decimalPrice = displayMonthly.split('.')[1] || '00';
 
                 return (
                   <Pressable
@@ -593,7 +655,9 @@ export default function SoloOnboardingScreen() {
                           <Text style={styles.addOnSub}>{addon.description}</Text>
                           <View style={styles.addOnActionCol}>
                             <Text style={[styles.addOnPrice, isSelected && styles.addOnPriceActive]}>
-                              {addonPrice ? `$${addonPrice.price}` : 'N/A'}
+                              {addonPrice
+                                ? `$${duration === 'annually' ? (Number(addonPrice.price) / 12).toFixed(2) : addonPrice.price}/mo`
+                                : 'N/A'}
                             </Text>
                             <Switch
                               value={isSelected}
@@ -615,7 +679,11 @@ export default function SoloOnboardingScreen() {
                 <Text style={styles.summaryTitle}>Payment Summary ({duration.charAt(0).toUpperCase() + duration.slice(1)})</Text>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>{activePlan?.name}</Text>
-                  <Text style={styles.summaryValue}>${activePrice?.price || '0.00'}</Text>
+                  <Text style={styles.summaryValue}>
+                    {duration === 'annually'
+                      ? `$${(Number(activePrice?.price || 0) / 12).toFixed(2)}/mo x 12`
+                      : `$${activePrice?.price || '0.00'}`}
+                  </Text>
                 </View>
 
                 {(activePlan?.addons || []).filter(a => selectedAddons[a.slug]).map(addon => {
@@ -623,14 +691,18 @@ export default function SoloOnboardingScreen() {
                   return (
                     <View key={addon.id} style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>{addon.name}</Text>
-                      <Text style={styles.summaryValue}>${addonPrice?.price || '0.00'}</Text>
+                      <Text style={styles.summaryValue}>
+                        {duration === 'annually'
+                          ? `$${(Number(addonPrice?.price || 0) / 12).toFixed(2)}/mo x 12`
+                          : `$${addonPrice?.price || '0.00'}`}
+                      </Text>
                     </View>
                   );
                 })}
 
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryTotalLabel}>Total after trial</Text>
+                  <Text style={styles.summaryTotalLabel}>Total Deduction</Text>
                   <Text style={styles.summaryTotalValue}>
                     ${(
                       Number(activePrice?.price || 0) +
@@ -644,18 +716,29 @@ export default function SoloOnboardingScreen() {
                   </Text>
                 </View>
                 <Text style={styles.trialInfo}>
-                  <Text style={styles.trialBold}>14-day free trial.</Text> You will enter a payment method at checkout;
-                  you are not charged today. After the trial, <Text style={styles.trialBold}>
-                    ${(
-                      Number(activePrice?.price || 0) +
+                  {(() => {
+                    const total = Number(activePrice?.price || 0) +
                       (activePlan?.addons || [])
                         .filter(a => selectedAddons[a.slug])
                         .reduce((sum, a) => {
                           const ap = a.prices.find(p => p.billing_interval === duration) || a.prices[0];
                           return sum + Number(ap?.price || 0);
-                        }, 0)
-                    ).toFixed(2)}
-                  </Text> per {duration === 'annually' ? 'Year' : 'Month'}</Text>
+                        }, 0);
+                    const perMonth = (total / 12).toFixed(2);
+                    return (
+                      <>
+                        <Text style={styles.trialBold}>14-day free trial.</Text>
+                        {' '}You will enter a payment method at checkout; you are not charged today. After the trial,{' '}
+                        {duration === 'annually' ? (
+                          <Text style={styles.trialBold}>${perMonth}/mo (billed ${total.toFixed(2)} annually)</Text>
+                        ) : (
+                          <Text style={styles.trialBold}>${total.toFixed(2)} per Month</Text>
+                        )}
+                        {' '}applies until you cancel.
+                      </>
+                    );
+                  })()}
+                </Text>
               </View>
             </View>
 
@@ -679,7 +762,7 @@ export default function SoloOnboardingScreen() {
               </Text>
             )}
             <Text style={styles.supportText}>
-              Need help? <Text style={styles.supportLink}>Contact Support</Text>
+              Need help? <Text style={styles.supportLink} onPress={handleContactSupport}>Contact Support</Text>
             </Text>
           </>
         );
@@ -746,7 +829,7 @@ export default function SoloOnboardingScreen() {
         )}
 
         <GradientButton
-          title="Continue to Workspace"
+          title="Continue to Dashboard"
           style={styles.successButton}
           onPress={() => router.push(redirectTo as any)}
         />
@@ -911,12 +994,16 @@ const getStyles = (colors: any, insets: any) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.textPrimary,
+    paddingHorizontal: 10,
   },
   phoneFlagButton: {
-    width: 70,
+    width: 60,
+    height: 50,
     backgroundColor: 'transparent',
     borderRightWidth: 1,
     borderRightColor: colors.borderInput,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disclaimer: {
     fontSize: 12,

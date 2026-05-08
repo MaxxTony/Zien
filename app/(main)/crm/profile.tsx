@@ -143,7 +143,7 @@ export default function ProfileScreen() {
 
     const handleSaveEvent = () => {
         if (!newEventTitle.trim() || !newEventDate) return;
-        const formatted = newEventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const formatted = newEventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         addEventMutation({ title: newEventTitle.trim(), date: formatted });
     };
 

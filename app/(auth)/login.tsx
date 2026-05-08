@@ -31,13 +31,26 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
-      return;
+    // Reset errors
+    setEmailError('');
+    setPasswordError('');
+
+    let hasError = false;
+    if (!email) {
+      setEmailError('Email is required');
+      hasError = true;
     }
+    if (!password) {
+      setPasswordError('Password is required');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setIsLoading(true);
     try {
@@ -52,7 +65,15 @@ export default function LoginScreen() {
       await login(access_token, role, complete_profile);
     } catch (error: any) {
       console.error('Login Error:', error.message);
-      Alert.alert('Login Failed', error.message);
+      // If it's a general login error, we might still want an alert or a general error message
+      // But the user specifically asked to avoid alerts for mandatory fields
+      if (error.message.toLowerCase().includes('email')) {
+        setEmailError(error.message);
+      } else if (error.message.toLowerCase().includes('password')) {
+        setPasswordError(error.message);
+      } else {
+        Alert.alert('Login Failed', error.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -77,13 +98,23 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoComplete="email"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (emailError) setEmailError('');
+                }}
+                error={emailError}
+                required
               />
               <PasswordInput
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (passwordError) setPasswordError('');
+                }}
                 rightLabel="Forgot?"
                 onRightLabelPress={() => router.push('/(auth)/forgot-password')}
+                error={passwordError}
+                required
               />
             </View>
 
@@ -116,7 +147,7 @@ export default function LoginScreen() {
 
             <AuthFooter>
               <AuthFooterText>
-                Don't have an account? <AuthFooterLink onPress={() => router.push('/(auth)/register')}>Create one</AuthFooterLink>
+                Don't have an account? <AuthFooterLink onPress={() => router.push('/(auth)/register')}>Create Account</AuthFooterLink>
               </AuthFooterText>
               <AuthFooterText>
                 Are you a Brokerage? <AuthFooterLink onPress={() => router.push('/(auth)/enterprise-contact')}>Contact Enterprise</AuthFooterLink>

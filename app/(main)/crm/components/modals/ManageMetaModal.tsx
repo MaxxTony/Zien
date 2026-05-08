@@ -134,6 +134,7 @@ export const ManageMetaModal: React.FC<ManageMetaModalProps> = ({ visible, onClo
           <ScrollView
             style={styles.premiumModalBody}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode='on-drag'
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}>
 

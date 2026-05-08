@@ -1,9 +1,9 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { addCRMGroup, addCRMLead, addCRMTag, CRMLead, deleteCRMLead, getCRMLeads, getCRMMeta, updateCRMLead } from '@/services/crmService';
+import { addCRMGroup, addCRMLead, addCRMTag, convertCRMLead, CRMLead, deleteCRMLead, getCRMLeads, getCRMMeta, updateCRMLead } from '@/services/crmService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -102,42 +102,44 @@ function LeadCard({ lead, onDeletePress, onConvertPress, onToggleArchive, onEdit
       </View>
 
       <View style={styles.cardActions}>
-        {isActive ? (
-          <>
-            <Pressable style={styles.primaryAction} onPress={onConvertPress} disabled={isConverting || isArchiving}>
-              {isConverting ? (
+        <View style={styles.leftActions}>
+          {isActive ? (
+            <>
+              <Pressable style={styles.primaryAction} onPress={onConvertPress} disabled={isConverting || isArchiving}>
+                {isConverting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="account-convert" size={14} color="#FFFFFF" />
+                    <Text style={styles.primaryActionText}>Convert</Text>
+                  </>
+                )}
+              </Pressable>
+              <Pressable style={styles.whiteAction} onPress={onToggleArchive} disabled={isArchiving || isConverting}>
+                {isArchiving ? (
+                  <ActivityIndicator size="small" color={colors.textPrimary} />
+                ) : (
+                  <Text style={styles.whiteActionText}>Archive</Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <Pressable style={styles.darkAction} onPress={onToggleArchive} disabled={isArchiving}>
+              {isArchiving ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <>
-                  <MaterialCommunityIcons name="account-convert" size={16} color="#FFFFFF" />
-                  <Text style={styles.primaryActionText}>Convert</Text>
-                </>
+                <Text style={styles.darkActionText}>Unarchive</Text>
               )}
             </Pressable>
-            <Pressable style={styles.whiteAction} onPress={onToggleArchive} disabled={isArchiving || isConverting}>
-              {isArchiving ? (
-                <ActivityIndicator size="small" color={colors.textPrimary} />
-              ) : (
-                <Text style={styles.whiteActionText}>Archive</Text>
-              )}
-            </Pressable>
-          </>
-        ) : (
-          <Pressable style={styles.darkAction} onPress={onToggleArchive} disabled={isArchiving}>
-            {isArchiving ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.darkActionText}>Unarchive</Text>
-            )}
-          </Pressable>
-        )}
+          )}
+        </View>
 
         <View style={styles.secondaryActions}>
           <Pressable style={styles.iconAction} onPress={onEditPress}>
-            <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.textSecondary} />
           </Pressable>
           <Pressable style={[styles.iconAction, styles.deleteAction]} onPress={onDeletePress}>
-            <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.danger || "#E11D48"} />
+            <MaterialCommunityIcons name="trash-can-outline" size={16} color={colors.danger || "#E11D48"} />
           </Pressable>
         </View>
       </View>
@@ -151,6 +153,7 @@ export default function LeadsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
   const [leadsList, setLeadsList] = useState<CRMLead[]>([]);
   const { data: serverLeads, isLoading: isLoadingLeads, refetch: refetchLeads } = useQuery({
     queryKey: ['crm-leads', accessToken],
@@ -212,6 +215,7 @@ export default function LeadsScreen() {
   const [isSavingLead, setIsSavingLead] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const phoneInput = useRef<PhoneInput>(null);
 
@@ -225,11 +229,17 @@ export default function LeadsScreen() {
   const [isSelectionModalVisible, setSelectionModalVisible] = useState(false);
   const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
   const [selectionTitle, setSelectionTitle] = useState('');
+  const [selectionSearch, setSelectionSearch] = useState('');
   const [onSelectHandler, setOnSelectHandler] = useState<(opt: string) => void>(() => { });
+
+  const filteredSelectionOptions = selectionOptions.filter(opt =>
+    opt.toLowerCase().includes(selectionSearch.toLowerCase())
+  );
 
   const openSelection = (title: string, options: string[], onSelect: (opt: string) => void) => {
     setSelectionTitle(title);
     setSelectionOptions(options);
+    setSelectionSearch('');
     setOnSelectHandler(() => (opt: string) => {
       onSelect(opt);
       setSelectionModalVisible(false);
@@ -321,11 +331,10 @@ export default function LeadsScreen() {
     if (!accessToken) return;
     try {
       setConvertingLeadId(lead.id);
-      await updateCRMLead(accessToken, lead.id, {
-        status: 1,
-        lead_date_label: 'Converted'
-      });
+      await convertCRMLead(accessToken, lead.id);
       await refetchLeads();
+      queryClient.invalidateQueries({ queryKey: ['crm-contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-overview'] });
       Alert.alert('Success', 'Lead converted successfully.');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to convert lead.');
@@ -336,8 +345,21 @@ export default function LeadsScreen() {
 
   const handleSaveLead = async () => {
     if (!accessToken) return;
-    if (!firstName || !lastName || !email) {
-      Alert.alert('Error', 'First Name, Last Name, and Email are required.');
+    const newErrors: Record<string, string> = {};
+    if (!firstName.trim()) newErrors.firstName = 'First Name is required.';
+    if (!lastName.trim()) newErrors.lastName = 'Last Name is required.';
+    if (!email.trim()) newErrors.email = 'Email is required.';
+    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Please enter a valid email.';
+
+    if (phone && !phoneInput.current?.isValidNumber(phone)) {
+      newErrors.phone = 'Invalid phone number.';
+    }
+
+    if (editGroup === 'Select Group') newErrors.group = 'Please select a group.';
+    if (editTag === 'Select Tag') newErrors.tag = 'Please select a tag.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -702,35 +724,35 @@ export default function LeadsScreen() {
             <View style={styles.convertCol}>
               <Text style={styles.convertLabel}>First Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
               <TextInput
-                style={styles.convertInput}
+                style={[styles.convertInput, errors.firstName && styles.inputError]}
                 value={firstName}
-                onChangeText={setFirstName}
+                onChangeText={(t) => { setFirstName(t); if (errors.firstName) setErrors(prev => ({ ...prev, firstName: '' })); }}
                 placeholder="John"
                 placeholderTextColor={colors.textMuted || "#8DA4B5"}
               />
+              {errors.firstName ? <Text style={styles.inlineError}>{errors.firstName}</Text> : null}
             </View>
             <View style={styles.convertCol}>
               <Text style={styles.convertLabel}>Last Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
               <TextInput
-                style={styles.convertInput}
+                style={[styles.convertInput, errors.lastName && styles.inputError]}
                 value={lastName}
-                onChangeText={setLastName}
+                onChangeText={(t) => { setLastName(t); if (errors.lastName) setErrors(prev => ({ ...prev, lastName: '' })); }}
                 placeholder="Doe"
                 placeholderTextColor={colors.textMuted || "#8DA4B5"}
               />
+              {errors.lastName ? <Text style={styles.inlineError}>{errors.lastName}</Text> : null}
             </View>
-
-
-
             <View style={styles.convertCol}>
               <Text style={styles.convertLabel}>Email <Text style={{ color: '#E11D48' }}>*</Text></Text>
               <TextInput
-                style={styles.convertInput}
+                style={[styles.convertInput, errors.email && styles.inputError]}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(t) => { setEmail(t); if (errors.email) setErrors(prev => ({ ...prev, email: '' })); }}
                 placeholder="john@example.com"
                 placeholderTextColor={colors.textMuted || "#8DA4B5"}
               />
+              {errors.email ? <Text style={styles.inlineError}>{errors.email}</Text> : null}
             </View>
             <View style={styles.convertCol}>
               <Text style={styles.convertLabel}>Phone</Text>
@@ -739,17 +761,25 @@ export default function LeadsScreen() {
                 defaultValue={phone}
                 defaultCode={countryCode as any}
                 layout="second"
-                containerStyle={[styles.convertInput, { width: '100%', height: 50, paddingHorizontal: 0, overflow: 'hidden' }]}
-                textContainerStyle={{ backgroundColor: 'transparent', paddingVertical: 0 }}
-                textInputStyle={{ color: colors.textPrimary, fontSize: 14, height: 50 }}
-                codeTextStyle={{ color: colors.textPrimary, fontSize: 14 }}
-                onChangeText={(text) => setPhone(text)}
+                containerStyle={[styles.phoneInputWrapper, errors.phone && styles.inputError]}
+                textContainerStyle={styles.phoneTextContainer}
+                textInputStyle={styles.phoneTextInput}
+                codeTextStyle={styles.phoneCodeText}
+                flagButtonStyle={styles.phoneFlagButton}
+                onChangeText={(text) => { setPhone(text); if (errors.phone) setErrors(prev => ({ ...prev, phone: '' })); }}
                 onChangeFormattedText={(text) => setFormattedPhone(text)}
                 onChangeCountry={(country) => setCountryCode(country.cca2 as any)}
                 withDarkTheme={theme === 'dark'}
                 countryPickerProps={{
                   withFilter: true,
                   withAlphaFilter: true,
+                  renderFlagButton: (props: any) => {
+                    const code = (props.countryCode || 'US').toUpperCase();
+                    const emoji = code.replace(/./g, (c: string) =>
+                      String.fromCodePoint(0x1F1A5 + c.charCodeAt(0))
+                    );
+                    return <Text style={{ fontSize: 22, lineHeight: 30, marginLeft: 10 }}>{emoji}</Text>;
+                  },
                   theme: theme === 'dark' ? {
                     backgroundColor: '#000000',
                     onBackgroundTextColor: '#FFFFFF',
@@ -778,6 +808,7 @@ export default function LeadsScreen() {
                   }
                 }}
               />
+              {errors.phone ? <Text style={styles.inlineError}>{errors.phone}</Text> : null}
             </View>
 
 
@@ -810,15 +841,16 @@ export default function LeadsScreen() {
 
             <View style={[styles.convertRow, { zIndex: 10 }]}>
               <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Group</Text>
+                <Text style={styles.convertLabel}>Group <Text style={{ color: '#E11D48' }}>*</Text></Text>
                 <Pressable
-                  style={styles.convertDropdown}
+                  style={[styles.convertDropdown, errors.group && styles.inputError]}
                   onPress={() => {
                     openSelection(
                       'Select Group',
                       ([...(crmMeta?.groups.map(g => g.name) || []), 'Custom Group...']),
                       (opt) => {
                         setEditGroup(opt);
+                        if (errors.group) setErrors(prev => ({ ...prev, group: '' }));
                         if (opt !== 'Custom Group...') {
                           setCustomGroup('');
                           const matched = crmMeta?.groups.find(g => g.name === opt);
@@ -830,9 +862,10 @@ export default function LeadsScreen() {
                     );
                   }}
                 >
-                  <Text style={styles.convertDropdownText}>{editGroup}</Text>
+                  <Text style={[styles.convertDropdownText, editGroup === 'Select Group' && { color: colors.textMuted }]}>{editGroup}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
+                {errors.group ? <Text style={styles.inlineError}>{errors.group}</Text> : null}
               </View>
             </View>
 
@@ -851,15 +884,16 @@ export default function LeadsScreen() {
 
             <View style={[styles.convertRow, { zIndex: 9 }]}>
               <View style={styles.convertCol}>
-                <Text style={styles.convertLabel}>Tag</Text>
+                <Text style={styles.convertLabel}>Tag <Text style={{ color: '#E11D48' }}>*</Text></Text>
                 <Pressable
-                  style={styles.convertDropdown}
+                  style={[styles.convertDropdown, errors.tag && styles.inputError]}
                   onPress={() => {
                     openSelection(
                       'Select Tag',
                       ([...(crmMeta?.tags.map(t => t.name) || []), 'Custom Tag...']),
                       (opt) => {
                         setEditTag(opt);
+                        if (errors.tag) setErrors(prev => ({ ...prev, tag: '' }));
                         if (opt !== 'Custom Tag...') {
                           setCustomTag('');
                           const matched = crmMeta?.tags.find(t => t.name === opt);
@@ -871,9 +905,10 @@ export default function LeadsScreen() {
                     );
                   }}
                 >
-                  <Text style={styles.convertDropdownText}>{editTag}</Text>
+                  <Text style={[styles.convertDropdownText, editTag === 'Select Tag' && { color: colors.textMuted }]}>{editTag}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
+                {errors.tag ? <Text style={styles.inlineError}>{errors.tag}</Text> : null}
               </View>
             </View>
 
@@ -934,28 +969,44 @@ export default function LeadsScreen() {
             animationType="fade"
             onRequestClose={() => setSelectionModalVisible(false)}
           >
-            <Pressable style={styles.modalOverlay} onPress={() => setSelectionModalVisible(false)}>
-              <View style={[styles.modalContainer, { padding: 0, overflow: 'hidden' }]} onStartShouldSetResponder={() => true} onResponderTerminationRequest={() => false} onTouchEnd={e => e.stopPropagation()}>
-                <View style={{ padding: 24, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: colors.textPrimary }}>{selectionTitle}</Text>
-                  <Pressable onPress={() => setSelectionModalVisible(false)}>
-                    <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+            <View style={styles.pickerOverlay}>
+              <View style={styles.pickerContent}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>{selectionTitle}</Text>
+                  <Pressable onPress={() => setSelectionModalVisible(false)} style={styles.pickerCloseBtn}>
+                    <MaterialCommunityIcons name="close" size={22} color={colors.textPrimary} />
                   </Pressable>
                 </View>
-                <ScrollView style={{ maxHeight: 400 }}>
-                  {selectionOptions.map((opt) => (
-                    <Pressable
-                      key={opt}
-                      style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                      onPress={() => onSelectHandler(opt)}
-                    >
-                      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary }}>{opt}</Text>
-                      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
-                    </Pressable>
-                  ))}
+
+                <View style={styles.pickerSearchBox}>
+                  <MaterialCommunityIcons name="magnify" size={20} color={colors.textMuted} />
+                  <TextInput
+                    style={styles.pickerSearchInput}
+                    placeholder="Search..."
+                    placeholderTextColor={colors.textMuted}
+                    value={selectionSearch}
+                    onChangeText={setSelectionSearch}
+                  />
+                </View>
+
+                <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled" keyboardDismissMode='on-drag'>
+                  {filteredSelectionOptions.length === 0 ? (
+                    <Text style={styles.noResults}>No matches found</Text>
+                  ) : (
+                    filteredSelectionOptions.map((opt) => (
+                      <Pressable
+                        key={opt}
+                        style={styles.pickerItem}
+                        onPress={() => onSelectHandler(opt)}
+                      >
+                        <Text style={styles.pickerItemText}>{opt}</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+                      </Pressable>
+                    ))
+                  )}
                 </ScrollView>
               </View>
-            </Pressable>
+            </View>
           </Modal>
         </View>
       </Modal>
@@ -977,13 +1028,14 @@ export default function LeadsScreen() {
           setCountryCode('US');
           setCustomGroup('');
           setCustomTag('');
-          setEditGroup(crmMeta?.groups?.[0]?.name || 'Buyer');
-          setEditTag(crmMeta?.tags?.[0]?.name || 'Lead');
-          setSelectedGroupId(crmMeta?.groups?.[0]?.id || null);
-          setSelectedTagId(crmMeta?.tags?.[0]?.id || null);
+          setEditGroup('Select Group');
+          setEditTag('Select Tag');
+          setSelectedGroupId(null);
+          setSelectedTagId(null);
           setEditSource('Manual Entry');
           setEditStatus('Active');
-          setEditColor(crmMeta?.tags?.[0]?.tag_color || '#0BA0B2');
+          setEditColor('#0BA0B2');
+          setErrors({});
           setIsEditModalVisible(true);
         }}>
           <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
@@ -1383,61 +1435,69 @@ function getStyles(colors: any) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      marginTop: 4,
+    },
+    leftActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
     },
     primaryAction: {
       backgroundColor: colors.accentTeal,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 6,
       paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 14,
+      height: 38,
+      borderRadius: 12,
       shadowColor: colors.accentTeal,
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 3,
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 2,
     },
     primaryActionText: {
       color: '#FFFFFF',
-      fontSize: 14,
-      fontWeight: '700',
+      fontSize: 13,
+      fontWeight: '800',
     },
     secondaryActions: {
       flexDirection: 'row',
-      gap: 10,
+      gap: 8,
     },
     darkAction: {
       backgroundColor: colors.accentTeal,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
+      paddingHorizontal: 16,
+      height: 38,
       borderRadius: 12,
-      minWidth: 120,
+      minWidth: 100,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     darkActionText: {
       color: '#FFFFFF',
-      fontSize: 14,
-      fontWeight: '700',
+      fontSize: 13,
+      fontWeight: '800',
     },
     whiteAction: {
       backgroundColor: colors.cardBackground,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
+      paddingHorizontal: 16,
+      height: 38,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.cardBorder,
       minWidth: 80,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     whiteActionText: {
       color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: '700',
+      fontSize: 13,
+      fontWeight: '800',
     },
     iconAction: {
-      width: 40,
-      height: 40,
+      width: 38,
+      height: 38,
       borderRadius: 12,
       backgroundColor: colors.surfaceSoft,
       alignItems: 'center',
@@ -1614,9 +1674,100 @@ function getStyles(colors: any) {
       gap: 16,
       marginBottom: 20,
     },
+    pickerOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingHorizontal: 20,
+      justifyContent: 'center',
+    },
+    pickerContent: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 24,
+      height: 520,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 20 },
+      shadowOpacity: 0.3,
+      shadowRadius: 30,
+      elevation: 30,
+    },
+    pickerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 24,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    pickerTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    pickerCloseBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pickerSearchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSoft,
+      margin: 20,
+      marginTop: 10,
+      marginBottom: 10,
+      paddingHorizontal: 16,
+      height: 48,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    pickerSearchInput: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    pickerList: {
+      flex: 1,
+    },
+    pickerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    pickerItemText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    noResults: {
+      textAlign: 'center',
+      marginTop: 40,
+      fontSize: 15,
+      color: colors.textMuted,
+      fontWeight: '600',
+    },
     convertCol: {
       flex: 1,
       marginBottom: 10
+    },
+    inlineError: {
+      fontSize: 11,
+      color: colors.danger || '#E11D48',
+      fontWeight: '700',
+      marginTop: 4,
+      marginLeft: 4,
+    },
+    inputError: {
+      borderColor: colors.danger || '#E11D48',
     },
     convertLabel: {
       fontSize: 13,
@@ -1625,7 +1776,7 @@ function getStyles(colors: any) {
       marginBottom: 8,
     },
     convertInput: {
-      height: 48,
+      height: 50,
       borderWidth: 1,
       borderColor: colors.cardBorder,
       borderRadius: 12,
@@ -1634,6 +1785,36 @@ function getStyles(colors: any) {
       fontWeight: '500',
       color: colors.textPrimary,
       backgroundColor: colors.cardBackground,
+    },
+    phoneInputWrapper: {
+      height: 50,
+      width: '100%',
+      backgroundColor: colors.cardBackground,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    phoneTextContainer: {
+      backgroundColor: 'transparent',
+      paddingVertical: 0,
+    },
+    phoneTextInput: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      height: 50,
+    },
+    phoneCodeText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginLeft: 4,
+    },
+    phoneFlagButton: {
+      width: 100,
+      backgroundColor: colors.surfaceSoft,
+      borderRightWidth: 1,
+      borderRightColor: colors.cardBorder,
     },
     convertInputDisabled: {
       height: 48,
@@ -1734,7 +1915,7 @@ function getStyles(colors: any) {
       color: colors.textPrimary,
     },
     convertConfirmBtn: {
-      flex: 2,
+      flex: 1,
       height: 52,
       backgroundColor: colors.accentTeal,
       borderRadius: 12,

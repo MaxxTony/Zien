@@ -1,23 +1,22 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { 
-  CRMFollowUp, 
-  getCRMFollowUps, 
-  getCRMMeta, 
-  createCRMFollowUp, 
-  updateCRMFollowUp, 
-  deleteCRMFollowUp, 
+import {
+  createCRMFollowUp,
+  CRMFollowUp,
+  deleteCRMFollowUp,
+  getCRMContacts,
+  getCRMFollowUps,
+  getCRMMeta,
   markCRMFollowUpDone,
   rescheduleCRMFollowUp,
-  getCRMContacts,
-  CRMContact
+  updateCRMFollowUp
 } from '@/services/crmService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -90,7 +89,7 @@ function TaskCard({
           </View>
 
           <Text style={styles.cardContact}>
-            Contact: <Text style={styles.cardContactName}>{task.contact?.first_name ? `${task.contact.first_name} ${task.contact.last_name || ''}` : 'Manual Task'}</Text>
+            Contact: <Text style={styles.cardContactName}>{task.contact?.first_name ? `${task.contact.first_name} ${task.contact.last_name || ''}` : '---'}</Text>
           </Text>
 
           {(task.group || task.tag) && (
@@ -169,7 +168,7 @@ export default function FollowUpsScreen() {
   const [tagFilter, setTagFilter] = useState('All Tags');
   const [search, setSearch] = useState('');
   const [activeDropdown, setActiveDropdown] = useState<'group' | 'tag' | null>(null);
-  
+
   const queryClient = useQueryClient();
 
   // API Meta Data
@@ -193,6 +192,9 @@ export default function FollowUpsScreen() {
     enabled: !!accessToken,
   });
 
+
+
+
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
@@ -202,10 +204,10 @@ export default function FollowUpsScreen() {
 
   const [modalSubject, setModalSubject] = useState('');
   const [modalContactId, setModalContactId] = useState<string | null>(null);
-  const [modalDate, setModalDate] = useState(new Date());
+  const [modalDate, setModalDate] = useState<Date | null>(null);
   const [modalGroupId, setModalGroupId] = useState<number | null>(null);
   const [modalTagId, setModalTagId] = useState<number | null>(null);
-  const [modalPriority, setModalPriority] = useState('Low');
+  const [modalPriority, setModalPriority] = useState<string | null>(null);
   const [modalColor, setModalColor] = useState('#8B5CF6');
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -213,6 +215,7 @@ export default function FollowUpsScreen() {
   const [isModalTagDropdownOpen, setModalTagDropdownOpen] = useState(false);
   const [isModalContactDropdownOpen, setModalContactDropdownOpen] = useState(false);
   const [modalManualContact, setModalManualContact] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Reschedule Form State
   const [rescheduleDate, setRescheduleDate] = useState(new Date());
@@ -224,11 +227,12 @@ export default function FollowUpsScreen() {
     setModalSubject('');
     setModalContactId(null);
     setModalManualContact('');
-    setModalDate(new Date());
-    setModalGroupId(crmMeta?.groups[0]?.id || null);
-    setModalTagId(crmMeta?.tags[0]?.id || null);
-    setModalPriority('Medium');
+    setModalDate(null);
+    setModalGroupId(null);
+    setModalTagId(null);
+    setModalPriority(null);
     setModalColor('#8B5CF6');
+    setErrors({});
     setAddTaskModalVisible(true);
   };
 
@@ -243,6 +247,7 @@ export default function FollowUpsScreen() {
     setModalTagId(task.tag_id);
     setModalPriority(task.priority);
     setModalColor('#0BA0B2');
+    setErrors({});
     setAddTaskModalVisible(true);
   };
 
@@ -342,39 +347,52 @@ export default function FollowUpsScreen() {
   });
 
   const handleSave = async () => {
+    const newErrors: Record<string, string> = {};
+
     if (!modalSubject.trim()) {
-      Alert.alert('Required', 'Please enter a subject.');
+      newErrors.subject = 'Subject is required.';
+    }
+
+    if (!modalDate) {
+      newErrors.date = 'Due date is required.';
+    }
+
+    if (!modalGroupId) {
+      newErrors.group = 'Group is required.';
+    }
+
+    if (!modalTagId) {
+      newErrors.tag = 'Tag is required.';
+    }
+
+    if (!modalPriority) {
+      newErrors.priority = 'Priority is required.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
-    const payload = {
-      subject: modalSubject,
-      contact_id: modalContactId,
-      due_at: modalDate.toISOString(),
-      group_id: modalGroupId,
-      tag_id: modalTagId,
-      priority: modalPriority,
-      status: 1, // Active
-    };
 
     if (editingTask) {
       const updatePayload = {
         subject: modalSubject,
         contact_id: modalContactId,
-        due_at: modalDate.toISOString(),
+        due_at: modalDate!.toISOString(),
         group_id: modalGroupId,
         tag_id: modalTagId,
-        priority: modalPriority,
+        priority: modalPriority!,
       };
       updateMutation.mutate({ id: editingTask.id, payload: updatePayload });
     } else {
       const createPayload = {
         subject: modalSubject,
         contact_id: modalContactId,
-        due_at: modalDate.toISOString(),
+        due_at: modalDate!.toISOString(),
         group_id: modalGroupId,
         tag_id: modalTagId,
-        priority: modalPriority,
+        priority: modalPriority!,
         status: 1, // Active for new tasks
       };
       createMutation.mutate(createPayload);
@@ -391,12 +409,30 @@ export default function FollowUpsScreen() {
 
   const handleReschedule = async () => {
     if (!rescheduleTask) return;
-    const formattedDate = rescheduleDate.toISOString().split('.')[0].slice(0, 16); 
-    rescheduleMutation.mutate({ 
-      id: rescheduleTask.id, 
+    const formattedDate = rescheduleDate.toISOString().split('.')[0].slice(0, 16);
+    rescheduleMutation.mutate({
+      id: rescheduleTask.id,
       due_at: formattedDate
     });
   };
+
+  const [groupSearch, setGroupSearch] = useState('');
+  const [tagSearch, setTagSearch] = useState('');
+  const [contactSearch, setContactSearch] = useState('');
+
+  const filteredGroups = useMemo(() => {
+    return (crmMeta?.groups || []).filter(g => g.name.toLowerCase().includes(groupSearch.toLowerCase()));
+  }, [crmMeta, groupSearch]);
+
+  const filteredTags = useMemo(() => {
+    return (crmMeta?.tags || []).filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase()));
+  }, [crmMeta, tagSearch]);
+
+  const filteredContacts = useMemo(() => {
+    return (contactsData || []).filter(c =>
+      `${c.first_name} ${c.last_name || ''}`.toLowerCase().includes(contactSearch.toLowerCase())
+    );
+  }, [contactsData, contactSearch]);
 
   const selectedGroupName = useMemo(() => {
     return crmMeta?.groups.find(g => g.id === modalGroupId)?.name || 'Select Group';
@@ -405,6 +441,11 @@ export default function FollowUpsScreen() {
   const selectedTagName = useMemo(() => {
     return crmMeta?.tags.find(t => t.id === modalTagId)?.name || 'Select Tag';
   }, [crmMeta, modalTagId]);
+
+  const selectedContactName = useMemo(() => {
+    const contact = contactsData?.find(c => c.id === modalContactId);
+    return contact ? `${contact.first_name} ${contact.last_name || ''}` : 'Select Contact';
+  }, [contactsData, modalContactId]);
 
   return (
     <View style={styles.container}>
@@ -581,46 +622,134 @@ export default function FollowUpsScreen() {
           <ScrollView showsVerticalScrollIndicator={false} style={styles.modalContent} contentContainerStyle={{ paddingBottom: 120 }}>
             <View style={styles.modalBody}>
               <View style={styles.modalFieldGroup}>
-                <Text style={styles.modalLabel}>Subject</Text>
+                <Text style={styles.modalLabel}>
+                  Subject <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
                 <TextInput
-                  style={styles.modalInput}
+                  style={[styles.modalInput, errors.subject && styles.inputError]}
                   placeholder="e.g. Call to discuss pricing"
                   placeholderTextColor={colors.textMuted || "#8DA4B5"}
                   value={modalSubject}
-                  onChangeText={setModalSubject}
+                  onChangeText={(val) => {
+                    setModalSubject(val);
+                    if (errors.subject) setErrors(prev => ({ ...prev, subject: '' }));
+                  }}
                 />
+                {errors.subject ? <Text style={styles.inlineError}>{errors.subject}</Text> : null}
               </View>
 
-              <View style={styles.modalFieldGroup}>
+              <View style={[styles.modalFieldGroup, { zIndex: 4000 }]}>
                 <Text style={styles.modalLabel}>Contact Name</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="e.g. John Doe (Fresh Insert)"
-                  placeholderTextColor={colors.textMuted || "#8DA4B5"}
-                  value={modalManualContact}
-                  onChangeText={setModalManualContact}
-                />
+                <Pressable
+                  style={[styles.modalDropdownTrigger]}
+                  onPress={() => {
+                    setModalContactDropdownOpen(true);
+                    setModalGroupDropdownOpen(false);
+                    setModalTagDropdownOpen(false);
+                    setContactSearch('');
+                  }}
+                >
+                  <Text style={[styles.modalDropdownText, !modalContactId && { color: colors.textMuted }]}>
+                    {selectedContactName}
+                  </Text>
+                  <MaterialCommunityIcons name="account-search-outline" size={20} color={colors.textPrimary} />
+                </Pressable>
+
+                <Modal
+                  visible={isModalContactDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setModalContactDropdownOpen(false)}
+                >
+                  <Pressable style={styles.pickerOverlay} onPress={() => setModalContactDropdownOpen(false)}>
+                    <View style={styles.selectionModalContainer}>
+                      <View style={styles.selectionModalHeader}>
+                        <Text style={styles.selectionModalTitle}>Select Contact</Text>
+                        <Pressable onPress={() => setModalContactDropdownOpen(false)}>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                        </Pressable>
+                      </View>
+
+                      <View style={styles.pickerSearchBoxSmall}>
+                        <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
+                        <TextInput
+                          style={styles.pickerSearchInputSmall}
+                          placeholder="Search contact..."
+                          placeholderTextColor={colors.textMuted}
+                          value={contactSearch}
+                          onChangeText={setContactSearch}
+
+                        />
+                      </View>
+
+                      <ScrollView style={styles.selectionModalList} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+                        <Pressable
+                          style={[styles.selectionModalItem, modalContactId === null && styles.selectionModalItemActive]}
+                          onPress={() => { setModalContactId(null); setModalContactDropdownOpen(false); }}
+                        >
+                          <Text style={[styles.selectionModalItemText, modalContactId === null && styles.selectionModalItemTextActive]}>Manual Task (No Contact)</Text>
+                          {modalContactId === null && <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />}
+                        </Pressable>
+                        {filteredContacts.map((c) => (
+                          <Pressable
+                            key={c.id}
+                            style={[
+                              styles.selectionModalItem,
+                              modalContactId === c.id && styles.selectionModalItemActive
+                            ]}
+                            onPress={() => { setModalContactId(c.id); setModalContactDropdownOpen(false); }}
+                          >
+                            <View>
+                              <Text style={[styles.selectionModalItemText, modalContactId === c.id && styles.selectionModalItemTextActive]}>
+                                {c.first_name} {c.last_name || ''}
+                              </Text>
+                              <Text style={{ fontSize: 11, color: colors.textSecondary }}>{c.phone || c.email || 'No details'}</Text>
+                            </View>
+                            {modalContactId === c.id && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                            )}
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </Pressable>
+                </Modal>
               </View>
 
               <View style={styles.modalFieldGroup}>
-                <Text style={styles.modalLabel}>Due Date</Text>
-                <Pressable style={styles.modalInputWithIcon} onPress={() => setShowDatePicker(true)}>
-                  <Text style={styles.modalDateText}>
-                    {modalDate.toLocaleDateString('en-GB')} {modalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <Text style={styles.modalLabel}>
+                  Due Date <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
+                <Pressable
+                  style={[styles.modalInputWithIcon, errors.date && styles.inputError]}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={[styles.modalDateText, !modalDate && { color: colors.textMuted }]}>
+                    {modalDate
+                      ? `${modalDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}, ${modalDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`
+                      : 'Select Date'}
                   </Text>
                   <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textPrimary} />
                 </Pressable>
+                {errors.date ? <Text style={styles.inlineError}>{errors.date}</Text> : null}
               </View>
 
               <View style={[styles.modalFieldGroup, { zIndex: 3000 }]}>
-                <Text style={styles.modalLabel}>Group</Text>
+                <Text style={styles.modalLabel}>
+                  Group <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
                 <Pressable
-                  style={styles.modalDropdownTrigger}
-                  onPress={() => { setModalGroupDropdownOpen(!isModalGroupDropdownOpen); setModalTagDropdownOpen(false); }}
+                  style={[styles.modalDropdownTrigger, errors.group && styles.inputError]}
+                  onPress={() => {
+                    setModalGroupDropdownOpen(true);
+                    setModalTagDropdownOpen(false);
+                    setGroupSearch('');
+                  }}
                 >
-                  <Text style={styles.modalDropdownText}>{selectedGroupName}</Text>
+                  <Text style={[styles.modalDropdownText, !modalGroupId && { color: colors.textMuted }]}>{selectedGroupName}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
+                {errors.group ? <Text style={styles.inlineError}>{errors.group}</Text> : null}
                 <Modal
                   visible={isModalGroupDropdownOpen}
                   transparent
@@ -629,9 +758,28 @@ export default function FollowUpsScreen() {
                 >
                   <Pressable style={styles.selectionModalOverlay} onPress={() => setModalGroupDropdownOpen(false)}>
                     <View style={styles.selectionModalContainer}>
-                      <Text style={styles.selectionModalTitle}>Select Group</Text>
-                      <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-                        {crmMeta?.groups.map((g, index, arr) => (
+                      <View style={styles.selectionModalHeader}>
+                        <Text style={styles.selectionModalTitle}>Select Group</Text>
+                        <Pressable onPress={() => setModalGroupDropdownOpen(false)} style={styles.pickerCloseBtnSmall}>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                        </Pressable>
+                      </View>
+
+                      <View style={styles.pickerSearchBoxSmall}>
+                        <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
+                        <TextInput
+                          style={styles.pickerSearchInputSmall}
+                          placeholder="Search groups..."
+                          placeholderTextColor={colors.textMuted}
+                          value={groupSearch}
+                          onChangeText={setGroupSearch}
+                        />
+                      </View>
+
+                      <ScrollView style={styles.selectionModalList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+                        {filteredGroups.length === 0 ? (
+                          <Text style={styles.noResultsSmall}>No groups found</Text>
+                        ) : filteredGroups.map((g, index, arr) => (
                           <Pressable
                             key={g.id}
                             style={[
@@ -640,10 +788,10 @@ export default function FollowUpsScreen() {
                             ]}
                             onPress={() => { setModalGroupId(g.id); setModalGroupDropdownOpen(false); }}
                           >
-                              <Text style={[styles.selectionModalItemText, modalGroupId === g.id && styles.selectionModalItemTextActive]}>{g.name}</Text>
-                              {modalGroupId === g.id && (
-                                <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
-                              )}
+                            <Text style={[styles.selectionModalItemText, modalGroupId === g.id && styles.selectionModalItemTextActive]}>{g.name}</Text>
+                            {modalGroupId === g.id && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                            )}
                           </Pressable>
                         ))}
                       </ScrollView>
@@ -653,14 +801,21 @@ export default function FollowUpsScreen() {
               </View>
 
               <View style={[styles.modalFieldGroup, { zIndex: 2000 }]}>
-                <Text style={styles.modalLabel}>Tag</Text>
+                <Text style={styles.modalLabel}>
+                  Tag <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
                 <Pressable
-                  style={styles.modalDropdownTrigger}
-                  onPress={() => { setModalTagDropdownOpen(!isModalTagDropdownOpen); setModalGroupDropdownOpen(false); }}
+                  style={[styles.modalDropdownTrigger, errors.tag && styles.inputError]}
+                  onPress={() => {
+                    setModalTagDropdownOpen(true);
+                    setModalGroupDropdownOpen(false);
+                    setTagSearch('');
+                  }}
                 >
-                  <Text style={styles.modalDropdownText}>{selectedTagName}</Text>
+                  <Text style={[styles.modalDropdownText, !modalTagId && { color: colors.textMuted }]}>{selectedTagName}</Text>
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
+                {errors.tag ? <Text style={styles.inlineError}>{errors.tag}</Text> : null}
                 <Modal
                   visible={isModalTagDropdownOpen}
                   transparent
@@ -669,9 +824,28 @@ export default function FollowUpsScreen() {
                 >
                   <Pressable style={styles.selectionModalOverlay} onPress={() => setModalTagDropdownOpen(false)}>
                     <View style={styles.selectionModalContainer}>
-                      <Text style={styles.selectionModalTitle}>Select Tag</Text>
-                      <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-                        {crmMeta?.tags.map((t, index, arr) => (
+                      <View style={styles.selectionModalHeader}>
+                        <Text style={styles.selectionModalTitle}>Select Tag</Text>
+                        <Pressable onPress={() => setModalTagDropdownOpen(false)} style={styles.pickerCloseBtnSmall}>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                        </Pressable>
+                      </View>
+
+                      <View style={styles.pickerSearchBoxSmall}>
+                        <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
+                        <TextInput
+                          style={styles.pickerSearchInputSmall}
+                          placeholder="Search tags..."
+                          placeholderTextColor={colors.textMuted}
+                          value={tagSearch}
+                          onChangeText={setTagSearch}
+                        />
+                      </View>
+
+                      <ScrollView style={styles.selectionModalList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+                        {filteredTags.length === 0 ? (
+                          <Text style={styles.noResultsSmall}>No tags found</Text>
+                        ) : filteredTags.map((t, index, arr) => (
                           <Pressable
                             key={t.id}
                             style={[
@@ -680,10 +854,10 @@ export default function FollowUpsScreen() {
                             ]}
                             onPress={() => { setModalTagId(t.id); setModalTagDropdownOpen(false); }}
                           >
-                              <Text style={[styles.selectionModalItemText, modalTagId === t.id && styles.selectionModalItemTextActive]}>{t.name}</Text>
-                              {modalTagId === t.id && (
-                                <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
-                              )}
+                            <Text style={[styles.selectionModalItemText, modalTagId === t.id && styles.selectionModalItemTextActive]}>{t.name}</Text>
+                            {modalTagId === t.id && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                            )}
                           </Pressable>
                         ))}
                       </ScrollView>
@@ -695,18 +869,24 @@ export default function FollowUpsScreen() {
 
 
               <View style={styles.modalFieldGroup}>
-                <Text style={styles.modalLabel}>Priority</Text>
-                <View style={styles.priorityRow}>
+                <Text style={styles.modalLabel}>
+                  Priority <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
+                <View style={[styles.priorityRow, errors.priority && { padding: 4, borderRadius: 12, borderWidth: 1, borderColor: colors.danger || '#E11D48' }]}>
                   {['High', 'Medium', 'Low'].map((p) => (
                     <Pressable
                       key={p}
                       style={[styles.priorityPillBtn, modalPriority === p && styles.priorityPillBtnActive]}
-                      onPress={() => setModalPriority(p)}
+                      onPress={() => {
+                        setModalPriority(p);
+                        if (errors.priority) setErrors(prev => ({ ...prev, priority: '' }));
+                      }}
                     >
                       <Text style={[styles.priorityPillText, modalPriority === p && styles.priorityPillTextActive]}>{p}</Text>
                     </Pressable>
                   ))}
                 </View>
+                {errors.priority ? <Text style={styles.inlineError}>{errors.priority}</Text> : null}
               </View>
             </View>
           </ScrollView>
@@ -726,14 +906,18 @@ export default function FollowUpsScreen() {
                   </Pressable>
                 </View>
                 <DateTimePicker
-                  value={modalDate}
+                  value={modalDate || new Date()}
                   mode="datetime"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
                   onChange={(event, selectedDate) => {
                     if (Platform.OS === 'android') setShowDatePicker(false);
-                    if (selectedDate) setModalDate(selectedDate);
+                    if (selectedDate) {
+                      setModalDate(selectedDate);
+                      if (errors.date) setErrors(prev => ({ ...prev, date: '' }));
+                    }
                   }}
                   textColor={colors.textPrimary}
+                  style={Platform.OS === 'ios' ? { width: '100%', height: 360 } : undefined}
                 />
               </View>
             </Pressable>
@@ -743,8 +927,8 @@ export default function FollowUpsScreen() {
             <Pressable style={styles.modalCancelBtn} onPress={() => setAddTaskModalVisible(false)}>
               <Text style={styles.modalCancelBtnText}>Cancel</Text>
             </Pressable>
-            <Pressable 
-              style={styles.modalSaveBtn} 
+            <Pressable
+              style={styles.modalSaveBtn}
               onPress={handleSave}
               disabled={createMutation.isPending || updateMutation.isPending}
             >
@@ -792,8 +976,8 @@ export default function FollowUpsScreen() {
                 <Pressable style={[styles.modalCancelBtn, { flex: 1 }]} onPress={() => setRescheduleTask(null)}>
                   <Text style={styles.modalCancelBtnText}>Cancel</Text>
                 </Pressable>
-                <Pressable 
-                  style={[styles.modalSaveBtn, { flex: 1.5 }]} 
+                <Pressable
+                  style={[styles.modalSaveBtn, { flex: 1.5 }]}
                   onPress={handleReschedule}
                   disabled={rescheduleMutation.isPending}
                 >
@@ -859,8 +1043,8 @@ export default function FollowUpsScreen() {
               <Pressable style={styles.alertCancelBtn} onPress={() => setDeletingTask(null)}>
                 <Text style={styles.alertCancelBtnText}>Cancel</Text>
               </Pressable>
-              <Pressable 
-                style={styles.alertDeleteBtn} 
+              <Pressable
+                style={styles.alertDeleteBtn}
                 onPress={() => deletingTask && handleDeleteTask(deletingTask.id)}
                 disabled={deleteMutation.isPending}
               >
@@ -894,29 +1078,27 @@ function getStyles(colors: any) {
     },
     selectionModalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(11, 45, 62, 0.4)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: 24,
+      paddingHorizontal: 20,
     },
     selectionModalContainer: {
       backgroundColor: colors.cardBackground,
-      borderRadius: 32,
+      borderRadius: 28,
       width: '100%',
-      maxWidth: 340,
-      padding: 24,
+      height: 520,
+      overflow: 'hidden',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 20 },
-      shadowOpacity: 0.15,
+      shadowOpacity: 0.2,
       shadowRadius: 30,
-      elevation: 10,
+      elevation: 20,
     },
     selectionModalTitle: {
       fontSize: 20,
       fontWeight: '900',
       color: colors.textPrimary,
-      marginBottom: 20,
-      textAlign: 'center',
       letterSpacing: -0.5,
     },
     selectionModalItem: {
@@ -924,6 +1106,7 @@ function getStyles(colors: any) {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingVertical: 16,
+      paddingHorizontal: 24,
       borderBottomWidth: 1,
       borderBottomColor: colors.surfaceSoft,
     },
@@ -1188,7 +1371,8 @@ function getStyles(colors: any) {
       fontSize: 13,
       color: colors.textSecondary,
       fontWeight: '500',
-      marginTop: 4,
+      marginTop: 2,
+      maxWidth: '80%',
     },
     modalCloseIcon: {
       width: 32,
@@ -1286,7 +1470,7 @@ function getStyles(colors: any) {
     },
     modalCancelBtnText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800' },
     modalCreateBtn: {
-      flex: 1.5,
+      flex: 1,
       height: 52,
       borderRadius: 16,
       backgroundColor: colors.accentTeal,
@@ -1309,7 +1493,7 @@ function getStyles(colors: any) {
       paddingBottom: 20,
     },
     fullScreenModalTitle: {
-      fontSize: 28,
+      fontSize: 22,
       fontWeight: '900',
       color: colors.textPrimary,
       letterSpacing: -0.5,
@@ -1321,6 +1505,7 @@ function getStyles(colors: any) {
       backgroundColor: colors.surfaceSoft,
       alignItems: 'center',
       justifyContent: 'center',
+      marginLeft: 12,
     },
     modalContent: {
       flex: 1,
@@ -1345,6 +1530,19 @@ function getStyles(colors: any) {
       color: colors.textPrimary,
       fontWeight: '600',
     },
+    requiredAsterisk: {
+      color: colors.danger || '#E11D48',
+    },
+    inlineError: {
+      fontSize: 12,
+      color: colors.danger || '#E11D48',
+      fontWeight: '700',
+      marginTop: 4,
+      marginLeft: 4,
+    },
+    inputError: {
+      borderColor: colors.danger || '#E11D48',
+    },
     modalTagColorCircleOuter: {
       width: 38,
       height: 38,
@@ -1368,7 +1566,7 @@ function getStyles(colors: any) {
       borderTopColor: colors.cardBorder,
     },
     modalSaveBtn: {
-      flex: 1.5,
+      flex: 1,
       height: 52,
       borderRadius: 16,
       backgroundColor: colors.accentTeal,
@@ -1550,6 +1748,51 @@ function getStyles(colors: any) {
     modalTextInput: {
       fontSize: 15,
       color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    selectionModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      paddingBottom: 16,
+    },
+    pickerCloseBtnSmall: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pickerSearchBoxSmall: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSoft,
+      marginHorizontal: 24,
+      marginBottom: 16,
+      paddingHorizontal: 16,
+      height: 48,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    pickerSearchInputSmall: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    selectionModalList: {
+      flex: 1,
+    },
+    noResultsSmall: {
+      textAlign: 'center',
+      marginTop: 32,
+      fontSize: 14,
+      color: colors.textMuted,
       fontWeight: '600',
     },
   });

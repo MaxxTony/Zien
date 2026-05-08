@@ -179,7 +179,7 @@ export default function CRMScreen() {
       end={{ x: 1, y: 1 }}
       style={[styles.background, { paddingTop: insets.top }]}>
       <PageHeader
-        title="CRM Command Center"
+        title="CRM"
         subtitle="Intelligent database tracking leads from capture to close."
         onBack={() => router.back()}
       />

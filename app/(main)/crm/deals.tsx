@@ -92,21 +92,48 @@ export default function DealsScreen() {
 
   // Form states
   const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
-  const [selectedProperty, setSelectedProperty] = useState<string>('');
+  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [dealValue, setDealValue] = useState('');
-  const [selectedStageId, setSelectedStageId] = useState<string>('');
-  const [customStageName, setCustomStageName] = useState('');
-  const [isCreatingDeal, setIsCreatingDeal] = useState(false);
-  const [showErrors, setShowErrors] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<string | null>(null);
 
-  // Dropdown visibility states
   const [isContactDropdownOpen, setContactDropdownOpen] = useState(false);
   const [isPropertyDropdownOpen, setPropertyDropdownOpen] = useState(false);
   const [isPipelineDropdownOpen, setPipelineDropdownOpen] = useState(false);
   const [isStageDropdownOpen, setStageDropdownOpen] = useState(false);
 
+  const [contactSearch, setContactSearch] = useState('');
+  const [propertySearch, setPropertySearch] = useState('');
+  const [pipelineSearch, setPipelineSearch] = useState('');
+  const [stageSearch, setStageSearch] = useState('');
+
+  const filteredContacts = useMemo(() => {
+    return (contacts || []).filter(c => 
+      `${c.first_name} ${c.last_name || ''}`.toLowerCase().includes(contactSearch.toLowerCase())
+    );
+  }, [contacts, contactSearch]);
+
+  const filteredProperties = useMemo(() => {
+    return (PROPERTIES || []).filter(p => p.toLowerCase().includes(propertySearch.toLowerCase()));
+  }, [propertySearch]);
+
+  const filteredPipelines = useMemo(() => {
+    return (pipelines || []).filter(p => p.name.toLowerCase().includes(pipelineSearch.toLowerCase()));
+  }, [pipelines, pipelineSearch]);
+
+  const filteredStages = useMemo(() => {
+    if (!targetPipeline) return [];
+    return targetPipeline.stages.filter((s: any) => s.name.toLowerCase().includes(stageSearch.toLowerCase()));
+  }, [targetPipeline, stageSearch]);
+
+  const [customStageName, setCustomStageName] = useState('');
+  const [isCreatingDeal, setIsCreatingDeal] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+
   // Stage Management states
   const [isStagesModalVisible, setIsStagesModalVisible] = useState(false);
+  const [stagesModalPipeline, setStagesModalPipeline] = useState<CRMPipeline | null>(null);
+  const [isStagesPipelineDropdownOpen, setIsStagesPipelineDropdownOpen] = useState(false);
+  const [stagesPipelineSearch, setStagesPipelineSearch] = useState('');
   const [newStageInput, setNewStageInput] = useState('');
   const [isAddingStage, setIsAddingStage] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,12 +151,22 @@ export default function DealsScreen() {
 
   const currentStages = activePipeline?.stages || [];
 
+  const stagesModalCurrentStages = useMemo(() => {
+    if (!stagesModalPipeline) return [];
+    const fresh = pipelines.find(p => p.id === stagesModalPipeline.id);
+    return fresh?.stages || stagesModalPipeline.stages || [];
+  }, [stagesModalPipeline, pipelines]);
+
+  const filteredStagesPipelines = useMemo(() => {
+    return (pipelines || []).filter(p => p.name.toLowerCase().includes(stagesPipelineSearch.toLowerCase()));
+  }, [pipelines, stagesPipelineSearch]);
+
   const handleAddStage = async () => {
-    if (!newStageInput.trim() || !activePipeline?.id || !accessToken) return;
+    if (!newStageInput.trim() || !stagesModalPipeline?.id || !accessToken) return;
 
     try {
       setIsAddingStage(true);
-      await addCRMPipelineStage(accessToken, activePipeline.id, newStageInput.trim());
+      await addCRMPipelineStage(accessToken, stagesModalPipeline.id, newStageInput.trim());
       setNewStageInput('');
       await queryClient.invalidateQueries({ queryKey: ['crmPipelines'] });
     } catch (error: any) {
@@ -173,9 +210,9 @@ export default function DealsScreen() {
     setCustomStageName('');
     setTargetPipeline(null);
     setSelectedContact(null);
-    setSelectedProperty('');
+    setSelectedProperty(null);
     setDealValue('');
-    setSelectedStageId('');
+    setSelectedStage(null);
     setShowErrors(false);
     setContactDropdownOpen(false);
     setPropertyDropdownOpen(false);
@@ -185,27 +222,25 @@ export default function DealsScreen() {
 
   const handleCreateDeal = async () => {
     setShowErrors(true);
-    if (!accessToken || !targetPipeline || !selectedContact || !selectedProperty || !dealValue || !selectedStageId) {
+    if (!accessToken || !targetPipeline || !selectedContact || !selectedProperty || !dealValue || !selectedStage) {
       return;
     }
 
     try {
       setIsCreatingDeal(true);
 
-      let finalStageId = selectedStageId;
+      const stage = targetPipeline.stages.find((s: any) => s.name === selectedStage);
+      let finalStageId = stage?.id;
 
       // Handle custom stage creation
-      if (selectedStageId === 'custom' && customStageName.trim()) {
+      if (!finalStageId && customStageName.trim()) {
         const newStage = await addCRMPipelineStage(accessToken, targetPipeline.id, customStageName.trim());
         finalStageId = newStage.id;
         await queryClient.invalidateQueries({ queryKey: ['crmPipelines'] });
-      } else if (selectedStageId === 'custom') {
-        Alert.alert('Error', 'Please enter a name for the custom stage.');
-        return;
       }
 
       if (!finalStageId) {
-        Alert.alert('Error', 'Please select a stage.');
+        Alert.alert('Error', 'Please select a valid stage.');
         return;
       }
 
@@ -406,7 +441,7 @@ export default function DealsScreen() {
 
           <View style={styles.topActions}>
             <View style={styles.filterBtnsRow}>
-              <Pressable style={styles.filterBtn} onPress={() => setIsStagesModalVisible(true)}>
+              <Pressable style={styles.filterBtn} onPress={() => { setStagesModalPipeline(activePipeline); setIsStagesModalVisible(true); }}>
                 <MaterialCommunityIcons name="tune-variant" size={18} color={colors.textPrimary} />
                 <Text style={styles.filterBtnText}>Stages</Text>
               </Pressable>
@@ -437,70 +472,168 @@ export default function DealsScreen() {
           onRequestClose={() => setIsStagesModalVisible(false)}
         >
           <View style={styles.modalContainer}>
+            {/* Header */}
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Add Pipeline Stage</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Manage Stages</Text>
+                <Text style={styles.modalSubtitle}>Add or remove stages for your pipeline.</Text>
               </View>
-              <Pressable
-                style={styles.closeBtn}
-                onPress={() => setIsStagesModalVisible(false)}
-              >
+              <Pressable style={styles.closeBtn} onPress={() => setIsStagesModalVisible(false)}>
                 <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
-              </Pressable>
-            </View>
-
-            <View style={styles.addStageInputRow}>
-              <TextInput
-                style={styles.newStageTextInput}
-                placeholder="New stage name..."
-                placeholderTextColor={colors.textMuted}
-                value={newStageInput}
-                onChangeText={setNewStageInput}
-                editable={!isAddingStage}
-              />
-              <Pressable
-                style={[styles.addStageSubmitBtn, isAddingStage && { opacity: 0.7 }]}
-                onPress={handleAddStage}
-                disabled={isAddingStage}
-              >
-                {isAddingStage ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.addStageSubmitBtnText}>Add</Text>
-                )}
               </Pressable>
             </View>
 
             <ScrollView
               style={styles.modalScroll}
-              contentContainerStyle={styles.modalContent}
+              contentContainerStyle={[styles.modalContent, { paddingBottom: insets.bottom + 100 }]}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
-              {currentStages.map((stage) => (
-                <View key={stage.id} style={styles.stageManagementItem}>
-                  <Text style={styles.stageManagementName}>
-                    {stage.name}
+              {/* Pipeline Selector */}
+              <View style={styles.smSection}>
+                <View style={styles.smSectionHeader}>
+                  <MaterialCommunityIcons name="pipe" size={15} color={colors.accentTeal} />
+                  <Text style={styles.smSectionLabel}>Target Pipeline</Text>
+                </View>
+                <Pressable
+                  style={styles.smPipelineSelector}
+                  onPress={() => { setIsStagesPipelineDropdownOpen(true); setStagesPipelineSearch(''); }}
+                >
+                  <View style={styles.smPipelineIconWrap}>
+                    <MaterialCommunityIcons name="view-list-outline" size={18} color={colors.accentTeal} />
+                  </View>
+                  <Text style={[styles.smPipelineName, !stagesModalPipeline && { color: colors.textMuted }]}>
+                    {stagesModalPipeline?.name || 'Select a pipeline'}
                   </Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+                </Pressable>
+
+                <Modal
+                  visible={isStagesPipelineDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setIsStagesPipelineDropdownOpen(false)}
+                >
+                  <Pressable style={styles.pickerOverlay} onPress={() => setIsStagesPipelineDropdownOpen(false)}>
+                    <View style={styles.selectionModalContainer}>
+                      <View style={styles.selectionModalHeader}>
+                        <Text style={styles.selectionModalTitle}>Select Pipeline</Text>
+                        <Pressable onPress={() => setIsStagesPipelineDropdownOpen(false)}>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                        </Pressable>
+                      </View>
+                      <View style={styles.pickerSearchBoxSmall}>
+                        <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
+                        <TextInput
+                          style={styles.pickerSearchInputSmall}
+                          placeholder="Search pipeline..."
+                          placeholderTextColor={colors.textMuted}
+                          value={stagesPipelineSearch}
+                          onChangeText={setStagesPipelineSearch}
+                        />
+                      </View>
+                      <ScrollView style={styles.selectionModalList} keyboardShouldPersistTaps="handled">
+                        {filteredStagesPipelines.map((opt) => (
+                          <Pressable
+                            key={opt.id}
+                            style={[styles.selectionModalItem, stagesModalPipeline?.id === opt.id && styles.selectionModalItemActive]}
+                            onPress={() => { setStagesModalPipeline(opt); setIsStagesPipelineDropdownOpen(false); }}
+                          >
+                            <Text style={[styles.selectionModalItemText, stagesModalPipeline?.id === opt.id && styles.selectionModalItemTextActive]}>
+                              {opt.name}
+                            </Text>
+                            {stagesModalPipeline?.id === opt.id && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                            )}
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </Pressable>
+                </Modal>
+              </View>
+
+              {/* Add New Stage */}
+              <View style={styles.smSection}>
+                <View style={styles.smSectionHeader}>
+                  <MaterialCommunityIcons name="plus-circle-outline" size={15} color={colors.accentTeal} />
+                  <Text style={styles.smSectionLabel}>Add New Stage</Text>
+                </View>
+                <View style={styles.smAddRow}>
+                  <View style={styles.smAddInputWrap}>
+                    <MaterialCommunityIcons name="flag-outline" size={18} color={colors.textMuted} style={{ marginRight: 10 }} />
+                    <TextInput
+                      style={styles.smAddInput}
+                      placeholder="Stage name..."
+                      placeholderTextColor={colors.textMuted}
+                      value={newStageInput}
+                      onChangeText={setNewStageInput}
+                      editable={!isAddingStage}
+                      returnKeyType="done"
+                      onSubmitEditing={handleAddStage}
+                    />
+                  </View>
                   <Pressable
-                    onPress={() => handleRemoveStage(stage.id)}
-                    disabled={deletingStageId === stage.id}
+                    style={[styles.smAddBtn, isAddingStage && { opacity: 0.7 }]}
+                    onPress={handleAddStage}
+                    disabled={isAddingStage}
                   >
-                    {deletingStageId === stage.id ? (
-                      <ActivityIndicator size="small" color={colors.danger} />
+                    {isAddingStage ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <MaterialCommunityIcons name="close" size={20} color={colors.danger} />
+                      <MaterialCommunityIcons name="plus" size={22} color="#FFFFFF" />
                     )}
                   </Pressable>
                 </View>
-              ))}
+              </View>
+
+              {/* Current Stages List */}
+              <View style={styles.smSection}>
+                <View style={styles.smSectionHeader}>
+                  <MaterialCommunityIcons name="layers-outline" size={15} color={colors.accentTeal} />
+                  <Text style={styles.smSectionLabel}>Current Stages</Text>
+                  <View style={styles.smCountBadge}>
+                    <Text style={styles.smCountBadgeText}>{stagesModalCurrentStages.length}</Text>
+                  </View>
+                </View>
+
+                {stagesModalCurrentStages.length === 0 ? (
+                  <View style={styles.smEmptyState}>
+                    <MaterialCommunityIcons name="layers-off-outline" size={36} color={colors.textMuted} />
+                    <Text style={styles.smEmptyTitle}>No stages yet</Text>
+                    <Text style={styles.smEmptySubtitle}>Add your first stage above to get started.</Text>
+                  </View>
+                ) : (
+                  <View style={styles.smStageList}>
+                    {stagesModalCurrentStages.map((stage, index) => (
+                      <View key={stage.id} style={styles.smStageCard}>
+                        <View style={styles.smStageLeft}>
+                          <View style={styles.smStageIndex}>
+                            <Text style={styles.smStageIndexText}>{index + 1}</Text>
+                          </View>
+                          <Text style={styles.smStageName}>{stage.name}</Text>
+                        </View>
+                        <Pressable
+                          style={[styles.smDeleteBtn, deletingStageId === stage.id && { opacity: 0.5 }]}
+                          onPress={() => handleRemoveStage(stage.id)}
+                          disabled={deletingStageId === stage.id}
+                        >
+                          {deletingStageId === stage.id ? (
+                            <ActivityIndicator size="small" color={colors.danger} />
+                          ) : (
+                            <MaterialCommunityIcons name="trash-can-outline" size={17} color={colors.danger} />
+                          )}
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
             </ScrollView>
 
             <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
-              <Pressable
-                style={styles.saveSettingsBtn}
-                onPress={() => setIsStagesModalVisible(false)}
-              >
-                <Text style={styles.saveSettingsBtnText}>Close</Text>
+              <Pressable style={styles.saveSettingsBtn} onPress={() => setIsStagesModalVisible(false)}>
+                <Text style={styles.saveSettingsBtnText}>Done</Text>
               </Pressable>
             </View>
           </View>
@@ -542,10 +675,8 @@ export default function DealsScreen() {
                 <Pressable
                   style={[styles.dropdownTrigger, showErrors && !selectedContact && styles.errorBorder]}
                   onPress={() => {
-                    setPropertyDropdownOpen(false);
-                    setPipelineDropdownOpen(false);
-                    setStageDropdownOpen(false);
-                    setContactDropdownOpen(!isContactDropdownOpen);
+                    setContactDropdownOpen(true);
+                    setContactSearch('');
                   }}
                 >
                   <Text style={[styles.dropdownValue, !selectedContact && { color: colors.textSecondary }]}>
@@ -556,32 +687,63 @@ export default function DealsScreen() {
                 {showErrors && !selectedContact && (
                   <Text style={styles.errorText}>Primary contact is required</Text>
                 )}
-                {isContactDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {contacts.map((opt) => (
-                      <Pressable
-                        key={opt.id}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setSelectedContact(opt);
-                          setContactDropdownOpen(false);
-                        }}
-                      >
-                        {selectedContact?.id === opt.id && (
-                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                        )}
-                        <Text style={[styles.formDropdownItemText, selectedContact?.id === opt.id && { fontWeight: '700' }]}>
-                          {opt.first_name} {opt.last_name || ''}
-                        </Text>
-                      </Pressable>
-                    ))}
-                    {contacts.length === 0 && (
-                      <View style={styles.formDropdownItem}>
-                        <Text style={styles.formDropdownItemText}>No contacts found</Text>
+
+                <Modal
+                  visible={isContactDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setContactDropdownOpen(false)}
+                >
+                  <Pressable style={styles.pickerOverlay} onPress={() => setContactDropdownOpen(false)}>
+                    <View style={styles.selectionModalContainer}>
+                      <View style={styles.selectionModalHeader}>
+                        <Text style={styles.selectionModalTitle}>Select Primary Contact</Text>
+                        <Pressable onPress={() => setContactDropdownOpen(false)}>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                        </Pressable>
                       </View>
-                    )}
-                  </View>
-                )}
+                      
+                      <View style={styles.pickerSearchBoxSmall}>
+                        <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
+                        <TextInput
+                          style={styles.pickerSearchInputSmall}
+                          placeholder="Search contact..."
+                          placeholderTextColor={colors.textMuted}
+                          value={contactSearch}
+                          onChangeText={setContactSearch}
+                        />
+                      </View>
+
+                      <ScrollView style={styles.selectionModalList} keyboardShouldPersistTaps="handled">
+                        {filteredContacts.map((opt) => (
+                          <Pressable
+                            key={opt.id}
+                            style={[styles.selectionModalItem, selectedContact?.id === opt.id && styles.selectionModalItemActive]}
+                            onPress={() => {
+                              setSelectedContact(opt);
+                              setContactDropdownOpen(false);
+                            }}
+                          >
+                            <View>
+                              <Text style={[styles.selectionModalItemText, selectedContact?.id === opt.id && styles.selectionModalItemTextActive]}>
+                                {opt.first_name} {opt.last_name || ''}
+                              </Text>
+                              <Text style={{ fontSize: 11, color: colors.textSecondary }}>{opt.phone || opt.email || 'No details'}</Text>
+                            </View>
+                            {selectedContact?.id === opt.id && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                            )}
+                          </Pressable>
+                        ))}
+                        {filteredContacts.length === 0 && (
+                          <View style={{ padding: 24, alignItems: 'center' }}>
+                            <Text style={{ color: colors.textSecondary }}>No contacts found</Text>
+                          </View>
+                        )}
+                      </ScrollView>
+                    </View>
+                  </Pressable>
+                </Modal>
               </View>
 
               {/* Related Property */}
@@ -590,10 +752,8 @@ export default function DealsScreen() {
                 <Pressable
                   style={[styles.dropdownTrigger, showErrors && !selectedProperty && styles.errorBorder]}
                   onPress={() => {
-                    setContactDropdownOpen(false);
-                    setPipelineDropdownOpen(false);
-                    setStageDropdownOpen(false);
-                    setPropertyDropdownOpen(!isPropertyDropdownOpen);
+                    setPropertyDropdownOpen(true);
+                    setPropertySearch('');
                   }}
                 >
                   <Text style={[styles.dropdownValue, !selectedProperty && { color: colors.textSecondary }]}>
@@ -604,38 +764,66 @@ export default function DealsScreen() {
                 {showErrors && !selectedProperty && (
                   <Text style={styles.errorText}>Related property is required</Text>
                 )}
-                {isPropertyDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {PROPERTIES.map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setSelectedProperty(opt);
-                          setPropertyDropdownOpen(false);
-                        }}
-                      >
-                        {selectedProperty === opt && (
-                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                        )}
-                        <Text style={[styles.formDropdownItemText, selectedProperty === opt && { fontWeight: '700' }]}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
 
+                <Modal
+                  visible={isPropertyDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setPropertyDropdownOpen(false)}
+                >
+                  <Pressable style={styles.pickerOverlay} onPress={() => setPropertyDropdownOpen(false)}>
+                    <View style={styles.selectionModalContainer}>
+                      <View style={styles.selectionModalHeader}>
+                        <Text style={styles.selectionModalTitle}>Select Property</Text>
+                        <Pressable onPress={() => setPropertyDropdownOpen(false)}>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                        </Pressable>
+                      </View>
+                      
+                      <View style={styles.pickerSearchBoxSmall}>
+                        <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
+                        <TextInput
+                          style={styles.pickerSearchInputSmall}
+                          placeholder="Search property..."
+                          placeholderTextColor={colors.textMuted}
+                          value={propertySearch}
+                          onChangeText={setPropertySearch}
+                        />
+                      </View>
+
+                      <ScrollView style={styles.selectionModalList} keyboardShouldPersistTaps="handled">
+                        {filteredProperties.map((opt) => (
+                          <Pressable
+                            key={opt}
+                            style={[styles.selectionModalItem, selectedProperty === opt && styles.selectionModalItemActive]}
+                            onPress={() => {
+                              setSelectedProperty(opt);
+                              setPropertyDropdownOpen(false);
+                            }}
+                          >
+                            <Text style={[styles.selectionModalItemText, selectedProperty === opt && styles.selectionModalItemTextActive]}>{opt}</Text>
+                            {selectedProperty === opt && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                            )}
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </Pressable>
+                </Modal>
+              </View>
 
               {/* Estimated Deal Value */}
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.inputLabel}>Estimated Deal Value <Text style={styles.requiredStar}>*</Text></Text>
                 <View style={[styles.valueInputWrapper, showErrors && !dealValue && styles.errorBorder]}>
                   <TextInput
-                    style={styles.valueInput}
+                    style={[styles.valueInput, !dealValue && { fontWeight: '500', fontSize: 16 }]}
                     value={dealValue}
                     onChangeText={handleValueChange}
                     keyboardType="numeric"
                     placeholder="$ 1,200,000"
+                    placeholderTextColor={colors.textSecondary || '#8DA4B5'}
                   />
                 </View>
                 {showErrors && !dealValue && (
@@ -649,10 +837,8 @@ export default function DealsScreen() {
                 <Pressable
                   style={[styles.dropdownTrigger, showErrors && !targetPipeline && styles.errorBorder]}
                   onPress={() => {
-                    setContactDropdownOpen(false);
-                    setPropertyDropdownOpen(false);
-                    setStageDropdownOpen(false);
-                    setPipelineDropdownOpen(!isPipelineDropdownOpen);
+                    setPipelineDropdownOpen(true);
+                    setPipelineSearch('');
                   }}
                 >
                   <Text style={[styles.dropdownValue, !targetPipeline && { color: colors.textSecondary }]}>
@@ -661,107 +847,126 @@ export default function DealsScreen() {
                   <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
                 </Pressable>
                 {showErrors && !targetPipeline && (
-                  <Text style={styles.errorText}>Target pipeline is required</Text>
+                  <Text style={styles.errorText}>Pipeline is required</Text>
                 )}
-                {isPipelineDropdownOpen && (
-                  <View style={styles.formDropdownMenu}>
-                    {pipelines.map((opt) => (
-                      <Pressable
-                        key={opt.id}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setTargetPipeline(opt);
-                          setSelectedStageId(opt.stages[0]?.id || '');
-                          setPipelineDropdownOpen(false);
-                        }}
-                      >
-                        {targetPipeline?.id === opt.id && (
-                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                        )}
-                        <Text style={[styles.formDropdownItemText, targetPipeline?.id === opt.id && { fontWeight: '700' }]}>{opt.name}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
+
+                <Modal
+                  visible={isPipelineDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setPipelineDropdownOpen(false)}
+                >
+                  <Pressable style={styles.pickerOverlay} onPress={() => setPipelineDropdownOpen(false)}>
+                    <View style={styles.selectionModalContainer}>
+                      <View style={styles.selectionModalHeader}>
+                        <Text style={styles.selectionModalTitle}>Select Pipeline</Text>
+                        <Pressable onPress={() => setPipelineDropdownOpen(false)}>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                        </Pressable>
+                      </View>
+                      
+                      <View style={styles.pickerSearchBoxSmall}>
+                        <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
+                        <TextInput
+                          style={styles.pickerSearchInputSmall}
+                          placeholder="Search pipeline..."
+                          placeholderTextColor={colors.textMuted}
+                          value={pipelineSearch}
+                          onChangeText={setPipelineSearch}
+                        />
+                      </View>
+
+                      <ScrollView style={styles.selectionModalList} keyboardShouldPersistTaps="handled">
+                        {filteredPipelines.map((opt) => (
+                          <Pressable
+                            key={opt.id}
+                            style={[styles.selectionModalItem, targetPipeline?.id === opt.id && styles.selectionModalItemActive]}
+                            onPress={() => {
+                              setTargetPipeline(opt);
+                              setSelectedStage(null);
+                              setPipelineDropdownOpen(false);
+                            }}
+                          >
+                            <Text style={[styles.selectionModalItemText, targetPipeline?.id === opt.id && styles.selectionModalItemTextActive]}>{opt.name}</Text>
+                            {targetPipeline?.id === opt.id && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                            )}
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </Pressable>
+                </Modal>
               </View>
 
-
-
               {/* Stage */}
-              <View style={[styles.inputGroup, { zIndex: 200 }]}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.inputLabel}>Stage <Text style={styles.requiredStar}>*</Text></Text>
-                <View style={styles.stageSelectContainer}>
-                  <Pressable
-                    style={[styles.dropdownTrigger, { flex: 1 }, showErrors && !selectedStageId && styles.errorBorder]}
-                    onPress={() => {
-                      setContactDropdownOpen(false);
-                      setPropertyDropdownOpen(false);
-                      setPipelineDropdownOpen(false);
-                      setStageDropdownOpen(!isStageDropdownOpen);
-                    }}
-                  >
-                    <Text style={[styles.dropdownValue, !selectedStageId && { color: colors.textSecondary }]} numberOfLines={1}>
-                      {selectedStageId === 'custom' ? 'Custom Stage...' : (targetPipeline?.stages.find(s => s.id === selectedStageId)?.name || 'Select Stage')}
-                    </Text>
-                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
-                  </Pressable>
-
-
-                </View>
-                {showErrors && !selectedStageId && (
+                <Pressable
+                  style={[styles.dropdownTrigger, showErrors && !selectedStage && styles.errorBorder]}
+                  onPress={() => {
+                    if (!targetPipeline) {
+                      Alert.alert('Selection Required', 'Please select a pipeline first.');
+                      return;
+                    }
+                    setStageDropdownOpen(true);
+                    setStageSearch('');
+                  }}
+                >
+                  <Text style={[styles.dropdownValue, !selectedStage && { color: colors.textSecondary }]}>
+                    {selectedStage || 'Select Stage'}
+                  </Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textPrimary} />
+                </Pressable>
+                {showErrors && !selectedStage && (
                   <Text style={styles.errorText}>Stage is required</Text>
                 )}
-                {selectedStageId === 'custom' && (
-                  <View style={styles.customStageInputWrapper}>
-                    <Text style={styles.inputLabel}>Custom Stage Name *</Text>
-                    <TextInput
-                      style={styles.customStageInput}
-                      placeholder="e.g. Negotiation"
-                      placeholderTextColor={colors.textMuted}
-                      value={customStageName}
-                      onChangeText={setCustomStageName}
-                    />
-                  </View>
-                )}
-
-                {isStageDropdownOpen && (
-                  <View style={styles.formDropdownMenuTop}>
-                    {targetPipeline?.stages.map((opt) => (
-                      <Pressable
-                        key={opt.id}
-                        style={styles.formDropdownItem}
-                        onPress={() => {
-                          setSelectedStageId(opt.id);
-                          setStageDropdownOpen(false);
-                        }}
-                      >
-                        {selectedStageId === opt.id && (
-                          <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                        )}
-                        <Text style={[styles.formDropdownItemText, selectedStageId === opt.id && { fontWeight: '700' }]}>{opt.name}</Text>
-                      </Pressable>
-                    ))}
-
-                    <Pressable
-                      style={styles.formDropdownItem}
-                      onPress={() => {
-                        setSelectedStageId('custom');
-                        setStageDropdownOpen(false);
-                      }}
-                    >
-                      {selectedStageId === 'custom' && (
-                        <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" style={{ position: 'absolute', left: 12 }} />
-                      )}
-                      <Text style={[styles.formDropdownItemText, { color: colors.accentTeal, fontWeight: '700' }]}>Custom Stage...</Text>
-                    </Pressable>
-
-                    {(!targetPipeline?.stages || targetPipeline.stages.length === 0) && (
-                      <View style={styles.formDropdownItem}>
-                        <Text style={styles.formDropdownItemText}>No stages available</Text>
+                <Modal
+                  visible={isStageDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setStageDropdownOpen(false)}
+                >
+                  <Pressable style={styles.pickerOverlay} onPress={() => setStageDropdownOpen(false)}>
+                    <View style={styles.selectionModalContainer}>
+                      <View style={styles.selectionModalHeader}>
+                        <Text style={styles.selectionModalTitle}>Select Stage</Text>
+                        <Pressable onPress={() => setStageDropdownOpen(false)}>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                        </Pressable>
                       </View>
-                    )}
-                  </View>
-                )}
+                      
+                      <View style={styles.pickerSearchBoxSmall}>
+                        <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
+                        <TextInput
+                          style={styles.pickerSearchInputSmall}
+                          placeholder="Search stage..."
+                          placeholderTextColor={colors.textMuted}
+                          value={stageSearch}
+                          onChangeText={setStageSearch}
+                        />
+                      </View>
+
+                      <ScrollView style={styles.selectionModalList} keyboardShouldPersistTaps="handled">
+                        {filteredStages.map((stage: any) => (
+                          <Pressable
+                            key={stage.id}
+                            style={[styles.selectionModalItem, selectedStage === stage.name && styles.selectionModalItemActive]}
+                            onPress={() => {
+                              setSelectedStage(stage.name);
+                              setStageDropdownOpen(false);
+                            }}
+                          >
+                            <Text style={[styles.selectionModalItemText, selectedStage === stage.name && styles.selectionModalItemTextActive]}>{stage.name}</Text>
+                            {selectedStage === stage.name && (
+                              <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentTeal} />
+                            )}
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </Pressable>
+                </Modal>
               </View>
 
               {/* AI Forecast Section */}
@@ -1145,20 +1350,25 @@ function getStyles(colors: any, insets: any) {
       borderBottomColor: colors.divider,
     },
     modalTitle: {
-      fontSize: 20,
-      fontWeight: '800',
+      fontSize: 22,
+      fontWeight: '900',
       color: colors.textPrimary,
-      marginBottom: 4,
+      letterSpacing: -0.5,
     },
     modalSubtitle: {
-      fontSize: 14,
+      fontSize: 13,
       color: colors.textSecondary,
-      lineHeight: 20,
+      fontWeight: '500',
+      maxWidth: '80%',
     },
     closeBtn: {
-      backgroundColor: colors.surfaceIcon,
-      padding: 8,
-      borderRadius: 12,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 12,
     },
     modalScroll: {
       flex: 1,
@@ -1192,6 +1402,81 @@ function getStyles(colors: any, insets: any) {
     },
     dropdownValue: {
       fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    pickerOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    selectionModalContainer: {
+      backgroundColor: colors.cardBackground,
+      borderRadius: 28,
+      width: '100%',
+      height: 520,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 20 },
+      shadowOpacity: 0.2,
+      shadowRadius: 30,
+      elevation: 20,
+    },
+    selectionModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 24,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    selectionModalTitle: {
+      fontSize: 20,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
+    selectionModalList: {
+      paddingBottom: 24,
+    },
+    selectionModalItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surfaceSoft,
+    },
+    selectionModalItemActive: {
+      backgroundColor: 'rgba(11, 160, 178, 0.05)',
+    },
+    selectionModalItemText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    selectionModalItemTextActive: {
+      color: colors.accentTeal,
+      fontWeight: '800',
+    },
+    pickerSearchBoxSmall: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSoft,
+      margin: 16,
+      paddingHorizontal: 12,
+      height: 48,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    pickerSearchInputSmall: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 14,
       color: colors.textPrimary,
       fontWeight: '500',
     },
@@ -1332,6 +1617,11 @@ function getStyles(colors: any, insets: any) {
       fontWeight: '700',
       color: colors.textOnAccent,
     },
+    stagesPipelineSelector: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+      paddingTop: 12,
+    },
     addStageInputRow: {
       flexDirection: 'row',
       paddingHorizontal: 24,
@@ -1373,6 +1663,157 @@ function getStyles(colors: any, insets: any) {
       fontSize: 15,
       fontWeight: '600',
       color: colors.textPrimary,
+    },
+    // Manage Stages modal
+    smSection: {
+      marginBottom: 28,
+    },
+    smSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 12,
+    },
+    smSectionLabel: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    smCountBadge: {
+      backgroundColor: colors.accentTeal,
+      borderRadius: 10,
+      paddingHorizontal: 7,
+      paddingVertical: 1,
+      marginLeft: 4,
+    },
+    smCountBadgeText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    smPipelineSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.inputBackground,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: colors.borderInput,
+      paddingHorizontal: 14,
+      height: 56,
+      gap: 12,
+    },
+    smPipelineIconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: colors.badgeNewBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    smPipelineName: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    smAddRow: {
+      flexDirection: 'row',
+      gap: 10,
+      alignItems: 'center',
+    },
+    smAddInputWrap: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.inputBackground,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: colors.borderInput,
+      paddingHorizontal: 14,
+      height: 52,
+    },
+    smAddInput: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    smAddBtn: {
+      width: 52,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: colors.accentTeal,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.accentTeal,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    smStageList: {
+      gap: 8,
+    },
+    smStageCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderWidth: 1.5,
+      borderColor: colors.cardBorder,
+    },
+    smStageLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+    },
+    smStageIndex: {
+      width: 28,
+      height: 28,
+      borderRadius: 9,
+      backgroundColor: colors.badgeNewBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    smStageIndexText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.accentTeal,
+    },
+    smStageName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    smDeleteBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      backgroundColor: colors.dangerBg || 'rgba(239,68,68,0.08)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    smEmptyState: {
+      alignItems: 'center',
+      paddingVertical: 36,
+      gap: 8,
+    },
+    smEmptyTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    smEmptySubtitle: {
+      fontSize: 13,
+      color: colors.textMuted,
+      textAlign: 'center',
     },
     saveSettingsBtn: {
       flex: 1,
