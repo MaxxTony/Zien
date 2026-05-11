@@ -1,7 +1,5 @@
 import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
@@ -20,6 +18,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CHAT_HISTORY } from './chat/index';
+import {
+    ExpoSpeechRecognitionModule,
+    useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 
 const { height } = Dimensions.get('window');
 
@@ -53,7 +55,6 @@ const TypewriterText = memo(({
                 setDisplayedText(fullText.slice(0, currentIndex));
                 currentIndex++;
                 if (currentIndex % 3 === 0) {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     onType();
                 }
             } else {
@@ -72,9 +73,7 @@ const TypewriterText = memo(({
 // ──────────────────────────────────────────────────────
 const SUGGESTIONS = [
     { icon: 'home-search-outline', label: 'Find listings near me' },
-    { icon: 'account-group-outline', label: 'Summarize my leads' },
-    { icon: 'chart-line', label: 'Show pipeline stats' },
-    { icon: 'email-fast-outline', label: 'Draft outreach email' },
+    { icon: 'account-group-outline', label: 'Summarize my leads' }
 ];
 
 // ──────────────────────────────────────────────────────
@@ -91,11 +90,84 @@ export default function ChatModalScreen() {
     const [isAiTyping, setIsAiTyping] = useState(false);
     const [inputFocused, setInputFocused] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historySearch, setHistorySearch] = useState('');
+    const [isListening, setIsListening] = useState(false);
+    const [isRecordingMode, setIsRecordingMode] = useState(false);
+    const [voiceText, setVoiceText] = useState('');
+    const pulseAnim = useRef(new Animated.Value(1)).current;
 
     const flatListRef = useRef<FlatList>(null);
     const inset = useSafeAreaInsets();
 
+    // Pulse animation for recording dot
+    const startPulse = useCallback(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, { toValue: 1.4, duration: 600, useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+            ])
+        ).start();
+    }, [pulseAnim]);
 
+    const stopPulse = useCallback(() => {
+        pulseAnim.stopAnimation();
+        pulseAnim.setValue(1);
+    }, [pulseAnim]);
+
+    // Speech Recognition hooks
+    useSpeechRecognitionEvent('start', () => {
+        setIsListening(true);
+        startPulse();
+    });
+    useSpeechRecognitionEvent('end', () => {
+        setIsListening(false);
+        stopPulse();
+    });
+    useSpeechRecognitionEvent('result', (event) => {
+        const transcript = event.results[0]?.transcript;
+        if (transcript) {
+            setVoiceText(transcript);
+        }
+    });
+    useSpeechRecognitionEvent('error', (event) => {
+        console.log('Speech recognition error:', event.error, event.message);
+        setIsListening(false);
+        stopPulse();
+    });
+
+    const startVoice = useCallback(async () => {
+        setVoiceText('');
+        setIsRecordingMode(true);
+        const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        if (!result.granted) {
+            console.warn('Speech recognition permissions not granted');
+            setIsRecordingMode(false);
+            return;
+        }
+        ExpoSpeechRecognitionModule.start({
+            lang: 'en-US',
+            interimResults: true,
+            continuous: false,
+        });
+    }, []);
+
+    const cancelVoice = useCallback(() => {
+        ExpoSpeechRecognitionModule.abort();
+        stopPulse();
+        setIsListening(false);
+        setIsRecordingMode(false);
+        setVoiceText('');
+    }, [stopPulse]);
+
+    const sendVoice = useCallback(() => {
+        const text = voiceText.trim();
+        ExpoSpeechRecognitionModule.abort();
+        stopPulse();
+        setIsListening(false);
+        setIsRecordingMode(false);
+        setVoiceText('');
+        if (text) handleSubmit(text);
+    }, [voiceText, stopPulse]);
 
 
 
@@ -247,7 +319,7 @@ export default function ChatModalScreen() {
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
             >
                 <View style={styles.body}>
 
@@ -255,8 +327,6 @@ export default function ChatModalScreen() {
                     {!hasMessages ? (
                         <View style={styles.emptyState}>
 
-                            <Text style={styles.emptyTitle}>How can I help you today?</Text>
-                            <Text style={styles.emptySubtitle}>Ask me anything about your pipeline, leads, listings, or content.</Text>
 
                             {/* Suggestion chips */}
                             <View style={styles.suggestions}>
@@ -284,30 +354,34 @@ export default function ChatModalScreen() {
                     )}
 
                     {/* ── Input Bar ── */}
-                    <View style={[
-                        styles.inputBar,
-                        inputFocused && styles.inputBarFocused,
-                    ]}>
-                        <TextInput
-                            placeholder={isAiTyping ? 'Zien is thinking…' : 'Ask Zien to find properties'}
-                            placeholderTextColor={colors.inputPlaceholder}
-                            style={styles.input}
-                            value={isAiTyping ? '' : inputText}
-                            onChangeText={(t) => { if (!isAiTyping) setInputText(t); }}
-                            multiline={false}
-                            returnKeyType="send"
-                            onSubmitEditing={() => handleSubmit()}
-                            editable={!isAiTyping}
-                            onFocus={() => setInputFocused(true)}
-                            onBlur={() => setInputFocused(false)}
-                        />
-
-                        {/* Right action: send */}
-                        {inputText.trim().length > 0 && !isAiTyping && (
+                    {isRecordingMode ? (
+                        <View style={styles.recordingWrapper}>
                             <Pressable
-                                onPress={() => handleSubmit()}
-                                style={({ pressed }) => [styles.sendBtn, pressed && { opacity: 0.8 }]}
-                                hitSlop={8}
+                                onPress={cancelVoice}
+                                style={({ pressed }) => [styles.recordingActionBtn, pressed && { opacity: 0.7 }]}
+                            >
+                                <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
+                            </Pressable>
+
+                            <View style={[styles.recordingBubble, isListening && styles.recordingBubbleActive]}>
+                                <View style={styles.recordingStatus}>
+                                    <Animated.View style={[styles.recordingDot, { transform: [{ scale: pulseAnim }] }]} />
+                                    <Text style={styles.recordingLabel}>
+                                        {isListening ? 'Listening...' : 'Done'}
+                                    </Text>
+                                </View>
+                                <Text
+                                    style={[styles.recordingTranscript, !voiceText && { opacity: 0.5 }]}
+                                    numberOfLines={2}
+                                >
+                                    {voiceText || 'Start speaking...'}
+                                </Text>
+                            </View>
+
+                            <Pressable
+                                onPress={sendVoice}
+                                style={({ pressed }) => [{ opacity: !voiceText.trim() ? 0.35 : pressed ? 0.8 : 1 }]}
+                                disabled={!voiceText.trim()}
                             >
                                 <LinearGradient
                                     colors={['#0BA0B2', '#1B5E9A']}
@@ -318,8 +392,53 @@ export default function ChatModalScreen() {
                                     <MaterialCommunityIcons name="arrow-up" size={18} color="#fff" />
                                 </LinearGradient>
                             </Pressable>
-                        )}
-                    </View>
+                        </View>
+                    ) : (
+                        <View style={[
+                            styles.inputBar,
+                            inputFocused && styles.inputBarFocused,
+                        ]}>
+                            <TextInput
+                                placeholder={isAiTyping ? 'Zien is thinking…' : 'Ask Zien to find properties'}
+                                placeholderTextColor={colors.inputPlaceholder}
+                                style={styles.input}
+                                value={isAiTyping ? '' : inputText}
+                                onChangeText={(t) => { if (!isAiTyping) setInputText(t); }}
+                                multiline={false}
+                                returnKeyType="send"
+                                onSubmitEditing={() => handleSubmit()}
+                                editable={!isAiTyping}
+                                onFocus={() => setInputFocused(true)}
+                                onBlur={() => setInputFocused(false)}
+                            />
+
+                            {/* Right actions: mic or send */}
+                            {inputText.trim().length > 0 && !isAiTyping ? (
+                                <Pressable
+                                    onPress={() => handleSubmit()}
+                                    style={({ pressed }) => [styles.sendBtn, pressed && { opacity: 0.8 }]}
+                                    hitSlop={8}
+                                >
+                                    <LinearGradient
+                                        colors={['#0BA0B2', '#1B5E9A']}
+                                        style={styles.sendBtnGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <MaterialCommunityIcons name="arrow-up" size={18} color="#fff" />
+                                    </LinearGradient>
+                                </Pressable>
+                            ) : !isAiTyping ? (
+                                <Pressable
+                                    onPress={startVoice}
+                                    style={({ pressed }) => [styles.micBtn, pressed && { opacity: 0.8 }]}
+                                    hitSlop={8}
+                                >
+                                    <MaterialCommunityIcons name="microphone-outline" size={20} color={colors.textSecondary} />
+                                </Pressable>
+                            ) : null}
+                        </View>
+                    )}
                 </View>
             </KeyboardAvoidingView>
             {/* ── History Drawer Modal ── */}
@@ -345,7 +464,14 @@ export default function ChatModalScreen() {
                                         placeholder="Search your chats..."
                                         placeholderTextColor="#94A3B8"
                                         style={styles.historySearchInput}
+                                        value={historySearch}
+                                        onChangeText={setHistorySearch}
                                     />
+                                    {historySearch.length > 0 && (
+                                        <Pressable onPress={() => setHistorySearch('')}>
+                                            <MaterialCommunityIcons name="close-circle" size={16} color="#94A3B8" />
+                                        </Pressable>
+                                    )}
                                 </View>
                                 <Pressable
                                     style={({ pressed }) => [styles.historyNewBtn, pressed && { opacity: 0.8 }]}
@@ -360,7 +486,17 @@ export default function ChatModalScreen() {
                             </View>
 
                             <FlatList
-                                data={CHAT_HISTORY.slice(0, 10)}
+                                data={CHAT_HISTORY.filter(item =>
+                                    item.title.toLowerCase().includes(historySearch.toLowerCase())
+                                ).slice(0, 10)}
+                                ListEmptyComponent={
+                                    historySearch.length > 0 ? (
+                                        <View style={styles.historyEmptyState}>
+                                            <MaterialCommunityIcons name="chat-remove-outline" size={40} color={colors.textMuted || "#94A3B8"} />
+                                            <Text style={styles.historyEmptyText}>No matching chats found for "{historySearch}"</Text>
+                                        </View>
+                                    ) : null
+                                }
                                 keyExtractor={(item) => item.id}
                                 contentContainerStyle={styles.historyList}
                                 showsVerticalScrollIndicator={false}
@@ -411,6 +547,7 @@ function getStyles(colors: any) {
             justifyContent: 'space-between',
             paddingHorizontal: 18,
             paddingVertical: 12,
+            zIndex: 999
         },
         headerLeft: {
             flexDirection: 'row',
@@ -711,6 +848,17 @@ function getStyles(colors: any) {
             minHeight: 24,
             fontWeight: '400',
         },
+        micBtn: {
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.surfaceSoft,
+        },
+        micBtnActive: {
+            backgroundColor: '#EF4444',
+        },
         sendBtn: {
             borderRadius: 12,
             overflow: 'hidden',
@@ -726,6 +874,66 @@ function getStyles(colors: any) {
             shadowRadius: 8,
             shadowOffset: { width: 0, height: 4 },
             elevation: 3,
+        },
+
+        // ── Recording Mode ───────────────────────────────
+        recordingWrapper: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            marginTop: 10,
+            paddingHorizontal: 4,
+        },
+        recordingActionBtn: {
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: colors.surfaceSoft,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        recordingBubble: {
+            flex: 1,
+            height: 56,
+            borderRadius: 18,
+            borderWidth: 1.5,
+            borderColor: colors.cardBorder,
+            backgroundColor: colors.cardBackground,
+            paddingHorizontal: 16,
+            justifyContent: 'center',
+        },
+        recordingBubbleActive: {
+            borderColor: 'rgba(239, 68, 68, 0.4)',
+            shadowColor: '#EF4444',
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+        },
+        recordingStatus: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            marginBottom: 2,
+        },
+        recordingDot: {
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: '#EF4444',
+        },
+        recordingLabel: {
+            fontSize: 10,
+            fontWeight: '800',
+            color: '#EF4444',
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+        },
+        recordingTranscript: {
+            fontSize: 13,
+            fontWeight: '400',
+            color: colors.textPrimary,
         },
 
 
@@ -856,6 +1064,20 @@ function getStyles(colors: any) {
             fontSize: 11,
             fontWeight: '600',
             color: '#94A3B8',
+        },
+        historyEmptyState: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingTop: 60,
+            paddingHorizontal: 40,
+        },
+        historyEmptyText: {
+            fontSize: 14,
+            color: colors.textMuted || '#64748B',
+            textAlign: 'center',
+            marginTop: 12,
+            fontWeight: '500',
+            lineHeight: 20,
         },
         historyFooter: {
             padding: 20,

@@ -58,24 +58,28 @@ const STATS_CONFIG = [
     title: 'Total Leads',
     icon: 'account-group-outline',
     gradient: ['#0BA0B2', '#1B5E9A'] as [string, string],
+    route: '/(main)/crm/leads' as Href,
   },
   {
     key: 'activeListings',
     title: 'Active Listings',
     icon: 'home-city-outline',
     gradient: ['#6B4EFF', '#9A7BFF'] as [string, string],
+    route: '/(main)/properties' as Href,
   },
   {
     key: 'estRevenue',
     title: 'Est. Revenue',
     icon: 'cash-multiple',
     gradient: ['#10B981', '#059669'] as [string, string],
+    route: '/(main)/crm/deals' as Href,
   },
   {
     key: 'guardianAlerts',
     title: 'Guardian Alerts',
     icon: 'shield-check-outline',
     gradient: ['#F59E0B', '#D97706'] as [string, string],
+    route: '/(main)/guardian-ai' as Href,
   },
 ];
 
@@ -446,32 +450,37 @@ export default function DashboardScreen() {
         {/* ── Stat Cards (2×2 grid) ── */}
         <View style={styles.statsGrid}>
           {STATS.map((stat) => (
-            <LinearGradient
+            <Pressable
               key={stat.title}
-              colors={stat.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statCard}
+              style={{ minWidth: '48%' }}
+              onPress={() => router.push(stat.route as Href)}
             >
-              <View style={styles.statCardTop}>
-                <View style={styles.statIconWrap}>
-                  <MaterialCommunityIcons name={stat.icon as any} size={20} color="#fff" />
+              <LinearGradient
+                colors={stat.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.statCard}
+              >
+                <View style={styles.statCardTop}>
+                  <View style={styles.statIconWrap}>
+                    <MaterialCommunityIcons name={stat.icon as any} size={20} color="#fff" />
+                  </View>
+                  <View style={styles.statBadge}>
+                    <MaterialCommunityIcons
+                      name={stat.metaTone === 'positive' ? 'trending-up' : 'shield-check'}
+                      size={10}
+                      color="#fff"
+                    />
+                    <Text style={styles.statBadgeText}>
+                      {stat.metaTone === 'positive' ? '+' : ''}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.statBadge}>
-                  <MaterialCommunityIcons
-                    name={stat.metaTone === 'positive' ? 'trending-up' : 'shield-check'}
-                    size={10}
-                    color="#fff"
-                  />
-                  <Text style={styles.statBadgeText}>
-                    {stat.metaTone === 'positive' ? '+' : ''}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statTitle}>{stat.title}</Text>
-              <Text style={[styles.statBadgeText, { color: 'rgba(255,255,255,0.7)', marginTop: 4 }]}>{stat.meta}</Text>
-            </LinearGradient>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statTitle}>{stat.title}</Text>
+                <Text style={[styles.statBadgeText, { color: 'rgba(255,255,255,0.7)', marginTop: 4 }]}>{stat.meta}</Text>
+              </LinearGradient>
+            </Pressable>
           ))}
         </View>
 

@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
     FlatList,
     Pressable,
@@ -109,6 +110,12 @@ export const CHAT_HISTORY: ChatHistoryItem[] = [
 
 export default function ChatHistoryScreen() {
     const router = useRouter();
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredHistory = CHAT_HISTORY.filter(item => 
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.snippet.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const renderItem = ({ item }: { item: ChatHistoryItem }) => (
         <Pressable
@@ -146,7 +153,14 @@ export default function ChatHistoryScreen() {
                         placeholder="Search your chats..."
                         placeholderTextColor="#94A3B8"
                         style={styles.searchInput}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
                     />
+                    {searchQuery.length > 0 && (
+                        <Pressable onPress={() => setSearchQuery('')}>
+                            <MaterialCommunityIcons name="close-circle" size={20} color="#94A3B8" />
+                        </Pressable>
+                    )}
                 </View>
                 <Pressable
                     style={({ pressed }) => [styles.newChatBtn, pressed && { opacity: 0.8 }]}
@@ -158,11 +172,20 @@ export default function ChatHistoryScreen() {
             </View>
 
             <FlatList
-                data={CHAT_HISTORY}
+                data={filteredHistory}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    searchQuery.length > 0 ? (
+                        <View style={styles.emptyState}>
+                            <MaterialCommunityIcons name="magnify-close" size={48} color="#CBD5E1" />
+                            <Text style={styles.emptyStateTitle}>No results found</Text>
+                            <Text style={styles.emptyStateText}>We couldn't find any chats matching "{searchQuery}"</Text>
+                        </View>
+                    ) : null
+                }
             />
         </SafeAreaView>
     );
@@ -260,5 +283,25 @@ const styles = StyleSheet.create({
     dot: {
         color: '#BCCCDC',
         marginHorizontal: 2,
+    },
+    emptyState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 80,
+        paddingHorizontal: 40,
+    },
+    emptyStateTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#102A43',
+        marginTop: 16,
+    },
+    emptyStateText: {
+        fontSize: 14,
+        color: '#627D98',
+        textAlign: 'center',
+        marginTop: 8,
+        lineHeight: 20,
     },
 });
