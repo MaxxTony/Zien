@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -87,6 +88,8 @@ export default function ContactsScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
+  const [manageMetaVisible, setManageMetaVisible] = useState(false);
+  const [deleteContactId, setDeleteContactId] = useState<string | null>(null);
 
   const [activeDropdown, setActiveDropdown] = useState<'group' | 'status' | 'tag' | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -114,8 +117,6 @@ export default function ContactsScreen() {
 
 
   // Management State
-  const [addGroupModalVisible, setAddGroupModalVisible] = useState(false);
-
   const availableGroups = useMemo(() => {
     return metaData?.groups?.map(g => g.name) || [];
   }, [metaData]);
@@ -199,14 +200,7 @@ export default function ContactsScreen() {
   };
 
   const confirmDelete = (id: string) => {
-    Alert.alert(
-      'Delete contact',
-      'Are you sure you want to permanently delete this lead? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => handleDeleteContact(id) }
-      ]
-    );
+    setDeleteContactId(id);
   };
 
   const handleDeleteContact = async (id: string) => {
@@ -264,7 +258,7 @@ export default function ContactsScreen() {
             <MaterialCommunityIcons name="robot-outline" size={18} color={colors.textPrimary} />
             <Text style={styles.actionBtnText}>AI Import</Text>
           </Pressable>
-          <Pressable style={styles.actionBtn} onPress={() => setAddGroupModalVisible(true)}>
+          <Pressable style={styles.actionBtn} onPress={() => setManageMetaVisible(true)}>
             <MaterialCommunityIcons name="cog-outline" size={18} color={colors.textPrimary} />
             <Text style={styles.actionBtnText}>Groups & Tags</Text>
           </Pressable>
@@ -507,9 +501,43 @@ export default function ContactsScreen() {
       />
 
       <ManageMetaModal
-        visible={addGroupModalVisible}
-        onClose={() => setAddGroupModalVisible(false)}
+        visible={manageMetaVisible}
+        onClose={() => setManageMetaVisible(false)}
       />
+
+      {/* Custom Delete Contact Modal */}
+      <Modal
+        visible={!!deleteContactId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteContactId(null)}
+      >
+        <View style={styles.alertBackdrop}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertTitle}>Delete Contact</Text>
+            <Text style={styles.alertMessage}>Are you sure you want to permanently delete this lead? This action cannot be undone.</Text>
+            <View style={styles.alertBtnRow}>
+              <Pressable
+                style={[styles.alertBtn, styles.alertBtnCancel]}
+                onPress={() => setDeleteContactId(null)}
+              >
+                <Text style={styles.alertBtnTextCancel}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.alertBtn, styles.alertBtnConfirm]}
+                onPress={() => {
+                  if (deleteContactId) {
+                    handleDeleteContact(deleteContactId);
+                  }
+                  setDeleteContactId(null);
+                }}
+              >
+                <Text style={styles.alertBtnTextConfirm}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Dynamic Action Button */}
       <View style={[styles.fabContainer, { bottom: insets.bottom + 16 }]}>
@@ -796,5 +824,62 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 16,
     elevation: 10,
+  },
+  alertBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  alertBox: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  alertTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  alertMessage: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  alertBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  alertBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  alertBtnCancel: {
+    backgroundColor: 'transparent',
+  },
+  alertBtnTextCancel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  alertBtnConfirm: {
+    backgroundColor: '#FEF2F2',
+  },
+  alertBtnTextConfirm: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#EF4444',
   },
 });

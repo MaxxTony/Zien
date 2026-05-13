@@ -1,6 +1,5 @@
 import { PageHeader } from '@/components/ui';
 import { useAppTheme } from '@/context/ThemeContext';
-import { Theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -55,17 +54,6 @@ const NOTIFICATIONS_BY_SECTION: { section: string; items: NotificationItem[] }[]
         actionRoute: '/(main)/crm/campaigns',
         unread: true,
       },
-      {
-        id: '3',
-        icon: 'lightning-bolt-outline',
-        iconColor: '#16A34A',
-        iconBg: '#16A34A18',
-        title: 'New Feature Unlocked',
-        body: 'Visual ROI Estimates with spatial AI is now available in your workspace.',
-        time: '6 hours ago',
-        actionLabel: 'Try now',
-        unread: true,
-      },
     ],
   },
   {
@@ -80,7 +68,7 @@ const NOTIFICATIONS_BY_SECTION: { section: string; items: NotificationItem[] }[]
         body: 'Safety monitoring was active for your showing at 88 Summit Ave.',
         time: 'Yesterday at 4:30 PM',
         actionLabel: 'View Log',
-        actionRoute: '/(main)/guardian-ai',
+        actionRoute: '/(main)/guardian-ai?tab=logs-reports',
       },
       {
         id: '5',
@@ -91,7 +79,7 @@ const NOTIFICATIONS_BY_SECTION: { section: string; items: NotificationItem[] }[]
         body: '3 new leads were captured via your Digital Card NFC tap.',
         time: 'Yesterday at 2:15 PM',
         actionLabel: 'Go to CRM',
-        actionRoute: '/(main)/crm/contacts',
+        actionRoute: '/(main)/crm',
       },
     ],
   },
@@ -145,7 +133,7 @@ const NotificationCard = memo(({
       {/* Content */}
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={[styles.title, unread && styles.titleUnread]} numberOfLines={1}>
+          <Text style={[styles.title, unread && styles.titleUnread]}>
             {title}
           </Text>
           <Text style={styles.time}>{time}</Text>
@@ -168,109 +156,109 @@ const NotificationCard = memo(({
 
 function getCardStyles(colors: any) {
   return StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: colors.cardShadowColor,
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-    position: 'relative',
-    overflow: 'hidden',
-    gap: 12,
-  },
-  cardUnread: {
-    backgroundColor: colors.surfaceSoft,
-    borderColor: colors.accentTeal,
-    borderWidth: 1,
-  },
-  cardPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.99 }],
-  },
-  unreadBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
-  },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    marginLeft: 4,
-  },
-  content: {
-    flex: 1,
-    gap: 4,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  title: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    lineHeight: 19,
-  },
-  titleUnread: {
-    fontWeight: '800',
-  },
-  time: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.inputPlaceholder,
-    flexShrink: 0,
-    marginTop: 1,
-  },
-  body: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 19,
-    fontWeight: '400',
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 6,
-    alignSelf: 'flex-start',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: `${colors.accentTeal}12`,
-  },
-  actionText: {
-    fontSize: 12.5,
-    fontWeight: '800',
-  },
-  dot: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: '#fff',
-  },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 20,
+      padding: 14,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowColor: colors.cardShadowColor,
+      shadowOpacity: 0.06,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 2,
+      position: 'relative',
+      overflow: 'hidden',
+      gap: 12,
+    },
+    cardUnread: {
+      backgroundColor: colors.surfaceSoft,
+      borderColor: colors.accentTeal,
+      borderWidth: 1,
+    },
+    cardPressed: {
+      opacity: 0.85,
+      transform: [{ scale: 0.99 }],
+    },
+    unreadBar: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 3,
+      borderTopLeftRadius: 20,
+      borderBottomLeftRadius: 20,
+    },
+    iconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      marginLeft: 4,
+    },
+    content: {
+      flex: 1,
+      gap: 4,
+    },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    title: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      lineHeight: 19,
+    },
+    titleUnread: {
+      fontWeight: '800',
+    },
+    time: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.inputPlaceholder,
+      flexShrink: 0,
+      marginTop: 1,
+    },
+    body: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 19,
+      fontWeight: '400',
+    },
+    actionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 6,
+      alignSelf: 'flex-start',
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      backgroundColor: `${colors.accentTeal}12`,
+    },
+    actionText: {
+      fontSize: 12.5,
+      fontWeight: '800',
+    },
+    dot: {
+      position: 'absolute',
+      top: 14,
+      right: 14,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      borderWidth: 1.5,
+      borderColor: '#fff',
+    },
   });
 }
 
@@ -334,35 +322,35 @@ export default function NotificationsScreen() {
 // ─────────────────────────────────────────────────────
 function getStyles(colors: any) {
   return StyleSheet.create({
-  background: {
-    flex: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 4,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  sectionLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.divider,
-  },
-  sectionTitle: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    letterSpacing: 1.4,
-    color: colors.inputPlaceholder,
-  },
+    background: {
+      flex: 1,
+    },
+    scroll: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: 18,
+      paddingTop: 4,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 12,
+    },
+    sectionLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.divider,
+    },
+    sectionTitle: {
+      fontSize: 10.5,
+      fontWeight: '800',
+      letterSpacing: 1.4,
+      color: colors.inputPlaceholder,
+    },
   });
 }

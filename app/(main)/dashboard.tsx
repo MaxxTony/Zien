@@ -14,7 +14,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -23,6 +23,7 @@ import {
   StyleSheet,
   Text,
   View,
+  RefreshControl,
 } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 
@@ -330,7 +331,14 @@ export default function DashboardScreen() {
 
   const firstName = profile?.first_name || 'John';
 
-  const { data: dashboardData, isLoading: isDashboardLoading } = useDashboard();
+  const { data: dashboardData, isLoading: isDashboardLoading, refetch } = useDashboard();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   const STATS = useMemo(() => {
     if (!dashboardData) return [];
@@ -408,6 +416,14 @@ export default function DashboardScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={[styles.content, { paddingBottom: 32 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentTeal}
+            colors={[colors.accentTeal]}
+          />
+        }
       >
         {isDashboardLoading && (
           <View style={{ padding: 20, alignItems: 'center' }}>
@@ -437,7 +453,7 @@ export default function DashboardScreen() {
             Hi <Text style={styles.greetingName}>{firstName}</Text> 👋
           </Text>
           <Text style={styles.greetingSubtitle}>
-            Your pipeline is healthy. 3 new leads need follow-up today.
+            Your pipeline is healthy. {dashboardData?.crmSnapshot?.new || 0} new leads need follow-up today.
           </Text>
         </LinearGradient>
 
@@ -567,14 +583,14 @@ export default function DashboardScreen() {
             accent="#F59E0B"
           >
             <View style={{ marginTop: 4 }}>
-              {LATEST_UPDATES.slice(0, 2).map((u) => (
+              {(dashboardData?.latestUpdates?.length ? dashboardData.latestUpdates : LATEST_UPDATES).slice(0, 2).map((u: any, i: number) => (
                 <UpdateRow
-                  key={u.title}
-                  icon={u.icon}
+                  key={u.title || i}
+                  icon={u.icon || 'bell-outline'}
                   title={u.title}
                   description={u.description}
-                  time={u.time}
-                  accentColor={u.accent}
+                  time={u.time || 'Just now'}
+                  accentColor={u.accent || '#0BA0B2'}
                 />
               ))}
             </View>
@@ -583,9 +599,9 @@ export default function DashboardScreen() {
           <DarkSectionCard
             title="CRM Snapshot"
             items={[
-              { value: '14', label: 'New' },
-              { value: '8', label: 'Negotiation' },
-              { value: '3', label: 'Closing' },
+              { value: String(dashboardData?.crmSnapshot?.new || '0'), label: 'New' },
+              { value: String(dashboardData?.crmSnapshot?.negotiation || '0'), label: 'Negotiation' },
+              { value: String(dashboardData?.crmSnapshot?.closing || '0'), label: 'Closing' },
             ]}
             buttonLabel="Go to Pipeline"
             onButtonPress={() => router.push('/(main)/crm/deals' as Href)}

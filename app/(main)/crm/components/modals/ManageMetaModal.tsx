@@ -43,6 +43,9 @@ export const ManageMetaModal: React.FC<ManageMetaModalProps> = ({ visible, onClo
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState(PRESET_COLORS[0]);
 
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number, name: string, type: 'group' | 'tag' } | null>(null);
+
   // Fetch Metadata
   const { data: metaData } = useQuery({
     queryKey: ['crm-meta'],
@@ -195,14 +198,8 @@ export const ManageMetaModal: React.FC<ManageMetaModalProps> = ({ visible, onClo
                       <Pressable
                         hitSlop={8}
                         onPress={() => {
-                          Alert.alert(
-                            'Delete Group',
-                            `Are you sure you want to delete "${group.name}"?`,
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              { text: 'Delete', style: 'destructive', onPress: () => deleteGroupMutation.mutate(group.id) }
-                            ]
-                          );
+                          setDeleteTarget({ id: group.id, name: group.name, type: 'group' });
+                          setDeleteModalVisible(true);
                         }}>
                         {deleteGroupMutation.isPending && deleteGroupMutation.variables === group.id ? (
                           <ActivityIndicator size="small" color="#EF4444" />
@@ -259,14 +256,8 @@ export const ManageMetaModal: React.FC<ManageMetaModalProps> = ({ visible, onClo
                       <Pressable
                         hitSlop={8}
                         onPress={() => {
-                          Alert.alert(
-                            'Delete Tag',
-                            `Are you sure you want to delete tag "${tag.name}"?`,
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              { text: 'Delete', style: 'destructive', onPress: () => deleteTagMutation.mutate(tag.id) }
-                            ]
-                          );
+                          setDeleteTarget({ id: tag.id, name: tag.name, type: 'tag' });
+                          setDeleteModalVisible(true);
                         }}>
                         {deleteTagMutation.isPending && deleteTagMutation.variables === tag.id ? (
                           <ActivityIndicator size="small" color="#EF4444" />
@@ -282,6 +273,42 @@ export const ManageMetaModal: React.FC<ManageMetaModalProps> = ({ visible, onClo
           </ScrollView>
         </View>
       </View>
+
+      {/* Custom Delete Modal to prevent Android Uppercase */}
+      <Modal
+        visible={deleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.alertBackdrop}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertTitle}>Delete {deleteTarget?.type === 'group' ? 'Group' : 'Tag'}</Text>
+            <Text style={styles.alertMessage}>Are you sure you want to delete {deleteTarget?.type === 'group' ? 'group' : 'tag'} "{deleteTarget?.name}"?</Text>
+            <View style={styles.alertBtnRow}>
+              <Pressable
+                style={[styles.alertBtn, styles.alertBtnCancel]}
+                onPress={() => setDeleteModalVisible(false)}
+              >
+                <Text style={styles.alertBtnTextCancel}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.alertBtn, styles.alertBtnConfirm]}
+                onPress={() => {
+                  if (deleteTarget?.type === 'group') {
+                    deleteGroupMutation.mutate(deleteTarget.id);
+                  } else if (deleteTarget?.type === 'tag') {
+                    deleteTagMutation.mutate(deleteTarget.id);
+                  }
+                  setDeleteModalVisible(false);
+                }}
+              >
+                <Text style={styles.alertBtnTextConfirm}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -445,5 +472,62 @@ const getStyles = (colors: any) => StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
+  },
+  alertBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  alertBox: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  alertTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  alertMessage: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  alertBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  alertBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  alertBtnCancel: {
+    backgroundColor: 'transparent',
+  },
+  alertBtnTextCancel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  alertBtnConfirm: {
+    backgroundColor: '#FEF2F2',
+  },
+  alertBtnTextConfirm: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#EF4444',
   },
 });

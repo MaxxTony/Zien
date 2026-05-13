@@ -25,6 +25,12 @@ export interface DashboardOverviewResponse {
   stats: DashboardStats;
   leadVelocity: number[];
   activeLeads: ActiveLead[];
+  crmSnapshot?: {
+    new: number;
+    negotiation: number;
+    closing: number;
+  };
+  latestUpdates?: any[];
 }
 
 export const getDashboardOverview = async (accessToken: string): Promise<DashboardOverviewResponse> => {

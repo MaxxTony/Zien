@@ -340,24 +340,14 @@ function MainHeaderComponent({
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme, toggleTheme, colors } = useAppTheme();
   const styles = getStyles(colors);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const { logout } = useAuth();
 
   const handleSignOut = useCallback(() => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out of Zien?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: logout,
-        },
-      ],
-      { cancelable: true }
-    );
-  }, [logout]);
+    setMenuOpen(false);
+    setShowSignOutModal(true);
+  }, []);
 
   const MENU_ACTIONS: MenuAction[] = useMemo(() => [
     {
@@ -462,6 +452,38 @@ function MainHeaderComponent({
         userEmail={userEmail}
         actions={MENU_ACTIONS}
       />
+
+      {/* Custom Sign Out Modal to prevent Android Uppercase */}
+      <Modal
+        visible={showSignOutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSignOutModal(false)}
+      >
+        <View style={styles.alertBackdrop}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertTitle}>Sign Out</Text>
+            <Text style={styles.alertMessage}>Are you sure you want to sign out of Zien?</Text>
+            <View style={styles.alertBtnRow}>
+              <Pressable
+                style={[styles.alertBtn, styles.alertBtnCancel]}
+                onPress={() => setShowSignOutModal(false)}
+              >
+                <Text style={styles.alertBtnTextCancel}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.alertBtn, styles.alertBtnConfirm]}
+                onPress={() => {
+                  setShowSignOutModal(false);
+                  logout();
+                }}
+              >
+                <Text style={styles.alertBtnTextConfirm}>Sign Out</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -604,6 +626,63 @@ function getStyles(colors: any) {
       color: '#F97316', // Orange from image
       letterSpacing: 0.5,
       marginTop: -1,
+    },
+    alertBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    alertBox: {
+      width: '100%',
+      maxWidth: 340,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      padding: 24,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 10,
+    },
+    alertTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    alertMessage: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 24,
+    },
+    alertBtnRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+    },
+    alertBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+    },
+    alertBtnCancel: {
+      backgroundColor: 'transparent',
+    },
+    alertBtnTextCancel: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    alertBtnConfirm: {
+      backgroundColor: '#FEF2F2',
+    },
+    alertBtnTextConfirm: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: '#EF4444',
     },
   });
 }

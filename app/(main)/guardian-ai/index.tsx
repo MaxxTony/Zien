@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useAppTheme } from '@/context/ThemeContext';
 import {
@@ -168,8 +168,16 @@ export default function GuardianAiOverviewScreen() {
   const styles = getStyles(colors);
 
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: GuardianTabId }>();
   const insets = useSafeAreaInsets();
-  const [currentTab, setCurrentTab] = useState<GuardianTabId>('overview');
+  const [currentTab, setCurrentTab] = useState<GuardianTabId>(params.tab || 'overview');
+
+  useEffect(() => {
+    if (params.tab) {
+      setCurrentTab(params.tab);
+    }
+  }, [params.tab]);
+
   const [activeTab, setActiveTab] = useState<(typeof TOP_TABS)[number]['id']>('guardian');
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [clientIdentityRef, setClientIdentityRef] = useState('');

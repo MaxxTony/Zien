@@ -211,6 +211,7 @@ export default function FollowUpsScreen() {
   const [modalColor, setModalColor] = useState('#8B5CF6');
 
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [androidPickerMode, setAndroidPickerMode] = useState<'date' | 'time'>('date');
   const [isModalGroupDropdownOpen, setModalGroupDropdownOpen] = useState(false);
   const [isModalTagDropdownOpen, setModalTagDropdownOpen] = useState(false);
   const [isModalContactDropdownOpen, setModalContactDropdownOpen] = useState(false);
@@ -722,7 +723,12 @@ export default function FollowUpsScreen() {
                 </Text>
                 <Pressable
                   style={[styles.modalInputWithIcon, errors.date && styles.inputError]}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={() => {
+                    if (Platform.OS === 'android') {
+                      setAndroidPickerMode('date');
+                    }
+                    setShowDatePicker(true);
+                  }}
                 >
                   <Text style={[styles.modalDateText, !modalDate && { color: colors.textMuted }]}>
                     {modalDate
@@ -891,37 +897,60 @@ export default function FollowUpsScreen() {
             </View>
           </ScrollView>
 
-          <Modal
-            visible={showDatePicker}
-            transparent
-            animationType="slide"
-            onRequestClose={() => setShowDatePicker(false)}
-          >
-            <Pressable style={styles.pickerOverlay} onPress={() => setShowDatePicker(false)}>
-              <View style={styles.pickerContainer}>
-                <View style={styles.pickerHeader}>
-                  <Text style={styles.pickerTitle}>Select Date & Time</Text>
-                  <Pressable onPress={() => setShowDatePicker(false)}>
-                    <Text style={styles.pickerDoneBtn}>Done</Text>
-                  </Pressable>
+          {Platform.OS === 'ios' ? (
+            <Modal
+              visible={showDatePicker}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowDatePicker(false)}
+            >
+              <Pressable style={styles.pickerOverlay} onPress={() => setShowDatePicker(false)}>
+                <View style={styles.pickerContainer}>
+                  <View style={styles.pickerHeader}>
+                    <Text style={styles.pickerTitle}>Select Date & Time</Text>
+                    <Pressable onPress={() => setShowDatePicker(false)}>
+                      <Text style={styles.pickerDoneBtn}>Done</Text>
+                    </Pressable>
+                  </View>
+                  <DateTimePicker
+                    value={modalDate || new Date()}
+                    mode="datetime"
+                    display="inline"
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) {
+                        setModalDate(selectedDate);
+                        if (errors.date) setErrors(prev => ({ ...prev, date: '' }));
+                      }
+                    }}
+                    textColor={colors.textPrimary}
+                    style={{ width: '100%', height: 360 }}
+                  />
                 </View>
-                <DateTimePicker
-                  value={modalDate || new Date()}
-                  mode="datetime"
-                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                  onChange={(event, selectedDate) => {
-                    if (Platform.OS === 'android') setShowDatePicker(false);
-                    if (selectedDate) {
-                      setModalDate(selectedDate);
+              </Pressable>
+            </Modal>
+          ) : (
+            showDatePicker && (
+              <DateTimePicker
+                value={modalDate || new Date()}
+                mode={androidPickerMode}
+                display="default"
+                onChange={(event, selectedDate) => {
+                  if (event.type === 'set') {
+                    const currentDate = selectedDate || modalDate || new Date();
+                    setModalDate(currentDate);
+                    if (androidPickerMode === 'date') {
+                      setAndroidPickerMode('time');
+                    } else {
+                      setShowDatePicker(false);
                       if (errors.date) setErrors(prev => ({ ...prev, date: '' }));
                     }
-                  }}
-                  textColor={colors.textPrimary}
-                  style={Platform.OS === 'ios' ? { width: '100%', height: 360 } : undefined}
-                />
-              </View>
-            </Pressable>
-          </Modal>
+                  } else {
+                    setShowDatePicker(false);
+                  }
+                }}
+              />
+            )
+          )}
 
           <View style={[styles.fixedBottomActions, { paddingBottom: Math.max(insets.bottom, 20) }]}>
             <Pressable style={styles.modalCancelBtn} onPress={() => setAddTaskModalVisible(false)}>
@@ -964,7 +993,12 @@ export default function FollowUpsScreen() {
             <View style={[styles.modalBody, { paddingBottom: 20 }]}>
               <View style={styles.modalFieldGroup}>
                 <Text style={styles.modalLabel}>New Due Date</Text>
-                <Pressable style={styles.modalInputWithIcon} onPress={() => setShowReschedulePicker(true)}>
+                <Pressable style={styles.modalInputWithIcon} onPress={() => {
+                  if (Platform.OS === 'android') {
+                    setAndroidPickerMode('date');
+                  }
+                  setShowReschedulePicker(true);
+                }}>
                   <Text style={styles.modalDateText}>
                     {rescheduleDate.toLocaleDateString('en-GB')} {rescheduleDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
@@ -992,33 +1026,55 @@ export default function FollowUpsScreen() {
           </View>
         </Pressable>
 
-        <Modal
-          visible={showReschedulePicker}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowReschedulePicker(false)}
-        >
-          <Pressable style={styles.pickerOverlay} onPress={() => setShowReschedulePicker(false)}>
-            <View style={styles.pickerContainer}>
-              <View style={styles.pickerHeader}>
-                <Text style={styles.pickerTitle}>Select Date & Time</Text>
-                <Pressable onPress={() => setShowReschedulePicker(false)}>
-                  <Text style={styles.pickerDoneBtn}>Done</Text>
-                </Pressable>
+        {Platform.OS === 'ios' ? (
+          <Modal
+            visible={showReschedulePicker}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowReschedulePicker(false)}
+          >
+            <Pressable style={styles.pickerOverlay} onPress={() => setShowReschedulePicker(false)}>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>Select Date & Time</Text>
+                  <Pressable onPress={() => setShowReschedulePicker(false)}>
+                    <Text style={styles.pickerDoneBtn}>Done</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={rescheduleDate}
+                  mode="datetime"
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) setRescheduleDate(selectedDate);
+                  }}
+                  textColor={colors.textPrimary}
+                />
               </View>
-              <DateTimePicker
-                value={rescheduleDate}
-                mode="datetime"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, selectedDate) => {
-                  if (Platform.OS === 'android') setShowReschedulePicker(false);
-                  if (selectedDate) setRescheduleDate(selectedDate);
-                }}
-                textColor={colors.textPrimary}
-              />
-            </View>
-          </Pressable>
-        </Modal>
+            </Pressable>
+          </Modal>
+        ) : (
+          showReschedulePicker && (
+            <DateTimePicker
+              value={rescheduleDate}
+              mode={androidPickerMode}
+              display="default"
+              onChange={(event, selectedDate) => {
+                if (event.type === 'set') {
+                  const currentDate = selectedDate || rescheduleDate;
+                  setRescheduleDate(currentDate);
+                  if (androidPickerMode === 'date') {
+                    setAndroidPickerMode('time');
+                  } else {
+                    setShowReschedulePicker(false);
+                  }
+                } else {
+                  setShowReschedulePicker(false);
+                }
+              }}
+            />
+          )
+        )}
       </Modal>
 
       {/* Delete Confirmation Modal */}

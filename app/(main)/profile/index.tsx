@@ -253,7 +253,7 @@ export default function ProfileScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      // allowsEditing: true,
       quality: 0.85,
     });
     return result.canceled ? null : result.assets[0]?.uri ?? null;
@@ -267,7 +267,7 @@ export default function ProfileScreen() {
         text: 'Camera', onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== 'granted') { Alert.alert('Permission needed', 'Allow camera access.'); return; }
-          const res = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 });
+          const res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
           if (!res.canceled && res.assets[0]) setAvatarUri(res.assets[0].uri);
         }
       },

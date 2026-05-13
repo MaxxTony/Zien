@@ -2,11 +2,16 @@ import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+    ExpoSpeechRecognitionModule,
+    useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
     FlatList,
+    Keyboard,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -18,10 +23,6 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CHAT_HISTORY } from './chat/index';
-import {
-    ExpoSpeechRecognitionModule,
-    useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
 
 const { height } = Dimensions.get('window');
 
@@ -186,7 +187,7 @@ export default function ChatModalScreen() {
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }, [inputText, isAiTyping]);
 
-    const params = useLocalSearchParams<{ initialMessage?: string }>();
+    const params = useLocalSearchParams<{ initialMessage?: string; startVoice?: string }>();
     const initialMessageProcessed = useRef(false);
 
     // ── Handle initial message from params ────────────────
@@ -197,8 +198,13 @@ export default function ChatModalScreen() {
             setTimeout(() => {
                 handleSubmit(params.initialMessage);
             }, 300);
+        } else if (params.startVoice === 'true' && !initialMessageProcessed.current) {
+            initialMessageProcessed.current = true;
+            setTimeout(() => {
+                startVoice();
+            }, 300);
         }
-    }, [params.initialMessage, handleSubmit]);
+    }, [params.initialMessage, params.startVoice, handleSubmit, startVoice]);
 
     const handleClear = useCallback(() => {
         setMessages([]);
@@ -318,14 +324,14 @@ export default function ChatModalScreen() {
             {/* ── Body ── */}
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : "padding"}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
             >
                 <View style={styles.body}>
 
                     {/* Empty state */}
                     {!hasMessages ? (
-                        <View style={styles.emptyState}>
+                        <Pressable style={[styles.emptyState, { flex: 1 }]} onPress={() => Keyboard.dismiss()}>
 
 
                             {/* Suggestion chips */}
@@ -341,7 +347,7 @@ export default function ChatModalScreen() {
                                     </Pressable>
                                 ))}
                             </View>
-                        </View>
+                        </Pressable>
                     ) : (
                         <FlatList
                             ref={flatListRef}
@@ -350,6 +356,8 @@ export default function ChatModalScreen() {
                             renderItem={renderMessage}
                             contentContainerStyle={styles.chatList}
                             showsVerticalScrollIndicator={false}
+                            keyboardDismissMode="on-drag"
+                            keyboardShouldPersistTaps="handled"
                         />
                     )}
 
@@ -363,7 +371,7 @@ export default function ChatModalScreen() {
                                 <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
                             </Pressable>
 
-                            <View style={[styles.recordingBubble, isListening && styles.recordingBubbleActive]}>
+                            <View style={[styles.recordingBubble, isListening && { borderColor: '#FF4B4B60' }]}>
                                 <View style={styles.recordingStatus}>
                                     <Animated.View style={[styles.recordingDot, { transform: [{ scale: pulseAnim }] }]} />
                                     <Text style={styles.recordingLabel}>
@@ -371,7 +379,7 @@ export default function ChatModalScreen() {
                                     </Text>
                                 </View>
                                 <Text
-                                    style={[styles.recordingTranscript, !voiceText && { opacity: 0.5 }]}
+                                    style={[styles.recordingTranscript, { color: voiceText ? colors.textPrimary : colors.textSecondary + '80' }]}
                                     numberOfLines={2}
                                 >
                                     {voiceText || 'Start speaking...'}
@@ -443,88 +451,93 @@ export default function ChatModalScreen() {
             </KeyboardAvoidingView>
             {/* ── History Drawer Modal ── */}
             <Modal visible={showHistoryModal} transparent animationType="fade">
-                <View style={[styles.historyOverlay, { paddingTop: inset.top }]} >
-                    <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowHistoryModal(false)} />
-                    <Animated.View style={styles.historyPanel}>
-                        <SafeAreaView edges={['top', 'bottom']} style={styles.historySafeArea}>
-                            <View style={styles.historyHeader}>
-                                <Text style={styles.historyHeaderTitle}>Chat History</Text>
-                                <Pressable
-                                    onPress={() => setShowHistoryModal(false)}
-                                    style={({ pressed }) => [styles.closeHistoryBtn, pressed && { opacity: 0.7 }]}
-                                >
-                                    <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
-                                </Pressable>
-                            </View>
-
-                            <View style={styles.historySearchRow}>
-                                <View style={styles.historySearchBar}>
-                                    <MaterialCommunityIcons name="magnify" size={16} color="#94A3B8" />
-                                    <TextInput
-                                        placeholder="Search your chats..."
-                                        placeholderTextColor="#94A3B8"
-                                        style={styles.historySearchInput}
-                                        value={historySearch}
-                                        onChangeText={setHistorySearch}
-                                    />
-                                    {historySearch.length > 0 && (
-                                        <Pressable onPress={() => setHistorySearch('')}>
-                                            <MaterialCommunityIcons name="close-circle" size={16} color="#94A3B8" />
-                                        </Pressable>
-                                    )}
-                                </View>
-                                <Pressable
-                                    style={({ pressed }) => [styles.historyNewBtn, pressed && { opacity: 0.8 }]}
-                                    onPress={() => {
-                                        setShowHistoryModal(false);
-                                        setMessages([]);
-                                    }}
-                                >
-                                    <MaterialCommunityIcons name="plus" size={14} color="#FFF" />
-                                    <Text style={styles.historyNewBtnText}>New</Text>
-                                </Pressable>
-                            </View>
-
-                            <FlatList
-                                data={CHAT_HISTORY.filter(item =>
-                                    item.title.toLowerCase().includes(historySearch.toLowerCase())
-                                ).slice(0, 10)}
-                                ListEmptyComponent={
-                                    historySearch.length > 0 ? (
-                                        <View style={styles.historyEmptyState}>
-                                            <MaterialCommunityIcons name="chat-remove-outline" size={40} color={colors.textMuted || "#94A3B8"} />
-                                            <Text style={styles.historyEmptyText}>No matching chats found for "{historySearch}"</Text>
-                                        </View>
-                                    ) : null
-                                }
-                                keyExtractor={(item) => item.id}
-                                contentContainerStyle={styles.historyList}
-                                showsVerticalScrollIndicator={false}
-                                renderItem={({ item }) => (
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+                >
+                    <View style={[styles.historyOverlay, { paddingTop: inset.top }]} >
+                        <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowHistoryModal(false)} />
+                        <Animated.View style={styles.historyPanel}>
+                            <SafeAreaView edges={['top', 'bottom']} style={styles.historySafeArea}>
+                                <View style={styles.historyHeader}>
+                                    <Text style={styles.historyHeaderTitle}>Chat History</Text>
                                     <Pressable
-                                        style={({ pressed }) => [styles.historyCard, pressed && styles.historyCardPressed]}
+                                        onPress={() => setShowHistoryModal(false)}
+                                        style={({ pressed }) => [styles.closeHistoryBtn, pressed && { opacity: 0.7 }]}
+                                    >
+                                        <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                                    </Pressable>
+                                </View>
+
+                                <View style={styles.historySearchRow}>
+                                    <View style={styles.historySearchBar}>
+                                        <MaterialCommunityIcons name="magnify" size={16} color="#94A3B8" />
+                                        <TextInput
+                                            placeholder="Search your chats..."
+                                            placeholderTextColor="#94A3B8"
+                                            style={styles.historySearchInput}
+                                            value={historySearch}
+                                            onChangeText={setHistorySearch}
+                                        />
+                                        {historySearch.length > 0 && (
+                                            <Pressable onPress={() => setHistorySearch('')}>
+                                                <MaterialCommunityIcons name="close-circle" size={16} color="#94A3B8" />
+                                            </Pressable>
+                                        )}
+                                    </View>
+                                    <Pressable
+                                        style={({ pressed }) => [styles.historyNewBtn, pressed && { opacity: 0.8 }]}
                                         onPress={() => {
                                             setShowHistoryModal(false);
                                             setMessages([]);
-                                            setTimeout(() => handleSubmit(item.title), 300);
                                         }}
                                     >
-                                        <View style={styles.historyIconBox}>
-                                            <MaterialCommunityIcons name={item.icon} size={16} color="#5B6B7A" />
-                                        </View>
-                                        <View style={styles.historyCardContent}>
-                                            <Text style={styles.historyCardTitle} numberOfLines={1}>{item.title}</Text>
-                                            <Text style={styles.historyCardSubtitle}>{item.time}</Text>
-                                        </View>
-                                        <MaterialCommunityIcons name="chevron-right" size={16} color="#E2E8F0" />
+                                        <MaterialCommunityIcons name="plus" size={14} color="#FFF" />
+                                        <Text style={styles.historyNewBtnText}>New</Text>
                                     </Pressable>
-                                )}
-                            />
+                                </View>
+
+                                <FlatList
+                                    data={CHAT_HISTORY.filter(item =>
+                                        item.title.toLowerCase().includes(historySearch.toLowerCase())
+                                    ).slice(0, 10)}
+                                    ListEmptyComponent={
+                                        historySearch.length > 0 ? (
+                                            <View style={styles.historyEmptyState}>
+                                                <MaterialCommunityIcons name="chat-remove-outline" size={40} color={colors.textMuted || "#94A3B8"} />
+                                                <Text style={styles.historyEmptyText}>No matching chats found for "{historySearch}"</Text>
+                                            </View>
+                                        ) : null
+                                    }
+                                    keyExtractor={(item) => item.id}
+                                    contentContainerStyle={styles.historyList}
+                                    showsVerticalScrollIndicator={false}
+                                    renderItem={({ item }) => (
+                                        <Pressable
+                                            style={({ pressed }) => [styles.historyCard, pressed && styles.historyCardPressed]}
+                                            onPress={() => {
+                                                setShowHistoryModal(false);
+                                                setMessages([]);
+                                                setTimeout(() => handleSubmit(item.title), 300);
+                                            }}
+                                        >
+                                            <View style={styles.historyIconBox}>
+                                                <MaterialCommunityIcons name={item.icon} size={16} color="#5B6B7A" />
+                                            </View>
+                                            <View style={styles.historyCardContent}>
+                                                <Text style={styles.historyCardTitle} numberOfLines={1}>{item.title}</Text>
+                                                <Text style={styles.historyCardSubtitle}>{item.time}</Text>
+                                            </View>
+                                            <MaterialCommunityIcons name="chevron-right" size={16} color="#E2E8F0" />
+                                        </Pressable>
+                                    )}
+                                />
 
 
-                        </SafeAreaView>
-                    </Animated.View>
-                </View>
+                            </SafeAreaView>
+                        </Animated.View>
+                    </View>
+                </KeyboardAvoidingView>
             </Modal>
         </SafeAreaView>
     );
@@ -881,8 +894,6 @@ function getStyles(colors: any) {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 12,
-            marginTop: 10,
-            paddingHorizontal: 4,
         },
         recordingActionBtn: {
             width: 40,
@@ -891,25 +902,16 @@ function getStyles(colors: any) {
             justifyContent: 'center',
             alignItems: 'center',
             backgroundColor: colors.surfaceSoft,
-            borderWidth: 1,
-            borderColor: colors.cardBorder,
         },
         recordingBubble: {
             flex: 1,
-            height: 56,
-            borderRadius: 18,
-            borderWidth: 1.5,
+            height: 50,
+            borderRadius: 25,
+            borderWidth: 1,
             borderColor: colors.cardBorder,
             backgroundColor: colors.cardBackground,
             paddingHorizontal: 16,
             justifyContent: 'center',
-        },
-        recordingBubbleActive: {
-            borderColor: 'rgba(239, 68, 68, 0.4)',
-            shadowColor: '#EF4444',
-            shadowOpacity: 0.15,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
         },
         recordingStatus: {
             flexDirection: 'row',
@@ -921,14 +923,13 @@ function getStyles(colors: any) {
             width: 6,
             height: 6,
             borderRadius: 3,
-            backgroundColor: '#EF4444',
+            backgroundColor: '#FF4B4B',
         },
         recordingLabel: {
             fontSize: 10,
             fontWeight: '800',
-            color: '#EF4444',
+            color: '#FF4B4B',
             textTransform: 'uppercase',
-            letterSpacing: 0.5,
         },
         recordingTranscript: {
             fontSize: 13,

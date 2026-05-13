@@ -37,7 +37,10 @@ function SearchBarComponent({
       </Text>
 
       {/* Right: Mic */}
-      <View style={styles.micWrap}>
+      <Pressable 
+        style={styles.micWrap}
+        onPress={() => router.push({ pathname: '/(main)/chat-modal', params: { startVoice: 'true' } })}
+      >
         <LinearGradient
           colors={['#0BA0B2', '#1B5E9A']}
           start={{ x: 0, y: 0 }}
@@ -46,7 +49,7 @@ function SearchBarComponent({
         >
           <MaterialCommunityIcons name="microphone" size={16} color="#fff" />
         </LinearGradient>
-      </View>
+      </Pressable>
     </Pressable>
   );
 }

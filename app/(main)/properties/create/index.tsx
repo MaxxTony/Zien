@@ -1,7 +1,7 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { analyzeProperty as analyzePropertyService, uploadPropertyImage, finalizeProperty } from '@/services/propertyService';
+import { analyzeProperty as analyzePropertyService, finalizeProperty, uploadPropertyImage } from '@/services/propertyService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
@@ -34,51 +34,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const GOOGLE_API_KEY = 'AIzaSyAZM9Ef3yGGfgAX12z0Hv5CZkft2lRyFSQ';
 
-function StepIndicator({ activeStep, steps }: { activeStep: number; steps: { label: string }[] }) {
-  const { colors, theme } = useAppTheme();
-  const styles = getStyles(colors);
-  const isDark = theme === 'dark';
 
-  return (
-    <View style={styles.indicatorWrapper}>
-      <View style={styles.indicatorRow}>
-        {steps.map((step, idx) => {
-          const isActive = activeStep === idx;
-          const isPast = activeStep > idx;
-
-          // Contrast fix: In dark mode, textPrimary is off-white. 
-          // If circle is textPrimary, text needs to be dark (cardBackground).
-          const activeNumColor = isDark ? colors.cardBackground : '#FFF';
-
-          return (
-            <React.Fragment key={idx}>
-              <View style={styles.indicatorStepItem}>
-                <View style={[
-                  styles.indicatorCircle,
-                  isActive && styles.indicatorCircleActive,
-                  isPast && styles.indicatorCirclePast
-                ]}>
-                  {isPast ? (
-                    <MaterialCommunityIcons name="check" size={14} color="#FFF" />
-                  ) : (
-                    <Text style={[
-                      styles.indicatorNumber,
-                      isActive && { color: activeNumColor }
-                    ]}>{idx + 1}</Text>
-                  )}
-                </View>
-                <Text style={[styles.indicatorLabel, isActive && styles.indicatorLabelActive]}>{step.label}</Text>
-              </View>
-              {idx < steps.length - 1 && (
-                <View style={[styles.indicatorLine, isPast && styles.indicatorLineActive]} />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
 
 function StepAddress({
   input,
@@ -123,6 +79,7 @@ function StepAddress({
       );
 
       const data = await response.json();
+      console.log(data)
       if (data.suggestions) {
         const formatted = data.suggestions.map((item: any) => ({
           place_id: item.placePrediction.placeId,
@@ -557,17 +514,17 @@ function StepDetails({
   );
 }
 
-function StepMedia({ 
-  mlsPhotos, 
+function StepMedia({
+  mlsPhotos,
   setMlsPhotos,
-  userPhotos, 
-  setUserPhotos, 
-  onPickerOpen, 
+  userPhotos,
+  setUserPhotos,
+  onPickerOpen,
   isUploading,
-}: { 
-  mlsPhotos: string[], 
+}: {
+  mlsPhotos: string[],
   setMlsPhotos: React.Dispatch<React.SetStateAction<string[]>>,
-  userPhotos: string[], 
+  userPhotos: string[],
   setUserPhotos: React.Dispatch<React.SetStateAction<string[]>>,
   onPickerOpen: () => void,
   isUploading: boolean,
@@ -580,9 +537,9 @@ function StepMedia({
 
   const toggleEnhance = (url: string) => {
     if (enhancingMap[url]) return;
-    
+
     setEnhancingMap(prev => ({ ...prev, [url]: true }));
-    
+
     // Simulate AI Enhancement delay
     setTimeout(() => {
       setEnhancedImages(prev => {
@@ -670,19 +627,19 @@ function StepMedia({
             {userPhotos.map((url, idx) => {
               const isEnhanced = enhancedImages.has(url);
               const isProcessing = enhancingMap[url];
-              
+
               return (
                 <View key={idx} style={styles.premiumPhotoCard}>
                   <View style={styles.photoContainerLarge}>
                     <Image source={{ uri: url }} style={styles.photoCard} contentFit="cover" />
-                    
+
                     {isProcessing && (
                       <View style={styles.enhancementOverlay}>
                         <ActivityIndicator color="#FFF" size="small" />
                         <Text style={styles.enhancementOverlayText}>Optimizing...</Text>
                       </View>
                     )}
-                    
+
                     <TouchableOpacity style={styles.deletePhotoBtn} onPress={() => removeUserPhoto(url)}>
                       <MaterialCommunityIcons name="close" size={16} color="#FFF" />
                     </TouchableOpacity>
@@ -692,15 +649,15 @@ function StepMedia({
                       <Text style={styles.photoFooterLabel}>AI OPTIMIZED</Text>
                       <Text style={styles.photoFooterTitle}>Scene {idx + 1}</Text>
                     </View>
-                    
+
                     {isEnhanced ? (
                       <View style={styles.enhancedBadge}>
                         <MaterialCommunityIcons name="check-circle" size={14} color={colors.accentTeal} />
                         <Text style={styles.enhancedBadgeText}>Enhanced</Text>
                       </View>
                     ) : (
-                      <TouchableOpacity 
-                        style={[styles.magicBtn, isProcessing && { opacity: 0.5 }]} 
+                      <TouchableOpacity
+                        style={[styles.magicBtn, isProcessing && { opacity: 0.5 }]}
                         onPress={() => toggleEnhance(url)}
                         disabled={isProcessing}
                       >
@@ -712,10 +669,10 @@ function StepMedia({
                 </View>
               );
             })}
-            
+
             {(userPhotos.length === 0 && !isUploading) && (
-              <TouchableOpacity 
-                style={[styles.premiumPhotoCard, styles.uploadPlaceholderCard, { height: 260 }]} 
+              <TouchableOpacity
+                style={[styles.premiumPhotoCard, styles.uploadPlaceholderCard, { height: 260 }]}
                 onPress={onPickerOpen}
               >
                 <MaterialCommunityIcons name="cloud-upload-outline" size={32} color={colors.textMuted} />
@@ -855,18 +812,18 @@ function StepSuccess({ propertyId, address }: { propertyId: string, address: str
   return (
     <View style={{ alignItems: 'center', paddingTop: 20 }}>
       {/* Icon Circle */}
-      <View style={{ 
-        width: 64, 
-        height: 64, 
-        borderRadius: 32, 
-        backgroundColor: colors.surfaceIcon, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginBottom: 20 
+      <View style={{
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: colors.surfaceIcon,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20
       }}>
         <MaterialCommunityIcons name="check-bold" size={32} color={colors.accentTeal} />
       </View>
-      
+
       <Text style={{ fontSize: 28, fontWeight: '900', color: colors.textPrimary, marginBottom: 8 }}>Property Added!</Text>
       <Text style={{ fontSize: 15, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 40, lineHeight: 22 }}>
         Your property at <Text style={{ fontWeight: '800', color: colors.textPrimary }}>{address}</Text> has been successfully optimized.
@@ -880,27 +837,27 @@ function StepSuccess({ propertyId, address }: { propertyId: string, address: str
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {cards.map(card => (
-            <TouchableOpacity 
-              key={card.id} 
-              style={{ 
-                width: (SCREEN_WIDTH - 44) / 2, 
-                backgroundColor: colors.cardBackground, 
-                borderRadius: 20, 
-                padding: 16, 
-                borderWidth: 1, 
+            <TouchableOpacity
+              key={card.id}
+              style={{
+                width: (SCREEN_WIDTH - 44) / 2,
+                backgroundColor: colors.cardBackground,
+                borderRadius: 20,
+                padding: 16,
+                borderWidth: 1,
                 borderColor: colors.cardBorder,
                 minHeight: 140
               }}
               onPress={() => card.id === 'inventory' ? router.replace('/(main)/properties') : null}
             >
-              <View style={{ 
-                width: 36, 
-                height: 36, 
-                borderRadius: 10, 
-                backgroundColor: colors.surfaceSoft, 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                marginBottom: 12 
+              <View style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: colors.surfaceSoft,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 12
               }}>
                 <MaterialCommunityIcons name={card.icon as any} size={20} color={colors.textPrimary} />
               </View>
@@ -2069,11 +2026,12 @@ function getStyles(colors: any) {
       flexDirection: 'row',
       alignItems: 'center',
       paddingLeft: 12,
+      paddingRight: 12,
     },
     premiumSearchInput: {
       flex: 1,
       height: 48,
-      fontSize: 14,
+      fontSize: 12,
       color: colors.textPrimary,
       fontWeight: '500',
     },

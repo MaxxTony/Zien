@@ -1,9 +1,9 @@
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAppTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -61,14 +61,14 @@ export default function VisualAssetLabScreen() {
                     return;
                 }
                 result = await ImagePicker.launchCameraAsync({
-                    allowsEditing: true,
+                    // allowsEditing: true,
                     aspect: [4, 3],
                     quality: 1,
                 });
             } else {
                 result = await ImagePicker.launchImageLibraryAsync({
                     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                    allowsEditing: true,
+                    // allowsEditing: true,
                     aspect: [4, 3],
                     quality: 1,
                 });

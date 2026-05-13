@@ -1,23 +1,23 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { getSocialPosts, SocialPost, updateSocialPost } from '@/services/socialService';
 import { uploadPropertyImage } from '@/services/propertyService';
+import { getSocialPosts, SocialPost, updateSocialPost } from '@/services/socialService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  Image as RNImage,
   Modal,
   Platform,
   Pressable,
+  Image as RNImage,
   ScrollView,
   Text,
   TextInput,
@@ -112,8 +112,8 @@ function EditPostModal({
       return;
     }
     const result = useCamera
-      ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 })
-      : await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+      ? await ImagePicker.launchCameraAsync({ aspect: [1, 1], quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ aspect: [1, 1], quality: 0.8 });
     if (!result.canceled && result.assets[0]?.uri) {
       setLocalMediaUri(result.assets[0].uri);
       setMediaUrl(null);

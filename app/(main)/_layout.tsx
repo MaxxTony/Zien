@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
 
 /**
  * Layout for the (main) route group. Required so the root layout's
@@ -8,7 +9,7 @@ import { Stack } from 'expo-router';
 export default function MainLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="chat-modal" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="chat-modal" options={{ presentation: Platform.OS === 'ios' ? 'modal' : 'fullScreenModal' }} />
     </Stack>
   );
 }

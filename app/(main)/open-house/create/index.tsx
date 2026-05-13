@@ -773,7 +773,7 @@ function Step4Customization({
               return;
             }
             const result = await ImagePicker.launchCameraAsync({
-              allowsEditing: true,
+              // allowsEditing: true,
               aspect: [1, 1],
               quality: 0.8,
             });
@@ -786,7 +786,7 @@ function Step4Customization({
           text: "Gallery",
           onPress: async () => {
             const result = await ImagePicker.launchImageLibraryAsync({
-              allowsEditing: true,
+              // allowsEditing: true,
               aspect: [1, 1],
               quality: 0.8,
             });
@@ -817,7 +817,7 @@ function Step4Customization({
               return;
             }
             const result = await ImagePicker.launchCameraAsync({
-              allowsEditing: true,
+              // allowsEditing: true,
               aspect: [4, 3],
               quality: 0.8,
             });

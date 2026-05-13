@@ -107,7 +107,7 @@ export default function DealsScreen() {
   const [stageSearch, setStageSearch] = useState('');
 
   const filteredContacts = useMemo(() => {
-    return (contacts || []).filter(c => 
+    return (contacts || []).filter(c =>
       `${c.first_name} ${c.last_name || ''}`.toLowerCase().includes(contactSearch.toLowerCase())
     );
   }, [contacts, contactSearch]);
@@ -406,6 +406,7 @@ export default function DealsScreen() {
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.mainScroll, { paddingBottom: insets.bottom + 20 }]}
+          keyboardDismissMode='interactive'
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -485,7 +486,7 @@ export default function DealsScreen() {
 
             <ScrollView
               style={styles.modalScroll}
-              contentContainerStyle={[styles.modalContent, { paddingBottom: insets.bottom + 100 }]}
+              contentContainerStyle={[styles.modalContent, { paddingBottom: insets.bottom + 200 }]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
@@ -702,7 +703,7 @@ export default function DealsScreen() {
                           <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
                         </Pressable>
                       </View>
-                      
+
                       <View style={styles.pickerSearchBoxSmall}>
                         <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
                         <TextInput
@@ -779,7 +780,7 @@ export default function DealsScreen() {
                           <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
                         </Pressable>
                       </View>
-                      
+
                       <View style={styles.pickerSearchBoxSmall}>
                         <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
                         <TextInput
@@ -864,7 +865,7 @@ export default function DealsScreen() {
                           <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
                         </Pressable>
                       </View>
-                      
+
                       <View style={styles.pickerSearchBoxSmall}>
                         <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
                         <TextInput
@@ -935,7 +936,7 @@ export default function DealsScreen() {
                           <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
                         </Pressable>
                       </View>
-                      
+
                       <View style={styles.pickerSearchBoxSmall}>
                         <MaterialCommunityIcons name="magnify" size={18} color={colors.textMuted} />
                         <TextInput
@@ -1146,9 +1147,9 @@ function getStyles(colors: any, insets: any) {
       paddingRight: 20,
     },
     pillBtn: {
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
       backgroundColor: colors.cardBackground,
       borderWidth: 1,
       borderColor: colors.cardBorder,
@@ -1163,7 +1164,7 @@ function getStyles(colors: any, insets: any) {
       elevation: 4,
     },
     pillBtnText: {
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.textSecondary,
     },
@@ -1375,7 +1376,7 @@ function getStyles(colors: any, insets: any) {
     },
     modalContent: {
       padding: 24,
-      paddingBottom: insets.bottom + 100,
+      paddingBottom: insets.bottom + 200,
     },
     inputGroup: {
       marginBottom: 24,

@@ -305,7 +305,6 @@ export default function TeamOnboardingScreen() {
 
       const options: ImagePicker.ImagePickerOptions = {
         mediaTypes: ['images'],
-        allowsEditing: true,
         quality: 0.8,
       };
 

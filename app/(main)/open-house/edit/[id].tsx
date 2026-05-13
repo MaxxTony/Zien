@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
 import { getOpenHouseById, updateOpenHouse } from '@/services/openHouseService';
-import { uploadPropertyImage, RawPropertyItem } from '@/services/propertyService';
+import { RawPropertyItem, uploadPropertyImage } from '@/services/propertyService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -512,14 +512,14 @@ function Step4Customization({
         onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== 'granted') { Alert.alert('Permission needed', 'We need camera access to take a photo.'); return; }
-          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const result = await ImagePicker.launchCameraAsync({ aspect: [1, 1], quality: 0.8 });
           if (!result.canceled) setAgencyLogoUri(result.assets[0].uri);
         },
       },
       {
         text: 'Gallery',
         onPress: async () => {
-          const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const result = await ImagePicker.launchImageLibraryAsync({ aspect: [1, 1], quality: 0.8 });
           if (!result.canceled) setAgencyLogoUri(result.assets[0].uri);
         },
       },
@@ -534,7 +534,7 @@ function Step4Customization({
         onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== 'granted') { Alert.alert('Permission needed', 'We need camera access to take a photo.'); return; }
-          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+          const result = await ImagePicker.launchCameraAsync({ aspect: [4, 3], quality: 0.8 });
           if (!result.canceled) setGalleryImages((prev) => [...prev, result.assets[0].uri]);
         },
       },
@@ -584,7 +584,7 @@ function Step4Customization({
 
               {logoMode === 'text' ? (
                 <View style={styles.inputWrap}>
-                  <TextInput style={styles.input} value={agentName} onChangeText={() => {}} placeholder="Agency Name" placeholderTextColor="#9CA3AF" editable={false} />
+                  <TextInput style={styles.input} value={agentName} onChangeText={() => { }} placeholder="Agency Name" placeholderTextColor="#9CA3AF" editable={false} />
                 </View>
               ) : (
                 <View style={[styles.logoUploadContainer, { alignItems: 'center' }]}>

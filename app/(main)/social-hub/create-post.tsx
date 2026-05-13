@@ -1,10 +1,9 @@
-import { createSocialPost, updateSocialPost } from '@/services/socialService';
-import { uploadPropertyImage } from '@/services/propertyService';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { getProperties, getPropertyDetails } from '@/services/propertyService';
+import { getProperties, getPropertyDetails, uploadPropertyImage } from '@/services/propertyService';
+import { createSocialPost, updateSocialPost } from '@/services/socialService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -395,13 +394,11 @@ export default function CreatePostScreen() {
     let result;
     if (useCamera) {
       result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
     } else {
       result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
@@ -444,7 +441,7 @@ export default function CreatePostScreen() {
       setIsSubmitting(true);
       try {
         let finalMediaUrl = lastSelectedMediaUri;
-        
+
         // 1. Upload media if it's a local file
         if (lastSelectedMediaUri && (lastSelectedMediaUri.startsWith('file://') || lastSelectedMediaUri.startsWith('content://') || lastSelectedMediaUri.startsWith('/'))) {
           const uploadRes = await uploadPropertyImage(lastSelectedMediaUri, accessToken || '');

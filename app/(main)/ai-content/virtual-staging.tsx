@@ -1,8 +1,9 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppTheme } from '@/context/ThemeContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -19,7 +20,6 @@ import {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -126,16 +126,16 @@ export default function VirtualStagingScreen() {
     const [category, setCategory] = useState(CATEGORIES[0]);
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const [description, setDescription] = useState('');
-    const [level, setLevel] = useState<'Low'|'Medium'|'High'>('Medium');
+    const [level, setLevel] = useState<'Low' | 'Medium' | 'High'>('Medium');
     const [selectedStyleId, setSelectedStyleId] = useState(1);
-    
+
     const scrollRef = useRef<ScrollView>(null);
     const [activeIndex, setActiveIndex] = useState(0);
 
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
-            allowsEditing: true,
+            // allowsEditing: true,
             aspect: [4, 3],
             quality: 1,
         });
@@ -152,7 +152,7 @@ export default function VirtualStagingScreen() {
             <LinearGradient colors={colors.backgroundGradient as any} style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color="#0BA0B2" />
                 <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Architecting Your Vision</Text>
-                <Text style={[styles.sectionSubtitle, { textAlign: 'center' }]}>Generating {STYLES.find(s=>s.id===selectedStyleId)?.name} environment for {category}...</Text>
+                <Text style={[styles.sectionSubtitle, { textAlign: 'center' }]}>Generating {STYLES.find(s => s.id === selectedStyleId)?.name} environment for {category}...</Text>
             </LinearGradient>
         );
     }
@@ -167,15 +167,15 @@ export default function VirtualStagingScreen() {
                 <ScrollView contentContainerStyle={{ padding: 20 }}>
                     <Text style={styles.sectionTitle}>AI Generation Studio</Text>
                     <Text style={[styles.sectionSubtitle, { marginBottom: 20 }]}>Refining customstyle with precision rendering.</Text>
-                    
+
                     <View style={styles.studioCard}>
-                        <BeforeAfterSlider 
-                            beforeUri={selectedImage || 'https://images.unsplash.com/photo-1600585152220-90363fe44548?w=800'} 
-                            afterUri={'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800'} 
-                            height={300} 
+                        <BeforeAfterSlider
+                            beforeUri={selectedImage || 'https://images.unsplash.com/photo-1600585152220-90363fe44548?w=800'}
+                            afterUri={'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800'}
+                            height={300}
                         />
                     </View>
-                    
+
                     <Pressable style={styles.tryThisBtn} onPress={() => setViewMode('dashboard')}>
                         <Text style={styles.tryThisBtnText}>Done / Dashboard</Text>
                     </Pressable>
@@ -216,9 +216,9 @@ export default function VirtualStagingScreen() {
                         </Pressable>
 
                         <Text style={styles.configLabel}>ADD DESCRIPTION</Text>
-                        <TextInput 
-                            style={styles.textArea} 
-                            placeholder="e.g. Add a large gray velvet sofa, a coffee table..." 
+                        <TextInput
+                            style={styles.textArea}
+                            placeholder="e.g. Add a large gray velvet sofa, a coffee table..."
                             placeholderTextColor="#94A3B8"
                             multiline
                             numberOfLines={3}
@@ -229,9 +229,9 @@ export default function VirtualStagingScreen() {
                         <Text style={styles.configLabel}>SELECT LEVEL</Text>
                         <View style={styles.pillRow}>
                             {['Low', 'Medium', 'High'].map((l) => (
-                                <Pressable 
-                                    key={l} 
-                                    style={[styles.pill, level === l && styles.pillActive]} 
+                                <Pressable
+                                    key={l}
+                                    style={[styles.pill, level === l && styles.pillActive]}
                                     onPress={() => setLevel(l as any)}
                                 >
                                     <Text style={[styles.pillText, level === l && styles.pillTextActive]}>{l}</Text>
@@ -242,9 +242,9 @@ export default function VirtualStagingScreen() {
                         <Text style={styles.configLabel}>SELECT STYLE</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.styleGrid}>
                             {STYLES.map((s) => (
-                                <Pressable 
-                                    key={s.id} 
-                                    style={[styles.styleCard, selectedStyleId === s.id && styles.styleCardActive]} 
+                                <Pressable
+                                    key={s.id}
+                                    style={[styles.styleCard, selectedStyleId === s.id && styles.styleCardActive]}
                                     onPress={() => setSelectedStyleId(s.id)}
                                 >
                                     <Image source={{ uri: s.image }} style={styles.styleImage} />
@@ -264,9 +264,9 @@ export default function VirtualStagingScreen() {
                     <Pressable style={styles.modalOverlay} onPress={() => setShowCategoryDropdown(false)}>
                         <View style={styles.modalContent}>
                             {CATEGORIES.map((c) => (
-                                <Pressable 
-                                    key={c} 
-                                    style={styles.modalItem} 
+                                <Pressable
+                                    key={c}
+                                    style={styles.modalItem}
                                     onPress={() => { setCategory(c); setShowCategoryDropdown(false); }}
                                 >
                                     <Text style={styles.modalItemText}>{c}</Text>

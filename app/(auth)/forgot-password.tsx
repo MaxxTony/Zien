@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, Text, Pressable } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, Text, Pressable, ActivityIndicator } from 'react-native';
 
 import { AuthCard, AuthLogoBrand, AuthScreenBackground, AuthSubtitle, AuthTitle } from '@/components/auth';
 import GradientButton from '@/components/ui/GradientButton';
@@ -29,6 +29,7 @@ export default function ForgotPasswordScreen() {
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [expiryTimer, setExpiryTimer] = useState(0);
 
@@ -76,7 +77,8 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleResendOtp = async () => {
-    setIsLoading(true);
+    if (resendTimer > 0 || isResending) return;
+    setIsResending(true);
     try {
       await forgotPassword({ email });
       setResendTimer(10);
@@ -85,7 +87,7 @@ export default function ForgotPasswordScreen() {
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
-      setIsLoading(false);
+      setIsResending(false);
     }
   };
 
@@ -248,10 +250,22 @@ export default function ForgotPasswordScreen() {
 
                 <View style={styles.footer}>
                   <Text style={styles.footerText}>Didn't receive OTP? </Text>
-                  <Pressable onPress={handleResendOtp} disabled={isLoading}>
-                    <Text style={[styles.resendLink, isLoading && styles.disabledLink]}>
-                      Resend {resendTimer > 0 ? `(${resendTimer}s)` : ''}
-                    </Text>
+                  <Pressable 
+                    onPress={handleResendOtp} 
+                    disabled={isResending || resendTimer > 0}
+                    style={({ pressed }) => [
+                      styles.resendButton,
+                      (isResending || resendTimer > 0) && styles.resendButtonDisabled,
+                      pressed && !isResending && resendTimer === 0 && { opacity: 0.7 }
+                    ]}
+                  >
+                    {isResending ? (
+                      <ActivityIndicator size="small" color={colors.accent || '#0BA0B2'} />
+                    ) : (
+                      <Text style={[styles.resendLink, resendTimer > 0 && styles.disabledLink]}>
+                        Resend {resendTimer > 0 ? `(${resendTimer}s)` : ''}
+                      </Text>
+                    )}
                   </Pressable>
                 </View>
 
@@ -323,14 +337,27 @@ function getStyles(colors: any, theme: string) {
       fontSize: 14,
       color: colors.textSecondary,
     },
+    resendButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: colors.accent ? `${colors.accent}15` : 'rgba(11, 160, 178, 0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 4,
+    },
+    resendButtonDisabled: {
+      backgroundColor: 'transparent',
+    },
     resendLink: {
-      fontSize: 14,
-      color: colors.accent,
-      fontWeight: '700',
+      fontSize: 13,
+      color: colors.accent || '#0BA0B2',
+      fontWeight: '800',
     },
     disabledLink: {
       color: colors.textSecondary,
-      opacity: 0.5,
+      opacity: 0.7,
+      fontWeight: '600',
     },
     backLink: {
       marginTop: 16,

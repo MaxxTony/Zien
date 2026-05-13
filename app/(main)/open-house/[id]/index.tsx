@@ -196,16 +196,16 @@ export default function EventDashboardScreen() {
     const renderOverview = () => (
         <View style={styles.tabContentPremium}>
             <View style={styles.kpiRow}>
-                <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.kpiCard}>
+                <View style={styles.kpiCard}>
                     <View style={styles.kpiIconBox}><MaterialCommunityIcons name="account-group" size={20} color={colors.accentTeal} /></View>
                     <Text style={styles.kpiValue}>{eventVisitors}</Text>
                     <Text style={styles.kpiLabel}>TOTAL VISITORS</Text>
-                </LinearGradient>
-                <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.kpiCard}>
+                </View>
+                <View style={styles.kpiCard}>
                     <View style={[styles.kpiIconBox, { backgroundColor: 'rgba(244, 63, 94, 0.1)' }]}><MaterialCommunityIcons name="fire" size={20} color="#F43F5E" /></View>
                     <Text style={styles.kpiValue}>{eventHotLeads}</Text>
                     <Text style={styles.kpiLabel}>HOT LEADS</Text>
-                </LinearGradient>
+                </View>
             </View>
 
             <View style={styles.qrHeroPremium}>
@@ -453,10 +453,10 @@ const getStyles = (colors: any) => StyleSheet.create({
     mainContent: { paddingHorizontal: 20, paddingTop: 25, backgroundColor: colors.surfaceSoft },
     tabContentPremium: { gap: 24 },
     kpiRow: { flexDirection: 'row', gap: 15 },
-    kpiCard: { flex: 1, borderRadius: 20, padding: 20 },
+    kpiCard: { flex: 1, borderRadius: 20, padding: 20, backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder },
     kpiIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(13, 148, 136, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
-    kpiValue: { fontSize: 26, fontWeight: '900', color: '#FFFFFF' },
-    kpiLabel: { fontSize: 9, fontWeight: '800', color: 'rgba(255,255,255,0.6)', marginTop: 4, letterSpacing: 0.6 },
+    kpiValue: { fontSize: 26, fontWeight: '900', color: colors.textPrimary },
+    kpiLabel: { fontSize: 9, fontWeight: '800', color: colors.textMuted, marginTop: 4, letterSpacing: 0.6 },
     qrHeroPremium: { flexDirection: 'row', backgroundColor: colors.cardBackground, borderRadius: 24, padding: 20, alignItems: 'center', gap: 20, borderWidth: 1, borderColor: colors.cardBorder },
     qrHeroDetails: { flex: 1 },
     qrHeroTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },

@@ -10,7 +10,10 @@ import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
     Linking,
+    Modal,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -292,34 +295,6 @@ export default function ProfileScreen() {
                     </Pressable>
                 </View>
 
-                {isAddingNote && (
-                    <View style={styles.inputCard}>
-                        <TextInput
-                            style={styles.textArea}
-                            placeholder="Write a note about this lead..."
-                            placeholderTextColor={colors.textMuted}
-                            multiline
-                            autoFocus
-                            value={newNote}
-                            onChangeText={setNewNote}
-                        />
-                        <View style={styles.inputActions}>
-                            <Pressable onPress={() => { setIsAddingNote(false); setNewNote(''); }}>
-                                <Text style={styles.cancelText}>Cancel</Text>
-                            </Pressable>
-                            <Pressable
-                                style={[styles.saveBtn, (!newNote.trim() || isAddingNotePending) && { opacity: 0.4 }]}
-                                onPress={handleSaveNote}
-                                disabled={!newNote.trim() || isAddingNotePending}>
-                                {isAddingNotePending ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                ) : (
-                                    <Text style={styles.saveBtnText}>Save Note</Text>
-                                )}
-                            </Pressable>
-                        </View>
-                    </View>
-                )}
 
                 {contact.notes && contact.notes.length > 0 ? (
                     <View style={styles.listStack}>
@@ -355,39 +330,6 @@ export default function ProfileScreen() {
                     </Pressable>
                 </View>
 
-                {isAddingEvent && (
-                    <View style={styles.inputCard}>
-                        <TextInput
-                            style={styles.singleInput}
-                            placeholder="Event title (e.g. Site visit, Follow-up call)"
-                            placeholderTextColor={colors.textMuted}
-                            autoFocus
-                            value={newEventTitle}
-                            onChangeText={setNewEventTitle}
-                        />
-                        <Pressable style={styles.datePicker} onPress={() => setDatePickerVisible(true)}>
-                            <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textMuted} />
-                            <Text style={formattedEventDate ? styles.datePickerValue : styles.datePickerPlaceholder}>
-                                {formattedEventDate || 'Select date'}
-                            </Text>
-                        </Pressable>
-                        <View style={styles.inputActions}>
-                            <Pressable onPress={() => { setIsAddingEvent(false); setNewEventTitle(''); setNewEventDate(null); }}>
-                                <Text style={styles.cancelText}>Cancel</Text>
-                            </Pressable>
-                            <Pressable
-                                style={[styles.saveBtn, (!newEventTitle.trim() || !newEventDate || isAddingEventPending) && { opacity: 0.4 }]}
-                                onPress={handleSaveEvent}
-                                disabled={!newEventTitle.trim() || !newEventDate || isAddingEventPending}>
-                                {isAddingEventPending ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                ) : (
-                                    <Text style={styles.saveBtnText}>Save Event</Text>
-                                )}
-                            </Pressable>
-                        </View>
-                    </View>
-                )}
 
                 <DateTimePickerModal
                     isVisible={isDatePickerVisible}
@@ -427,6 +369,77 @@ export default function ProfileScreen() {
                 </View>
 
             </ScrollView>
+
+            {/* Note Modal */}
+            <Modal visible={isAddingNote} transparent animationType="fade" onRequestClose={() => { setIsAddingNote(false); setNewNote(''); }}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Add Internal Note</Text>
+                        <TextInput
+                            style={styles.textArea}
+                            placeholder="Write a note about this lead..."
+                            placeholderTextColor={colors.textMuted}
+                            multiline
+                            autoFocus
+                            value={newNote}
+                            onChangeText={setNewNote}
+                        />
+                        <View style={styles.inputActions}>
+                            <Pressable onPress={() => { setIsAddingNote(false); setNewNote(''); }}>
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.saveBtn, (!newNote.trim() || isAddingNotePending) && { opacity: 0.4 }]}
+                                onPress={handleSaveNote}
+                                disabled={!newNote.trim() || isAddingNotePending}>
+                                {isAddingNotePending ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Save Note</Text>
+                                )}
+                            </Pressable>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Event Modal */}
+            <Modal visible={isAddingEvent} transparent animationType="fade" onRequestClose={() => { setIsAddingEvent(false); setNewEventTitle(''); setNewEventDate(null); }}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Add Important Event</Text>
+                        <TextInput
+                            style={styles.singleInput}
+                            placeholder="Event title (e.g. Site visit, Follow-up call)"
+                            placeholderTextColor={colors.textMuted}
+                            autoFocus
+                            value={newEventTitle}
+                            onChangeText={setNewEventTitle}
+                        />
+                        <Pressable style={styles.datePicker} onPress={() => setDatePickerVisible(true)}>
+                            <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textMuted} />
+                            <Text style={formattedEventDate ? styles.datePickerValue : styles.datePickerPlaceholder}>
+                                {formattedEventDate || 'Select date'}
+                            </Text>
+                        </Pressable>
+                        <View style={styles.inputActions}>
+                            <Pressable onPress={() => { setIsAddingEvent(false); setNewEventTitle(''); setNewEventDate(null); }}>
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.saveBtn, (!newEventTitle.trim() || !newEventDate || isAddingEventPending) && { opacity: 0.4 }]}
+                                onPress={handleSaveEvent}
+                                disabled={!newEventTitle.trim() || !newEventDate || isAddingEventPending}>
+                                {isAddingEventPending ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Save Event</Text>
+                                )}
+                            </Pressable>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
         </View>
     );
 }
@@ -787,14 +800,30 @@ function getStyles(colors: any, isDark: boolean) {
             color: colors.accentTeal,
         },
 
-        // Input card (note/event)
-        inputCard: {
+        // Modals
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            justifyContent: 'center',
+            padding: 24,
+        },
+        modalContent: {
             backgroundColor: colors.cardBackground,
-            borderRadius: 18,
-            padding: 16,
+            borderRadius: 20,
+            padding: 24,
+            borderWidth: 1,
+            borderColor: colors.borderLight,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.1,
+            shadowRadius: 20,
+            elevation: 10,
+        },
+        modalTitle: {
+            fontSize: 18,
+            fontWeight: '800',
+            color: colors.textPrimary,
             marginBottom: 16,
-            borderWidth: 1.5,
-            borderColor: colors.accentTeal,
         },
         textArea: {
             fontSize: 15,

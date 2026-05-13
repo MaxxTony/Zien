@@ -597,7 +597,7 @@ export default function LeadsScreen() {
               style={styles.premiumModalBody}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 40 }}
+              contentContainerStyle={{ paddingBottom: 100 }}
             >
               <View style={styles.importCard}>
                 <View style={styles.importLabelRow}>
@@ -719,7 +719,7 @@ export default function LeadsScreen() {
             </Pressable>
           </View>
 
-          <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={{ paddingBottom: 100 }} key={leadToEdit ? leadToEdit.id : 'new_lead'}>
+          <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={{ paddingBottom: 200 }} key={leadToEdit ? leadToEdit.id : 'new_lead'}>
 
             <View style={styles.convertCol}>
               <Text style={styles.convertLabel}>First Name <Text style={{ color: '#E11D48' }}>*</Text></Text>
