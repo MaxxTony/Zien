@@ -14,6 +14,8 @@ type DashboardLayoutProps = {
   children: React.ReactNode;
   menuItems: NavMenuItem[];
   userInitials?: string;
+  userName?: string;
+  userEmail?: string;
   profileRoute?: string;
   customLogo?: React.ReactNode;
   customBackground?: string;
@@ -26,6 +28,8 @@ export function DashboardLayout({
   children,
   menuItems,
   userInitials,
+  userName,
+  userEmail,
   profileRoute,
   customLogo,
   customBackground,
@@ -84,6 +88,8 @@ export function DashboardLayout({
         <MainHeader
           onMenuPress={openMenu}
           userInitials={userInitials}
+          userName={userName}
+          userEmail={userEmail}
           profileRoute={finalProfileRoute as any}
           backgroundColor={customHeaderBackground}
           isAgency={isAgency}

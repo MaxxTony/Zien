@@ -327,11 +327,13 @@ function getSheetStyles(colors: any) {
   });
 }
 
+import { useProfile } from '@/hooks/useProfile';
+
 function MainHeaderComponent({
   onMenuPress,
-  userInitials = 'VP',
-  userName = 'John Octane',
-  userEmail = 'john@zien.ai',
+  userInitials: propUserInitials,
+  userName: propUserName,
+  userEmail: propUserEmail,
   profileRoute = '/(main)/profile' as Href,
   backgroundColor,
   isAgency = false,
@@ -343,6 +345,11 @@ function MainHeaderComponent({
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const { logout } = useAuth();
+  const { data: profile } = useProfile();
+
+  const userInitials = propUserInitials || (profile ? ((profile.first_name?.[0] || '') + (profile.last_name?.[0] || '')).toUpperCase() : 'VP') || 'VP';
+  const userName = propUserName || (profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'John Octane') || 'John Octane';
+  const userEmail = propUserEmail || profile?.email || 'john@zien.ai';
 
   const handleSignOut = useCallback(() => {
     setMenuOpen(false);

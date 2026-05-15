@@ -9,12 +9,13 @@ import {
 import { PageHeader } from '@/components/ui';
 import LabeledInput from '@/components/ui/labeled-input';
 import { Theme } from '@/constants/theme';
+import { useProfile } from '@/hooks/useProfile';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -207,6 +208,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const { data: profile } = useProfile();
+
   const [activeTab, setActiveTab] = useState<ProfileTabKey>('identity');
   const [specializations, setSpecializations] = useState<string[]>(DEFAULT_SPECIALIZATIONS);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -235,6 +238,22 @@ export default function ProfileScreen() {
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [signatureUri, setSignatureUri] = useState<string | null>(null);
   const [interfaceColor, setInterfaceColor] = useState(INTERFACE_COLORS[0].hex);
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(`${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'John Olakoya');
+      setProfessionalEmail(profile.email || 'john@zien.ai');
+      
+      const phoneStr = profile.phone 
+        ? `${profile.country_code ? '+' + profile.country_code + ' ' : ''}${profile.phone}` 
+        : '+1 (555) 000-0000';
+      setMobilePhone(phoneStr);
+
+      if (profile.license_number) {
+        setLicenseId(profile.license_number);
+      }
+    }
+  }, [profile]);
 
   const handleYearsChange = useCallback((text: string) => {
     const digits = text.replace(/\D/g, '');
@@ -274,6 +293,16 @@ export default function ProfileScreen() {
     ]);
   }, [pickImage]);
 
+  const userInitials = useMemo(() => {
+    const names = fullName.trim().split(' ');
+    if (names.length >= 2) {
+      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+    } else if (names.length === 1 && names[0].length > 0) {
+      return names[0].substring(0, 2).toUpperCase();
+    }
+    return 'JO';
+  }, [fullName]);
+
   const tabContent = useMemo(() => {
     switch (activeTab) {
 
@@ -287,7 +316,7 @@ export default function ProfileScreen() {
                 <LinearGradient colors={['#0D2F45', '#0BA0B2']} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                   {avatarUri
                     ? <Image source={{ uri: avatarUri }} style={styles.avatarImage} resizeMode="cover" />
-                    : <Text style={styles.avatarText}>JO</Text>
+                    : <Text style={styles.avatarText}>{userInitials}</Text>
                   }
                 </LinearGradient>
                 <View style={styles.avatarCameraBtn}>
@@ -598,7 +627,7 @@ export default function ProfileScreen() {
     fullName, mobilePhone, professionalEmail, personalWebsite, professionalBio,
     licenseId, licenseExpiry, showDatePicker, yearsExperience, preferredLanguage,
     showLanguageModal, showSpecializationModal, handleYearsChange, insets.bottom,
-    logoUri, signatureUri, interfaceColor, pickImage,
+    logoUri, signatureUri, interfaceColor, pickImage, userInitials
   ]);
 
   const bottomBarHeight = 56 + insets.bottom + 16;
