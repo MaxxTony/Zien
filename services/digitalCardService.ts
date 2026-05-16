@@ -77,6 +77,11 @@ export const getDigitalCards = async (accessToken: string): Promise<DigitalCard[
 export interface CreateDigitalCardPayload {
   card_type: 'work' | 'personal';
   profile_name: string;
+  name: string;
+  email: string;
+  phone: string;
+  title?: string;
+  company_name?: string;
 }
 
 export const createDigitalCard = async (accessToken: string, payload: CreateDigitalCardPayload): Promise<DigitalCard> => {
@@ -88,13 +93,13 @@ export const createDigitalCard = async (accessToken: string, payload: CreateDigi
   const apiPayload = {
     profile_name: payload.profile_name,
     profile_type: payload.card_type,
-    name: '',
-    title: '',
+    name: payload.name || '',
+    title: payload.title || '',
     role: '',
-    company_name: '',
+    company_name: payload.company_name || '',
     image: '',
-    phone: '',
-    email: '',
+    phone: payload.phone || '',
+    email: payload.email || '',
     website: '',
     license: '',
     bio: '',

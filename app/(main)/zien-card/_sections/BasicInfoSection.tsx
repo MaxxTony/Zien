@@ -20,6 +20,7 @@ import {
   ProfileCard,
   type ProfileCardData
 } from '../_components/ProfileCard';
+import { ImagePickerModal } from '../_components/ImagePickerModal';
 
 type FormTab = 'personal' | 'branding' | 'contact' | 'additional';
 
@@ -59,6 +60,7 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<DigitalCard>(activeCard);
   const [uploadingField, setUploadingField] = useState<'image' | 'logo' | null>(null);
+  const [pickerState, setPickerState] = useState<{ isVisible: boolean; field: 'image' | 'logo' | null }>({ isVisible: false, field: null });
   const [errors, setErrors] = useState<{ phone?: string; email?: string; website?: string }>({});
 
   console.log(activeCard)
@@ -166,51 +168,48 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
     }
   };
 
-  const handleImagePick = async (field: 'image' | 'logo') => {
-    Alert.alert(
-      `Update ${field === 'image' ? 'Photo' : 'Logo'}`,
-      'Choose source',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Gallery',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission needed', 'Please allow access to your photos.');
-              return;
-            }
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  const handleImagePick = (field: 'image' | 'logo') => {
+    setPickerState({ isVisible: true, field });
+  };
 
-              aspect: [1, 1], // Always square for consistency
-              quality: 0.8,
-            });
-            if (!result.canceled && result.assets[0]) {
-              performUpload(result.assets[0].uri, field);
-            }
-          }
-        },
-        {
-          text: 'Camera',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission needed', 'Please allow camera access.');
-              return;
-            }
-            const result = await ImagePicker.launchCameraAsync({
+  const handleImageRemove = (field: 'image' | 'logo') => {
+    setForm(p => ({ ...p, [field]: '' }));
+  };
 
-              aspect: [1, 1],
-              quality: 0.8,
-            });
-            if (!result.canceled && result.assets[0]) {
-              performUpload(result.assets[0].uri, field);
-            }
-          }
-        },
-      ]
-    );
+  const handlePickerSelect = async (source: 'gallery' | 'camera') => {
+    const field = pickerState.field;
+    setPickerState({ isVisible: false, field: null });
+    
+    if (!field) return;
+
+    if (source === 'gallery') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your photos.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        aspect: [1, 1],
+        quality: 0.3,
+      });
+      if (!result.canceled && result.assets[0]) {
+        performUpload(result.assets[0].uri, field);
+      }
+    } else if (source === 'camera') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow camera access.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        aspect: [1, 1],
+        quality: 0.3,
+      });
+      if (!result.canceled && result.assets[0]) {
+        performUpload(result.assets[0].uri, field);
+      }
+    }
   };
 
   const cardData: ProfileCardData = {
@@ -268,7 +267,7 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
                   size={18}
                   color={active ? '#FFFFFF' : '#5B6B7A'}
                 />
-                <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>
+                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
                   {tab.label}
                 </Text>
               </Pressable>
@@ -375,12 +374,22 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
                   <Text style={styles.uploadDescription}>
                     Upload a professional photo. Recommended size 400×400px.
                   </Text>
-                  <Pressable
-                    style={styles.uploadActionButton}
-                    onPress={() => handleImagePick('image')}>
-                    <MaterialCommunityIcons name="upload-outline" size={16} color={colors.accentTeal} />
-                    <Text style={styles.uploadActionText}>Upload Photo</Text>
-                  </Pressable>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                    <Pressable
+                      style={styles.uploadActionButton}
+                      onPress={() => handleImagePick('image')}>
+                      <MaterialCommunityIcons name={form.image ? "refresh" : "upload-outline"} size={16} color={colors.accentTeal} />
+                      <Text style={styles.uploadActionText}>{form.image ? 'Update Photo' : 'Upload Photo'}</Text>
+                    </Pressable>
+                    {!!form.image && (
+                      <Pressable
+                        style={[styles.uploadActionButton, { borderColor: '#EF4444' }]}
+                        onPress={() => handleImageRemove('image')}>
+                        <MaterialCommunityIcons name="trash-can-outline" size={16} color="#EF4444" />
+                        <Text style={[styles.uploadActionText, { color: '#EF4444' }]}>Remove</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
               </View>
 
@@ -405,12 +414,22 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
                   <Text style={styles.uploadDescription}>
                     Upload your business logo. PNG with transparent background recommended.
                   </Text>
-                  <Pressable
-                    style={[styles.uploadActionButton, styles.uploadActionButtonOutline]}
-                    onPress={() => handleImagePick('logo')}>
-                    <MaterialCommunityIcons name="upload-outline" size={16} color={colors.textPrimary} />
-                    <Text style={[styles.uploadActionText, { color: colors.textPrimary }]}>Upload Logo</Text>
-                  </Pressable>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                    <Pressable
+                      style={[styles.uploadActionButton, styles.uploadActionButtonOutline, { marginTop: 0 }]}
+                      onPress={() => handleImagePick('logo')}>
+                      <MaterialCommunityIcons name={form.logo ? "refresh" : "upload-outline"} size={16} color={colors.textPrimary} />
+                      <Text style={[styles.uploadActionText, { color: colors.textPrimary }]}>{form.logo ? 'Update Logo' : 'Upload Logo'}</Text>
+                    </Pressable>
+                    {!!form.logo && (
+                      <Pressable
+                        style={[styles.uploadActionButton, { borderColor: '#EF4444', marginTop: 0 }]}
+                        onPress={() => handleImageRemove('logo')}>
+                        <MaterialCommunityIcons name="trash-can-outline" size={16} color="#EF4444" />
+                        <Text style={[styles.uploadActionText, { color: '#EF4444' }]}>Remove</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
               </View>
             </>
@@ -567,7 +586,7 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
           )}
         </View>
 
-        <View style={{ height: 160 }} />
+        <View style={{ height: 250 }} />
       </ScrollView>
 
       {isSaving && (
@@ -576,6 +595,13 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
           <Text style={styles.savingText}>Saving changes...</Text>
         </View>
       )}
+
+      <ImagePickerModal
+        isVisible={pickerState.isVisible}
+        onClose={() => setPickerState({ isVisible: false, field: null })}
+        onSelect={handlePickerSelect}
+        title={`Update ${pickerState.field === 'image' ? 'Photo' : 'Logo'}`}
+      />
     </View>
   );
 }
@@ -783,7 +809,6 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: colors.textSecondary,
-    maxWidth: 72,
   },
   tabLabelActive: {
     color: '#FFFFFF',

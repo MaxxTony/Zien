@@ -7,38 +7,60 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { CreateDigitalCardPayload } from '@/services/digitalCardService';
 
 interface CreateCardModalProps {
   isVisible: boolean;
   onClose: () => void;
-  onCreate: (type: 'work' | 'personal', name: string) => Promise<void>;
+  onCreate: (payload: CreateDigitalCardPayload) => Promise<void>;
   initialType?: 'work' | 'personal';
 }
 
 export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'work' }: CreateCardModalProps) {
   const { colors, theme } = useAppTheme();
   const [cardType, setCardType] = useState<'work' | 'personal'>(initialType);
+  
   const [profileName, setProfileName] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [title, setTitle] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isVisible) {
       setCardType(initialType);
       setProfileName('');
+      setFullName('');
+      setEmail('');
+      setPhone('');
+      setTitle('');
+      setCompanyName('');
     }
   }, [isVisible, initialType]);
 
   const handleSubmit = async () => {
-    if (!profileName.trim()) return;
+    if (!profileName.trim() || !fullName.trim() || !email.trim()) return;
     setIsSubmitting(true);
     try {
-      await onCreate(cardType, profileName);
+      await onCreate({
+        card_type: cardType,
+        profile_name: profileName,
+        name: fullName,
+        email,
+        phone,
+        title: cardType === 'work' ? title : '',
+        company_name: cardType === 'work' ? companyName : '',
+      });
       onClose();
     } catch (error) {
       console.error('Failed to create card:', error);
@@ -48,12 +70,16 @@ export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'w
   };
 
   const isDark = theme === 'dark';
+  const submitDisabled = !profileName.trim() || !fullName.trim() || !email.trim() || isSubmitting;
+  
+  // Theme colors for selection and buttons
+  const activeColor = cardType === 'work' ? colors.textPrimary : colors.accentTeal;
 
   return (
     <Modal
       visible={isVisible}
-      transparent
-      animationType="fade"
+      animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <View style={styles.overlay}>
         <KeyboardAvoidingView
@@ -68,7 +94,7 @@ export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'w
                 </View>
                 <View style={styles.headerText}>
                   <Text style={[styles.title, { color: colors.textPrimary }]}>Create Digital Card</Text>
-                  <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Choose type and name your profile</Text>
+                  <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Setup your professional profile</Text>
                 </View>
               </View>
               <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={12}>
@@ -76,96 +102,189 @@ export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'w
               </Pressable>
             </View>
 
-            {/* Card Type Selector */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>CARD TYPE</Text>
-              <View style={styles.typeRow}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={[
-                    styles.typeBtn,
-                    {
-                      borderColor: cardType === 'work' ? colors.textPrimary : colors.cardBorder,
-                      backgroundColor: cardType === 'work' ? colors.accentTeal + '1A' : 'transparent',
-                      borderWidth: cardType === 'work' ? 2 : 1.5,
-                    },
-                  ]}
-                  onPress={() => setCardType('work')}>
-                  <MaterialCommunityIcons
-                    name="briefcase-outline"
-                    size={24}
-                    color={cardType === 'work' ? colors.textPrimary : colors.textSecondary}
-                  />
-                  <Text style={[
-                    styles.typeText,
-                    { color: cardType === 'work' ? colors.textPrimary : colors.textSecondary }
-                  ]}>Work</Text>
-                </TouchableOpacity>
+            <ScrollView 
+              contentContainerStyle={styles.scrollContent} 
+              showsVerticalScrollIndicator={false}
+              keyboardDismissMode="none"
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Card Type Selector */}
+              <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>CARD TYPE</Text>
+                <View style={styles.typeRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[
+                      styles.typeBtn,
+                      {
+                        borderColor: cardType === 'work' ? activeColor : colors.cardBorder,
+                        backgroundColor: cardType === 'work' ? 'transparent' : 'transparent',
+                        borderWidth: cardType === 'work' ? 2 : 1.5,
+                      },
+                    ]}
+                    onPress={() => setCardType('work')}>
+                    <MaterialCommunityIcons
+                      name="briefcase-outline"
+                      size={24}
+                      color={cardType === 'work' ? activeColor : colors.textSecondary}
+                    />
+                    <Text style={[
+                      styles.typeText,
+                      { color: cardType === 'work' ? activeColor : colors.textSecondary }
+                    ]}>Work</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={[
-                    styles.typeBtn,
-                    {
-                      borderColor: cardType === 'personal' ? colors.textPrimary : colors.cardBorder,
-                      backgroundColor: cardType === 'personal' ? colors.accentTeal + '1A' : 'transparent',
-                      borderWidth: cardType === 'personal' ? 2 : 1.5,
-                    },
-                  ]}
-                  onPress={() => setCardType('personal')}>
-                  <MaterialCommunityIcons
-                    name="account-outline"
-                    size={24}
-                    color={cardType === 'personal' ? colors.textPrimary : colors.textSecondary}
-                  />
-                  <Text style={[
-                    styles.typeText,
-                    { color: cardType === 'personal' ? colors.textPrimary : colors.textSecondary }
-                  ]}>Personal</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[
+                      styles.typeBtn,
+                      {
+                        borderColor: cardType === 'personal' ? activeColor : colors.cardBorder,
+                        backgroundColor: cardType === 'personal' ? 'rgba(20, 184, 166, 0.05)' : 'transparent',
+                        borderWidth: cardType === 'personal' ? 2 : 1.5,
+                      },
+                    ]}
+                    onPress={() => setCardType('personal')}>
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={24}
+                      color={cardType === 'personal' ? activeColor : colors.textSecondary}
+                    />
+                    <Text style={[
+                      styles.typeText,
+                      { color: cardType === 'personal' ? activeColor : colors.textSecondary }
+                    ]}>Personal</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
 
-            {/* Profile Name Input */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>PROFILE NAME</Text>
-              <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F7F9FC', borderColor: colors.cardBorder }]}>
-                <TextInput
-                  style={[styles.input, { color: colors.textPrimary }]}
-                  placeholder="e.g. Sales Executive"
-                  placeholderTextColor={colors.textSecondary + '80'}
-                  value={profileName}
-                  onChangeText={setProfileName}
-                  autoFocus
-                />
+              {/* Grid 1: Profile Name & Full Name */}
+              <View style={styles.row}>
+                <View style={styles.flex1}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                    PROFILE NAME <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F7F9FC', borderColor: colors.cardBorder }]}>
+                    <TextInput
+                      style={[styles.input, { color: colors.textPrimary }]}
+                      placeholder="e.g. Sales Executive"
+                      placeholderTextColor={colors.textSecondary + '80'}
+                      value={profileName}
+                      onChangeText={setProfileName}
+                    />
+                  </View>
+                </View>
+                <View style={styles.flex1}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                    FULL NAME <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F7F9FC', borderColor: colors.cardBorder }]}>
+                    <TextInput
+                      style={[styles.input, { color: colors.textPrimary }]}
+                      placeholder="Your Name"
+                      placeholderTextColor={colors.textSecondary + '80'}
+                      value={fullName}
+                      onChangeText={setFullName}
+                    />
+                  </View>
+                </View>
               </View>
-            </View>
 
-            {/* Submit Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.submitBtn,
-                { backgroundColor: profileName.trim() ? colors.textPrimary : colors.cardBorder }
-              ]}
-              disabled={!profileName.trim() || isSubmitting}
-              onPress={handleSubmit}>
-              {isSubmitting ? (
-                <ActivityIndicator color={colors.cardBackground} />
-              ) : (
-                <>
-                  <MaterialCommunityIcons
-                    name="creation"
-                    size={20}
-                    color={profileName.trim() ? colors.cardBackground : colors.textSecondary}
-                  />
-                  <Text style={[
-                    styles.submitBtnText,
-                    { color: profileName.trim() ? colors.cardBackground : colors.textSecondary }
-                  ]}>Create My Card</Text>
-                </>
+              {/* Grid 2: Email & Phone */}
+              <View style={styles.row}>
+                <View style={styles.flex1}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                    EMAIL ADDRESS <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F7F9FC', borderColor: colors.cardBorder }]}>
+                    <TextInput
+                      style={[styles.input, { color: colors.textPrimary }]}
+                      placeholder="you@example.com"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      placeholderTextColor={colors.textSecondary + '80'}
+                      value={email}
+                      onChangeText={setEmail}
+                    />
+                  </View>
+                </View>
+                <View style={styles.flex1}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                    PHONE NUMBER
+                  </Text>
+                  <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F7F9FC', borderColor: colors.cardBorder }]}>
+                    <TextInput
+                      style={[styles.input, { color: colors.textPrimary }]}
+                      placeholder="Phone Number"
+                      keyboardType="phone-pad"
+                      placeholderTextColor={colors.textSecondary + '80'}
+                      value={phone}
+                      onChangeText={setPhone}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Grid 3: Title & Company (Work Only) */}
+              {cardType === 'work' && (
+                <View style={styles.row}>
+                  <View style={styles.flex1}>
+                    <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                      TITLE / POSITION
+                    </Text>
+                    <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F7F9FC', borderColor: colors.cardBorder }]}>
+                      <TextInput
+                        style={[styles.input, { color: colors.textPrimary }]}
+                        placeholder="e.g. Senior Broker"
+                        placeholderTextColor={colors.textSecondary + '80'}
+                        value={title}
+                        onChangeText={setTitle}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.flex1}>
+                    <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                      COMPANY NAME
+                    </Text>
+                    <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F7F9FC', borderColor: colors.cardBorder }]}>
+                      <TextInput
+                        style={[styles.input, { color: colors.textPrimary }]}
+                        placeholder="e.g. Zien Estates"
+                        placeholderTextColor={colors.textSecondary + '80'}
+                        value={companyName}
+                        onChangeText={setCompanyName}
+                      />
+                    </View>
+                  </View>
+                </View>
               )}
-            </TouchableOpacity>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[
+                  styles.submitBtn,
+                  { backgroundColor: submitDisabled ? colors.cardBorder : activeColor }
+                ]}
+                disabled={submitDisabled}
+                onPress={handleSubmit}>
+                {isSubmitting ? (
+                  <ActivityIndicator color={submitDisabled ? colors.textSecondary : '#FFFFFF'} />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name="creation"
+                      size={20}
+                      color={submitDisabled ? colors.textSecondary : (isDark && activeColor === colors.textPrimary ? colors.cardBackground : '#FFFFFF')}
+                    />
+                    <Text style={[
+                      styles.submitBtnText,
+                      { color: submitDisabled ? colors.textSecondary : (isDark && activeColor === colors.textPrimary ? colors.cardBackground : '#FFFFFF') }
+                    ]}>Create My Card</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -176,27 +295,23 @@ export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'w
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
   },
   keyboardView: {
-    width: '100%',
+    flex: 1,
   },
   modalContent: {
-    borderRadius: 32,
+    flex: 1,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -215,26 +330,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     marginTop: 2,
-    opacity: 0.8,
   },
   closeBtn: {
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  flex1: {
+    flex: 1,
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 1,
-    marginBottom: 10,
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
   typeRow: {
     flexDirection: 'row',
@@ -242,19 +365,15 @@ const styles = StyleSheet.create({
   },
   typeBtn: {
     flex: 1,
-    height: 80,
+    height: 90,
     borderRadius: 18,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: 'transparent',
-  },
-  typeBtnActive: {
-    backgroundColor: 'rgba(11, 45, 62, 0.05)',
+    gap: 8,
   },
   typeText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
   },
   inputContainer: {
@@ -275,7 +394,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginTop: 4,
+    marginTop: 12,
   },
   submitBtnText: {
     fontSize: 16,

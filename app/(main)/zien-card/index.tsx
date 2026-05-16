@@ -104,7 +104,7 @@ export default function ZienCardDashboardScreen() {
       <MaterialCommunityIcons 
         name={showGlobalSave ? "content-save-outline" : "download"} 
         size={20} 
-        color="#FFFFFF" 
+        color={colors.textPrimary} 
       />
     </Pressable>
   ) : undefined;

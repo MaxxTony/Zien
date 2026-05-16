@@ -44,7 +44,7 @@ export function ZienCardNav({ activeSection, onSectionChange }: ZienCardNavProps
                 size={18}
                 color={isActive ? '#FFFFFF' : '#5B6B7A'}
               />
-              <Text style={[styles.pillText, isActive && styles.pillTextActive]} numberOfLines={1}>
+              <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
                 {label}
               </Text>
             </Pressable>
@@ -93,7 +93,6 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.textSecondary,
-    maxWidth: 110,
   },
   pillTextActive: {
     color: '#FFFFFF',

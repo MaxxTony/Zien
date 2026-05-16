@@ -1,11 +1,12 @@
 import { ExternalLink } from '@/components/external-link';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { DigitalCard, createDigitalCard, deleteDigitalCard } from '@/services/digitalCardService';
+import { CreateDigitalCardPayload, DigitalCard, createDigitalCard, deleteDigitalCard } from '@/services/digitalCardService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Alert, Clipboard, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { CreateCardModal } from '../_components/CreateCardModal';
+import { DeleteCardModal } from '../_components/DeleteCardModal';
 import { ProfileCard, type ProfileCardData } from '../_components/ProfileCard';
 
 
@@ -53,6 +54,8 @@ export function DashboardSection({
   const [mainTab, setMainTab] = useState<'mycard' | 'enquiries'>('mycard');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalInitialType, setModalInitialType] = useState<'work' | 'personal'>('work');
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const enquiryCount = 0;
 
   const otherCards = cards.filter((c) => c.id !== activeCard?.id);
@@ -78,27 +81,23 @@ export function DashboardSection({
 
   const handleDeleteCard = () => {
     if (!activeCard || !accessToken) return;
-    Alert.alert(
-      'Delete Digital Card',
-      'Are you sure you want to delete this profile? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteDigitalCard(accessToken, activeCard.id);
-              await refetch();
-              setActiveCardId(null); // Reset to first card
-            } catch (error) {
-              console.error('Delete error:', error);
-              Alert.alert('Error', 'Failed to delete the card. Please try again.');
-            }
-          }
-        }
-      ]
-    );
+    setIsDeleteModalVisible(true);
+  };
+
+  const confirmDeleteCard = async () => {
+    if (!activeCard || !accessToken) return;
+    setIsDeleting(true);
+    try {
+      await deleteDigitalCard(accessToken, activeCard.id);
+      await refetch();
+      setActiveCardId(null); // Reset to first card
+      setIsDeleteModalVisible(false);
+    } catch (error) {
+      console.error('Delete error:', error);
+      Alert.alert('Error', 'Failed to delete the card. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const openCreateModal = (type: 'work' | 'personal') => {
@@ -106,11 +105,16 @@ export function DashboardSection({
     setIsModalVisible(true);
   };
 
-  const handleCreateCard = async (type: 'work' | 'personal', name: string) => {
+  const handleCreateCard = async (payload: CreateDigitalCardPayload) => {
     if (!accessToken) return;
     try {
-      await createDigitalCard(accessToken, { card_type: type, profile_name: name });
+      await createDigitalCard(accessToken, payload);
       await refetch();
+      
+      // Wait for refetch to complete, then try to find the new card
+      setTimeout(() => {
+        // Logic to select new card could go here
+      }, 500);
     } catch (error) {
       console.error('Modal creation error:', error);
       throw error;
@@ -126,7 +130,7 @@ export function DashboardSection({
         showsVerticalScrollIndicator={false}>
         <View style={styles.emptyStateContainer}>
           <View style={styles.emptyIconCircle}>
-            <MaterialCommunityIcons name="card-plus-outline" size={40} color={colors.textPrimary} />
+            <MaterialCommunityIcons name="card-plus-outline" size={20} color={colors.textPrimary} />
           </View>
           <Text style={styles.emptyStateTitle}>No Digital Cards Yet</Text>
           <Text style={styles.emptyStateSub}>
@@ -135,11 +139,11 @@ export function DashboardSection({
 
           <View style={styles.emptyActionsStack}>
             <Pressable style={styles.createCardBtn} onPress={() => openCreateModal('work')}>
-              <MaterialCommunityIcons name="plus" size={20} color={colors.cardBackground} />
+              <MaterialCommunityIcons name="plus" size={16} color={colors.cardBackground} />
               <Text style={styles.createCardBtnText}>Create Work Card</Text>
             </Pressable>
             <Pressable style={styles.personalCardBtn} onPress={() => openCreateModal('personal')}>
-              <MaterialCommunityIcons name="account-plus-outline" size={20} color={colors.textPrimary} />
+              <MaterialCommunityIcons name="account-plus-outline" size={16} color={colors.textPrimary} />
               <Text style={styles.personalCardBtnText}>Personal Card</Text>
             </Pressable>
           </View>
@@ -211,6 +215,13 @@ export function DashboardSection({
         onClose={() => setIsModalVisible(false)}
         onCreate={handleCreateCard}
         initialType={modalInitialType}
+      />
+
+      <DeleteCardModal
+        isVisible={isDeleteModalVisible}
+        onClose={() => setIsDeleteModalVisible(false)}
+        onDelete={confirmDeleteCard}
+        isDeleting={isDeleting}
       />
 
       {/* Main: Digital Cards + Tabs */}
@@ -730,8 +741,8 @@ const getStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   emptyIconCircle: {
-    width: 90,
-    height: 90,
+    width: 50,
+    height: 50,
     borderRadius: 30,
     backgroundColor: 'rgba(11, 160, 178, 0.1)',
     alignItems: 'center',
@@ -741,7 +752,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: 'rgba(11, 160, 178, 0.2)',
   },
   emptyStateTitle: {
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: '900',
     color: colors.textPrimary,
     marginBottom: 16,
@@ -767,10 +778,10 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
     backgroundColor: colors.textPrimary,
-    paddingVertical: 18,
-    borderRadius: 20,
+    paddingVertical: 14,
+    borderRadius: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -778,7 +789,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     elevation: 4,
   },
   createCardBtnText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '900',
     color: colors.cardBackground,
   },
@@ -786,15 +797,15 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
     backgroundColor: 'transparent',
-    paddingVertical: 18,
-    borderRadius: 20,
+    paddingVertical: 14,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: colors.cardBorder,
   },
   personalCardBtnText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '900',
     color: colors.textPrimary,
   },
