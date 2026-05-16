@@ -19,11 +19,11 @@ import {
   ActivityIndicator,
   Dimensions,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  RefreshControl,
 } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 
@@ -86,11 +86,7 @@ const STATS_CONFIG = [
 
 
 
-const LATEST_UPDATES = [
-  { icon: 'robot-outline', title: 'AI Valuation Completed', description: 'Processed valuation report for 124 Ocean Drive.', time: '2h ago', accent: '#6B4EFF' },
-  { icon: 'email-outline', title: 'Campaign Sent', description: 'Monthly market update sent to 450 contacts.', time: '4h ago', accent: '#0BA0B2' },
-  { icon: 'shield-outline', title: 'Guardian AI Activated', description: 'Safety monitoring active for 88 Summit Ave.', time: 'Yesterday', accent: '#F59E0B' },
-];
+
 
 const CONTENT_PADDING_H = 18;
 const CARD_GAP = 14;
@@ -323,13 +319,13 @@ export default function DashboardScreen() {
   const { data: profile } = useProfile();
 
   const userInitials = useMemo(() => {
-    if (!profile) return 'VP';
+    if (!profile) return '';
     const first = profile.first_name?.[0] || '';
     const last = profile.last_name?.[0] || '';
-    return (first + last).toUpperCase() || 'VP';
+    return (first + last).toUpperCase();
   }, [profile]);
 
-  const firstName = profile?.first_name || 'John';
+  const firstName = profile?.first_name || '';
 
   const { data: dashboardData, isLoading: isDashboardLoading, refetch } = useDashboard();
   const [refreshing, setRefreshing] = useState(false);
@@ -368,23 +364,37 @@ export default function DashboardScreen() {
   const chartWidth = Math.max(240, sectionColumnWidth);
 
   const leadVelocityData = useMemo(() => {
-    if (dashboardData?.leadVelocity) {
-      const data = dashboardData.leadVelocity;
-      // If we have 12 items, they are likely months
-      const labels = data.length === 12
-        ? ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
-        : data.map((_, i) => (i + 1).toString());
+    const apiData = dashboardData?.leadVelocity || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    if (velocityRange === '7d') {
+      // Last 7 days
+      const data = apiData.slice(-7);
+      const labels = [];
+      const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+      const today = new Date();
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        labels.push(days[d.getDay()]);
+      }
+
+      return { labels, datasets: [{ data }] };
+    } else {
+      // "30 Days" view (showing all 12 items from API as per Web UI)
+      const data = apiData;
+      const labels = [];
+      const today = new Date();
+
+      for (let i = apiData.length - 1; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+        labels.push(`${month} ${d.getDate()}`);
+      }
 
       return { labels, datasets: [{ data }] };
     }
-
-    const labels = velocityRange === '7d'
-      ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-      : ['1', '5', '10', '15', '20', '25', '30'];
-    const data = velocityRange === '7d'
-      ? [10, 12, 9, 14, 16, 13, 18]
-      : [6, 10, 12, 11, 15, 14, 18];
-    return { labels, datasets: [{ data }] };
   }, [velocityRange, dashboardData]);
 
   const chartConfig = useMemo(
@@ -393,18 +403,23 @@ export default function DashboardScreen() {
       backgroundGradientTo: colors.cardBackground,
       decimalPlaces: 0,
       color: (opacity = 1) => `rgba(11, 160, 178, ${opacity})`,
-      labelColor: (opacity = 1) => colors.textSecondary,
+      labelColor: (opacity = 1) => colors.textMuted || '#8DA4B5',
       fillShadowGradientFrom: colors.accentTeal,
-      fillShadowGradientTo: colors.accentDark ?? '#1B5E9A',
-      fillShadowGradientOpacity: 1,
-      barPercentage: 0.55,
+      fillShadowGradientTo: `${colors.accentTeal}40`,
+      fillShadowGradientOpacity: 0.8,
+      barPercentage: 0.30,
+      propsForLabels: {
+        fontSize: 7,
+        fontWeight: '700',
+      },
       propsForBackgroundLines: {
-        stroke: colors.divider,
-        strokeDasharray: '4 6',
+        stroke: 'transparent',
       },
     }),
     [colors]
   );
+
+
 
   // Format current date
   const today = new Date();
@@ -520,17 +535,21 @@ export default function DashboardScreen() {
             <View style={styles.chartWrap}>
               <BarChart
                 data={leadVelocityData}
-                width={windowWidth}
-                height={175}
+                width={velocityRange === '30d' ? sectionColumnWidth - 60 : sectionColumnWidth - 20}
+                height={300}
                 fromZero
-                showValuesOnTopOfBars={false}
+                showValuesOnTopOfBars
+                verticalLabelRotation={velocityRange === '30d' ? 60 : 0}
                 withInnerLines={false}
                 withHorizontalLabels={false}
-                withVerticalLabels={false}
                 yAxisLabel=""
                 yAxisSuffix=""
                 chartConfig={chartConfig as any}
-                style={{ borderRadius: 16 }}
+                style={{
+                  borderRadius: 16,
+                  paddingRight: 0,
+                }}
+                flatColor={true}
               />
             </View>
           </SectionCard>
@@ -544,14 +563,14 @@ export default function DashboardScreen() {
           >
             <View style={{ marginTop: 8 }}>
               {ACTIVE_LEADS.length > 0 ? (
-                ACTIVE_LEADS.slice(0, 3).map((lead: any) => (
+                ACTIVE_LEADS.map((lead: any) => (
                   <LeadRow
-                    key={lead.name}
+                    key={lead.id || lead.name}
+                    id={lead.id}
                     name={lead.name}
-                    note={lead.note}
-                    badge={lead.badge}
-                    badgeTone={lead.badgeTone}
-                    color={lead.color}
+                    info={lead.info}
+                    initial={lead.initial}
+                    status={lead.status}
                   />
                 ))
               ) : (
@@ -560,15 +579,17 @@ export default function DashboardScreen() {
                   <Text style={styles.emptyStateText}>No active leads available</Text>
                 </View>
               )}
-              <Pressable
-                style={({ pressed }) => [styles.viewAllButton, pressed && { opacity: 0.8 }]}
-                onPress={() => router.push('/(main)/crm/leads' as Href)}
-              >
-                <View style={styles.viewAllGradient}>
-                  <Text style={styles.viewAllButtonText}>View All Leads</Text>
-                  <MaterialCommunityIcons name="arrow-right" size={15} color={colors.accentTeal} />
-                </View>
-              </Pressable>
+              {ACTIVE_LEADS.length > 0 && (
+                <Pressable
+                  style={({ pressed }) => [styles.viewAllButton, pressed && { opacity: 0.8 }]}
+                  onPress={() => router.push('/(main)/crm/leads' as Href)}
+                >
+                  <View style={styles.viewAllGradient}>
+                    <Text style={styles.viewAllButtonText}>View All Leads</Text>
+                    <MaterialCommunityIcons name="arrow-right" size={15} color={colors.accentTeal} />
+                  </View>
+                </Pressable>
+              )}
             </View>
           </SectionCard>
         </View>
@@ -583,7 +604,7 @@ export default function DashboardScreen() {
             accent="#F59E0B"
           >
             <View style={{ marginTop: 4 }}>
-              {(dashboardData?.latestUpdates?.length ? dashboardData.latestUpdates : LATEST_UPDATES).slice(0, 2).map((u: any, i: number) => (
+              {(dashboardData?.latestUpdates || []).slice(0, 2).map((u: any, i: number) => (
                 <UpdateRow
                   key={u.title || i}
                   icon={u.icon || 'bell-outline'}
@@ -593,6 +614,12 @@ export default function DashboardScreen() {
                   accentColor={u.accent || '#0BA0B2'}
                 />
               ))}
+              {(!dashboardData?.latestUpdates || dashboardData.latestUpdates.length === 0) && (
+                <View style={styles.emptyStateContainer}>
+                  <MaterialCommunityIcons name="bell-off-outline" size={32} color={colors.textMuted || '#8DA4B5'} />
+                  <Text style={styles.emptyStateText}>No updates available</Text>
+                </View>
+              )}
             </View>
           </SectionCard>
 

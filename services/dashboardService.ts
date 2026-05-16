@@ -14,11 +14,16 @@ export interface DashboardStats {
 }
 
 export interface ActiveLead {
+  id: string;
   name: string;
-  note: string;
-  badge: string;
-  badgeTone: 'hot' | 'new' | 'muted';
-  color: string;
+  info: string;
+  initial: string;
+  status: string;
+  // Keep optional old fields for safety during transition
+  note?: string;
+  badge?: string;
+  badgeTone?: 'hot' | 'new' | 'muted';
+  color?: string;
 }
 
 export interface DashboardOverviewResponse {

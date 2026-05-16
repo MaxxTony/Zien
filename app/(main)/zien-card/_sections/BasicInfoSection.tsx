@@ -61,7 +61,7 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
   const [form, setForm] = useState<DigitalCard>(activeCard);
   const [uploadingField, setUploadingField] = useState<'image' | 'logo' | null>(null);
   const [pickerState, setPickerState] = useState<{ isVisible: boolean; field: 'image' | 'logo' | null }>({ isVisible: false, field: null });
-  const [errors, setErrors] = useState<{ phone?: string; email?: string; website?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; title?: string; phone?: string; email?: string; website?: string }>({});
 
   console.log(activeCard)
 
@@ -99,13 +99,19 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
   const handleSave = async () => {
     if (!accessToken) return;
 
+    const nameErr = !form.name?.trim() ? 'This field is required.' : undefined;
+    const titleErr = !form.title?.trim() ? 'This field is required.' : undefined;
     const phoneErr = validatePhone(form.phone);
     const emailErr = validateEmail(form.email);
     const websiteErr = validateWebsite(form.website);
-    const newErrors = { phone: phoneErr, email: emailErr, website: websiteErr };
+    const newErrors = { name: nameErr, title: titleErr, phone: phoneErr, email: emailErr, website: websiteErr };
     setErrors(newErrors);
     if (Object.values(newErrors).some(Boolean)) {
-      setActiveTab('contact');
+      if (nameErr || titleErr) {
+        setActiveTab('personal');
+      } else {
+        setActiveTab('contact');
+      }
       Alert.alert('Validation Error', 'Please fix the highlighted fields before saving.');
       return;
     }
@@ -308,23 +314,31 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
               <View style={styles.field}>
                 <Text style={styles.label}>Full Name *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errors.name ? styles.inputError : null]}
                   value={form.name}
-                  onChangeText={(v) => setForm((p) => ({ ...p, name: v }))}
+                  onChangeText={(v) => {
+                    setForm((p) => ({ ...p, name: v }));
+                    if (errors.name) setErrors((e) => ({ ...e, name: undefined }));
+                  }}
                   placeholder="e.g. Sarah Connor"
                   placeholderTextColor="#9AA7B6"
                 />
+                {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
               </View>
 
               <View style={styles.field}>
                 <Text style={styles.label}>Professional Title *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errors.title ? styles.inputError : null]}
                   value={form.title}
-                  onChangeText={(v) => setForm((p) => ({ ...p, title: v }))}
+                  onChangeText={(v) => {
+                    setForm((p) => ({ ...p, title: v }));
+                    if (errors.title) setErrors((e) => ({ ...e, title: undefined }));
+                  }}
                   placeholder="e.g. Senior Agent"
                   placeholderTextColor="#9AA7B6"
                 />
+                {errors.title ? <Text style={styles.errorText}>{errors.title}</Text> : null}
               </View>
 
               {form.profile_type === 'work' && (
@@ -451,6 +465,7 @@ export function BasicInfoSection({ onSectionChange, activeCard, refetch, saveTri
                   onBlur={() => setErrors((e) => ({ ...e, phone: validatePhone(form.phone) }))}
                   placeholder="(000) 000-0000"
                   keyboardType="phone-pad"
+                  maxLength={15}
                   placeholderTextColor="#9AA7B6"
                 />
                 {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}

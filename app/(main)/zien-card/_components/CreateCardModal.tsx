@@ -1,4 +1,5 @@
 import { useAppTheme } from '@/context/ThemeContext';
+import { CreateDigitalCardPayload } from '@/services/digitalCardService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
@@ -14,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CreateDigitalCardPayload } from '@/services/digitalCardService';
 
 interface CreateCardModalProps {
   isVisible: boolean;
@@ -26,14 +26,14 @@ interface CreateCardModalProps {
 export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'work' }: CreateCardModalProps) {
   const { colors, theme } = useAppTheme();
   const [cardType, setCardType] = useState<'work' | 'personal'>(initialType);
-  
+
   const [profileName, setProfileName] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'w
 
   const isDark = theme === 'dark';
   const submitDisabled = !profileName.trim() || !fullName.trim() || !email.trim() || isSubmitting;
-  
+
   // Theme colors for selection and buttons
   const activeColor = cardType === 'work' ? colors.textPrimary : colors.accentTeal;
 
@@ -102,8 +102,8 @@ export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'w
               </Pressable>
             </View>
 
-            <ScrollView 
-              contentContainerStyle={styles.scrollContent} 
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               keyboardDismissMode="none"
               keyboardShouldPersistTaps="handled"
@@ -217,6 +217,8 @@ export function CreateCardModal({ isVisible, onClose, onCreate, initialType = 'w
                       style={[styles.input, { color: colors.textPrimary }]}
                       placeholder="Phone Number"
                       keyboardType="phone-pad"
+                      maxLength={15}
+
                       placeholderTextColor={colors.textSecondary + '80'}
                       value={phone}
                       onChangeText={setPhone}
