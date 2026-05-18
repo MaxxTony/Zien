@@ -1,0 +1,3 @@
+- Improved dashboard chart performance.
+- Redesigned Active Leads section for a premium look.
+- Fixed UI spacing issues in Lead Velocity graph.

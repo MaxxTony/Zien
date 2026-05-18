@@ -1,57 +1,49 @@
 import { DashboardLayout } from '@/components/main';
+import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
-import { 
-    ScrollView, 
-    StyleSheet, 
-    Text, 
-    TextInput, 
-    TouchableOpacity, 
-    View, 
-    Dimensions,
-    Alert,
-    Modal,
-    KeyboardAvoidingView,
-    Platform
-} from 'react-native';
 import { useRouter } from 'expo-router';
+import {
+    createEmployee,
+    deleteEmployee,
+    Employee,
+    getTeamEmployees,
+    getTeamProfile,
+    getTeamRoles,
+    updateEmployee,
+    updateEmployeePassword,
+    updateEmployeeStatus
+} from '@/services/dashboardService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import PhoneInput from 'react-native-phone-number-input';
 import { AGENCY_BG, AGENCY_MENU_ITEMS, AgencyLogo } from './index';
 
 const { width } = Dimensions.get('window');
 
-const STATS = [
-    { icon: 'account-group', value: '12 / 20', label: 'MY TEAM SIZE' },
-    { icon: 'account-check', value: '10', label: 'ACTIVE AGENTS' },
-    { icon: 'view-grid', value: '45', label: 'TOTAL MODULES' },
-    { icon: 'chart-line', value: '6.4', label: 'AVG ACCESS' },
-];
 
-const MODULES = [
-    "CRM Engine (Master Access)",
-    "AI Studio & Content Hub",
-    "Property Portfolio HQ",
-    "Social Hub & Campaigns",
-    "Zien Security Guard",
-    "Visual Hub (3D & Tours)",
-    "Deal Rooms & Docs",
-    "Landing Page Studio"
-];
-
-const AGENTS = [
-    { id: '1', name: 'Michael Chen', email: 'michael@skyline.com', role: 'Senior Agent', status: 'Active', joined: 'Jan 10, 2026', initial: 'M' },
-    { id: '2', name: 'Sarah Jenkins', email: 'sarah.j@skyline.com', role: 'Support Agent', status: 'Active', joined: 'Jan 15, 2026', initial: 'S' },
-    { id: '3', name: 'David Miller', email: 'david@skyline.com', role: 'Senior Agent', status: 'Inactive', joined: 'Feb 02, 2026', initial: 'D' },
-    { id: '4', name: 'Jessica Wong', email: 'jessica@skyline.com', role: 'Agent', status: 'Pending', joined: 'Feb 12, 2026', initial: 'J' },
-    { id: '5', name: 'Robert Wilson', email: 'robert@skyline.com', role: 'Manager', status: 'Active', joined: 'Dec 20, 2023', initial: 'R' },
-];
-
-const StatCard = ({ icon, value, label }: any) => {
+const StatCard = ({ icon, value, label, color }: any) => {
     const { colors } = useAppTheme();
     return (
         <View style={[styles.statPanel, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
-            <View style={styles.statIconBox}>
-                <MaterialCommunityIcons name={icon} size={20} color={colors.accentTeal} />
+            <View style={[styles.statIconBox, { backgroundColor: `${color}15` }]}>
+                <MaterialCommunityIcons name={icon} size={20} color={color} />
             </View>
             <View style={styles.statContent}>
                 <Text style={[styles.statValue, { color: colors.textPrimary }]}>{value}</Text>
@@ -61,233 +53,609 @@ const StatCard = ({ icon, value, label }: any) => {
     );
 };
 
-const AgentModal = ({ visible, onClose, agent, onSave }: any) => {
+const AgentModal = ({ visible, onClose, agent, onSave, roles, isSaving }: any) => {
     const { colors } = useAppTheme();
     const isEdit = !!agent;
     const [form, setForm] = useState<any>({
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
-        role: 'Agent',
-        status: 'Active',
-        selectedModules: [MODULES[0]]
+        password: '',
+        confirm_password: '',
+        phone: '',
+        country_code: '+1',
+        license_number: '',
+        address: '',
+        role_id: roles?.[0]?.id || '',
+        description: '',
+        status: 1,
     });
+
+    const [showRolePicker, setShowRolePicker] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const phoneInputRef = useRef<PhoneInput>(null);
 
     useEffect(() => {
         if (visible) {
             if (agent) {
-                setForm({ ...agent });
+                setForm({
+                    first_name: agent.user.first_name || '',
+                    last_name: agent.user.last_name || '',
+                    email: agent.user.email || '',
+                    password: '', // Usually don't populate password on edit
+                    confirm_password: '',
+                    phone: agent.user.phone || '',
+                    country_code: agent.user.country_code || '+1',
+                    license_number: agent.user.license_number || '',
+                    address: agent.user.address || '',
+                    role_id: agent.role_id,
+                    description: agent.user.description || '',
+                    status: agent.status
+                });
             } else {
                 setForm({
-                    name: '',
+                    first_name: '',
+                    last_name: '',
                     email: '',
-                    role: 'Agent',
-                    status: 'Active',
-                    selectedModules: [MODULES[0]]
+                    password: '',
+                    confirm_password: '',
+                    phone: '',
+                    country_code: '+1',
+                    license_number: '',
+                    address: '',
+                    role_id: roles?.[0]?.id || '',
+                    description: '',
+                    status: 1,
                 });
             }
+            setShowRolePicker(false);
         }
-    }, [agent, visible]);
+    }, [agent, visible, roles]);
 
-    const toggleModule = (module: string) => {
-        const current = form.selectedModules || [];
-        if (current.includes(module)) {
-            setForm({ ...form, selectedModules: current.filter((m: string) => m !== module) });
-        } else {
-            setForm({ ...form, selectedModules: [...current, module] });
+    const handleSubmit = () => {
+        let newErrors: Record<string, string> = {};
+
+        if (!form.first_name?.trim()) newErrors.first_name = 'First name is required';
+        if (!form.last_name?.trim()) newErrors.last_name = 'Last name is required';
+
+        if (!form.email?.trim()) {
+            newErrors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+            newErrors.email = 'Please enter a valid email';
         }
+
+        if (!isEdit) {
+            if (!form.password) newErrors.password = 'Password is required';
+            else if (form.password.length < 8) newErrors.password = 'Min 8 characters required';
+
+            if (form.password !== form.confirm_password) newErrors.confirm_password = 'Passwords must match';
+        }
+
+        if (!form.role_id) newErrors.role_id = 'Role is required';
+
+        if (form.phone && phoneInputRef.current && !phoneInputRef.current.isValidNumber(form.phone)) {
+            newErrors.phone = 'Invalid phone number';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({});
+        onSave(form);
     };
 
     return (
         <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-            <View style={[styles.modalContainer, { backgroundColor: '#FFFFFF' }]}>
-                <View style={[styles.modalHeader, { borderBottomColor: colors.cardBorder }]}>
-                    <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
-                    </TouchableOpacity>
-                    <View>
-                        <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{isEdit ? "Edit Agent Configuration" : "Register New Agent"}</Text>
-                        <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>{isEdit ? "Update professional details and status" : "Add a new member to your agency team"}</Text>
-                    </View>
-                </View>
-
+            <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-                    <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                        {/* Form Grid */}
-                        <View style={styles.formGrid}>
-                            <View style={styles.inputWrap}>
-                                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Full Name</Text>
-                                <TextInput 
-                                    style={[styles.modalInput, { backgroundColor: colors.surfaceSoft, color: colors.textPrimary, borderColor: colors.cardBorder }]}
-                                    value={form.name}
-                                    placeholder="Enter agent name"
-                                    placeholderTextColor={colors.textSecondary}
-                                    onChangeText={(t) => setForm({ ...form, name: t })}
-                                />
-                            </View>
-                            <View style={styles.inputWrap}>
-                                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Email Address</Text>
-                                <TextInput 
-                                    style={[styles.modalInput, { backgroundColor: colors.surfaceSoft, color: colors.textPrimary, borderColor: colors.cardBorder }]}
-                                    value={form.email}
-                                    placeholder="agent@company.com"
-                                    placeholderTextColor={colors.textSecondary}
-                                    onChangeText={(t) => setForm({ ...form, email: t })}
-                                />
-                            </View>
-                            <View style={styles.inputWrap}>
-                                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Agency Role</Text>
-                                <TouchableOpacity style={[styles.modalPicker, { backgroundColor: colors.surfaceSoft, borderColor: colors.cardBorder }]}>
-                                    <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{form.role}</Text>
-                                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textSecondary} />
+                    <View style={{ flex: 1 }}>
+                        {/* Header */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 24, paddingTop: Platform.OS === 'ios' ? 60 : 24, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                                <TouchableOpacity onPress={onClose} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                                    <MaterialCommunityIcons name="arrow-left" size={24} color="#0D1B2A" />
                                 </TouchableOpacity>
-                            </View>
-                            <View style={styles.inputWrap}>
-                                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Account Status</Text>
-                                <TouchableOpacity style={[styles.modalPicker, { backgroundColor: colors.surfaceSoft, borderColor: colors.cardBorder }]}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: form.status === 'Active' ? '#10B981' : '#94A3B8' }} />
-                                        <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{form.status}</Text>
-                                    </View>
-                                    <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textSecondary} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Notice Card */}
-                        <View style={[styles.noticeCard, { backgroundColor: isEdit ? 'rgba(249, 115, 22, 0.05)' : 'rgba(11, 160, 178, 0.05)', borderColor: isEdit ? 'rgba(249, 115, 22, 0.1)' : 'rgba(11, 160, 178, 0.1)' }]}>
-                            <View style={{ flexDirection: 'row', gap: 12 }}>
-                                <View style={[styles.noticeIcon, { backgroundColor: isEdit ? 'rgba(249, 115, 22, 0.1)' : 'rgba(11, 160, 178, 0.1)' }]}>
-                                    <MaterialCommunityIcons name="information-outline" size={20} color={isEdit ? '#F97316' : '#0BA0B2'} />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[styles.noticeTitle, { color: isEdit ? '#F97316' : '#0BA0B2' }]}>{isEdit ? "Security Notice" : "Onboarding Note"}</Text>
-                                    <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
-                                        {isEdit 
-                                            ? "Email changes require a new verification cycle. The agent will be locked out until their new email is confirmed."
-                                            : "Once registered, the agent will receive an invitation email to set their temporary password and access their dashboard."
-                                        }
+                                <View>
+                                    <Text style={{ fontSize: 18, fontWeight: '900', color: '#0D1B2A' }}>
+                                        {isEdit ? "Edit Team Member" : "Add New Team Member"}
+                                    </Text>
+                                    <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
+                                        {isEdit ? "Update professional details" : "Register a new agency agent"}
                                     </Text>
                                 </View>
                             </View>
                         </View>
 
-                        {/* Module Access */}
-                        <View style={styles.moduleSection}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#F97316" />
-                                <Text style={[styles.inputLabel, { color: colors.textPrimary, fontSize: 14, textTransform: 'none' }]}>
-                                    {isEdit ? "Updated Module Access" : "Role-Based Module Access"}
-                                </Text>
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 24, gap: 20 }}>
+                            {/* Row 1: Name (Single Column) */}
+                            <View style={{ gap: 6 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>First Name <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                                <TextInput style={{ height: 48, borderWidth: 1, borderColor: errors.first_name ? '#EF4444' : '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, fontSize: 14, color: '#0D1B2A', backgroundColor: '#F8FAFC' }}
+                                    value={form.first_name} onChangeText={t => { setForm({ ...form, first_name: t }); setErrors({ ...errors, first_name: '' }); }} placeholder="John" placeholderTextColor="#94A3B8" />
+                                {errors.first_name && <Text style={{ fontSize: 11, color: '#EF4444' }}>{errors.first_name}</Text>}
                             </View>
-                            <Text style={[styles.moduleDesc, { color: colors.textSecondary }]}>
-                                Changes to this agent's role will automatically update their permissions in the next sync.
-                            </Text>
 
-                            <View style={styles.moduleGrid}>
-                                {MODULES.map((mod) => {
-                                    const isSelected = form.selectedModules?.includes(mod);
-                                    return (
-                                        <TouchableOpacity 
-                                            key={mod} 
-                                            style={[styles.moduleItem, { backgroundColor: colors.surfaceSoft, borderColor: isSelected ? colors.accentTeal : colors.cardBorder }]}
-                                            onPress={() => toggleModule(mod)}
-                                        >
-                                            <View style={[styles.checkbox, { backgroundColor: isSelected ? colors.accentTeal : 'transparent', borderColor: isSelected ? colors.accentTeal : colors.textSecondary }]}>
-                                                {isSelected && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
-                                            </View>
-                                            <Text style={[styles.moduleText, { color: colors.textPrimary }]}>{mod}</Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                            <View style={{ gap: 6 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>Last Name <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                                <TextInput style={{ height: 48, borderWidth: 1, borderColor: errors.last_name ? '#EF4444' : '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, fontSize: 14, color: '#0D1B2A', backgroundColor: '#F8FAFC' }}
+                                    value={form.last_name} onChangeText={t => { setForm({ ...form, last_name: t }); setErrors({ ...errors, last_name: '' }); }} placeholder="Doe" placeholderTextColor="#94A3B8" />
+                                {errors.last_name && <Text style={{ fontSize: 11, color: '#EF4444' }}>{errors.last_name}</Text>}
                             </View>
+
+                            {/* Row 2: Email */}
+                            <View style={{ gap: 6 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>Email Address <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                                <TextInput style={{ height: 48, borderWidth: 1, borderColor: errors.email ? '#EF4444' : '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, fontSize: 14, color: '#0D1B2A', backgroundColor: '#F8FAFC' }}
+                                    value={form.email} onChangeText={t => { setForm({ ...form, email: t }); setErrors({ ...errors, email: '' }); }} placeholder="john.doe@agency.com" placeholderTextColor="#94A3B8" keyboardType="email-address" autoCapitalize="none" />
+                                {errors.email && <Text style={{ fontSize: 11, color: '#EF4444' }}>{errors.email}</Text>}
+                            </View>
+
+                            {/* Row 3: Passwords (Only for Add) */}
+                            {!isEdit && (
+                                <>
+                                    <View style={{ gap: 6 }}>
+                                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>Password <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', height: 48, borderWidth: 1, borderColor: errors.password ? '#EF4444' : '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, backgroundColor: '#F8FAFC' }}>
+                                            <TextInput style={{ flex: 1, fontSize: 14, color: '#0D1B2A' }} secureTextEntry={!showPassword}
+                                                value={form.password} onChangeText={t => { setForm({ ...form, password: t }); setErrors({ ...errors, password: '' }); }} placeholder="Min 8 characters" placeholderTextColor="#94A3B8" />
+                                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                                <MaterialCommunityIcons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#64748B" />
+                                            </TouchableOpacity>
+                                        </View>
+                                        {errors.password && <Text style={{ fontSize: 11, color: '#EF4444' }}>{errors.password}</Text>}
+                                    </View>
+
+                                    <View style={{ gap: 6 }}>
+                                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>Confirm Password <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', height: 48, borderWidth: 1, borderColor: errors.confirm_password ? '#EF4444' : '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, backgroundColor: '#F8FAFC' }}>
+                                            <TextInput style={{ flex: 1, fontSize: 14, color: '#0D1B2A' }} secureTextEntry={!showConfirmPassword}
+                                                value={form.confirm_password} onChangeText={t => { setForm({ ...form, confirm_password: t }); setErrors({ ...errors, confirm_password: '' }); }} placeholder="Repeat password" placeholderTextColor="#94A3B8" />
+                                            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                                <MaterialCommunityIcons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#64748B" />
+                                            </TouchableOpacity>
+                                        </View>
+                                        {errors.confirm_password && <Text style={{ fontSize: 11, color: '#EF4444' }}>{errors.confirm_password}</Text>}
+                                    </View>
+                                </>
+                            )}
+
+                            {/* Row 4: Phone and License */}
+                            <View style={{ gap: 6 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>Phone Number</Text>
+                                <PhoneInput
+                                    ref={phoneInputRef}
+                                    defaultValue={form.phone}
+                                    defaultCode="US"
+                                    layout="first"
+                                    onChangeText={(text) => {
+                                        // Only allow digits
+                                        const cleaned = text.replace(/[^0-9]/g, '').slice(0, 15);
+                                        setForm({ ...form, phone: cleaned });
+                                        setErrors({ ...errors, phone: '' });
+                                    }}
+                                    onChangeCountry={(country) => {
+                                        setForm({ ...form, country_code: '+' + country.callingCode[0] });
+                                    }}
+                                    containerStyle={[{ width: '100%', height: 48, borderWidth: 1, borderColor: errors.phone ? '#EF4444' : '#E2E8F0', borderRadius: 10, backgroundColor: '#F8FAFC', overflow: 'hidden' }]}
+                                    textContainerStyle={{ backgroundColor: 'transparent', paddingVertical: 0, paddingHorizontal: 0 }}
+                                    textInputStyle={{ fontSize: 14, color: '#0D1B2A', backgroundColor: 'transparent', marginLeft: 10, fontWeight: '500' }}
+                                    codeTextStyle={{ fontSize: 14, color: '#0D1B2A', paddingHorizontal: 10, fontWeight: '600' }}
+                                    flagButtonStyle={{ width: 60, height: 48, backgroundColor: 'transparent', borderRightWidth: 1, borderRightColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center' }}
+                                    placeholder="Phone number"
+                                    textInputProps={{
+                                        placeholderTextColor: '#94A3B8',
+                                        keyboardType: 'phone-pad',
+                                        maxLength: 15,
+                                    }}
+                                />
+                                {errors.phone && <Text style={{ fontSize: 11, color: '#EF4444' }}>{errors.phone}</Text>}
+                            </View>
+
+                            <View style={{ gap: 6 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>License Number</Text>
+                                <TextInput style={{ height: 48, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, fontSize: 14, color: '#0D1B2A', backgroundColor: '#F8FAFC' }}
+                                    value={form.license_number} onChangeText={t => setForm({ ...form, license_number: t })} placeholder="RE-123456" placeholderTextColor="#94A3B8" />
+                            </View>
+
+                            {/* Row 5: Address */}
+                            <View style={{ gap: 6 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>Address</Text>
+                                <TextInput style={{ height: 48, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, fontSize: 14, color: '#0D1B2A', backgroundColor: '#F8FAFC' }}
+                                    value={form.address} onChangeText={t => setForm({ ...form, address: t })} placeholder="123 Agency St, City, State" placeholderTextColor="#94A3B8" />
+                            </View>
+
+                            {/* Row 6: Assign Role */}
+                            <View style={{ gap: 6, zIndex: 10 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>Assign Role <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 48, borderWidth: 1, borderColor: errors.role_id ? '#EF4444' : (showRolePicker ? '#0BA0B2' : '#E2E8F0'), borderRadius: 10, paddingHorizontal: 16, backgroundColor: '#F8FAFC' }}
+                                    onPress={() => setShowRolePicker(!showRolePicker)}
+                                >
+                                    <Text style={{ fontSize: 14, color: form.role_id ? '#0D1B2A' : '#94A3B8' }}>
+                                        {roles?.find((r: any) => r.id === form.role_id)?.name || 'Select a role...'}
+                                    </Text>
+                                    <MaterialCommunityIcons name={showRolePicker ? "chevron-up" : "chevron-down"} size={22} color="#0D1B2A" />
+                                </TouchableOpacity>
+                                {errors.role_id && <Text style={{ fontSize: 11, color: '#EF4444' }}>{errors.role_id}</Text>}
+
+                                {showRolePicker && (
+                                    <View style={{ position: 'absolute', top: errors.role_id ? 90 : 72, left: 0, right: 0, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, overflow: 'hidden', elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 }}>
+                                        {roles?.map((r: any, idx: number) => {
+                                            const isSelected = r.id === form.role_id;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={r.id}
+                                                    style={{ paddingVertical: 14, paddingHorizontal: 16, backgroundColor: isSelected ? '#3B82F6' : '#fff', borderBottomWidth: idx === roles.length - 1 ? 0 : 1, borderBottomColor: '#F1F5F9' }}
+                                                    onPress={() => { setForm({ ...form, role_id: r.id }); setErrors({ ...errors, role_id: '' }); setShowRolePicker(false); }}
+                                                >
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                        {isSelected && <MaterialCommunityIcons name="check" size={18} color="#fff" />}
+                                                        <Text style={{ fontSize: 14, color: isSelected ? '#fff' : '#0D1B2A', fontWeight: isSelected ? '700' : '500', marginLeft: isSelected ? 0 : 26 }}>{r.name}</Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Row 7: Description */}
+                            <View style={{ gap: 6, zIndex: 1 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#0D1B2A' }}>Description</Text>
+                                <TextInput style={{ height: 100, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, paddingTop: 16, fontSize: 14, color: '#0D1B2A', backgroundColor: '#F8FAFC', textAlignVertical: 'top' }}
+                                    value={form.description} onChangeText={t => setForm({ ...form, description: t })} placeholder="Add notes about this agent..." placeholderTextColor="#94A3B8" multiline />
+                            </View>
+
+                            <View style={{ height: 20 }} />
+                        </ScrollView>
+
+                        {/* Footer */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, borderTopWidth: 1, borderTopColor: '#F1F5F9', backgroundColor: '#fff', paddingBottom: Platform.OS === 'ios' ? 20 : 24 }}>
+                            <TouchableOpacity
+                                style={{ flex: 1, height: 48, borderRadius: 12, backgroundColor: '#0D1B2A', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', opacity: isSaving ? 0.7 : 1 }}
+                                onPress={handleSubmit}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? (
+                                    <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                                ) : (
+                                    <MaterialCommunityIcons name={isEdit ? "content-save-outline" : "account-plus-outline"} size={20} color="#fff" style={{ marginRight: 8 }} />
+                                )}
+                                <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff' }}>{isSaving ? "Saving..." : (isEdit ? "Save Changes" : "Confirm Registration")}</Text>
+                            </TouchableOpacity>
                         </View>
-
-                        <TouchableOpacity style={[styles.saveBtnFull, { backgroundColor: '#0D1B2A' }]} onPress={() => onSave(form)}>
-                            <MaterialCommunityIcons name={isEdit ? "content-save-outline" : "account-plus-outline"} size={20} color="#fff" style={{ marginRight: 8 }} />
-                            <Text style={styles.saveBtnTextFull}>{isEdit ? "Save Agent Changes" : "Confirm Registration"}</Text>
-                        </TouchableOpacity>
-                        
-                        <View style={{ height: 40 }} />
-                    </ScrollView>
+                    </View>
                 </KeyboardAvoidingView>
             </View>
         </Modal>
     );
 };
 
-const AgentCard = ({ agent, onDelete, onEdit }: { agent: any; onDelete: (id: string) => void; onEdit: (agent: any) => void }) => {
+const AgentDetailsModal = ({ visible, onClose, agent, onEdit, onChangePassword, onDelete, onToggleStatus, isUpdating }: { visible: boolean; onClose: () => void; agent: Employee | null; onEdit: (agent: Employee) => void; onChangePassword: (agent: Employee) => void; onDelete: (agent: Employee) => void; onToggleStatus: (agent: Employee) => void; isUpdating?: boolean }) => {
     const { colors } = useAppTheme();
     const router = useRouter();
-    const isInactive = agent.status === 'Inactive';
-    const isPending = agent.status === 'Pending';
-    
-    const statusBg = isInactive ? 'rgba(148, 163, 184, 0.1)' : isPending ? 'rgba(249, 115, 22, 0.1)' : 'rgba(16, 185, 129, 0.1)';
-    const statusColor = isInactive ? '#94A3B8' : isPending ? '#F97316' : '#10B981';
+    if (!agent) return null;
 
-    const handleDelete = () => {
-        Alert.alert(
-            "Confirm Deletion",
-            `Are you sure you want to delete ${agent.name}? This action cannot be undone.`,
-            [
-                { text: "Cancel", style: "cancel" },
-                { 
-                    text: "Delete", 
-                    style: "destructive", 
-                    onPress: () => onDelete(agent.id) 
-                }
-            ]
-        );
-    };
+    const statusKey = agent.status === 1 ? 'active' : agent.status === 2 ? 'pending' : 'inactive';
+    const sc = STATUS_CONFIG[statusKey];
+    const fullName = `${agent.user.first_name} ${agent.user.last_name}`.trim();
+    const joinedDate = new Date(agent.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    const handleKeyAction = () => {
-        router.push('/(main)/dashboard');
+    const InfoRow = ({ label, value }: { label: string; value: string | null | undefined }) => (
+        <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '500' }}>{label}</Text>
+            <Text style={{ fontSize: 13, color: '#0D1B2A', fontWeight: '800', flex: 1, textAlign: 'right', marginLeft: 20 }}>{value || '-'}</Text>
+        </View>
+    );
+
+    return (
+        <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+            <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+                {/* Header Area */}
+                <View style={{ backgroundColor: '#fff', padding: 24, paddingTop: Platform.OS === 'ios' ? 60 : 24, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' }}>
+                    <TouchableOpacity onPress={onClose} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+                        <MaterialCommunityIcons name="arrow-left" size={16} color="#0BA0B2" />
+                        <Text style={{ color: '#0BA0B2', fontSize: 13, fontWeight: '700' }}>Back to team members</Text>
+                    </TouchableOpacity>
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View>
+                            <Text style={{ fontSize: 24, fontWeight: '900', color: '#0D1B2A' }}>Agent Details</Text>
+                            <Text style={{ fontSize: 14, color: '#64748B', marginTop: 4 }}>{fullName}</Text>
+                        </View>
+                    </View>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, marginTop: 24 }}>
+                        <TouchableOpacity 
+                            onPress={() => { onClose(); router.push('/(main)/agency/access-control'); }}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' }}
+                        >
+                            <MaterialCommunityIcons name="shield-check-outline" size={16} color="#0D1B2A" />
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#0D1B2A' }}>Manage Role Permissions</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            onPress={() => onEdit(agent)}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' }}
+                        >
+                            <MaterialCommunityIcons name="pencil-outline" size={16} color="#0D1B2A" />
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#0D1B2A' }}>Edit Info</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            onPress={() => onChangePassword(agent)}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' }}
+                        >
+                            <MaterialCommunityIcons name="key-variant" size={16} color="#0D1B2A" />
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#0D1B2A' }}>Change Password</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            onPress={() => onDelete(agent)}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#FEE2E2', backgroundColor: '#FEF2F2' }}
+                        >
+                            <MaterialCommunityIcons name="trash-can-outline" size={16} color="#EF4444" />
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#EF4444' }}>Delete Agent</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+                </View>
+
+                <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
+                    {/* Basic Info Card */}
+                    <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                        <Text style={{ fontSize: 15, fontWeight: '900', color: '#0D1B2A', marginBottom: 8 }}>Basic Information</Text>
+                        <InfoRow label="First Name" value={agent.user.first_name} />
+                        <InfoRow label="Last Name" value={agent.user.last_name} />
+                        <InfoRow label="Email Address" value={agent.user.email} />
+                        <InfoRow label="Phone" value={agent.user.phone} />
+                        <InfoRow label="Address" value={agent.user.address} />
+                    </View>
+
+                    {/* Role and Access Card */}
+                    <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                        <Text style={{ fontSize: 15, fontWeight: '900', color: '#0D1B2A', marginBottom: 8 }}>Role and Access</Text>
+                        <InfoRow label="Role" value={agent.role?.name} />
+                        
+                        <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '500' }}>Status</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                {isUpdating ? (
+                                    <ActivityIndicator size="small" color="#0BA0B2" />
+                                ) : (
+                                    <Switch
+                                        value={agent.status === 1}
+                                        onValueChange={() => onToggleStatus(agent)}
+                                        trackColor={{ false: '#E2E8F0', true: '#10B981' }}
+                                        thumbColor="#FFFFFF"
+                                        style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                                    />
+                                )}
+                                <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: sc.bg }}>
+                                    <Text style={{ fontSize: 10, fontWeight: '800', color: sc.color }}>{sc.label.toUpperCase()}</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <InfoRow label="License Number" value={agent.user.license_number} />
+                        <InfoRow label="Description" value={agent.user.description} />
+                        <InfoRow label="Joined Date" value={joinedDate} />
+                    </View>
+                </ScrollView>
+            </View>
+        </Modal>
+    );
+};
+
+const ChangePasswordModal = ({ visible, onClose, agent, onUpdate, isUpdating }: { visible: boolean; onClose: () => void; agent: Employee | null; onUpdate: (password: string) => void; isUpdating: boolean }) => {
+    const [passwords, setPasswords] = useState({ new: '', confirm: '' });
+    const [showPass, setShowPass] = useState({ new: false, confirm: false });
+
+    if (!agent) return null;
+
+    const handleUpdate = () => {
+        if (!passwords.new || passwords.new.length < 8) {
+            Alert.alert("Error", "Password must be at least 8 characters");
+            return;
+        }
+        if (passwords.new !== passwords.confirm) {
+            Alert.alert("Error", "Passwords do not match");
+            return;
+        }
+
+        onUpdate(passwords.new);
     };
 
     return (
+        <Modal visible={visible} transparent={true} animationType="fade">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ width: '90%', backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
+                        <Text style={{ fontSize: 18, fontWeight: '900', color: '#0D1B2A' }}>Change Password</Text>
+                        <TouchableOpacity onPress={onClose}>
+                            <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={{ padding: 20, gap: 16 }}>
+                        <View style={{ gap: 6 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#0D1B2A' }}>New Password <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', height: 48, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, backgroundColor: '#F8FAFC' }}>
+                                <TextInput 
+                                    style={{ flex: 1, fontSize: 14, color: '#0D1B2A' }} 
+                                    secureTextEntry={!showPass.new}
+                                    value={passwords.new}
+                                    onChangeText={t => setPasswords({...passwords, new: t})}
+                                    placeholder="Enter new password"
+                                />
+                                <TouchableOpacity onPress={() => setShowPass({...showPass, new: !showPass.new})}>
+                                    <MaterialCommunityIcons name={showPass.new ? "eye-off-outline" : "eye-outline"} size={20} color="#64748B" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <View style={{ gap: 6 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#0D1B2A' }}>Confirm New Password <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', height: 48, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 16, backgroundColor: '#F8FAFC' }}>
+                                <TextInput 
+                                    style={{ flex: 1, fontSize: 14, color: '#0D1B2A' }} 
+                                    secureTextEntry={!showPass.confirm}
+                                    value={passwords.confirm}
+                                    onChangeText={t => setPasswords({...passwords, confirm: t})}
+                                    placeholder="Confirm your password"
+                                />
+                                <TouchableOpacity onPress={() => setShowPass({...showPass, confirm: !showPass.confirm})}>
+                                    <MaterialCommunityIcons name={showPass.confirm ? "eye-off-outline" : "eye-outline"} size={20} color="#64748B" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, padding: 20, backgroundColor: '#F8FAFC', borderTopWidth: 1, borderTopColor: '#F1F5F9' }}>
+                        <TouchableOpacity 
+                            style={{ height: 44, paddingHorizontal: 24, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+                            onPress={onClose}
+                        >
+                            <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748B' }}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={{ height: 44, paddingHorizontal: 24, borderRadius: 10, backgroundColor: '#0D1B2A', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}
+                            onPress={handleUpdate}
+                            disabled={isUpdating}
+                        >
+                            {isUpdating && <ActivityIndicator size="small" color="#fff" />}
+                            <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Update Password</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+};
+
+const AVATAR_PALETTE = ['#6366F1', '#8B5CF6', '#EC4899', '#0BA0B2', '#10B981', '#F59E0B', '#3B82F6', '#EF4444'];
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; accentBorder: string }> = {
+    active: { label: 'Active', color: '#10B981', bg: 'rgba(16,185,129,0.1)', accentBorder: '#10B981' },
+    pending: { label: 'Pending', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', accentBorder: '#F59E0B' },
+    inactive: { label: 'Inactive', color: '#EF4444', bg: 'rgba(239,68,68,0.1)', accentBorder: '#EF4444' },
+};
+
+const AgentCard = ({ agent, onDelete, onEdit, onView, onChangePassword, onToggleStatus, isUpdating }: { agent: Employee; onDelete: (agent: Employee) => void; onEdit: (agent: Employee) => void; onView: () => void; onChangePassword: (agent: Employee) => void; onToggleStatus: (agent: Employee) => void; isUpdating?: boolean }) => {
+    const { colors } = useAppTheme();
+
+    const statusKey = agent.status === 1 ? 'active' : agent.status === 2 ? 'pending' : 'inactive';
+    const sc = STATUS_CONFIG[statusKey];
+
+    const charCode = agent.user.first_name?.charCodeAt(0) || 65;
+    const avatarBg = AVATAR_PALETTE[charCode % AVATAR_PALETTE.length];
+    const initial = agent.user.first_name?.charAt(0).toUpperCase() || '?';
+    const fullName = `${agent.user.first_name} ${agent.user.last_name}`.trim();
+    const joinedDate = new Date(agent.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    return (
         <View style={[styles.agentCard, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
-            <View style={styles.agentCardTop}>
-                <View style={[styles.avatarBox, { backgroundColor: colors.surfaceSoft }]}>
-                    <Text style={[styles.avatarText, { color: colors.textPrimary }]}>{agent.initial}</Text>
-                </View>
-                <View style={styles.agentBasicInfo}>
-                    <Text style={[styles.agentName, { color: colors.textPrimary }]}>{agent.name}</Text>
-                    <Text style={[styles.agentEmail, { color: colors.textSecondary }]}>{agent.email}</Text>
-                </View>
-                <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
-                    <Text style={[styles.statusPillText, { color: statusColor }]}>{agent.status}</Text>
-                </View>
-            </View>
+            {/* Left accent stripe */}
+            <View style={[styles.cardAccentStripe, { backgroundColor: sc.accentBorder }]} />
 
-            <View style={styles.agentCardDivider} />
+            <View style={styles.cardInner}>
+                {/* ── Top Row: Avatar + Info + Status ── */}
+                <View style={styles.cardTopRow}>
+                    <View style={[styles.avatarCircle, { backgroundColor: avatarBg }]}>
+                        <Text style={styles.avatarInitial}>{initial}</Text>
+                    </View>
 
-            <View style={styles.agentCardDetails}>
-                <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>ROLE</Text>
-                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{agent.role}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>JOINED</Text>
-                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{agent.joined}</Text>
-                </View>
-            </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={[styles.agentName, { color: '#0D1B2A' }]} numberOfLines={1}>{fullName || 'Unknown Agent'}</Text>
+                        <Text style={[styles.agentEmail, { color: '#64748B' }]} numberOfLines={1}>{agent.user.email || '—'}</Text>
+                        {/* Role badge */}
+                        <View style={styles.roleBadge}>
+                            <MaterialCommunityIcons name="shield-half-full" size={10} color="#0BA0B2" />
+                            <Text style={styles.roleBadgeText}>{agent.role?.name || 'No Role Assigned'}</Text>
+                        </View>
+                    </View>
 
-            <View style={styles.agentCardFooter}>
-                <View style={styles.moduleAccessPreview}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary, marginBottom: 4 }]}>MODULE ACCESS</Text>
-                    <Text style={[styles.moduleSubtitle, { color: colors.textSecondary }]}>
-                        CRM · AI STUDIO · VISUALS · SAFETY · SOCIAL · +3 MORE
-                    </Text>
+                    {/* Status + Toggle stacked */}
+                    <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                        <View style={[styles.statusChip, { backgroundColor: sc.bg }]}>
+                            <View style={[styles.statusDot, { backgroundColor: sc.color }]} />
+                            <Text style={[styles.statusChipText, { color: sc.color }]}>{sc.label.toUpperCase()}</Text>
+                        </View>
+                        {isUpdating ? (
+                            <ActivityIndicator size="small" color="#0BA0B2" style={{ marginRight: 2 }} />
+                        ) : (
+                            <Switch
+                                value={agent.status === 1}
+                                onValueChange={() => onToggleStatus(agent)}
+                                trackColor={{ false: '#E2E8F0', true: '#10B981' }}
+                                thumbColor="#FFFFFF"
+                                style={{ transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] }}
+                            />
+                        )}
+                    </View>
                 </View>
-                <View style={styles.agentActions}>
-                    <View style={styles.actionBtnGroup}>
-                        <TouchableOpacity style={styles.actionBtn} onPress={handleKeyAction}>
-                            <MaterialCommunityIcons name="key-variant" size={18} color={colors.accentTeal} />
+
+                {/* ── Divider ── */}
+                <View style={styles.agentCardDivider} />
+
+                {/* ── Meta Grid ── */}
+                <View style={styles.metaGrid}>
+                    <View style={styles.metaCell}>
+                        <View style={styles.metaIconWrap}>
+                            <MaterialCommunityIcons name="card-account-details-outline" size={13} color="#0BA0B2" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.metaLabel}>LICENSE</Text>
+                            <Text style={[styles.metaValue, { color: '#0D1B2A' }]} numberOfLines={1} ellipsizeMode="tail">
+                                {agent.user.license_number || '—'}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.metaCell}>
+                        <View style={styles.metaIconWrap}>
+                            <MaterialCommunityIcons name="calendar-check-outline" size={13} color="#8B5CF6" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.metaLabel}>JOINED</Text>
+                            <Text style={[styles.metaValue, { color: '#0D1B2A' }]} numberOfLines={1}>{joinedDate}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.metaCell}>
+                        <View style={styles.metaIconWrap}>
+                            <MaterialCommunityIcons name="identifier" size={13} color="#F59E0B" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.metaLabel}>MEMBER ID</Text>
+                            <Text style={[styles.metaValue, { color: '#0D1B2A' }]} numberOfLines={1}>#{agent.id}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* ── Divider ── */}
+                <View style={styles.agentCardDivider} />
+
+                {/* ── Action Row ── */}
+                <View style={styles.actionRow}>
+                    <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(agent)}>
+                        <MaterialCommunityIcons name="pencil-outline" size={14} color="#fff" />
+                        <Text style={styles.editBtnText}>Edit Profile</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.iconActions}>
+                        <TouchableOpacity style={styles.iconActionBtn} onPress={onView}>
+                            <MaterialCommunityIcons name="eye-outline" size={16} color="#0BA0B2" />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionBtn} onPress={() => onEdit(agent)}>
-                            <MaterialCommunityIcons name="pencil" size={18} color={colors.accentTeal} />
+                        <TouchableOpacity style={styles.iconActionBtn} onPress={() => onChangePassword(agent)}>
+                            <MaterialCommunityIcons name="key-variant" size={16} color="#8B5CF6" />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionBtn} onPress={handleDelete}>
-                            <MaterialCommunityIcons name="delete" size={18} color="#EF4444" />
+                        <TouchableOpacity style={[styles.iconActionBtn, { backgroundColor: '#FEF2F2' }]} onPress={() => onDelete(agent)}>
+                            <MaterialCommunityIcons name="delete-outline" size={16} color="#EF4444" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -298,13 +666,129 @@ const AgentCard = ({ agent, onDelete, onEdit }: { agent: any; onDelete: (id: str
 
 export default function TeamManagement() {
     const { colors } = useAppTheme();
+    const { accessToken } = useAuth();
+    const queryClient = useQueryClient();
     const [selectedTab, setSelectedTab] = useState('All Agents');
-    const [agents, setAgents] = useState(AGENTS);
     const [modalVisible, setModalVisible] = useState(false);
-    const [editingAgent, setEditingAgent] = useState<any>(null);
+    const [editingAgent, setEditingAgent] = useState<Employee | null>(null);
+    const [agentToDelete, setAgentToDelete] = useState<Employee | null>(null);
+    const [viewingAgent, setViewingAgent] = useState<Employee | null>(null);
+    const [changePasswordAgent, setChangePasswordAgent] = useState<Employee | null>(null);
+    const [updatingAgentId, setUpdatingAgentId] = useState<number | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const handleDeleteAgent = (id: string) => {
-        setAgents(prev => prev.filter(a => a.id !== id));
+    const { data: profile } = useQuery({
+        queryKey: ['teamProfile'],
+        queryFn: () => getTeamProfile(accessToken!),
+        enabled: !!accessToken,
+    });
+
+    const companyId = profile?.company_id;
+
+    const { data: employeeData, isLoading: loadingEmployees, refetch: refetchEmployees } = useQuery({
+        queryKey: ['teamEmployees', companyId],
+        queryFn: () => getTeamEmployees(accessToken!, companyId!),
+        enabled: !!accessToken && !!companyId,
+    });
+
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = React.useCallback(async () => {
+        setRefreshing(true);
+        await refetchEmployees();
+        setRefreshing(false);
+    }, [refetchEmployees]);
+
+    const { data: roles } = useQuery({
+        queryKey: ['teamRoles', companyId],
+        queryFn: () => getTeamRoles(accessToken!, companyId!),
+        enabled: !!accessToken && !!companyId,
+    });
+
+    const employees = employeeData?.employees || [];
+    const maxMembers = employeeData?.max_members || 10;
+    const activeCount = employees.filter(e => e.status === 1).length;
+    const inactiveCount = employees.length - activeCount;
+
+    const stats = [
+        { icon: 'account-group', value: `${employees.length} / ${maxMembers}`, label: 'TEAM CAPACITY', color: '#0BA0B2' },
+        { icon: 'account-check', value: activeCount.toString(), label: 'ACTIVE AGENTS', color: '#10B981' },
+        { icon: 'account-off', value: inactiveCount.toString(), label: 'INACTIVE AGENTS', color: '#F97316' },
+        { icon: 'shield-check', value: (roles?.length || 0).toString(), label: 'ROLES DEFINED', color: '#8B5CF6' },
+    ];
+
+    const updateStatusMutation = useMutation({
+        mutationFn: (data: { employeeId: number, companyId: number, status: number }) =>
+            updateEmployeeStatus(accessToken!, data.employeeId, data.companyId, data.status),
+        onMutate: (variables) => {
+            setUpdatingAgentId(variables.employeeId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['teamEmployees', companyId] });
+        },
+        onError: (err) => {
+            Alert.alert("Error", err.message || "Failed to update status");
+        },
+        onSettled: () => {
+            setUpdatingAgentId(null);
+        }
+    });
+
+    const updateEmployeeMutation = useMutation({
+        mutationFn: (data: { employeeId: number, payload: any }) =>
+            updateEmployee(accessToken!, data.employeeId, data.payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['teamEmployees', companyId] });
+            setModalVisible(false);
+            Alert.alert("Success", "Agent updated successfully");
+        },
+        onError: (err) => {
+            Alert.alert("Error", err.message || "Failed to update agent");
+        }
+    });
+
+    const createEmployeeMutation = useMutation({
+        mutationFn: (data: any) => createEmployee(accessToken!, { ...data, company_id: companyId }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['teamEmployees', companyId] });
+            setModalVisible(false);
+            Alert.alert("Success", "Agent created successfully");
+        },
+        onError: (err) => {
+            Alert.alert("Error", err.message || "Failed to create agent");
+        }
+    });
+
+    const deleteEmployeeMutation = useMutation({
+        mutationFn: (employeeId: number) => deleteEmployee(accessToken!, employeeId, companyId!),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['teamEmployees', companyId] });
+            setAgentToDelete(null);
+            Alert.alert("Success", "Agent removed successfully");
+        },
+        onError: (err) => {
+            Alert.alert("Error", err.message || "Failed to remove agent");
+        }
+    });
+    const updatePasswordMutation = useMutation({
+        mutationFn: (data: { employeeId: number, password: string }) =>
+            updateEmployeePassword(accessToken!, data.employeeId, companyId!, data.password),
+        onSuccess: () => {
+            setChangePasswordAgent(null);
+            Alert.alert("Success", "Agent password updated successfully");
+        },
+        onError: (err) => {
+            Alert.alert("Error", err.message || "Failed to update password");
+        }
+    });
+    const handleDeleteAgent = (agent: Employee) => {
+        setAgentToDelete(agent);
+    };
+
+    const confirmDeleteAgent = () => {
+        if (agentToDelete) {
+            deleteEmployeeMutation.mutate(agentToDelete.id);
+        }
     };
 
     const handleOpenAdd = () => {
@@ -312,36 +796,58 @@ export default function TeamManagement() {
         setModalVisible(true);
     };
 
-    const handleOpenEdit = (agent: any) => {
+    const handleOpenEdit = (agent: Employee) => {
         setEditingAgent(agent);
         setModalVisible(true);
     };
 
+    const handleToggleStatus = (agent: Employee) => {
+        if (!companyId) return;
+        const newStatus = agent.status === 1 ? 0 : 1;
+        updateStatusMutation.mutate({
+            employeeId: agent.id,
+            companyId: companyId,
+            status: newStatus
+        });
+    };
+
     const handleSaveAgent = (formData: any) => {
+        if (!companyId) return;
         if (editingAgent) {
-            setAgents(prev => prev.map(a => a.id === editingAgent.id ? { ...a, ...formData } : a));
+            updateEmployeeMutation.mutate({
+                employeeId: editingAgent.id,
+                payload: {
+                    ...formData,
+                    company_id: companyId,
+                }
+            });
         } else {
-            const newAgent = {
-                ...formData,
-                id: Math.random().toString(36).substr(2, 9),
-                joined: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-                initial: formData.name.charAt(0).toUpperCase()
-            };
-            setAgents(prev => [newAgent, ...prev]);
+            createEmployeeMutation.mutate(formData);
         }
-        setModalVisible(false);
     };
 
     return (
-        <DashboardLayout 
-            menuItems={AGENCY_MENU_ITEMS} 
+        <DashboardLayout
+            menuItems={AGENCY_MENU_ITEMS}
             customLogo={<AgencyLogo />}
             customBackground={AGENCY_BG}
             customHeaderBackground="#FFFFFF"
             backToMainRoute="/(main)/dashboard"
             isAgency={true}
         >
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[colors.accentTeal]}
+                        tintColor={colors.accentTeal}
+                    />
+                }
+            >
                 {/* Header Section */}
                 <View style={styles.headerArea}>
                     <Text style={[styles.mainHeading, { color: colors.textPrimary }]}>Team Management</Text>
@@ -349,17 +855,21 @@ export default function TeamManagement() {
                 </View>
 
                 {/* Stats Row */}
-                <View style={styles.statsGrid}>
-                    {STATS.map((stat, i) => (
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.statsScroll}
+                >
+                    {stats.map((stat, i) => (
                         <StatCard key={i} {...stat} />
                     ))}
-                </View>
+                </ScrollView>
 
                 {/* Filter Tabs */}
                 <View style={styles.tabsRow}>
                     {['All Agents', 'Active', 'Pending', 'Inactive'].map((tab) => (
-                        <TouchableOpacity 
-                            key={tab} 
+                        <TouchableOpacity
+                            key={tab}
                             onPress={() => setSelectedTab(tab)}
                             style={[styles.tab, selectedTab === tab && styles.tabActive]}
                         >
@@ -373,26 +883,174 @@ export default function TeamManagement() {
                 {/* Search Box */}
                 <View style={[styles.searchBox, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, marginBottom: 20 }]}>
                     <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
-                    <TextInput 
-                        placeholder="Search team members..." 
+                    <TextInput
+                        placeholder="Search by name or email..."
                         placeholderTextColor={colors.textSecondary}
                         style={[styles.searchInput, { color: colors.textPrimary }]}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        autoCapitalize="none"
+                        autoCorrect={false}
                     />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <MaterialCommunityIcons name="close-circle" size={18} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Mobile Agent List */}
-                <View style={styles.agentListContainer}>
-                    {agents.filter(a => selectedTab === 'All Agents' || a.status === selectedTab).map(agent => (
-                        <AgentCard key={agent.id} agent={agent} onDelete={handleDeleteAgent} onEdit={handleOpenEdit} />
-                    ))}
-                </View>
+                {(() => {
+                    const filtered = employees.filter(a => {
+                        const fullName = `${a.user.first_name} ${a.user.last_name}`.toLowerCase();
+                        const email = a.user.email?.toLowerCase() || '';
+                        const q = searchQuery.toLowerCase().trim();
+                        const matchesSearch = q === '' || fullName.includes(q) || email.includes(q);
+                        const matchesTab =
+                            selectedTab === 'All Agents' ? true :
+                                selectedTab === 'Active' ? a.status === 1 :
+                                    selectedTab === 'Pending' ? a.status === 2 :
+                                        selectedTab === 'Inactive' ? a.status === 0 :
+                                            true;
+                        return matchesSearch && matchesTab;
+                    });
 
-                <AgentModal 
-                    visible={modalVisible} 
-                    onClose={() => setModalVisible(false)} 
+                    if (loadingEmployees) {
+                        return (
+                            <View style={styles.emptyState}>
+                                <ActivityIndicator size="large" color="#0BA0B2" />
+                                <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>Loading team members...</Text>
+                            </View>
+                        );
+                    }
+
+                    if (filtered.length === 0) {
+                        const isSearching = searchQuery.trim().length > 0;
+                        return (
+                            <View style={styles.emptyState}>
+                                <View style={styles.emptyStateIcon}>
+                                    <MaterialCommunityIcons
+                                        name={isSearching ? 'account-search-outline' : 'account-group-outline'}
+                                        size={40}
+                                        color="#CBD5E1"
+                                    />
+                                </View>
+                                <Text style={[styles.emptyStateTitle, { color: colors.textPrimary }]}>
+                                    {isSearching ? 'No results found' : `No ${selectedTab === 'All Agents' ? '' : selectedTab.toLowerCase() + ' '}agents`}
+                                </Text>
+                                <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
+                                    {isSearching
+                                        ? `No agents match "${searchQuery}". Try a different name or email.`
+                                        : selectedTab === 'All Agents'
+                                            ? 'Your team is empty. Add your first agent using the + button.'
+                                            : `No agents with ${selectedTab.toLowerCase()} status right now.`
+                                    }
+                                </Text>
+                                {isSearching && (
+                                    <TouchableOpacity style={styles.emptyStateCta} onPress={() => setSearchQuery('')}>
+                                        <Text style={{ color: '#0BA0B2', fontWeight: '700', fontSize: 13 }}>Clear Search</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        );
+                    }
+
+                    return (
+                        <View style={styles.agentListContainer}>
+                            {filtered.map(agent => (
+                                <AgentCard
+                                    key={agent.id}
+                                    agent={agent}
+                                    onDelete={handleDeleteAgent}
+                                    onEdit={handleOpenEdit}
+                                    onView={() => setViewingAgent(agent)}
+                                    onChangePassword={setChangePasswordAgent}
+                                    onToggleStatus={handleToggleStatus}
+                                    isUpdating={updatingAgentId === agent.id}
+                                />
+                            ))}
+                        </View>
+                    );
+                })()}
+
+                <AgentModal
+                    visible={modalVisible}
+                    onClose={() => setModalVisible(false)}
                     agent={editingAgent}
                     onSave={handleSaveAgent}
+                    roles={roles}
+                    isSaving={updateEmployeeMutation.isPending || createEmployeeMutation.isPending}
                 />
+
+            <AgentDetailsModal
+                visible={!!viewingAgent}
+                onClose={() => setViewingAgent(null)}
+                agent={viewingAgent}
+                onEdit={(agent) => {
+                    setViewingAgent(null);
+                    handleOpenEdit(agent);
+                }}
+                onChangePassword={(agent) => {
+                    setChangePasswordAgent(agent);
+                }}
+                onDelete={(agent) => {
+                    setViewingAgent(null);
+                    handleDeleteAgent(agent);
+                }}
+                onToggleStatus={handleToggleStatus}
+                isUpdating={updateStatusMutation.isPending}
+            />
+
+            <ChangePasswordModal
+                visible={!!changePasswordAgent}
+                onClose={() => setChangePasswordAgent(null)}
+                agent={changePasswordAgent}
+                onUpdate={(password) => {
+                    if (changePasswordAgent) {
+                        updatePasswordMutation.mutate({ employeeId: changePasswordAgent.id, password });
+                    }
+                }}
+                isUpdating={updatePasswordMutation.isPending}
+            />
+
+                {/* Delete Confirmation Modal */}
+                <Modal visible={!!agentToDelete} transparent={true} animationType="fade">
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={{ width: '85%', backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 8 }}>
+                            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
+                                    <MaterialCommunityIcons name="alert-outline" size={24} color="#EF4444" />
+                                </View>
+                            </View>
+
+                            <Text style={{ fontSize: 18, fontWeight: '800', color: '#0D1B2A', marginBottom: 8, textAlign: 'center' }}>Remove Team Member?</Text>
+                            <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', lineHeight: 19, marginBottom: 24, paddingHorizontal: 10 }}>
+                                Are you sure you want to remove <Text style={{ fontWeight: '700', color: '#0D1B2A' }}>{agentToDelete?.user?.first_name} {agentToDelete?.user?.last_name}</Text> from your agency? This action cannot be undone.
+                            </Text>
+
+                            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                                <TouchableOpacity
+                                    style={{ flex: 1, height: 46, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}
+                                    onPress={() => setAgentToDelete(null)}
+                                    disabled={deleteEmployeeMutation.isPending}
+                                >
+                                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#64748B' }}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{ flex: 1.2, height: 46, borderRadius: 12, backgroundColor: '#EF4444', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 2 }}
+                                    onPress={confirmDeleteAgent}
+                                    disabled={deleteEmployeeMutation.isPending}
+                                >
+                                    {deleteEmployeeMutation.isPending ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' }}>Remove</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
 
                 <View style={{ height: 100 }} />
             </ScrollView>
@@ -410,72 +1068,199 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     agentListContainer: {
-        gap: 16,
+        gap: 14,
     },
+
+    // ── AgentCard ──
     agentCard: {
-        borderRadius: 24,
+        borderRadius: 20,
         borderWidth: 1,
-        padding: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
-        elevation: 1,
-    },
-    agentCardTop: {
+        overflow: 'hidden',
         flexDirection: 'row',
-        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 2,
+    },
+    cardAccentStripe: {
+        width: 4,
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 20,
+    },
+    cardInner: {
+        flex: 1,
+        padding: 16,
+    },
+    cardTopRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
         gap: 12,
     },
-    agentBasicInfo: {
-        flex: 1,
+    avatarCircle: {
+        width: 50,
+        height: 50,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+    },
+    avatarInitial: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#fff',
+        letterSpacing: -0.5,
+    },
+    agentName: {
+        fontSize: 15,
+        fontWeight: '900',
+        letterSpacing: -0.3,
+    },
+    agentEmail: {
+        fontSize: 11,
+        fontWeight: '500',
+        marginTop: 1,
+    },
+    roleBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#EFF9FA',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        marginTop: 5,
+    },
+    roleBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#0BA0B2',
+        letterSpacing: 0.2,
+    },
+    statusChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 9,
+        paddingVertical: 4,
+        borderRadius: 10,
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    statusChipText: {
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 0.6,
     },
     agentCardDivider: {
         height: 1,
         backgroundColor: 'rgba(0,0,0,0.05)',
-        marginVertical: 14,
+        marginVertical: 13,
     },
-    agentCardDetails: {
+    metaGrid: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        paddingHorizontal: 4,
+        flexWrap: 'wrap',
+        gap: 10,
     },
-    detailItem: {
-        gap: 4,
-    },
-    detailLabel: {
-        fontSize: 10,
-        fontWeight: '900',
-        letterSpacing: 0.8,
-    },
-    detailValue: {
-        fontSize: 13,
-        fontWeight: '800',
-    },
-    agentCardFooter: {
-        marginTop: 4,
-        gap: 16,
-    },
-    moduleAccessPreview: {
-        width: '100%',
-    },
-    agentActions: {
+    metaCell: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
         alignItems: 'center',
+        gap: 7,
+        width: '47%',
     },
-    actionBtnGroup: {
+    metaIconWrap: {
+        width: 26,
+        height: 26,
+        borderRadius: 8,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+    },
+    metaLabel: {
+        fontSize: 8,
+        fontWeight: '900',
+        color: '#94A3B8',
+        letterSpacing: 0.8,
+        textTransform: 'uppercase',
+    },
+    metaValue: {
+        fontSize: 12,
+        fontWeight: '800',
+        marginTop: 1,
+    },
+    actionRow: {
         flexDirection: 'row',
-        gap: 12,
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
-    actionBtn: {
-        width: 38,
-        height: 38,
+    editBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#0D1B2A',
+        paddingHorizontal: 14,
+        paddingVertical: 9,
         borderRadius: 12,
-        backgroundColor: 'rgba(0,0,0,0.03)',
+    },
+    editBtnText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 0.2,
+    },
+    iconActions: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    iconActionBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 11,
+        backgroundColor: '#F8FAFC',
         alignItems: 'center',
         justifyContent: 'center',
     },
+
+    // ── Empty State ──
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 56,
+        paddingHorizontal: 32,
+        gap: 10,
+    },
+    emptyStateIcon: {
+        width: 80,
+        height: 80,
+        borderRadius: 24,
+        backgroundColor: '#F8FAFC',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 6,
+    },
+    emptyStateTitle: {
+        fontSize: 16,
+        fontWeight: '900',
+        letterSpacing: -0.3,
+    },
+    emptyStateText: {
+        fontSize: 13,
+        fontWeight: '500',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    emptyStateCta: {
+        marginTop: 8,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        backgroundColor: 'rgba(11,160,178,0.08)',
+        borderRadius: 12,
+    },
+
     fab: {
         position: 'absolute',
         bottom: 30,
@@ -494,36 +1279,32 @@ const styles = StyleSheet.create({
         marginBottom: 28,
     },
     mainHeading: {
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '900',
         letterSpacing: -0.5,
     },
     mainSubheading: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '500',
         marginTop: 4,
     },
-    statsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
+    statsScroll: {
+        gap: 5,
         marginBottom: 32,
     },
     statPanel: {
-        flex: 1,
-        minWidth: (width - 48 - 16) / 2,
-        padding: 16,
+        width: width * 0.38,
+        padding: 15,
         borderRadius: 20,
         borderWidth: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
     },
     statIconBox: {
-        width: 38,
-        height: 38,
+        width: 30,
+        height: 30,
         borderRadius: 12,
-        backgroundColor: 'rgba(11, 160, 178, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -531,11 +1312,11 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     statValue: {
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: '900',
     },
     statLabel: {
-        fontSize: 10,
+        fontSize: 7,
         fontWeight: '700',
         opacity: 0.6,
         letterSpacing: 0.8,
@@ -574,42 +1355,6 @@ const styles = StyleSheet.create({
     },
     tabTextActive: {
         fontWeight: '900',
-    },
-    avatarBox: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    avatarText: {
-        fontSize: 16,
-        fontWeight: '900',
-    },
-    agentName: {
-        fontSize: 15,
-        fontWeight: '900',
-        letterSpacing: -0.4,
-    },
-    agentEmail: {
-        fontSize: 11,
-        fontWeight: '500',
-        marginTop: 1,
-    },
-    moduleSubtitle: {
-        fontSize: 9,
-        fontWeight: '800',
-        letterSpacing: 0.2,
-    },
-    statusPill: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 10,
-    },
-    statusPillText: {
-        fontSize: 10,
-        fontWeight: '900',
-        textTransform: 'uppercase',
     },
     modalContainer: {
         flex: 1,

@@ -1,6 +1,7 @@
 import { DashboardLayout } from '@/components/main';
 import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { 
     ScrollView, 
@@ -29,7 +30,7 @@ const SUPPORT_LINES = [
     { title: 'Enterprise Partnerships', desc: 'Custom brokerage architecture and deployment.', email: 'sales@zien.ai', icon: 'handshake-outline', action: 'Reach Sales' },
 ];
 
-const CustomPicker = ({ label, value, options, onSelect }: any) => {
+const CustomPicker = ({ label, value, options, onSelect, icon }: any) => {
     const { colors } = useAppTheme();
     const [visible, setVisible] = useState(false);
 
@@ -38,29 +39,53 @@ const CustomPicker = ({ label, value, options, onSelect }: any) => {
             <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{label}</Text>
             <TouchableOpacity 
                 onPress={() => setVisible(true)}
-                style={[styles.pickerBtn, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}
+                style={[styles.pickerBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
+                activeOpacity={0.75}
             >
-                <Text style={{ color: value ? colors.textPrimary : colors.textMuted }}>{value || 'Select option'}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textSecondary} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                    {icon && <MaterialCommunityIcons name={icon} size={18} color="#64748B" />}
+                    <Text 
+                        style={{ color: value ? colors.textPrimary : colors.textMuted, fontSize: 13, fontWeight: '600' }} 
+                        numberOfLines={1}
+                    >
+                        {value || 'Select option'}
+                    </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-down" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
-            <Modal visible={visible} transparent animationType="slide">
+            <Modal 
+                visible={visible} 
+                transparent 
+                animationType="slide"
+                onRequestClose={() => setVisible(false)}
+            >
                 <View style={styles.modalOverlay}>
                     <View style={[styles.modalContent, { backgroundColor: '#FFFFFF' }]}>
+                        {/* Grab handle centered at top */}
+                        <View style={styles.modalGrabHandle} />
+                        
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{label}</Text>
-                            <TouchableOpacity onPress={() => setVisible(false)}>
-                                <MaterialCommunityIcons name="close" size={24} color="#000" />
+                            <TouchableOpacity 
+                                style={styles.modalCloseCircle}
+                                onPress={() => setVisible(false)}
+                            >
+                                <MaterialCommunityIcons name="close" size={18} color="#64748B" />
                             </TouchableOpacity>
                         </View>
+                        
                         {options.map((opt: string) => (
                             <TouchableOpacity 
                                 key={opt} 
                                 onPress={() => { onSelect(opt); setVisible(false); }}
                                 style={styles.modalOption}
+                                activeOpacity={0.7}
                             >
-                                <Text style={styles.modalOptionText}>{opt}</Text>
-                                {value === opt && <MaterialCommunityIcons name="check" size={20} color="#F97316" />}
+                                <Text style={[styles.modalOptionText, value === opt && { color: '#F97316', fontWeight: '800' }]}>
+                                    {opt}
+                                </Text>
+                                {value === opt && <MaterialCommunityIcons name="check" size={18} color="#F97316" />}
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -72,12 +97,14 @@ const CustomPicker = ({ label, value, options, onSelect }: any) => {
 
 const VirtualAssistant = () => {
     const { colors } = useAppTheme();
+    const [isChatFocused, setIsChatFocused] = useState(false);
+
     return (
         <View style={styles.tabContent}>
-            <View style={[styles.chatContainer, { backgroundColor: 'rgba(255,255,255,0.4)', borderColor: colors.cardBorder }]}>
+            <View style={[styles.chatContainer, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
                 <View style={styles.emptyChat}>
-                    <View style={styles.chatIconWrap}>
-                        <MaterialCommunityIcons name="comment-text-outline" size={32} color={colors.textMuted} />
+                    <View style={[styles.chatIconWrap, { backgroundColor: '#F0FDFA' }]}>
+                        <MaterialCommunityIcons name="robot-outline" size={32} color="#0BA0B2" />
                     </View>
                     <Text style={[styles.chatTitle, { color: colors.textPrimary }]}>How can I help you today?</Text>
                     <Text style={[styles.chatDesc, { color: colors.textSecondary }]}>
@@ -85,14 +112,25 @@ const VirtualAssistant = () => {
                     </Text>
                 </View>
             </View>
-            <View style={styles.chatInputRow}>
+            
+            <View style={[
+                styles.chatInputRow,
+                { backgroundColor: '#F8FAFC', borderColor: isChatFocused ? '#0BA0B2' : '#E2E8F0' }
+            ]}>
                 <TextInput 
                     placeholder="Type your message..."
                     placeholderTextColor={colors.textMuted}
-                    style={[styles.chatInput, { backgroundColor: '#fff', borderColor: colors.cardBorder }]}
+                    style={[styles.chatInput, { color: colors.textPrimary }]}
+                    onFocus={() => setIsChatFocused(true)}
+                    onBlur={() => setIsChatFocused(false)}
                 />
-                <TouchableOpacity style={styles.sendBtn}>
-                    <MaterialCommunityIcons name="send" size={20} color="#fff" />
+                <TouchableOpacity style={styles.sendBtn} activeOpacity={0.85}>
+                    <LinearGradient
+                        colors={['#F97316', '#EA580C']}
+                        style={styles.sendBtnGradient}
+                    >
+                        <MaterialCommunityIcons name="send" size={18} color="#fff" />
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
         </View>
@@ -108,9 +146,12 @@ const SubmittedTicket = () => {
         description: ''
     });
 
+    const [isSubjectFocused, setIsSubjectFocused] = useState(false);
+    const [isDescFocused, setIsDescFocused] = useState(false);
+
     return (
         <View style={styles.tabContent}>
-            <View style={[styles.formCard, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
+            <View style={[styles.formCard, { backgroundColor: colors.cardBackground, borderColor: '#F1F5F9' }]}>
                 <Text style={[styles.formHeading, { color: colors.textPrimary }]}>Submit a Support Ticket</Text>
                 
                 <View style={styles.rowInputs}>
@@ -120,6 +161,7 @@ const SubmittedTicket = () => {
                             value={form.category} 
                             options={['Technical Issue', 'Billing Inquiry', 'Account Security', 'Feature Request']}
                             onSelect={(v: string) => setForm({...form, category: v})}
+                            icon="tag-outline"
                         />
                     </View>
                     <View style={{ flex: 1 }}>
@@ -128,37 +170,71 @@ const SubmittedTicket = () => {
                             value={form.priority} 
                             options={['Low - General Inquiry', 'Medium - Need Assistance', 'High - Critical Bug', 'Urgent - System Outage']}
                             onSelect={(v: string) => setForm({...form, priority: v})}
+                            icon="alert-circle-outline"
                         />
                     </View>
                 </View>
 
+                {/* Subject Input Field with left icon and active focus transitions */}
                 <View style={styles.inputGroup}>
                     <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Subject</Text>
-                    <TextInput 
-                        style={[styles.textInput, { backgroundColor: colors.surfaceSoft, borderColor: colors.cardBorder, color: colors.textPrimary }]}
-                        placeholder="Brief description of the issue"
-                        placeholderTextColor={colors.textMuted}
-                        value={form.subject}
-                        onChangeText={(v) => setForm({...form, subject: v})}
-                    />
+                    <View style={[
+                        styles.inputContainerRow,
+                        { backgroundColor: '#F8FAFC', borderColor: isSubjectFocused ? '#0BA0B2' : '#E2E8F0' }
+                    ]}>
+                        <MaterialCommunityIcons 
+                            name="pencil-outline" 
+                            size={18} 
+                            color={isSubjectFocused ? '#0BA0B2' : '#64748B'} 
+                        />
+                        <TextInput 
+                            style={[styles.textInputStyle, { color: colors.textPrimary }]}
+                            placeholder="Brief description of the issue"
+                            placeholderTextColor={colors.textMuted}
+                            value={form.subject}
+                            onChangeText={(v) => setForm({...form, subject: v})}
+                            onFocus={() => setIsSubjectFocused(true)}
+                            onBlur={() => setIsSubjectFocused(false)}
+                        />
+                    </View>
                 </View>
 
+                {/* Description Input Field with left icon and active focus transitions */}
                 <View style={styles.inputGroup}>
                     <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Detailed Description</Text>
-                    <TextInput 
-                        style={[styles.textArea, { backgroundColor: colors.surfaceSoft, borderColor: colors.cardBorder, color: colors.textPrimary }]}
-                        placeholder="Please provide as much detail as possible..."
-                        placeholderTextColor={colors.textMuted}
-                        multiline
-                        textAlignVertical="top"
-                        value={form.description}
-                        onChangeText={(v) => setForm({...form, description: v})}
-                    />
+                    <View style={[
+                        styles.textAreaContainerRow,
+                        { backgroundColor: '#F8FAFC', borderColor: isDescFocused ? '#0BA0B2' : '#E2E8F0' }
+                    ]}>
+                        <MaterialCommunityIcons 
+                            name="text-box-outline" 
+                            size={18} 
+                            color={isDescFocused ? '#0BA0B2' : '#64748B'} 
+                            style={{ marginTop: 2 }}
+                        />
+                        <TextInput 
+                            style={[styles.textAreaStyle, { color: colors.textPrimary }]}
+                            placeholder="Please provide as much detail as possible..."
+                            placeholderTextColor={colors.textMuted}
+                            multiline
+                            textAlignVertical="top"
+                            value={form.description}
+                            onChangeText={(v) => setForm({...form, description: v})}
+                            onFocus={() => setIsDescFocused(true)}
+                            onBlur={() => setIsDescFocused(false)}
+                        />
+                    </View>
                 </View>
 
-                <TouchableOpacity style={styles.submitBtn}>
-                    <MaterialCommunityIcons name="plus-circle" size={20} color="#fff" />
-                    <Text style={styles.submitBtnText}>Create Support Ticket</Text>
+                {/* Submit button styled as a gorgeous orange gradient block */}
+                <TouchableOpacity style={styles.submitBtnWrapper} activeOpacity={0.9}>
+                    <LinearGradient
+                        colors={['#F97316', '#EA580C']}
+                        style={styles.submitBtnGradient}
+                    >
+                        <MaterialCommunityIcons name="plus-circle-outline" size={18} color="#fff" />
+                        <Text style={styles.submitBtnText}>Create Support Ticket</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
         </View>
@@ -170,14 +246,22 @@ const EmailSupport = () => {
     return (
         <View style={styles.tabContent}>
             <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Direct Support Lines</Text>
-            <Text style={[styles.sectionSubheading, { color: colors.textSecondary }]}>Connect with our specialized enterprise teams for rapid resolution.</Text>
+            <Text style={[styles.sectionSubheading, { color: colors.textSecondary }]}>
+                Connect with our specialized enterprise teams for rapid resolution.
+            </Text>
             
             <View style={styles.supportLinesList}>
                 {SUPPORT_LINES.map((line, i) => (
-                    <View key={i} style={[styles.supportLineCard, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
+                    <View 
+                        key={i} 
+                        style={[
+                            styles.supportLineCard, 
+                            { backgroundColor: colors.cardBackground, borderColor: '#F1F5F9' }
+                        ]}
+                    >
                         <View style={styles.supportLineTop}>
-                            <View style={[styles.iconBox, { backgroundColor: colors.surfaceSoft }]}>
-                                <MaterialCommunityIcons name={line.icon as any} size={24} color={colors.textPrimary} />
+                            <View style={[styles.iconBox, { backgroundColor: '#F0F9FF' }]}>
+                                <MaterialCommunityIcons name={line.icon as any} size={22} color="#0284C7" />
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={[styles.lineTitle, { color: colors.textPrimary }]}>{line.title}</Text>
@@ -185,8 +269,14 @@ const EmailSupport = () => {
                                 <Text style={[styles.lineEmail, { color: '#F97316' }]}>{line.email}</Text>
                             </View>
                         </View>
-                        <TouchableOpacity style={[styles.actionBtn, { borderColor: colors.cardBorder }]}>
-                            <Text style={[styles.actionBtnText, { color: colors.textPrimary }]}>{line.action}</Text>
+                        <TouchableOpacity 
+                            style={[styles.actionBtn, { borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' }]}
+                            activeOpacity={0.8}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={[styles.actionBtnText, { color: colors.textPrimary }]}>{line.action}</Text>
+                                <MaterialCommunityIcons name="arrow-right" size={12} color={colors.textSecondary} />
+                            </View>
                         </TouchableOpacity>
                     </View>
                 ))}
@@ -197,7 +287,7 @@ const EmailSupport = () => {
 
 export default function Support() {
     const { colors } = useAppTheme();
-    const [activeTab, setActiveTab] = useState('Virtual Assistant');
+    const [activeTab, setActiveTab] = useState('Submitted Ticket'); // Matches screenshot default
 
     return (
         <DashboardLayout 
@@ -212,11 +302,17 @@ export default function Support() {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
-                <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                    style={{ flex: 1 }} 
+                    contentContainerStyle={styles.scrollContent} 
+                    showsVerticalScrollIndicator={false}
+                >
                     {/* Page Header */}
                     <View style={styles.header}>
                         <Text style={[styles.mainTitle, { color: colors.textPrimary }]}>Agency Support Center</Text>
-                        <Text style={[styles.mainSubtitle, { color: colors.textSecondary }]}>Get help from our enterprise support team</Text>
+                        <Text style={[styles.mainSubtitle, { color: colors.textSecondary }]}>
+                            Get help from our enterprise support team
+                        </Text>
                     </View>
 
                     {/* Tabs */}
@@ -231,6 +327,7 @@ export default function Support() {
                                         { backgroundColor: colors.surfaceSoft },
                                         activeTab === tab && { backgroundColor: '#0D1B2A' }
                                     ]}
+                                    activeOpacity={0.85}
                                 >
                                     <Text style={[
                                         styles.tabText, 
@@ -255,10 +352,15 @@ export default function Support() {
                     <View style={styles.faqSection}>
                         <Text style={[styles.faqHeading, { color: colors.textPrimary }]}>Quick FAQs</Text>
                         {FAQS.map((faq, i) => (
-                            <View key={i} style={styles.faqItem}>
+                            <View 
+                                key={i} 
+                                style={[
+                                    styles.faqItem, 
+                                    { backgroundColor: '#FFFFFF', borderColor: '#F1F5F9' }
+                                ]}
+                            >
                                 <Text style={[styles.faqQ, { color: colors.textPrimary }]}>{faq.q}</Text>
                                 <Text style={[styles.faqA, { color: colors.textSecondary }]}>{faq.a}</Text>
-                                {i < FAQS.length - 1 && <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />}
                             </View>
                         ))}
                     </View>
@@ -312,64 +414,98 @@ const styles = StyleSheet.create({
         gap: 20,
     },
     chatContainer: {
-        height: 300,
+        height: 240,
         borderRadius: 24,
-        borderWidth: 1,
-        borderStyle: 'dashed',
+        borderWidth: 1.5,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 40,
+        padding: 28,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#0F172A',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.03,
+                shadowRadius: 12,
+            },
+            android: {
+                elevation: 2,
+            }
+        })
     },
     emptyChat: {
         alignItems: 'center',
     },
     chatIconWrap: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: 16,
     },
     chatTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '900',
         marginBottom: 8,
         textAlign: 'center',
     },
     chatDesc: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '500',
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 18,
     },
     chatInputRow: {
         flexDirection: 'row',
-        gap: 12,
+        alignItems: 'center',
+        gap: 10,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        paddingLeft: 16,
+        paddingRight: 6,
+        height: 52,
     },
     chatInput: {
         flex: 1,
-        height: 50,
-        borderRadius: 16,
-        borderWidth: 1,
-        paddingHorizontal: 16,
-        fontSize: 14,
+        fontSize: 13,
+        fontWeight: '600',
     },
     sendBtn: {
-        width: 50,
-        height: 50,
-        borderRadius: 16,
-        backgroundColor: '#F97316',
-        justifyContent: 'center',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    sendBtnGradient: {
+        width: '100%',
+        height: '100%',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     formCard: {
         padding: 20,
         borderRadius: 24,
         borderWidth: 1,
         gap: 20,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#0F172A',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.04,
+                shadowRadius: 15,
+            },
+            android: {
+                elevation: 3,
+            }
+        })
     },
     formHeading: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '900',
+        marginBottom: 4,
     },
     rowInputs: {
-        flexDirection: 'row',
+        flexDirection: 'column',
         gap: 16,
     },
     inputGroup: {
@@ -377,52 +513,75 @@ const styles = StyleSheet.create({
     },
     inputLabel: {
         fontSize: 12,
-        fontWeight: '700',
+        fontWeight: '800',
     },
     pickerBtn: {
-        height: 50,
+        height: 48,
         borderRadius: 14,
-        borderWidth: 1,
-        paddingHorizontal: 16,
+        borderWidth: 1.5,
+        paddingHorizontal: 14,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    textInput: {
-        height: 50,
+    inputContainerRow: {
+        height: 48,
         borderRadius: 14,
-        borderWidth: 1,
-        paddingHorizontal: 16,
+        borderWidth: 1.5,
+        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
     },
-    textArea: {
+    textInputStyle: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '600',
+        height: '100%',
+    },
+    textAreaContainerRow: {
         height: 120,
         borderRadius: 14,
-        borderWidth: 1,
-        padding: 16,
+        borderWidth: 1.5,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
     },
-    submitBtn: {
-        backgroundColor: '#F97316',
-        height: 56,
-        borderRadius: 16,
+    textAreaStyle: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '600',
+        height: '100%',
+    },
+    submitBtnWrapper: {
+        borderRadius: 14,
+        overflow: 'hidden',
+        marginTop: 10,
+    },
+    submitBtnGradient: {
+        height: 52,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
-        marginTop: 10,
+        gap: 8,
     },
     submitBtnText: {
         color: '#fff',
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: '900',
     },
     sectionHeading: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '900',
     },
     sectionSubheading: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '500',
-        marginTop: -16,
+        marginTop: -12,
+        lineHeight: 18,
+        marginBottom: 6,
     },
     supportLinesList: {
         gap: 16,
@@ -431,6 +590,17 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 24,
         borderWidth: 1,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#0F172A',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.02,
+                shadowRadius: 10,
+            },
+            android: {
+                elevation: 2,
+            }
+        })
     },
     supportLineTop: {
         flexDirection: 'row',
@@ -438,32 +608,33 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     iconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
+        width: 46,
+        height: 46,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
     },
     lineTitle: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '900',
         marginBottom: 4,
     },
     lineDesc: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '500',
-        lineHeight: 18,
-        marginBottom: 8,
+        lineHeight: 16,
+        marginBottom: 6,
     },
     lineEmail: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '700',
     },
     actionBtn: {
-        paddingVertical: 10,
+        height: 40,
         borderRadius: 12,
-        borderWidth: 1,
+        borderWidth: 1.5,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     actionBtnText: {
         fontSize: 12,
@@ -472,62 +643,89 @@ const styles = StyleSheet.create({
     faqSection: {
         paddingTop: 32,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.05)',
+        borderTopColor: '#F1F5F9',
     },
     faqHeading: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '900',
         marginBottom: 20,
     },
     faqItem: {
-        marginBottom: 16,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1.5,
+        marginBottom: 12,
     },
     faqQ: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '900',
-        marginBottom: 6,
+        marginBottom: 8,
     },
     faqA: {
         fontSize: 12,
         fontWeight: '500',
         lineHeight: 18,
-        marginBottom: 16,
-    },
-    divider: {
-        height: 1,
-        width: '100%',
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
         justifyContent: 'flex-end',
     },
     modalContent: {
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
         padding: 24,
         paddingBottom: 40,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#0F172A',
+                shadowOffset: { width: 0, height: -10 },
+                shadowOpacity: 0.1,
+                shadowRadius: 20,
+            },
+            android: {
+                elevation: 8,
+            }
+        })
+    },
+    modalGrabHandle: {
+        width: 36,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: '#CBD5E1',
+        alignSelf: 'center',
+        marginBottom: 16,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 20,
     },
     modalTitle: {
-        fontSize: 18,
+        fontSize: 15,
         fontWeight: '900',
+        color: '#0F172A',
+    },
+    modalCloseCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     modalOption: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 16,
+        paddingVertical: 15,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
+        borderBottomColor: '#F1F5F9',
     },
     modalOptionText: {
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: '600',
+        color: '#334155',
     },
 });
