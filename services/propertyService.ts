@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 const API_BASE_URL = 'http://18.219.170.119:4000/api';
 const REQUEST_TIMEOUT_MS = 15000;
 
@@ -75,9 +74,9 @@ export const analyzeProperty = async (address: string, accessToken: string): Pro
     // Normalize address: remove trailing ', USA' and use 'soft' encoding (keep commas literal)
     const normalizedAddress = address.replace(/, USA$/i, '');
     const encodedAddress = encodeURIComponent(normalizedAddress).replace(/%2C/g, ',');
-    
+
     const url = `${API_BASE_URL}/solo/properties/analyze?address=${encodedAddress}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       signal: controller.signal,

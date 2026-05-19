@@ -311,7 +311,7 @@ export const getWebsitePlans = async (): Promise<WebsitePlansResponse> => {
 export const updateEmployee = async (accessToken: string, employeeId: number, data: any): Promise<any> => {
   const response = await fetch(`${API_BASE_URL}/teams/employees/${employeeId}`, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },
@@ -325,7 +325,7 @@ export const updateEmployee = async (accessToken: string, employeeId: number, da
 export const createEmployee = async (accessToken: string, data: any): Promise<any> => {
   const response = await fetch(`${API_BASE_URL}/teams/employees`, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },
@@ -338,7 +338,7 @@ export const createEmployee = async (accessToken: string, data: any): Promise<an
 export const updateEmployeeStatus = async (accessToken: string, employeeId: number, companyId: number, status: number): Promise<any> => {
   const response = await fetch(`${API_BASE_URL}/teams/employees/${employeeId}/status`, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },
@@ -362,7 +362,7 @@ export const deleteEmployee = async (accessToken: string, employeeId: number, co
 export const updateEmployeePassword = async (accessToken: string, employeeId: number, companyId: number, password: string): Promise<any> => {
   const response = await fetch(`${API_BASE_URL}/teams/employees/${employeeId}/password`, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },

@@ -3,7 +3,7 @@ import { useAppTheme } from '@/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -20,6 +20,94 @@ export default function AgencyProfile() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { colors } = useAppTheme();
+
+    // Bind state to field inputs for high-fidelity functionality
+    const [fullName, setFullName] = useState('Skyline Agency Admin');
+    const [email, setEmail] = useState('admin@skyline-realty.com');
+    const [phone, setPhone] = useState('+1 (555) 123-4567');
+    const [website, setWebsite] = useState('https://skyline-realty.com');
+    const [address, setAddress] = useState('Suite 405, Innovation Tower, Tech Park, Berlin, Germany');
+    const [regNo, setRegNo] = useState('DE-99120349');
+    const [taxId, setTaxId] = useState('VAT-77283');
+
+    // Premium Local Input Component with Active Focus Highlights
+    const PremiumInput = ({
+        label,
+        value,
+        onChangeText,
+        placeholder,
+        icon,
+        keyboardType = 'default',
+        returnKeyType = 'next',
+        autoCapitalize = 'none',
+        multiline = false,
+    }: {
+        label: string;
+        value: string;
+        onChangeText: (text: string) => void;
+        placeholder: string;
+        icon: string;
+        keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'url';
+        returnKeyType?: 'next' | 'done';
+        autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+        multiline?: boolean;
+    }) => {
+        const [isFocused, setIsFocused] = useState(false);
+
+        return (
+            <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{label}</Text>
+                <View style={[
+                    styles.inputWrapper,
+                    {
+                        backgroundColor: colors.cardBackground,
+                        borderColor: isFocused ? colors.accentTeal : colors.cardBorder,
+                        height: multiline ? 100 : 54,
+                        alignItems: multiline ? 'flex-start' : 'center',
+                        paddingTop: multiline ? 12 : 0,
+                    }
+                ]}>
+                    <MaterialCommunityIcons
+                        name={icon as any}
+                        size={20}
+                        color={isFocused ? colors.accentTeal : colors.textSecondary}
+                        style={[styles.inputIcon, multiline && { marginTop: 2 }]}
+                    />
+                    <TextInput
+                        style={[
+                            styles.premiumTextInput,
+                            {
+                                color: colors.textPrimary,
+                                height: multiline ? 76 : 48,
+                                textAlignVertical: multiline ? 'top' : 'center',
+                            }
+                        ]}
+                        placeholder={placeholder}
+                        placeholderTextColor={colors.inputPlaceholder}
+                        value={value}
+                        onChangeText={onChangeText}
+                        keyboardType={keyboardType}
+                        returnKeyType={returnKeyType}
+                        autoCapitalize={autoCapitalize}
+                        multiline={multiline}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setIsFocused(false)}
+                    />
+                </View>
+            </View>
+        );
+    };
+
+    // Premium Section Header with subtle colored marker
+    const SectionHeader = ({ title, icon }: { title: string; icon: string }) => {
+        return (
+            <View style={styles.sectionHeaderContainer}>
+                <View style={[styles.sectionHeaderLine, { backgroundColor: colors.accentTeal }]} />
+                <MaterialCommunityIcons name={icon as any} size={16} color={colors.accentTeal} style={{ marginRight: 6 }} />
+                <Text style={[styles.sectionHeaderTitle, { color: colors.textPrimary }]}>{title}</Text>
+            </View>
+        );
+    };
 
     return (
         <LinearGradient
@@ -45,120 +133,161 @@ export default function AgencyProfile() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                {/* Identity & Status Card */}
-                <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
-                    <View style={styles.avatarCircle}>
-                        <View style={[styles.avatarBg, { backgroundColor: colors.surfaceSoft }]}>
-                            <MaterialCommunityIcons name="account" size={56} color={colors.accentTeal} />
+                    {/* Visual Identity & Status Card */}
+                    <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.avatarPressable,
+                                { transform: [{ scale: pressed ? 0.96 : 1 }] }
+                            ]}
+                            onPress={() => console.log('Change photo')}
+                        >
+                            <LinearGradient
+                                colors={[colors.accentTeal, colors.accentBlue]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.avatarGradientRing}
+                            >
+                                <View style={[styles.avatarBg, { backgroundColor: colors.cardBackground }]}>
+                                    <LinearGradient
+                                        colors={[colors.accentTeal + '15', colors.accentBlue + '15']}
+                                        style={styles.avatarInitialsBg}
+                                    >
+                                        <Text style={[styles.avatarInitialsText, { color: colors.accentTeal }]}>SA</Text>
+                                    </LinearGradient>
+                                </View>
+                            </LinearGradient>
+                            <View style={[styles.verifiedBadge, { backgroundColor: colors.accentTeal, borderColor: colors.cardBackground }]}>
+                                <MaterialCommunityIcons name="camera-plus" size={14} color="#fff" />
+                            </View>
+                        </Pressable>
+
+                        <View style={styles.nameSection}>
+                            <View style={styles.nameRow}>
+                                <Text style={[styles.profileName, { color: colors.textPrimary }]}>Skyline Agency Admin</Text>
+                                <MaterialCommunityIcons name="check-decagram" size={18} color="#10B981" style={styles.verifiedDecagram} />
+                            </View>
+                            <Text style={styles.profileRole}>MANAGING DIRECTOR</Text>
                         </View>
-                        <View style={styles.verifiedBadge}>
-                            <MaterialCommunityIcons name="shield-check" size={14} color="#fff" />
+
+                        {/* Modern Double Card Status Grid */}
+                        <View style={styles.statusSection}>
+                            <View style={styles.statusGrid}>
+                                <View style={[styles.statusCard, { backgroundColor: colors.surfaceSoft, borderColor: colors.cardBorder }]}>
+                                    <View style={[styles.statusIconContainer, { backgroundColor: '#10B98112' }]}>
+                                        <MaterialCommunityIcons name="shield-check" size={18} color="#10B981" />
+                                    </View>
+                                    <View style={styles.statusTextContainer}>
+                                        <Text style={[styles.statusLabelText, { color: colors.textSecondary }]}>STATUS</Text>
+                                        <Text style={[styles.statusValue, { color: '#10B981' }]}>Verified</Text>
+                                    </View>
+                                </View>
+                                <View style={[styles.statusCard, { backgroundColor: colors.surfaceSoft, borderColor: colors.cardBorder }]}>
+                                    <View style={[styles.statusIconContainer, { backgroundColor: colors.accentBlue + '12' }]}>
+                                        <MaterialCommunityIcons name="calendar-month-outline" size={18} color={colors.accentBlue} />
+                                    </View>
+                                    <View style={styles.statusTextContainer}>
+                                        <Text style={[styles.statusLabelText, { color: colors.textSecondary }]}>JOINED</Text>
+                                        <Text style={[styles.statusValue, { color: colors.textPrimary }]}>Dec 2023</Text>
+                                    </View>
+                                </View>
+                            </View>
                         </View>
                     </View>
-                    <Text style={[styles.profileName, { color: colors.textPrimary }]}>Skyline Agency Admin</Text>
-                    <Text style={styles.profileRole}>MANAGING DIRECTOR</Text>
 
-                    <View style={styles.statusSection}>
-                        <Text style={styles.sectionLabel}>ACCOUNT STATUS</Text>
-                        <View style={[styles.statusBox, { backgroundColor: colors.surfaceSoft, borderColor: colors.cardBorder }]}>
-                            <View style={styles.statusRow}>
-                                <Text style={[styles.statusLabelText, { color: colors.textSecondary }]}>Verification</Text>
-                                <Text style={[styles.statusValue, { color: '#10B981' }]}>Verified</Text>
-                            </View>
-                            <View style={[styles.statusRow, { borderBottomWidth: 0 }]}>
-                                <Text style={[styles.statusLabelText, { color: colors.textSecondary }]}>Member Since</Text>
-                                <Text style={[styles.statusValue, { color: colors.textPrimary }]}>Dec 2023</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Form Sections */}
-                <View style={styles.formContainer}>
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Full Name</Text>
-                        <TextInput
-                            style={[styles.input, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.textPrimary }]}
+                    {/* Form Sections */}
+                    <View style={styles.formContainer}>
+                        <SectionHeader title="Personal Details" icon="card-account-details-outline" />
+                        
+                        <PremiumInput
+                            label="Full Name"
+                            value={fullName}
+                            onChangeText={setFullName}
                             placeholder="Skyline Agency Admin"
-                            placeholderTextColor={colors.inputPlaceholder}
-                            returnKeyType="next"
+                            icon="account-outline"
                             autoCapitalize="words"
                         />
-                    </View>
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Email Address</Text>
-                        <TextInput
-                            style={[styles.input, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.textPrimary }]}
-                            placeholder="admin@skyline-realty.com"
-                            placeholderTextColor={colors.inputPlaceholder}
-                            keyboardType="email-address"
-                            returnKeyType="next"
-                            autoCapitalize="none"
-                        />
-                    </View>
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Phone Number</Text>
-                        <TextInput
-                            style={[styles.input, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.textPrimary }]}
-                            placeholder="+1 (555) 123-4567"
-                            placeholderTextColor={colors.inputPlaceholder}
-                            keyboardType="phone-pad"
-                            returnKeyType="next"
-                        />
-                    </View>
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Agency Website</Text>
-                        <TextInput
-                            style={[styles.input, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.textPrimary }]}
-                            placeholder="https://skyline-realty.com"
-                            placeholderTextColor={colors.inputPlaceholder}
-                            keyboardType="url"
-                            returnKeyType="next"
-                            autoCapitalize="none"
-                        />
-                    </View>
 
-                    <Text style={[styles.sectionLabel, { marginTop: 12 }]}>COMPANY INFORMATION</Text>
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Office Address</Text>
-                        <TextInput
-                            style={[styles.input, { height: 100, textAlignVertical: 'top', paddingTop: 12, backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.textPrimary }]}
-                            multiline
+                        <PremiumInput
+                            label="Email Address"
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="admin@skyline-realty.com"
+                            icon="email-outline"
+                            keyboardType="email-address"
+                        />
+
+                        <PremiumInput
+                            label="Phone Number"
+                            value={phone}
+                            onChangeText={setPhone}
+                            placeholder="+1 (555) 123-4567"
+                            icon="phone-outline"
+                            keyboardType="phone-pad"
+                        />
+
+                        <PremiumInput
+                            label="Agency Website"
+                            value={website}
+                            onChangeText={setWebsite}
+                            placeholder="https://skyline-realty.com"
+                            icon="web"
+                            keyboardType="url"
+                        />
+
+                        <SectionHeader title="Company Profile" icon="office-building-marker-outline" />
+
+                        <PremiumInput
+                            label="Office Address"
+                            value={address}
+                            onChangeText={setAddress}
                             placeholder="Suite 405, Innovation Tower, Tech Park, Berlin, Germany"
-                            placeholderTextColor={colors.inputPlaceholder}
-                            blurOnSubmit={false}
+                            icon="map-marker-outline"
+                            multiline
                         />
-                    </View>
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Company Registration No.</Text>
-                        <TextInput
-                            style={[styles.input, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.textPrimary }]}
+
+                        <PremiumInput
+                            label="Company Registration No."
+                            value={regNo}
+                            onChangeText={setRegNo}
                             placeholder="DE-99120349"
-                            placeholderTextColor={colors.inputPlaceholder}
-                            returnKeyType="next"
+                            icon="card-text-outline"
                         />
-                    </View>
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Tax ID</Text>
-                        <TextInput
-                            style={[styles.input, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.textPrimary }]}
+
+                        <PremiumInput
+                            label="Tax ID"
+                            value={taxId}
+                            onChangeText={setTaxId}
                             placeholder="VAT-77283"
-                            placeholderTextColor={colors.inputPlaceholder}
+                            icon="percent-outline"
                             returnKeyType="done"
                         />
                     </View>
-                </View>
 
-                {/* Fixed Save Button at the Bottom of Scroll */}
-                <Pressable style={[styles.saveBtn, { backgroundColor: colors.accentTeal }]}>
-                    <Text style={styles.saveBtnText}>Save Profile</Text>
-                </Pressable>
+                    {/* Fixed Save Button with brand gradient & micro-scale interaction */}
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.saveBtnContainer,
+                            { transform: [{ scale: pressed ? 0.98 : 1 }] }
+                        ]}
+                        onPress={() => console.log('Saved Profile:', { fullName, email, phone, website, address, regNo, taxId })}
+                    >
+                        <LinearGradient
+                            colors={colors.brandGradient as any}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.saveBtnGradient}
+                        >
+                            <MaterialCommunityIcons name="content-save-check-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.saveBtnText}>Save Profile</Text>
+                        </LinearGradient>
+                    </Pressable>
 
-                <View style={{ height: 40 }} />
-            </ScrollView>
-        </KeyboardAvoidingView>
-    </LinearGradient>
-);
+                    <View style={{ height: 40 }} />
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </LinearGradient>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -174,37 +303,68 @@ const styles = StyleSheet.create({
         padding: 24,
         borderWidth: 1,
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 8,
         shadowColor: '#000',
         shadowOpacity: 0.05,
         shadowRadius: 10,
         elevation: 2,
     },
-    avatarCircle: {
-        width: 110,
-        height: 110,
-        marginBottom: 16,
+    avatarPressable: {
         position: 'relative',
+        marginBottom: 16,
     },
-    avatarBg: {
-        width: 110,
-        height: 110,
+    avatarGradientRing: {
+        width: 106,
+        height: 106,
         borderRadius: 36,
+        padding: 3, // Ring thickness
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    avatarBg: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 33,
+        overflow: 'hidden',
+    },
+    avatarInitialsBg: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    avatarInitialsText: {
+        fontSize: 28,
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
     verifiedBadge: {
         position: 'absolute',
         bottom: -2,
         right: -2,
-        width: 26,
-        height: 26,
-        borderRadius: 9,
-        backgroundColor: '#F97316',
+        width: 28,
+        height: 28,
+        borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 3,
-        borderColor: '#fff',
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    nameSection: {
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    verifiedDecagram: {
+        marginLeft: 6,
+        marginTop: 2,
     },
     profileName: {
         fontSize: 20,
@@ -212,7 +372,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     profileRole: {
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: '900',
         color: '#F97316',
         textAlign: 'center',
@@ -221,29 +381,38 @@ const styles = StyleSheet.create({
     },
     statusSection: {
         width: '100%',
-        marginTop: 24,
+        marginTop: 8,
     },
-    sectionLabel: {
-        fontSize: 11,
-        fontWeight: '900',
-        letterSpacing: 1.2,
-        marginBottom: 14,
+    statusGrid: {
+        flexDirection: 'row',
+        gap: 12,
+        width: '100%',
     },
-    statusBox: {
+    statusCard: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
         borderRadius: 18,
-        padding: 16,
+        padding: 12,
         borderWidth: 1,
     },
-    statusRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,00,0,0.05)',
+    statusIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    statusTextContainer: {
+        flex: 1,
+        justifyContent: 'center',
     },
     statusLabelText: {
-        fontSize: 13,
-        fontWeight: '600',
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+        marginBottom: 2,
     },
     statusValue: {
         fontSize: 13,
@@ -251,6 +420,24 @@ const styles = StyleSheet.create({
     },
     formContainer: {
         gap: 16,
+    },
+    sectionHeaderContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 20,
+        marginBottom: 4,
+    },
+    sectionHeaderLine: {
+        width: 3.5,
+        height: 14,
+        borderRadius: 2,
+        marginRight: 8,
+    },
+    sectionHeaderTitle: {
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
     },
     inputGroup: {
         gap: 6,
@@ -260,24 +447,37 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         marginLeft: 4,
     },
-    input: {
+    inputWrapper: {
         borderRadius: 16,
-        height: 52,
+        borderWidth: 1,
+        flexDirection: 'row',
         paddingHorizontal: 16,
+        alignItems: 'center',
+    },
+    inputIcon: {
+        marginRight: 12,
+    },
+    premiumTextInput: {
+        flex: 1,
         fontSize: 14,
         fontWeight: '600',
-        borderWidth: 1,
+        padding: 0,
     },
-    saveBtn: {
-        height: 56,
+    saveBtnContainer: {
+        marginTop: 28,
         borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#0BA0B2',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    saveBtnGradient: {
+        flexDirection: 'row',
+        height: 56,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 28,
-        shadowColor: '#0BA0B2',
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 6,
     },
     saveBtnText: {
         color: '#fff',

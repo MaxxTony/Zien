@@ -78,6 +78,9 @@ const STYLES = [
 
 // Custom Before/After image slider
 function BeforeAfterSlider({ beforeUri, afterUri, height }: { beforeUri: string; afterUri: string; height: number }) {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+
     const position = useSharedValue(0.5);
     const startPosition = useSharedValue(0.5);
     const trackWidthRef = useRef(SCREEN_WIDTH - 40);
@@ -118,6 +121,7 @@ function BeforeAfterSlider({ beforeUri, afterUri, height }: { beforeUri: string;
 
 export default function VirtualStagingScreen() {
     const { colors } = useAppTheme();
+    const styles = getStyles(colors);
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -130,12 +134,10 @@ export default function VirtualStagingScreen() {
     const [selectedStyleId, setSelectedStyleId] = useState(1);
 
     const scrollRef = useRef<ScrollView>(null);
-    const [activeIndex, setActiveIndex] = useState(0);
 
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
-            // allowsEditing: true,
             aspect: [4, 3],
             quality: 1,
         });
@@ -150,7 +152,7 @@ export default function VirtualStagingScreen() {
     if (viewMode === 'loading') {
         return (
             <LinearGradient colors={colors.backgroundGradient as any} style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#0BA0B2" />
+                <ActivityIndicator size="large" color={colors.accentTeal} />
                 <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Architecting Your Vision</Text>
                 <Text style={[styles.sectionSubtitle, { textAlign: 'center' }]}>Generating {STYLES.find(s => s.id === selectedStyleId)?.name} environment for {category}...</Text>
             </LinearGradient>
@@ -166,7 +168,7 @@ export default function VirtualStagingScreen() {
                 </Pressable>
                 <ScrollView contentContainerStyle={{ padding: 20 }}>
                     <Text style={styles.sectionTitle}>AI Generation Studio</Text>
-                    <Text style={[styles.sectionSubtitle, { marginBottom: 20 }]}>Refining customstyle with precision rendering.</Text>
+                    <Text style={[styles.sectionSubtitle, { marginBottom: 20 }]}>Refining custom style with precision rendering.</Text>
 
                     <View style={styles.studioCard}>
                         <BeforeAfterSlider
@@ -193,7 +195,7 @@ export default function VirtualStagingScreen() {
                 </Pressable>
                 <ScrollView contentContainerStyle={{ padding: 20 }}>
                     <Text style={[styles.sectionTitle, { fontSize: 24, textAlign: 'center' }]}>Let's Build Your Vision</Text>
-                    <Text style={[styles.sectionSubtitle, { textAlign: 'center', marginBottom: 24 }]}>Configure your customstyle preferences below.</Text>
+                    <Text style={[styles.sectionSubtitle, { textAlign: 'center', marginBottom: 24 }]}>Configure your custom style preferences below.</Text>
 
                     <View style={styles.configCard}>
                         <Text style={styles.configLabel}>CHOOSE IMAGE</Text>
@@ -202,7 +204,7 @@ export default function VirtualStagingScreen() {
                                 <Image source={{ uri: selectedImage }} style={styles.uploadPreview} />
                             ) : (
                                 <View style={styles.uploadPlaceholder}>
-                                    <MaterialCommunityIcons name="upload" size={32} color="#0BA0B2" />
+                                    <MaterialCommunityIcons name="upload" size={32} color={colors.accentTeal} />
                                     <Text style={styles.uploadTextBold}>Upload picture</Text>
                                     <Text style={styles.uploadTextSmall}>Supports JPG, PNG up to 20MB</Text>
                                 </View>
@@ -212,14 +214,14 @@ export default function VirtualStagingScreen() {
                         <Text style={styles.configLabel}>CATEGORY</Text>
                         <Pressable style={styles.dropdownBtn} onPress={() => setShowCategoryDropdown(true)}>
                             <Text style={styles.dropdownText}>{category}</Text>
-                            <MaterialCommunityIcons name="chevron-down" size={18} color="#64748B" />
+                            <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textSecondary} />
                         </Pressable>
 
                         <Text style={styles.configLabel}>ADD DESCRIPTION</Text>
                         <TextInput
                             style={styles.textArea}
                             placeholder="e.g. Add a large gray velvet sofa, a coffee table..."
-                            placeholderTextColor="#94A3B8"
+                            placeholderTextColor={colors.inputPlaceholder}
                             multiline
                             numberOfLines={3}
                             value={description}
@@ -259,19 +261,21 @@ export default function VirtualStagingScreen() {
                     </View>
                 </ScrollView>
 
-                {/* Category Modal dropdown */}
+                {/* Category Dropdown Modal */}
                 <Modal visible={showCategoryDropdown} transparent animationType="fade">
                     <Pressable style={styles.modalOverlay} onPress={() => setShowCategoryDropdown(false)}>
                         <View style={styles.modalContent}>
-                            {CATEGORIES.map((c) => (
-                                <Pressable
-                                    key={c}
-                                    style={styles.modalItem}
-                                    onPress={() => { setCategory(c); setShowCategoryDropdown(false); }}
-                                >
-                                    <Text style={styles.modalItemText}>{c}</Text>
-                                </Pressable>
-                            ))}
+                            <ScrollView bounces={false}>
+                                {CATEGORIES.map((c) => (
+                                    <Pressable
+                                        key={c}
+                                        style={styles.modalItem}
+                                        onPress={() => { setCategory(c); setShowCategoryDropdown(false); }}
+                                    >
+                                        <Text style={styles.modalItemText}>{c}</Text>
+                                    </Pressable>
+                                ))}
+                            </ScrollView>
                         </View>
                     </Pressable>
                 </Modal>
@@ -326,77 +330,146 @@ export default function VirtualStagingScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    background: { flex: 1 },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 20 },
-    backBtn: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 6 },
-    backBtnText: { fontSize: 13, fontWeight: '800', color: '#FFF' },
+// Hoisted theme style declaration for Light/Dark mode accessibility
+function getStyles(colors: any) {
+    return StyleSheet.create({
+        container: { flex: 1 },
+        background: { flex: 1 },
+        scroll: { flex: 1 },
+        scrollContent: { paddingHorizontal: 20 },
+        backBtn: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 6 },
+        backBtnText: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
 
-    // Carousel
-    carouselContainer: { marginBottom: 32 },
-    bannerCard: { width: SCREEN_WIDTH - 40, borderRadius: 24, overflow: 'hidden' },
-    bannerGradient: { padding: 16 },
-    bannerImageContainer: { width: '100%', aspectRatio: 1.6, borderRadius: 16, overflow: 'hidden', flexDirection: 'row', marginBottom: 20 },
-    bannerHalfImage: { width: '50%', height: '100%', resizeMode: 'cover' },
-    bannerContent: { flex: 1 },
-    bannerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '900', marginBottom: 8 },
-    bannerDesc: { color: '#94A3B8', fontSize: 12, lineHeight: 18, marginBottom: 16 },
-    tryThisBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0BA0B2', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10, alignSelf: 'flex-start' },
-    tryThisBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+        // Carousel
+        carouselContainer: { marginBottom: 32 },
+        bannerCard: { width: SCREEN_WIDTH - 40, borderRadius: 24, overflow: 'hidden' },
+        bannerGradient: { padding: 16 },
+        bannerImageContainer: { width: '100%', aspectRatio: 1.6, borderRadius: 16, overflow: 'hidden', flexDirection: 'row', marginBottom: 20 },
+        bannerHalfImage: { width: '50%', height: '100%', resizeMode: 'cover' },
+        bannerContent: { flex: 1 },
+        bannerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '900', marginBottom: 8 },
+        bannerDesc: { color: '#94A3B8', fontSize: 12, lineHeight: 18, marginBottom: 16 },
+        tryThisBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0BA0B2', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10, alignSelf: 'flex-start' },
+        tryThisBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
 
-    // Section Kit
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    sectionTitle: { fontSize: 22, fontWeight: '900', color: '#FFF', marginBottom: 4 },
-    sectionSubtitle: { fontSize: 12, color: '#94A3B8', lineHeight: 18 },
+        // Section Kit
+        sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+        sectionTitle: { fontSize: 22, fontWeight: '900', color: colors.textPrimary, marginBottom: 4 },
+        sectionSubtitle: { fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
 
-    // Kit Grid
-    kitGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 16 },
-    kitCard: { width: (SCREEN_WIDTH - 52) / 2, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden' },
-    kitImageWrapper: { width: '100%', aspectRatio: 1.3 },
-    kitBadgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800', marginBottom: 8 },
-    kitBtn: { backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-    kitBtnText: { fontSize: 11, fontWeight: '800', color: '#FFF' },
+        // Kit Grid
+        kitGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 16 },
+        kitCard: { 
+            width: (SCREEN_WIDTH - 52) / 2, 
+            backgroundColor: colors.cardBackground, 
+            borderRadius: 16, 
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: colors.cardShadowOpacity ?? 0.05,
+            shadowRadius: 8,
+            shadowOffset: colors.cardShadowOffset ?? { width: 0, height: 4 },
+            elevation: 2,
+        },
+        kitImageWrapper: { width: '100%', aspectRatio: 1.3 },
+        kitBadgeText: { color: colors.textPrimary, fontSize: 12, fontWeight: '800', marginBottom: 8 },
+        kitBtn: { 
+            backgroundColor: colors.surfaceSoft, 
+            paddingVertical: 8, 
+            borderRadius: 8, 
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        kitBtnText: { fontSize: 11, fontWeight: '800', color: colors.accentTeal },
 
-    // Config form component styling
-    configCard: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 24, padding: 20 },
-    configLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '900', letterSpacing: 1, marginTop: 16, marginBottom: 8 },
-    uploadBox: { width: '100%', aspectRatio: 1.5, borderRadius: 16, borderWidth: 1, borderColor: '#0BA0B2', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-    uploadPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
-    uploadPlaceholder: { alignItems: 'center' },
-    uploadTextBold: { color: '#FFF', fontSize: 14, fontWeight: '900', marginTop: 8 },
-    uploadTextSmall: { color: '#64748B', fontSize: 10, marginTop: 4 },
-    dropdownBtn: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, borderRadius: 12 },
-    dropdownText: { color: '#FFF', fontSize: 14, fontWeight: '800' },
-    textArea: { backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, borderRadius: 12, color: '#FFF', textAlignVertical: 'top' },
-    pillRow: { flexDirection: 'row', gap: 10 },
-    pill: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
-    pillActive: { backgroundColor: 'rgba(11, 160, 178, 0.1)', borderColor: '#0BA0B2' },
-    pillText: { color: '#64748B', fontSize: 13, fontWeight: '800' },
-    pillTextActive: { color: '#0BA0B2' },
-    styleGrid: { flexDirection: 'row', marginTop: 8 },
-    styleCard: { marginRight: 12, width: 100, alignItems: 'center' },
-    styleCardActive: { borderColor: '#0BA0B2', borderWidth: 1, borderRadius: 12, padding: 4 },
-    styleImage: { width: '100%', height: 70, borderRadius: 10, marginBottom: 6 },
-    styleText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
-    generateBtn: { backgroundColor: '#0BA0B2', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 24 },
-    generateBtnText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
+        // Config form component styling
+        configCard: { 
+            backgroundColor: colors.cardBackground, 
+            borderRadius: 24, 
+            padding: 20,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            shadowColor: colors.cardShadowColor,
+            shadowOpacity: colors.cardShadowOpacity ?? 0.05,
+            shadowRadius: 10,
+            shadowOffset: colors.cardShadowOffset ?? { width: 0, height: 6 },
+            elevation: 3,
+        },
+        configLabel: { color: colors.textSecondary, fontSize: 10, fontWeight: '900', letterSpacing: 1, marginTop: 16, marginBottom: 8 },
+        uploadBox: { width: '100%', aspectRatio: 1.5, borderRadius: 16, borderWidth: 1, borderColor: '#0BA0B2', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+        uploadPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
+        uploadPlaceholder: { alignItems: 'center' },
+        uploadTextBold: { color: colors.textPrimary, fontSize: 14, fontWeight: '900', marginTop: 8 },
+        uploadTextSmall: { color: colors.textMuted, fontSize: 10, marginTop: 4 },
+        dropdownBtn: { 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            backgroundColor: colors.inputBackground, 
+            padding: 14, 
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        dropdownText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800' },
+        textArea: { 
+            backgroundColor: colors.inputBackground, 
+            padding: 14, 
+            borderRadius: 12, 
+            color: colors.textPrimary, 
+            textAlignVertical: 'top',
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        pillRow: { flexDirection: 'row', gap: 10 },
+        pill: { 
+            flex: 1, 
+            paddingVertical: 12, 
+            borderRadius: 10, 
+            backgroundColor: colors.cardBackground, 
+            borderWidth: 1, 
+            borderColor: colors.cardBorder, 
+            alignItems: 'center',
+        },
+        pillActive: { backgroundColor: colors.accentTeal + '15', borderColor: colors.accentTeal },
+        pillText: { color: colors.textSecondary, fontSize: 13, fontWeight: '800' },
+        pillTextActive: { color: colors.accentTeal },
+        styleGrid: { flexDirection: 'row', marginTop: 8 },
+        styleCard: { marginRight: 12, width: 100, alignItems: 'center' },
+        styleCardActive: { borderColor: colors.accentTeal, borderWidth: 1, borderRadius: 12, padding: 4 },
+        styleImage: { width: '100%', height: 70, borderRadius: 10, marginBottom: 6 },
+        styleText: { color: colors.textPrimary, fontSize: 10, fontWeight: '800' },
+        generateBtn: { backgroundColor: '#0BA0B2', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 24 },
+        generateBtnText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
 
-    // Dropdown Modal
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-    modalContent: { width: '80%', backgroundColor: '#1E293B', borderRadius: 16, padding: 10 },
-    modalItem: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    modalItemText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+        // Dropdown Modal
+        modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+        modalContent: { 
+            width: '80%', 
+            maxHeight: '60%',
+            backgroundColor: colors.cardBackground, 
+            borderRadius: 16, 
+            padding: 10,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            shadowColor: '#000',
+            shadowOpacity: 0.15,
+            shadowRadius: 10,
+            elevation: 5,
+        },
+        modalItem: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
+        modalItemText: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
 
-    // Studio Component Comparisons
-    studioCard: { borderRadius: 16, overflow: 'hidden', marginBottom: 20 },
-    compareContainer: { width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 16 },
-    compareFullImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', resizeMode: 'cover' },
-    compareClip: { position: 'absolute', left: 0, top: 0, bottom: 0, overflow: 'hidden' },
-    compareThumb: { position: 'absolute', top: '50%', marginTop: -18, width: 28, height: 36, borderRadius: 14, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#0BA0B2' },
-    rawLabel: { position: 'absolute', top: 12, left: 12, backgroundColor: '#0B2046', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-    rawLabelText: { color: '#FFF', fontSize: 9, fontWeight: '900' },
-    stagedLabel: { position: 'absolute', top: 12, right: 12, backgroundColor: '#0BA0B2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-    stagedLabelText: { color: '#FFF', fontSize: 9, fontWeight: '900' }
-});
+        // Studio Component Comparisons
+        studioCard: { borderRadius: 16, overflow: 'hidden', marginBottom: 20 },
+        compareContainer: { width: '100%', position: 'relative', overflow: 'hidden', borderRadius: 16 },
+        compareFullImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', resizeMode: 'cover' },
+        compareClip: { position: 'absolute', left: 0, top: 0, bottom: 0, overflow: 'hidden' },
+        compareThumb: { position: 'absolute', top: '50%', marginTop: -18, width: 28, height: 36, borderRadius: 14, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#0BA0B2' },
+        rawLabel: { position: 'absolute', top: 12, left: 12, backgroundColor: '#0B2046', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+        rawLabelText: { color: '#FFF', fontSize: 9, fontWeight: '900' },
+        stagedLabel: { position: 'absolute', top: 12, right: 12, backgroundColor: '#0BA0B2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+        stagedLabelText: { color: '#FFF', fontSize: 9, fontWeight: '900' }
+    });
+}

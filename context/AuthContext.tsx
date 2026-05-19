@@ -37,14 +37,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Note: Specific redirection logic is handled in the Login screen after API call
         // This is a safety fallback for app restarts
         let dashboardPath = (userRole === 'agency_user' || userRole === 'agency') ? '/(main)/agency' : '/(main)/dashboard';
-        
+
         // If profile is not complete, redirect back to onboarding
         if (!isCompleteProfile) {
-          dashboardPath = (userRole === 'agency_user' || userRole === 'agency') 
-            ? '/(auth)/team-onboarding?isCompleting=true' 
+          dashboardPath = (userRole === 'agency_user' || userRole === 'agency')
+            ? '/(auth)/team-onboarding?isCompleting=true'
             : '/(auth)/solo-onboarding?isCompleting=true';
         }
-        
+
         router.replace(dashboardPath as any);
       }
     } else {
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(token);
     if (role) setUserRole(role);
     if (isComplete !== undefined) setIsCompleteProfile(isComplete);
-    
+
     await AsyncStorage.setItem('access_token', token);
     if (role) await AsyncStorage.setItem('user_role', role);
     if (isComplete !== undefined) {

@@ -6,3 +6,5 @@ export { SectionCard } from './SectionCard';
 export { SearchBar } from './SearchBar';
 export { StatCard } from './StatCard';
 export { UpdateRow } from './UpdateRow';
+export { ZienScoreCard } from './ZienScoreCard';
+
