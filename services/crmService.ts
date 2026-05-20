@@ -1,4 +1,4 @@
-const CRM_API_BASE_URL = 'http://18.219.170.119:4000/api';
+const CRM_API_BASE_URL = 'https://staging.zien.ai/api';
 const REQUEST_TIMEOUT_MS = 15000;
 
 export interface CRMOverviewResponse {

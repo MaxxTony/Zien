@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://18.219.170.119:4000/api';
+const API_BASE_URL = 'https://staging.zien.ai/api';
 
 export interface SocialPostMedia {
   id: number;

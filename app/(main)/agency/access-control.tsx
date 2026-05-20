@@ -33,7 +33,7 @@ import {
 import { AGENCY_BG, AGENCY_MENU_ITEMS, AgencyLogo } from './index';
 
 const { width } = Dimensions.get('window');
-const API_BASE_URL = 'http://18.219.170.119:4000/api';
+const API_BASE_URL = 'https://staging.zien.ai/api';
 
 // Custom API integrations for Role & Menu CRUD
 const createRoleApi = async (accessToken: string, companyId: number, name: string, description: string) => {
@@ -1167,13 +1167,13 @@ export default function AccessControl() {
                                     ]}>
                                         {menuParentId ? allMenus?.find(m => m.id === parseInt(menuParentId))?.name || 'No Parent (Root)' : 'No Parent (Root)'}
                                     </Text>
-                                    <MaterialCommunityIcons 
-                                        name={isAddParentDropdownOpen ? "chevron-up" : "chevron-down"} 
-                                        size={20} 
-                                        color={isAddParentDropdownOpen ? "#0BA0B2" : "#64748B"} 
+                                    <MaterialCommunityIcons
+                                        name={isAddParentDropdownOpen ? "chevron-up" : "chevron-down"}
+                                        size={20}
+                                        color={isAddParentDropdownOpen ? "#0BA0B2" : "#64748B"}
                                     />
                                 </TouchableOpacity>
-                                
+
                                 {isAddParentDropdownOpen && (
                                     <View style={styles.dropdownOptionsConnected}>
                                         <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
@@ -1359,13 +1359,13 @@ export default function AccessControl() {
                                     ]}>
                                         {menuParentId ? allMenus?.find(m => m.id === parseInt(menuParentId))?.name || 'No Parent (Root)' : 'No Parent (Root)'}
                                     </Text>
-                                    <MaterialCommunityIcons 
-                                        name={isEditParentDropdownOpen ? "chevron-up" : "chevron-down"} 
-                                        size={20} 
-                                        color={isEditParentDropdownOpen ? "#0BA0B2" : "#64748B"} 
+                                    <MaterialCommunityIcons
+                                        name={isEditParentDropdownOpen ? "chevron-up" : "chevron-down"}
+                                        size={20}
+                                        color={isEditParentDropdownOpen ? "#0BA0B2" : "#64748B"}
                                     />
                                 </TouchableOpacity>
-                                
+
                                 {isEditParentDropdownOpen && (
                                     <View style={styles.dropdownOptionsConnected}>
                                         <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">

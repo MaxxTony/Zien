@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://18.219.170.119:4000/api';
+const API_BASE_URL = 'https://staging.zien.ai/api';
 const REQUEST_TIMEOUT_MS = 15000;
 
 export interface LoginRequest {
@@ -63,10 +63,34 @@ export const loginAgent = async (payload: LoginRequest): Promise<LoginResponse> 
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(data.message || `Server error: ${response.status} ${response.statusText}`);
+      const errorMessage = data?.message || data?.error?.message || data?.data?.message || `Server error: ${response.status} ${response.statusText}`;
+      throw new Error(errorMessage);
     }
 
-    return data;
+    // Staging API returns token in Set-Cookie header as 'website_access_token'
+    // Extract it from the cookie if not present in response body
+    let accessToken = data?.access_token || data?.data?.access_token;
+
+    if (!accessToken) {
+      const setCookie = response.headers.get('set-cookie') || '';
+      const tokenMatch = setCookie.match(/website_access_token=([^;]+)/);
+      if (tokenMatch) {
+        accessToken = tokenMatch[1];
+        console.log('[AuthService] Token extracted from Set-Cookie header');
+      }
+    }
+
+    if (!accessToken) {
+      console.error('[AuthService] No access_token found in response body or headers');
+      throw new Error('Login failed: No access token received from server.');
+    }
+
+    return {
+      access_token: accessToken,
+      role: data.role || '',
+      complete_profile: data.complete_profile ?? false,
+      redirect_to: data.redirect_to || '',
+    };
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Login request timed out. Please check your connection and try again.');

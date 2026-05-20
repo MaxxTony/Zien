@@ -4,8 +4,7 @@ import {
   LeadRow,
   SearchBar,
   SectionCard,
-  UpdateRow,
-  ZienScoreCard
+  UpdateRow
 } from '@/components/dashboard';
 import type { NavMenuItem } from '@/components/main';
 import { DashboardLayout } from '@/components/main';
@@ -478,9 +477,6 @@ export default function DashboardScreen() {
 
         {/* ── Quick Actions ── */}
         <ActionPillsRow items={QUICK_ACTIONS} />
-
-        {/* ── Zien Score Animation ── */}
-        <ZienScoreCard />
 
         {/* ── Stat Cards (2×2 grid) ── */}
         <View style={styles.statsGrid}>
